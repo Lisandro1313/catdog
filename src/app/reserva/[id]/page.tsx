@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { confirmPaymentById, getTakenSeats } from "@/lib/reservations";
 import { isMercadoPagoConfigured } from "@/lib/mp";
-import { SITE_NAME, formatPrice } from "@/lib/config";
+import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, whatsappUrl } from "@/lib/config";
 import { formatLong, formatTime, nowMs } from "@/lib/dates";
 import { SeatChooser } from "@/components/SeatChooser";
 
@@ -65,6 +65,24 @@ export default async function ReservationPage({ params, searchParams }: Props) {
                 <div className="mt-6 rounded-xl bg-surface-2 p-4">
                   <p className="eyebrow">Dónde</p>
                   <p className="mt-1 font-display text-xl">{reservation.event.address}</p>
+                </div>
+              )}
+              {CONTACT_PHONES.length > 0 && (
+                <div className="mt-4 text-sm text-muted">
+                  <p>Consultas por WhatsApp:</p>
+                  <p className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1">
+                    {CONTACT_PHONES.map((p) => (
+                      <a
+                        key={p}
+                        className="text-accent hover:text-accent-strong"
+                        href={whatsappUrl(p, `Hola! Tengo una consulta por mi reserva para ${reservation.event.title} (${reservation.name}).`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {formatPhone(p)}
+                      </a>
+                    ))}
+                  </p>
                 </div>
               )}
             </>

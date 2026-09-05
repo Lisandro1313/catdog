@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { createHmac } from "node:crypto";
-import { SITE_NAME, formatPrice, siteUrl } from "./config";
+import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, siteUrl, whatsappUrl } from "./config";
 import { formatLong, formatTime } from "./dates";
 
 function resend(): Resend | null {
@@ -68,6 +68,13 @@ export async function sendReservationConfirmed(input: {
     <p><strong>${input.event.title}</strong><br>
     ${formatLong(input.event.date)} · ${formatTime(input.event.date)} hs</p>
     ${input.event.address ? `<p><em>Dónde:</em> ${input.event.address}</p>` : ""}
+    ${
+      CONTACT_PHONES.length
+        ? `<p><em>Consultas por WhatsApp:</em> ${CONTACT_PHONES.map(
+            (p) => `<a href="${whatsappUrl(p)}" style="color:#c9a96e">${formatPhone(p)}</a>`,
+          ).join(" · ")}</p>`
+        : ""
+    }
     ${seatsBlock}
     <p>Pagaste ${formatPrice(input.amount)}.</p>
     ${input.event.menu ? `<p><em>La noche, en pasos:</em><br>${input.event.menu.replace(/\n/g, "<br>")}</p>` : ""}
