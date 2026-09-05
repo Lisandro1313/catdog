@@ -228,3 +228,51 @@ export async function assignSeatsAction(_prev: ActionState, formData: FormData):
   revalidatePath(`/admin/eventos/${r.eventId}`);
   return { ok: true, message: "Lugares asignados." };
 }
+
+/** Borra una reserva definitivamente (libera sillas y cupo). Para pruebas o devoluciones ya resueltas. */
+export async function deleteReservationAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const r = await prisma.reservation.findUnique({ where: { id }, select: { eventId: true } });
+  if (!r) return;
+  await prisma.reservation.delete({ where: { id } });
+  revalidatePath("/");
+  revalidatePath(`/admin/eventos/${r.eventId}`);
+}
+
+const ledgerSchema = z.object({
+  eventId: z.string().min(1),
+  kind: z.enum(["INCOME", "EXPENSE"]),
+  category: z.string().trim().min(1).max(40),
+  description: z.string().trim().max(200).optional(),
+  amount: z.coerce.number().int().min(1),
+});
+
+export async function addLedgerEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const parsed = ledgerSchema.safeParse({
+    eventId: formData.get("eventId"),
+    kind: formData.get("kind"),
+    category: formData.get("category"),
+    description: formData.get("description") || undefined,
+    amount: formData.get("amount"),
+  });
+  if (!parsed.success) return { ok: false, message: "Revisá tipo, rubro y monto." };
+  const d = parsed.data;
+  await prisma.ledgerEntry.create({
+    data: { eventId: d.eventId, kind: d.kind, category: d.category, description: d.description ?? null, amount: d.amount },
+  });
+  revalidatePath(`/admin/eventos/${d.eventId}`);
+  revalidatePath("/admin");
+  return { ok: true, message: "Movimiento cargado." };
+}
+
+export async function deleteLedgerEntryAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const e = await prisma.ledgerEntry.findUnique({ where: { id }, select: { eventId: true } });
+  if (!e) return;
+  await prisma.ledgerEntry.delete({ where: { id } });
+  revalidatePath(`/admin/eventos/${e.eventId}`);
+  revalidatePath("/admin");
+}

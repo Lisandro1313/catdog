@@ -6,6 +6,7 @@ import { ReserveForm } from "@/components/ReserveForm";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { MenuSteps } from "@/components/MenuSteps";
 import { ResponsiveTableMap, TableLegend, type SeatVisual } from "@/components/TableMap";
+import { TrackVisit } from "@/components/TrackVisit";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col">
+      <TrackVisit />
       <header className="mx-auto w-full max-w-3xl px-5 pt-10 pb-6 text-center">
         <p className="eyebrow">{SITE_TAGLINE}</p>
         <h1 className="font-display mt-3 text-5xl sm:text-6xl tracking-tight">{SITE_NAME}</h1>

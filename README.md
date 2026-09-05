@@ -22,11 +22,15 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
 
 ## Panel `/admin`
 
-- Crear / editar / despublicar cenas (título, fecha, precio, cantidad de lugares, descripción, pasos de la noche en formato `plato | trago`, dirección privada).
-- Ver reservas por cena, marcar pagado a mano (efectivo / transferencia), cancelar (libera las sillas).
-- Cargar reservas a mano (alguien que te pagó en efectivo o un invitado) y asignar o cambiar sillas de cualquier reserva.
+- **Inicio:** qué cena está mostrando el home ahora (con pagos / en proceso / libres), estado de Mercado Pago y Resend, suscriptores, cubiertos vendidos, visitas al sitio (hoy, 7 y 30 días, gráfico de 14 días) y rendimiento global (reservas cobradas + barra − gastos).
+- **Cenas:** crear / editar / despublicar (título, fecha, precio, lugares, descripción, pasos de la noche en formato `plato | trago`, dirección privada).
+- **Reservas por cena:** marcar pagado a mano, cancelar (libera lugares, queda registro), **borrar** definitivamente (para pruebas o devoluciones ya resueltas), asignar o cambiar sillas, cargar reservas a mano (efectivo / transferencia / invitado).
+- **Caja por cena:** ingresos (barra, otros) y gastos (insumos, bebidas, personal, otros) con detalle y monto. Muestra reservas cobradas, barra, gastos y resultado.
+- **Contactos:** todas las personas que pagaron alguna vez, una fila por email, con teléfono, cantidad de cenas, lugares, gasto total y última cena. Botón para descargar CSV.
 - Botón "Avisar a suscriptores": manda el mail de nueva fecha a todos los anotados.
 - QR + link del sitio para el flyer.
+
+Las visitas se cuentan con un beacon desde el home (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. No cuenta las visitas al panel.
 
 ## Variables de entorno
 
@@ -71,3 +75,5 @@ Migraciones: `npm run db:migrate` (crea y aplica). En Vercel el build corre `pri
 - `Reservation`: nombre, email, cantidad de lugares, estado `PENDING | PAID | CANCELLED`, monto, vencimiento del hold, ids de Mercado Pago.
 - `Seat`: una silla elegida por una reserva pagada. Única por evento, así dos personas no pueden agarrar la misma.
 - `Subscriber`: emails anotados para enterarse de nuevas fechas.
+- `LedgerEntry`: movimientos de caja de una cena (ingreso o gasto, rubro, detalle, monto).
+- `PageView`: visitas al home agregadas por día.

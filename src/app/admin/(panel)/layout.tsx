@@ -29,6 +29,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             {SITE_NAME} <span className="text-muted text-sm font-sans">/ panel</span>
           </Link>
           <div className="flex items-center gap-4 text-sm">
+            <Link href="/admin" className="text-muted hover:text-ink">
+              Cenas
+            </Link>
+            <Link href="/admin/contactos" className="text-muted hover:text-ink">
+              Contactos
+            </Link>
             <Link href="/" className="text-muted hover:text-ink" target="_blank">
               Ver sitio ↗
             </Link>

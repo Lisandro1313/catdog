@@ -67,7 +67,7 @@ export function ReserveForm({ eventId, price, free, maxSeats }: Props) {
 
       <input
         className="input"
-        placeholder="Tu nombre"
+        placeholder="Nombre y apellido"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required

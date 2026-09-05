@@ -2,21 +2,27 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_CAPACITY, DEFAULT_PRICE, formatPrice, siteUrl } from "@/lib/config";
-import { formatShort, nowMs, toDatetimeLocal } from "@/lib/dates";
+import { formatDay, formatLong, formatShort, formatTime, nowMs, toDatetimeLocal } from "@/lib/dates";
 import { isMercadoPagoConfigured } from "@/lib/mp";
 import { isEmailConfigured } from "@/lib/email";
+import { getNextEvent } from "@/lib/reservations";
+import { getFinancials, getVisitStats } from "@/lib/admin-stats";
 import { EventForm } from "@/components/admin/EventForm";
 import { createEventAction } from "../actions";
 
 export default async function AdminHome() {
-  const [events, subscribers] = await Promise.all([
+  const [events, subscribers, nextEvent, visits, money] = await Promise.all([
     prisma.event.findMany({
       orderBy: { date: "desc" },
       include: {
-        reservations: { select: { status: true, expiresAt: true, quantity: true } },
+        reservations: { select: { status: true, expiresAt: true, quantity: true, amount: true } },
+        ledger: { select: { kind: true, amount: true } },
       },
     }),
     prisma.subscriber.count(),
+    getNextEvent(),
+    getVisitStats(),
+    getFinancials(),
   ]);
 
   const url = siteUrl();
@@ -27,16 +33,160 @@ export default async function AdminHome() {
   nextFriday.setHours(21, 0, 0, 0);
 
   const now = nowMs();
+  const totalPaidSeats = events.reduce(
+    (n, e) => n + e.reservations.filter((r) => r.status === "PAID").reduce((m, r) => m + r.quantity, 0),
+    0,
+  );
+  const maxDaily = Math.max(1, ...visits.daily.map((d) => d.count));
+
+  const nextStats = nextEvent
+    ? (() => {
+        const e = events.find((x) => x.id === nextEvent.id);
+        const paid = e?.reservations.filter((r) => r.status === "PAID").reduce((m, r) => m + r.quantity, 0) ?? 0;
+        const holding =
+          e?.reservations
+            .filter((r) => r.status === "PENDING" && r.expiresAt.getTime() > now)
+            .reduce((m, r) => m + r.quantity, 0) ?? 0;
+        return { paid, holding, free: nextEvent.capacity - paid - holding };
+      })()
+    : null;
 
   return (
     <>
-      <section className="grid gap-4 sm:grid-cols-3">
+      {/* Próxima cena en el home */}
+      <section className="card p-6 border-accent/40">
+        <p className="eyebrow">Lo que ve la gente ahora en el home</p>
+        {nextEvent && nextStats ? (
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <Link href={`/admin/eventos/${nextEvent.id}`} className="font-display text-3xl hover:text-accent">
+                {nextEvent.title}
+              </Link>
+              <p className="mt-1 text-muted">
+                {formatLong(nextEvent.date)} · {formatTime(nextEvent.date)} hs · {formatPrice(nextEvent.price)} por persona
+              </p>
+            </div>
+            <div className="flex gap-6 text-right">
+              <Num label="pagos" value={String(nextStats.paid)} tone="ok" />
+              <Num label="en proceso" value={String(nextStats.holding)} />
+              <Num label="libres" value={String(nextStats.free)} tone={nextStats.free <= 3 ? "danger" : undefined} />
+            </div>
+          </div>
+        ) : (
+          <p className="mt-3 text-muted">
+            Ninguna. El home muestra &quot;Todavía no hay fecha&quot; con el formulario de suscripción. Creá una cena abajo.
+          </p>
+        )}
+      </section>
+
+      {/* Estado + números generales */}
+      <section className="grid gap-4 sm:grid-cols-4">
         <Status ok={isMercadoPagoConfigured()} label="Mercado Pago" hint="MP_ACCESS_TOKEN" />
         <Status ok={isEmailConfigured()} label="Emails (Resend)" hint="RESEND_API_KEY" />
         <div className="card p-4">
           <p className="text-xs text-muted">Suscriptores</p>
           <p className="font-display text-3xl">{subscribers}</p>
         </div>
+        <div className="card p-4">
+          <p className="text-xs text-muted">Cubiertos vendidos (total)</p>
+          <p className="font-display text-3xl">{totalPaidSeats}</p>
+        </div>
+      </section>
+
+      {/* Visitas */}
+      <section className="card p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-display text-2xl">Visitas al sitio</h2>
+          <p className="text-xs text-muted">Una por persona y sesión de navegador. No cuenta el panel.</p>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-[repeat(3,120px)_1fr] items-end">
+          <Num label="hoy" value={String(visits.today)} big />
+          <Num label="últimos 7 días" value={String(visits.last7)} big />
+          <Num label="últimos 30 días" value={String(visits.last30)} big />
+          <div>
+            <div className="flex h-20 items-end gap-1">
+              {visits.daily.map((d) => (
+                <div
+                  key={d.day.toISOString()}
+                  className="flex-1 flex flex-col items-center justify-end gap-1"
+                  title={`${formatDay(d.day)}: ${d.count}`}
+                >
+                  <div className="w-full rounded-t bg-accent/70" style={{ height: `${Math.max(2, (d.count / maxDaily) * 64)}px` }} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-1 flex justify-between text-[0.6rem] text-muted">
+              <span>{formatDay(visits.daily[0].day)}</span>
+              <span>hoy</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Plata */}
+      <section className="card p-6">
+        <h2 className="font-display text-2xl">Rendimiento (todas las cenas)</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-4">
+          <Num label="Reservas cobradas" value={formatPrice(money.reservations)} big />
+          <Num label="Barra y otros ingresos" value={formatPrice(money.otherIncome)} big />
+          <Num label="Gastos" value={formatPrice(money.expenses)} big tone="danger" />
+          <Num label="Resultado" value={formatPrice(money.result)} big tone={money.result >= 0 ? "ok" : "danger"} />
+        </div>
+        <p className="mt-3 text-xs text-muted">Los ingresos de barra y los gastos se cargan en la caja de cada cena.</p>
+      </section>
+
+      {/* Lista de cenas */}
+      <section className="card p-6">
+        <h2 className="font-display text-2xl">Cenas</h2>
+        {events.length === 0 ? (
+          <p className="mt-3 text-muted">Todavía no creaste ninguna.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line">
+            {events.map((e) => {
+              const paid = e.reservations.filter((r) => r.status === "PAID");
+              const paidSeats = paid.reduce((n, r) => n + r.quantity, 0);
+              const holding = e.reservations
+                .filter((r) => r.status === "PENDING" && r.expiresAt.getTime() > now)
+                .reduce((n, r) => n + r.quantity, 0);
+              const income =
+                paid.reduce((n, r) => n + r.amount, 0) +
+                e.ledger.filter((l) => l.kind === "INCOME").reduce((n, l) => n + l.amount, 0);
+              const expenses = e.ledger.filter((l) => l.kind === "EXPENSE").reduce((n, l) => n + l.amount, 0);
+              const past = e.date.getTime() < now;
+              const isNext = nextEvent?.id === e.id;
+              return (
+                <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div>
+                    <Link href={`/admin/eventos/${e.id}`} className="font-medium hover:text-accent">
+                      {e.title}
+                    </Link>
+                    {isNext && (
+                      <span className="ml-2 rounded-full border border-accent/60 px-2 py-0.5 text-[0.65rem] uppercase tracking-wider text-accent">
+                        en el home
+                      </span>
+                    )}
+                    <p className="text-sm text-muted">
+                      {formatShort(e.date)} · {formatPrice(e.price)} · {e.capacity} lugares
+                      {!e.published && " · borrador"}
+                      {past && " · pasada"}
+                    </p>
+                  </div>
+                  <div className="text-right text-sm">
+                    <p>
+                      <span className="text-ok">{paidSeats} pagos</span>
+                      {holding > 0 && <span className="text-muted"> · {holding} en proceso</span>}
+                      <span className="text-muted"> · {e.capacity - paidSeats - holding} libres</span>
+                    </p>
+                    <p className="text-muted">
+                      resultado{" "}
+                      <span className={income - expenses >= 0 ? "text-ok" : "text-danger"}>{formatPrice(income - expenses)}</span>
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       <section className="card p-6">
@@ -59,55 +209,25 @@ export default async function AdminHome() {
         </div>
       </section>
 
-      <section className="card p-6">
-        <h2 className="font-display text-2xl">Cenas</h2>
-        {events.length === 0 ? (
-          <p className="mt-3 text-muted">Todavía no creaste ninguna.</p>
-        ) : (
-          <ul className="mt-4 divide-y divide-line">
-            {events.map((e) => {
-              const paid = e.reservations.filter((r) => r.status === "PAID").reduce((n, r) => n + r.quantity, 0);
-              const holding = e.reservations
-                .filter((r) => r.status === "PENDING" && r.expiresAt.getTime() > now)
-                .reduce((n, r) => n + r.quantity, 0);
-              const past = e.date.getTime() < now;
-              return (
-                <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                  <div>
-                    <Link href={`/admin/eventos/${e.id}`} className="font-medium hover:text-accent">
-                      {e.title}
-                    </Link>
-                    <p className="text-sm text-muted">
-                      {formatShort(e.date)} · {formatPrice(e.price)} · {e.capacity} lugares
-                      {!e.published && " · borrador"}
-                      {past && " · pasada"}
-                    </p>
-                  </div>
-                  <div className="text-right text-sm">
-                    <p>
-                      <span className="text-ok">{paid} pagos</span>
-                      {holding > 0 && <span className="text-muted"> · {holding} en proceso</span>}
-                    </p>
-                    <p className="text-muted">{e.capacity - paid - holding} libres</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
       <section className="card p-6 flex flex-col sm:flex-row gap-6 items-center">
         <div className="w-40 shrink-0 rounded-xl overflow-hidden" dangerouslySetInnerHTML={{ __html: qr }} />
         <div>
           <h2 className="font-display text-2xl">Para el flyer</h2>
-          <p className="mt-2 text-muted text-sm">
-            Este QR lleva al sitio. Clic derecho → guardar imagen, o copiá el link:
-          </p>
+          <p className="mt-2 text-muted text-sm">Este QR lleva al sitio. Clic derecho → guardar imagen, o copiá el link:</p>
           <p className="mt-2 font-mono text-sm break-all text-accent">{url}</p>
         </div>
       </section>
     </>
+  );
+}
+
+function Num({ label, value, big = false, tone }: { label: string; value: string; big?: boolean; tone?: "ok" | "danger" }) {
+  const color = tone === "ok" ? "text-ok" : tone === "danger" ? "text-danger" : "";
+  return (
+    <div>
+      <p className="text-xs text-muted">{label}</p>
+      <p className={`font-display ${big ? "text-3xl" : "text-2xl"} ${color}`}>{value}</p>
+    </div>
   );
 }
 

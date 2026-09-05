@@ -3,13 +3,23 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/config";
 import { formatShort, nowMs, toDatetimeLocal } from "@/lib/dates";
+import { categoryLabel, getFinancials } from "@/lib/admin-stats";
 import { EventForm } from "@/components/admin/EventForm";
 import { AssignSeatsForm, ManualReservationForm, NotifyForm } from "@/components/admin/ActionForms";
-import { cancelReservationAction, deleteEventAction, markPaidAction, updateEventAction } from "../../../actions";
+import { LedgerForm } from "@/components/admin/LedgerForm";
+import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import {
+  cancelReservationAction,
+  deleteEventAction,
+  deleteLedgerEntryAction,
+  deleteReservationAction,
+  markPaidAction,
+  updateEventAction,
+} from "../../../actions";
 
 export default async function AdminEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [event, subscribers] = await Promise.all([
+  const [event, subscribers, money] = await Promise.all([
     prisma.event.findUnique({
       where: { id },
       include: {
@@ -17,9 +27,11 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
           orderBy: { createdAt: "desc" },
           include: { seats: { orderBy: { number: "asc" } } },
         },
+        ledger: { orderBy: { createdAt: "desc" } },
       },
     }),
     prisma.subscriber.count(),
+    getFinancials(id),
   ]);
   if (!event) notFound();
 
@@ -29,7 +41,6 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
   );
   const paidSeats = active.filter((r) => r.status === "PAID").reduce((n, r) => n + r.quantity, 0);
   const holdSeats = active.filter((r) => r.status === "PENDING").reduce((n, r) => n + r.quantity, 0);
-  const revenue = active.filter((r) => r.status === "PAID").reduce((n, r) => n + r.amount, 0);
 
   return (
     <>
@@ -37,13 +48,15 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
         <Link href="/admin" className="hover:text-ink">
           ← Cenas
         </Link>
+        <span>/</span>
+        <span className="text-ink">{event.title}</span>
       </div>
 
       <section className="grid gap-4 sm:grid-cols-4">
         <Stat label="Pagos" value={`${paidSeats}/${event.capacity}`} />
         <Stat label="En proceso" value={String(holdSeats)} />
         <Stat label="Libres" value={String(event.capacity - paidSeats - holdSeats)} />
-        <Stat label="Recaudado" value={formatPrice(revenue)} />
+        <Stat label="Cobrado en reservas" value={formatPrice(money.reservations)} />
       </section>
 
       <section className="card p-6">
@@ -75,8 +88,9 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
               <tbody className="divide-y divide-line">
                 {event.reservations.map((r) => {
                   const expired = r.status === "PENDING" && r.expiresAt.getTime() < now;
+                  const inactive = expired || r.status === "CANCELLED";
                   return (
-                    <tr key={r.id} className={expired || r.status === "CANCELLED" ? "opacity-50" : ""}>
+                    <tr key={r.id} className={inactive ? "opacity-50" : ""}>
                       <td className="py-2 pr-3 font-display text-lg">{r.quantity}</td>
                       <td className="py-2 pr-3">
                         {r.status === "PAID" ? (
@@ -93,11 +107,32 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
                       </td>
                       <td className="py-2 pr-3 font-medium">{r.name}</td>
                       <td className="py-2 pr-3 text-muted">
-                        {r.email}
-                        {r.phone && <><br />{r.phone}</>}
+                        {r.email !== "sin-email@local" && (
+                          <a className="hover:text-ink" href={`mailto:${r.email}`}>
+                            {r.email}
+                          </a>
+                        )}
+                        {r.phone && (
+                          <>
+                            <br />
+                            <a
+                              className="hover:text-ink"
+                              href={`https://wa.me/549${r.phone.replace(/\D/g, "").replace(/^549?/, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {r.phone}
+                            </a>
+                          </>
+                        )}
                       </td>
                       <td className="py-2 pr-3">
-                        {r.status === "PAID" && <span className="text-ok">Pagado · {r.paidVia}</span>}
+                        {r.status === "PAID" && (
+                          <span className="text-ok">
+                            Pagado · {r.paidVia}
+                            {r.paidAt && <span className="block text-xs text-muted">{formatShort(r.paidAt)}</span>}
+                          </span>
+                        )}
                         {r.status === "PENDING" && !expired && (
                           <span className="text-accent">Pendiente hasta {formatShort(r.expiresAt).slice(-5)}</span>
                         )}
@@ -106,23 +141,34 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
                       </td>
                       <td className="py-2 pr-3">{formatPrice(r.amount)}</td>
                       <td className="py-2 text-right whitespace-nowrap">
-                        {r.status === "PENDING" && !expired && (
-                          <form action={markPaidAction} className="inline">
+                        <div className="inline-flex gap-2">
+                          {r.status === "PENDING" && !expired && (
+                            <form action={markPaidAction}>
+                              <input type="hidden" name="id" value={r.id} />
+                              <input type="hidden" name="via" value="efectivo" />
+                              <button className="btn btn-ghost btn-sm" type="submit">
+                                Marcar pagado
+                              </button>
+                            </form>
+                          )}
+                          {(r.status === "PAID" || (r.status === "PENDING" && !expired)) && (
+                            <form action={cancelReservationAction}>
+                              <input type="hidden" name="id" value={r.id} />
+                              <ConfirmButton
+                                className="btn btn-ghost btn-sm"
+                                message={`¿Cancelar la reserva de ${r.name}? Se liberan sus lugares. La fila queda como cancelada.`}
+                              >
+                                Cancelar
+                              </ConfirmButton>
+                            </form>
+                          )}
+                          <form action={deleteReservationAction}>
                             <input type="hidden" name="id" value={r.id} />
-                            <input type="hidden" name="via" value="efectivo" />
-                            <button className="btn btn-ghost btn-sm mr-2" type="submit">
-                              Marcar pagado
-                            </button>
+                            <ConfirmButton message={`¿Borrar definitivamente la reserva de ${r.name}? No se puede deshacer.`}>
+                              Borrar
+                            </ConfirmButton>
                           </form>
-                        )}
-                        {(r.status === "PAID" || (r.status === "PENDING" && !expired)) && (
-                          <form action={cancelReservationAction} className="inline">
-                            <input type="hidden" name="id" value={r.id} />
-                            <button className="btn btn-danger btn-sm" type="submit">
-                              Cancelar
-                            </button>
-                          </form>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -133,9 +179,66 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
         )}
 
         <div className="mt-6 border-t border-line pt-5">
-          <p className="text-sm text-muted mb-3">Cargar a mano (efectivo, transferencia, invitado). Las sillas se pueden dejar vacías y asignar después.</p>
+          <p className="text-sm text-muted mb-3">
+            Cargar a mano (efectivo, transferencia, invitado). Las sillas se pueden dejar vacías y asignar después.
+          </p>
           <ManualReservationForm eventId={event.id} />
         </div>
+      </section>
+
+      <section className="card p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-display text-2xl">Caja</h2>
+          <p className="text-xs text-muted">Ventas de barra, costos de insumos y lo que haga falta.</p>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-4">
+          <Stat label="Reservas cobradas" value={formatPrice(money.reservations)} />
+          <Stat label="Barra y otros" value={formatPrice(money.otherIncome)} />
+          <Stat label="Gastos" value={formatPrice(money.expenses)} tone="danger" />
+          <Stat label="Resultado" value={formatPrice(money.result)} tone={money.result >= 0 ? "ok" : "danger"} />
+        </div>
+
+        {money.byCategory.length > 0 && (
+          <ul className="mt-4 flex flex-wrap gap-2 text-xs">
+            {money.byCategory.map((c) => (
+              <li key={`${c.kind}-${c.category}`} className="rounded-full border border-line px-3 py-1 text-muted">
+                {categoryLabel(c.kind, c.category)}: <span className={c.kind === "INCOME" ? "text-ok" : "text-danger"}>{formatPrice(c.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-5 border-t border-line pt-5">
+          <LedgerForm eventId={event.id} />
+        </div>
+
+        {event.ledger.length > 0 && (
+          <table className="mt-5 w-full text-sm">
+            <tbody className="divide-y divide-line">
+              {event.ledger.map((l) => (
+                <tr key={l.id}>
+                  <td className="py-2 pr-3 text-muted whitespace-nowrap">{formatShort(l.createdAt).slice(0, 5)}</td>
+                  <td className="py-2 pr-3">
+                    <span className={l.kind === "INCOME" ? "text-ok" : "text-danger"}>{categoryLabel(l.kind, l.category)}</span>
+                    {l.description && <span className="text-muted"> · {l.description}</span>}
+                  </td>
+                  <td className={`py-2 pr-3 text-right whitespace-nowrap ${l.kind === "INCOME" ? "text-ok" : "text-danger"}`}>
+                    {l.kind === "INCOME" ? "+" : "−"}
+                    {formatPrice(l.amount)}
+                  </td>
+                  <td className="py-2 text-right">
+                    <form action={deleteLedgerEntryAction}>
+                      <input type="hidden" name="id" value={l.id} />
+                      <ConfirmButton className="text-xs text-muted hover:text-danger" message="¿Borrar este movimiento?">
+                        borrar
+                      </ConfirmButton>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
 
       <section className="card p-6">
@@ -159,9 +262,15 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
         </div>
         <form action={deleteEventAction} className="mt-6 border-t border-line pt-5">
           <input type="hidden" name="id" value={event.id} />
-          <button className="btn btn-danger btn-sm" type="submit">
+          <ConfirmButton
+            message={
+              paidSeats > 0
+                ? "Esta cena tiene pagos: se va a ocultar del home, no se borra. ¿Seguir?"
+                : "¿Borrar esta cena definitivamente? Se borran también sus reservas y su caja."
+            }
+          >
             {paidSeats > 0 ? "Despublicar cena" : "Borrar cena"}
-          </button>
+          </ConfirmButton>
           <span className="ml-3 text-xs text-muted">
             {paidSeats > 0 ? "Tiene pagos: se oculta, no se borra." : "Sin pagos: se borra definitivamente."}
           </span>
@@ -171,11 +280,12 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, tone }: { label: string; value: string; tone?: "ok" | "danger" }) {
+  const color = tone === "ok" ? "text-ok" : tone === "danger" ? "text-danger" : "";
   return (
     <div className="card p-4">
       <p className="text-xs text-muted">{label}</p>
-      <p className="font-display text-2xl">{value}</p>
+      <p className={`font-display text-2xl ${color}`}>{value}</p>
     </div>
   );
 }

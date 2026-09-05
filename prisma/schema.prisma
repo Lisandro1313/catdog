@@ -26,6 +26,7 @@ model Event {
 
   reservations Reservation[]
   seats        Seat[]
+  ledger       LedgerEntry[]
 }
 
 enum ReservationStatus {
@@ -78,4 +79,35 @@ model Subscriber {
   id        String   @id @default(cuid())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+/// Visitas al sitio, agregadas por día y ruta (sin datos personales).
+model PageView {
+  id    String   @id @default(cuid())
+  day   DateTime @db.Date
+  path  String
+  count Int      @default(0)
+
+  @@unique([day, path])
+}
+
+enum LedgerKind {
+  INCOME
+  EXPENSE
+}
+
+/// Movimientos de caja de una cena: ventas de barra, costos de insumos, etc.
+model LedgerEntry {
+  id          String     @id @default(cuid())
+  eventId     String
+  event       Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  kind        LedgerKind
+  /// "barra" | "insumos" | "bebidas" | "personal" | "otros"
+  category    String
+  description String?
+  /// Monto en pesos (entero).
+  amount      Int
+  createdAt   DateTime   @default(now())
+
+  @@index([eventId])
 }

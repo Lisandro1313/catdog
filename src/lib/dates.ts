@@ -75,6 +75,15 @@ function argentinaDayStart(date: Date): number {
   return Date.UTC(ar.getUTCFullYear(), ar.getUTCMonth(), ar.getUTCDate());
 }
 
+/** El día argentino de una fecha, como Date a medianoche UTC (para columnas @db.Date). */
+export function argentinaDay(date: Date = new Date()): Date {
+  return new Date(argentinaDayStart(date));
+}
+
+export function formatDay(date: Date): string {
+  return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(date);
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Los 7 días (lunes a domingo) de la semana en la que cae el evento, con hoy marcado. */
