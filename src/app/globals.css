@@ -36,8 +36,58 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-inter), system-ui, sans-serif;
-  background-image:
-    radial-gradient(ellipse 60% 40% at 50% -10%, rgba(201, 169, 110, 0.12), transparent 70%);
+  position: relative;
+  isolation: isolate;
+}
+
+/*
+ * Fondo con movimiento suave: dos manchas de luz cálida que derivan muy lento,
+ * como velas detrás de la escena. Va fijo detrás de todo y no captura clicks.
+ */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  will-change: transform;
+}
+body::before {
+  background:
+    radial-gradient(ellipse 34% 28% at 50% 8%, rgba(201, 169, 110, 0.16), transparent 70%),
+    radial-gradient(ellipse 26% 22% at 18% 62%, rgba(181, 83, 60, 0.07), transparent 70%);
+  animation: drift-a 48s ease-in-out infinite alternate;
+}
+body::after {
+  background:
+    radial-gradient(ellipse 28% 24% at 82% 40%, rgba(201, 169, 110, 0.09), transparent 70%),
+    radial-gradient(ellipse 22% 18% at 40% 92%, rgba(224, 194, 131, 0.06), transparent 70%);
+  animation: drift-b 64s ease-in-out infinite alternate;
+}
+
+@keyframes drift-a {
+  from {
+    transform: translate3d(-2%, -1.5%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2.5%, 2%, 0) scale(1.08);
+  }
+}
+@keyframes drift-b {
+  from {
+    transform: translate3d(2%, 1%, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(-2.5%, -2%, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none;
+  }
 }
 
 .font-display {
@@ -111,44 +161,3 @@ body {
   font-size: 0.85rem;
 }
 
-.seat {
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border: 2px solid var(--border);
-  color: var(--muted);
-  background: var(--surface-2);
-  transition: transform 0.1s, background 0.15s, border-color 0.15s;
-}
-.seat-free {
-  border-color: var(--accent);
-  color: var(--accent);
-  cursor: pointer;
-}
-.seat-free:hover {
-  transform: translateY(-2px);
-  background: rgba(201, 169, 110, 0.12);
-}
-.seat-selected {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #1a150d;
-  cursor: pointer;
-}
-.seat-taken {
-  cursor: not-allowed;
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-@media (max-width: 420px) {
-  .seat {
-    width: 2.2rem;
-    height: 2.2rem;
-    font-size: 0.75rem;
-  }
-}
