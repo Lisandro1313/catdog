@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Una cena. Solo se muestra en el home la próxima publicada.
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  menu        String?
+  date        DateTime
+  /// Precio por persona en pesos argentinos (entero, sin centavos).
+  price       Int
+  capacity    Int      @default(15)
+  /// Dirección exacta: solo se muestra a quien ya pagó.
+  address     String?
+  published   Boolean  @default(true)
+  /// Cuándo se les avisó a los suscriptores (null = todavía no).
+  notifiedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  reservations Reservation[]
+  seats        Seat[]
+}
+
+enum ReservationStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model Reservation {
+  id             String            @id @default(cuid())
+  eventId        String
+  event          Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name           String
+  email          String
+  phone          String?
+  /// Cantidad de lugares reservados. Las sillas concretas se eligen después de pagar.
+  quantity       Int               @default(1)
+  status         ReservationStatus @default(PENDING)
+  /// Total en pesos (precio x cantidad de lugares).
+  amount         Int
+  mpPreferenceId String?
+  mpInitPoint    String?
+  mpPaymentId    String?           @unique
+  /// "mercadopago" | "efectivo" | "transferencia"
+  paidVia        String?
+  paidAt         DateTime?
+  seatsChosenAt  DateTime?
+  /// Hasta cuándo se mantienen los lugares si el pago sigue pendiente.
+  expiresAt      DateTime
+  createdAt      DateTime          @default(now())
+
+  seats Seat[]
+
+  @@index([eventId, status])
+}
+
+/// Un lugar en la mesa tomado por una reserva. Único por evento.
+model Seat {
+  id            String      @id @default(cuid())
+  eventId       String
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  number        Int
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, number])
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}

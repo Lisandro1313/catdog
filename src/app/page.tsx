@@ -1,69 +1,115 @@
-import Image from "next/image";
+import { SITE_INTRO, SITE_NAME, SITE_TAGLINE, MAX_SEATS_PER_RESERVATION, formatPrice } from "@/lib/config";
+import { formatLong, formatTime } from "@/lib/dates";
+import { getFreeCount, getNextEvent, getTakenSeats } from "@/lib/reservations";
+import { WeekStrip } from "@/components/WeekStrip";
+import { ReserveForm } from "@/components/ReserveForm";
+import { SubscribeForm } from "@/components/SubscribeForm";
+import { MenuSteps } from "@/components/MenuSteps";
+import { ResponsiveTableMap, TableLegend, type SeatVisual } from "@/components/TableMap";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const event = await getNextEvent();
+  const [free, taken] = event
+    ? await Promise.all([getFreeCount(event.id, event.capacity), getTakenSeats(event.id)])
+    : [0, []];
+  const takenSet = new Set(taken);
+  const states: SeatVisual[] = event
+    ? Array.from({ length: event.capacity }, (_, i) => (takenSet.has(i + 1) ? "taken" : "free"))
+    : [];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="flex flex-1 flex-col">
+      <header className="mx-auto w-full max-w-3xl px-5 pt-10 pb-6 text-center">
+        <p className="eyebrow">{SITE_TAGLINE}</p>
+        <h1 className="font-display mt-3 text-5xl sm:text-6xl tracking-tight">{SITE_NAME}</h1>
+        <p className="mt-4 text-muted max-w-lg mx-auto leading-relaxed">{SITE_INTRO}</p>
+      </header>
+
+      <main className="mx-auto w-full max-w-3xl px-5 pb-20 flex flex-col gap-8">
+        {event ? (
+          <>
+            <section className="card p-6 sm:p-8">
+              <WeekStrip date={event.date} />
+              <div className="mt-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div>
+                  <h2 className="font-display text-3xl sm:text-4xl">{event.title}</h2>
+                  <p className="mt-2 text-lg">
+                    {formatLong(event.date)} · {formatTime(event.date)} hs
+                  </p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <p className="text-2xl font-semibold">{formatPrice(event.price)}</p>
+                  <p className="text-sm text-muted">por persona, todo incluido</p>
+                </div>
+              </div>
+              {event.description && (
+                <p className="mt-5 text-ink/90 whitespace-pre-line leading-relaxed">{event.description}</p>
+              )}
+              {event.menu && (
+                <div className="mt-6 border-t border-line pt-6">
+                  <p className="eyebrow mb-4">La noche, en pasos</p>
+                  <MenuSteps menu={event.menu} />
+                </div>
+              )}
+              <p className="mt-6 text-xs text-muted">La dirección exacta se manda al confirmar la reserva.</p>
+            </section>
+
+            <section className="card p-6 sm:p-8">
+              <div className="flex items-baseline justify-between gap-4">
+                <h3 className="font-display text-2xl">Reservá tu lugar</h3>
+                <p className={`text-sm font-medium ${free <= 3 ? "text-danger" : "text-muted"}`}>
+                  {free === 0
+                    ? "Sin lugares"
+                    : free === 1
+                      ? "Queda 1 lugar"
+                      : `Quedan ${free} lugares`}{" "}
+                  de {event.capacity}
+                </p>
+              </div>
+              {free > 0 ? (
+                <div className="mt-6">
+                  <ReserveForm eventId={event.id} price={event.price} free={free} maxSeats={MAX_SEATS_PER_RESERVATION} />
+                </div>
+              ) : (
+                <p className="mt-6 text-muted">
+                  Se llenó. Dejá tu mail abajo y te avisamos si se libera un lugar o cuando haya nueva fecha.
+                </p>
+              )}
+            </section>
+
+            <section className="card p-6 sm:p-8">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h3 className="font-display text-2xl">La mesa</h3>
+                <p className="text-sm text-muted">Una sola, larga. Tu silla la elegís después de pagar.</p>
+              </div>
+              <div className="mt-4">
+                <ResponsiveTableMap capacity={event.capacity} states={states} />
+              </div>
+              <div className="mt-2">
+                <TableLegend showSelected={false} />
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="card p-8 text-center">
+            <p className="eyebrow">Próximamente</p>
+            <h2 className="font-display mt-3 text-3xl">Todavía no hay fecha</h2>
+            <p className="mt-3 text-muted">Dejá tu mail y sos de los primeros en enterarte.</p>
+          </section>
+        )}
+
+        <section className="card p-6 sm:p-8">
+          <h3 className="font-display text-2xl">Avisame cuando haya nueva fecha</h3>
+          <p className="mt-2 text-sm text-muted">Un mail por cena, nada más. Te podés bajar cuando quieras.</p>
+          <SubscribeForm />
+        </section>
       </main>
+
+      <footer className="border-t border-line py-6 text-center text-xs text-muted">
+        {SITE_NAME} · {SITE_TAGLINE}
+      </footer>
     </div>
   );
 }

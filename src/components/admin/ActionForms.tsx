@@ -1,0 +1,81 @@
+"use client";
+
+import { useActionState } from "react";
+import { assignSeatsAction, manualReservationAction, notifySubscribersAction } from "@/app/admin/actions";
+
+export function NotifyForm({ eventId, subscribers, notifiedAt }: { eventId: string; subscribers: number; notifiedAt: string | null }) {
+  const [state, action, pending] = useActionState(notifySubscribersAction, null);
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-3">
+      <input type="hidden" name="id" value={eventId} />
+      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending || subscribers === 0}>
+        {pending ? "Enviando…" : `Avisar a ${subscribers} suscriptor${subscribers === 1 ? "" : "es"}`}
+      </button>
+      <span className="text-xs text-muted">
+        {notifiedAt ? `Último aviso: ${notifiedAt}` : "Todavía no se avisó."}
+      </span>
+      {state?.message && <p className={`text-sm basis-full ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
+    </form>
+  );
+}
+
+export function ManualReservationForm({ eventId }: { eventId: string }) {
+  const [state, action, pending] = useActionState(manualReservationAction, null);
+  return (
+    <form action={action} className="grid gap-3 sm:grid-cols-[1.2fr_1.2fr_1fr_70px_110px_140px_auto] items-end">
+      <input type="hidden" name="eventId" value={eventId} />
+      <label className="grid gap-1 text-xs text-muted">
+        Nombre
+        <input className="input" name="name" required />
+      </label>
+      <label className="grid gap-1 text-xs text-muted">
+        Email (opcional)
+        <input className="input" name="email" type="email" />
+      </label>
+      <label className="grid gap-1 text-xs text-muted">
+        Teléfono
+        <input className="input" name="phone" />
+      </label>
+      <label className="grid gap-1 text-xs text-muted">
+        Cant.
+        <input className="input" name="quantity" type="number" min={1} defaultValue={1} required />
+      </label>
+      <label className="grid gap-1 text-xs text-muted">
+        Sillas (opc.)
+        <input className="input" name="seats" placeholder="3, 4" />
+      </label>
+      <label className="grid gap-1 text-xs text-muted">
+        Pagó por
+        <select className="input" name="via" defaultValue="efectivo">
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="invitado">Invitado (sin cobro)</option>
+        </select>
+      </label>
+      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending}>
+        {pending ? "…" : "Cargar"}
+      </button>
+      {state?.message && <p className={`text-sm sm:col-span-full ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
+    </form>
+  );
+}
+
+export function AssignSeatsForm({ reservationId, current, quantity }: { reservationId: string; current: number[]; quantity: number }) {
+  const [state, action, pending] = useActionState(assignSeatsAction, null);
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="id" value={reservationId} />
+      <input
+        className="input !w-24 !py-1 text-sm"
+        name="seats"
+        defaultValue={current.join(", ")}
+        placeholder={quantity === 1 ? "ej: 5" : `ej: ${Array.from({ length: quantity }, (_, i) => i + 1).join(", ")}`}
+        aria-label="Sillas"
+      />
+      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending}>
+        {pending ? "…" : current.length ? "Cambiar" : "Asignar"}
+      </button>
+      {state?.message && !state.ok && <p className="text-xs text-danger basis-full">{state.message}</p>}
+    </form>
+  );
+}
