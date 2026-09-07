@@ -121,6 +121,18 @@ export default async function AdminHome() {
             </div>
           </div>
         </div>
+        {visits.byPath.length > 0 && (
+          <ul className="mt-4 flex flex-wrap gap-2 text-xs">
+            {visits.byPath.map((p) => (
+              <li key={p.path} className="rounded-full border border-line px-3 py-1 text-muted">
+                <a href={p.path} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
+                  {p.path}
+                </a>
+                <span className="text-ink"> {p.count}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* Plata */}

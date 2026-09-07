@@ -1,19 +1,9 @@
-/**
- * Renderiza el menú cargado en el panel. Una línea por paso.
- * Si la línea tiene " | " (o " — " / " - "), lo de la derecha es el trago que acompaña.
- */
-export function MenuSteps({ menu }: { menu: string }) {
-  const lines = menu
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (lines.length === 0) return null;
+import { parseMenu } from "@/lib/menu";
 
-  const steps = lines.map((line) => {
-    const cleaned = line.replace(/^\d+[.)]\s*/, "");
-    const m = cleaned.split(/\s+\|\s+|\s+—\s+|\s+-\s+/);
-    return { dish: m[0], drink: m.slice(1).join(" — ") || null };
-  });
+/** Lista numerada de los pasos de la noche, con su trago debajo. */
+export function MenuSteps({ menu }: { menu: string }) {
+  const steps = parseMenu(menu);
+  if (steps.length === 0) return null;
 
   return (
     <ol className="grid gap-3">

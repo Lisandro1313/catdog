@@ -11,6 +11,13 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
 - Mercado Pago Checkout Pro (redirección + webhook).
 - Resend para mails (confirmación al que reserva, aviso a vos, aviso de nueva fecha a suscriptores).
 
+## Pantallas públicas
+
+- `/` — el home de siempre: la próxima cena, su semana, los pasos y el formulario de reserva.
+- `/apertura` — pantalla de afiche para compartir por WhatsApp: título grande, la fecha en grande,
+  el menú gigante y tenue de fondo, la carta completa y la reserva abajo, con barra fija en el celular.
+  Muestra la misma próxima cena, así que se mantiene sola.
+
 ## Cómo funciona una reserva
 
 1. El home muestra **solo la próxima cena publicada**, su semana (lunes a domingo) y los pasos de la noche con su trago.
@@ -30,7 +37,7 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
 - Botón "Avisar a suscriptores": manda el mail de nueva fecha a todos los anotados.
 - QR + link del sitio para el flyer.
 
-Las visitas se cuentan con un beacon desde el home (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. No cuenta las visitas al panel.
+Las visitas se cuentan con un beacon desde las pantallas públicas (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. No cuenta las visitas al panel. El panel muestra el total y el desglose por página, así se ve qué link trae gente.
 
 ## Variables de entorno
 

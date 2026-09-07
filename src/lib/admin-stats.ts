@@ -9,14 +9,17 @@ export type VisitStats = {
   last30: number;
   /** Últimos 14 días, del más viejo al más nuevo. */
   daily: { day: Date; count: number }[];
+  /** Visitas por página en los últimos 30 días, de mayor a menor. */
+  byPath: { path: string; count: number }[];
 };
 
 export async function getVisitStats(): Promise<VisitStats> {
   const today = argentinaDay();
   const from30 = new Date(today.getTime() - 29 * DAY_MS);
+  // Todas las rutas públicas (el endpoint ya descarta /admin).
   const rows = await prisma.pageView.findMany({
-    where: { path: "/", day: { gte: from30 } },
-    select: { day: true, count: true },
+    where: { day: { gte: from30 } },
+    select: { day: true, count: true, path: true },
   });
   const byDay = new Map<number, number>();
   for (const r of rows) byDay.set(r.day.getTime(), (byDay.get(r.day.getTime()) ?? 0) + r.count);
@@ -31,7 +34,11 @@ export async function getVisitStats(): Promise<VisitStats> {
     const t = today.getTime() - (13 - i) * DAY_MS;
     return { day: new Date(t), count: byDay.get(t) ?? 0 };
   });
-  return { today: byDay.get(today.getTime()) ?? 0, last7: sumSince(7), last30: sumSince(30), daily };
+  const paths = new Map<string, number>();
+  for (const r of rows) paths.set(r.path, (paths.get(r.path) ?? 0) + r.count);
+  const byPath = Array.from(paths, ([path, count]) => ({ path, count })).sort((a, b) => b.count - a.count);
+
+  return { today: byDay.get(today.getTime()) ?? 0, last7: sumSince(7), last30: sumSince(30), daily, byPath };
 }
 
 export type Financials = {

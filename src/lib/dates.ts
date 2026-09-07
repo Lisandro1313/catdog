@@ -124,3 +124,18 @@ export function monthName(date: Date): string {
 export function nowMs(): number {
   return Date.now();
 }
+
+/** "viernes" */
+export function formatWeekday(date: Date): string {
+  return new Intl.DateTimeFormat("es-AR", { weekday: "long", timeZone: TIMEZONE }).format(date);
+}
+
+/** "18" */
+export function formatDayNumber(date: Date): string {
+  return new Intl.DateTimeFormat("es-AR", { day: "numeric", timeZone: TIMEZONE }).format(date);
+}
+
+/** "septiembre" */
+export function formatMonth(date: Date): string {
+  return new Intl.DateTimeFormat("es-AR", { month: "long", timeZone: TIMEZONE }).format(date);
+}
