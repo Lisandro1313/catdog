@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const event = await getNextEvent();
   const title = event ? `Apertura · ${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}` : `Apertura · ${SITE_NAME}`;
   const description = event
-    ? `Cena a puertas cerradas en La Plata. Cinco pasos, cada plato con su trago, una sola mesa de ${event.capacity}. ${formatPrice(event.price)} por persona.`
+    ? `Cena a puertas cerradas en La Plata. Cinco pasos, cada plato con su trago, en una sola mesa larga. ${formatPrice(event.price)} por persona, pocos lugares.`
     : "Cena a puertas cerradas en La Plata.";
   return { title, description, openGraph: { title, description, type: "website" } };
 }
@@ -41,6 +41,10 @@ export default async function AperturaPage() {
 
   const { daysUntil } = weekOf(event.date);
   const countdown = daysUntil === 0 ? "Es esta noche" : daysUntil === 1 ? "Es mañana" : daysUntil > 1 ? `Faltan ${daysUntil} días` : null;
+
+  // Sin números: la cantidad exacta de lugares no se muestra en esta pantalla.
+  const scarcity =
+    free <= 3 ? { label: "últimos lugares", tone: "text-danger" } : { label: "pocos lugares", tone: "text-muted" };
 
   return (
     <div className="ap flex flex-1 flex-col pb-24 sm:pb-0">
@@ -76,8 +80,8 @@ export default async function AperturaPage() {
           <p className="mt-8 font-display text-2xl sm:text-3xl">{event.title}</p>
           <p className="mx-auto mt-3 max-w-md leading-relaxed text-muted">
             {steps.length > 0
-              ? `${steps.length} pasos, cada plato con su trago, en una sola mesa de ${event.capacity}. Una noche, no un restaurante.`
-              : `Una sola mesa de ${event.capacity}. Una noche, no un restaurante.`}
+              ? `${steps.length} pasos, cada plato con su trago, en una sola mesa larga. Una noche, no un restaurante.`
+              : "Una sola mesa larga. Una noche, no un restaurante."}
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-3">
@@ -88,13 +92,11 @@ export default async function AperturaPage() {
                 </a>
                 <p className="text-sm text-muted">
                   {formatPrice(event.price)} por persona ·{" "}
-                  <span className={free <= 3 ? "text-danger" : ""}>
-                    {free === 1 ? "queda 1 lugar" : `quedan ${free} lugares`}
-                  </span>
+                  <span className={scarcity.tone}>{scarcity.label}</span>
                 </p>
               </>
             ) : (
-              <p className="text-danger">No quedan lugares para esta noche.</p>
+              <p className="text-danger">Se agotó.</p>
             )}
           </div>
         </div>
@@ -173,9 +175,7 @@ export default async function AperturaPage() {
         <div className="ap-cta-bar">
           <div className="leading-tight">
             <p className="font-display text-lg">{formatPrice(event.price)}</p>
-            <p className="text-xs text-muted">
-              {free === 1 ? "queda 1 lugar" : `quedan ${free} lugares`}
-            </p>
+            <p className={`text-xs ${scarcity.tone}`}>{scarcity.label}</p>
           </div>
           <a className="btn btn-primary btn-sm px-6" href="#reservar">
             Reservar
