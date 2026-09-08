@@ -1,117 +1,203 @@
-import { SITE_INTRO, SITE_NAME, SITE_TAGLINE, MAX_SEATS_PER_RESERVATION, formatPrice } from "@/lib/config";
-import { formatLong, formatTime } from "@/lib/dates";
-import { getFreeCount, getNextEvent, getTakenSeats } from "@/lib/reservations";
-import { WeekStrip } from "@/components/WeekStrip";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
+import { formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
+import { getFreeCount, getNextEvent } from "@/lib/reservations";
+import { parseMenu } from "@/lib/menu";
 import { ReserveForm } from "@/components/ReserveForm";
 import { SubscribeForm } from "@/components/SubscribeForm";
-import { MenuSteps } from "@/components/MenuSteps";
-import { ResponsiveTableMap, TableLegend, type SeatVisual } from "@/components/TableMap";
 import { TrackVisit } from "@/components/TrackVisit";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata(): Promise<Metadata> {
+  const event = await getNextEvent();
+  const title = event ? `Apertura · ${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}` : `Apertura · ${SITE_NAME}`;
+  const description = event
+    ? `Cena a puertas cerradas en La Plata. Cinco pasos, cada plato con su trago pensado al lado. ${formatPrice(event.price)} por persona, pocos lugares.`
+    : "Cena a puertas cerradas en La Plata.";
+  return { title, description, openGraph: { title, description, type: "website" } };
+}
+
 export default async function Home() {
   const event = await getNextEvent();
-  const [free, taken] = event
-    ? await Promise.all([getFreeCount(event.id, event.capacity), getTakenSeats(event.id)])
-    : [0, []];
-  const takenSet = new Set(taken);
-  const states: SeatVisual[] = event
-    ? Array.from({ length: event.capacity }, (_, i) => (takenSet.has(i + 1) ? "taken" : "free"))
-    : [];
+  const free = event ? await getFreeCount(event.id, event.capacity) : 0;
+  const steps = parseMenu(event?.menu);
+
+  if (!event) {
+    return (
+      <div className="ap flex flex-1 items-center justify-center px-6 py-24 text-center">
+        <div>
+          <p className="ap-eyebrow">{SITE_NAME}</p>
+          <h1 className="ap-display mt-4 text-5xl">Todavía no hay fecha</h1>
+          <p className="mt-4 text-muted">Dejá tu mail y sos de los primeros en enterarte.</p>
+          <div className="mx-auto mt-6 max-w-sm text-left">
+            <SubscribeForm />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { daysUntil } = weekOf(event.date);
+  const countdown = daysUntil === 0 ? "Es esta noche" : daysUntil === 1 ? "Es mañana" : daysUntil > 1 ? `Faltan ${daysUntil} días` : null;
+
+  // Sin números: la cantidad exacta de lugares no se muestra en esta pantalla.
+  const scarcity =
+    free <= 3 ? { label: "últimos lugares", tone: "text-danger" } : { label: "pocos lugares", tone: "text-muted" };
 
   return (
-    <div className="flex flex-1 flex-col">
-      <TrackVisit />
-      <header className="mx-auto w-full max-w-3xl px-5 pt-10 pb-6 text-center">
-        <p className="eyebrow">{SITE_TAGLINE}</p>
-        <h1 className="font-display mt-3 text-5xl sm:text-6xl tracking-tight">{SITE_NAME}</h1>
-        <p className="mt-4 text-muted max-w-lg mx-auto leading-relaxed">{SITE_INTRO}</p>
-      </header>
+    <div className="ap flex flex-1 flex-col pb-24 sm:pb-0">
+      <TrackVisit path="/" />
 
-      <main className="mx-auto w-full max-w-3xl px-5 pb-20 flex flex-col gap-8">
-        {event ? (
-          <>
-            <section className="card p-6 sm:p-8">
-              <WeekStrip date={event.date} />
-              <div className="mt-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                <div>
-                  <h2 className="font-display text-3xl sm:text-4xl">{event.title}</h2>
-                  <p className="mt-2 text-lg">
-                    {formatLong(event.date)} · {formatTime(event.date)} hs
-                  </p>
-                </div>
-                <div className="text-left sm:text-right">
-                  <p className="text-2xl font-semibold">{formatPrice(event.price)}</p>
-                  <p className="text-sm text-muted">por persona, todo incluido</p>
-                </div>
-              </div>
-              {event.description && (
-                <p className="mt-5 text-ink/90 whitespace-pre-line leading-relaxed">{event.description}</p>
-              )}
-              {event.menu && (
-                <div className="mt-6 border-t border-line pt-6">
-                  <p className="eyebrow mb-4">La noche, en pasos</p>
-                  <MenuSteps menu={event.menu} />
-                </div>
-              )}
-              <p className="mt-6 text-xs text-muted">La dirección exacta se manda al confirmar la reserva.</p>
-            </section>
+      {/* Afiche */}
+      <section className="relative flex min-h-[88vh] items-center overflow-hidden px-6 py-20">
+        <div className="ap-backdrop" aria-hidden="true">
+          {steps.map((s, i) => (
+            <span key={i}>{s.dish}</span>
+          ))}
+        </div>
 
-            <section className="card p-6 sm:p-8">
-              <div className="flex items-baseline justify-between gap-4">
-                <h3 className="font-display text-2xl">Reservá tu lugar</h3>
-                <p className={`text-sm font-medium ${free <= 3 ? "text-danger" : "text-muted"}`}>
-                  {free === 0
-                    ? "Sin lugares"
-                    : free === 1
-                      ? "Queda 1 lugar"
-                      : `Quedan ${free} lugares`}{" "}
-                  de {event.capacity}
+        <div className="ap-spot relative z-10 mx-auto w-full max-w-2xl text-center">
+          <p className="ap-eyebrow">Cena a puertas cerradas · La Plata</p>
+
+          <h1 className="ap-display mt-6 text-[clamp(3.4rem,17vw,7.5rem)]">Apertura</h1>
+
+          <hr className="ap-rule-gold mx-auto mt-8 w-40" />
+
+          <div className="ap-date mt-8">
+            <span className="word">{formatWeekday(event.date)}</span>
+            <span className="num">{formatDayNumber(event.date)}</span>
+            <span className="word">{formatMonth(event.date)}</span>
+          </div>
+          <p className="mt-3 text-sm tracking-[0.2em] uppercase text-muted">
+            {formatTime(event.date)} hs
+            {countdown && <span className="text-accent"> · {countdown}</span>}
+          </p>
+
+          <hr className="ap-rule mx-auto mt-8 w-56" />
+
+          <p className="mt-8 font-display text-2xl sm:text-3xl">{event.title}</p>
+          <p className="mx-auto mt-3 max-w-md leading-relaxed text-muted">
+            {steps.length > 0
+              ? `${spellOut(steps.length)} pasos, cada plato con su trago pensado al lado. Una noche, no un restaurante.`
+              : "Una noche, no un restaurante."}
+          </p>
+
+          <div className="mt-10 flex flex-col items-center gap-3">
+            {free > 0 ? (
+              <>
+                <a className="btn btn-primary px-8" href="#reservar">
+                  Reservar mi lugar
+                </a>
+                <p className="text-sm text-muted">
+                  {formatPrice(event.price)} por persona ·{" "}
+                  <span className={scarcity.tone}>{scarcity.label}</span>
                 </p>
-              </div>
-              {free > 0 ? (
-                <div className="mt-6">
-                  <ReserveForm eventId={event.id} price={event.price} free={free} maxSeats={MAX_SEATS_PER_RESERVATION} />
-                </div>
-              ) : (
-                <p className="mt-6 text-muted">
-                  Se llenó. Dejá tu mail abajo y te avisamos si se libera un lugar o cuando haya nueva fecha.
-                </p>
-              )}
-            </section>
+              </>
+            ) : (
+              <p className="text-danger">Se agotó.</p>
+            )}
+          </div>
+        </div>
+      </section>
 
-            <section className="card p-6 sm:p-8">
-              <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <h3 className="font-display text-2xl">La mesa</h3>
-                <p className="text-sm text-muted">Una sola, larga. Tu silla la elegís después de pagar.</p>
-              </div>
-              <div className="mt-4">
-                <ResponsiveTableMap capacity={event.capacity} states={states} />
-              </div>
-              <div className="mt-2">
-                <TableLegend showSelected={false} />
-              </div>
-            </section>
-          </>
-        ) : (
-          <section className="card p-8 text-center">
-            <p className="eyebrow">Próximamente</p>
-            <h2 className="font-display mt-3 text-3xl">Todavía no hay fecha</h2>
-            <p className="mt-3 text-muted">Dejá tu mail y sos de los primeros en enterarte.</p>
-          </section>
-        )}
-
-        <section className="card p-6 sm:p-8">
-          <h3 className="font-display text-2xl">Avisame cuando haya nueva fecha</h3>
-          <p className="mt-2 text-sm text-muted">Un mail por cena, nada más. Te podés bajar cuando quieras.</p>
-          <SubscribeForm />
+      {/* La carta */}
+      {steps.length > 0 && (
+        <section className="mx-auto w-full max-w-xl px-6 py-14">
+          <div className="text-center">
+            <p className="ap-eyebrow">La carta de la noche</p>
+            <p className="mt-3 text-sm text-muted">
+              Cada paso sale de la cocina con su trago pensado al lado. Hay versión sin alcohol de todos.
+            </p>
+          </div>
+          <ol className="mt-8">
+            {steps.map((s, i) => (
+              <li key={i} className="ap-step">
+                <span className="n">{String(i + 1).padStart(2, "0")}</span>
+                <span className="dish">{s.dish}</span>
+                {s.drink && <span className="drink">{s.drink}</span>}
+              </li>
+            ))}
+          </ol>
+          {event.description && (
+            <p className="mt-8 text-center leading-relaxed whitespace-pre-line text-muted">{event.description}</p>
+          )}
         </section>
-      </main>
+      )}
 
-      <footer className="border-t border-line py-6 text-center text-xs text-muted">
-        {SITE_NAME} · {SITE_TAGLINE}
+      {/* Reserva */}
+      <section id="reservar" className="mx-auto w-full max-w-xl scroll-mt-8 px-6 py-14">
+        <div className="text-center">
+          <p className="ap-eyebrow">Tu lugar</p>
+          <h2 className="ap-display mt-4 text-4xl sm:text-5xl">Reservá</h2>
+          <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-muted">
+            Elegís cuántos son y pagás por Mercado Pago. Después elegís tu silla en la mesa y te llega la dirección
+            exacta.
+          </p>
+        </div>
+
+        <div className="card mt-8 p-6 sm:p-8">
+          {free > 0 ? (
+            <ReserveForm eventId={event.id} price={event.price} free={free} maxSeats={MAX_SEATS_PER_RESERVATION} />
+          ) : (
+            <div className="text-center">
+              <p className="font-display text-2xl">Se agotó</p>
+              <p className="mt-2 text-sm text-muted">
+                Dejá tu mail: te avisamos si se libera un lugar y cuando abramos la próxima fecha.
+              </p>
+              <div className="mt-5 text-left">
+                <SubscribeForm />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <dl className="mt-10 grid gap-px overflow-hidden rounded-xl border border-line bg-line text-sm sm:grid-cols-3">
+          <Fact label="Dónde" value="La Plata, casco urbano. La dirección exacta se manda al confirmar." />
+          <Fact
+            label="Cuándo"
+            value={`${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}, ${formatTime(event.date)} hs.`}
+          />
+          <Fact label="Cuánto" value={`${formatPrice(event.price)} por persona. Se paga la reserva completa por Mercado Pago.`} />
+        </dl>
+      </section>
+
+      <footer className="border-t border-line py-8 text-center text-xs text-muted">
+        <p>{SITE_NAME} · Cena a puertas cerradas · La Plata</p>
+        <Link href="/fechas" className="mt-2 inline-block hover:text-ink">
+          Ver todas las fechas
+        </Link>
       </footer>
+
+      {/* Barra fija en el celular */}
+      {free > 0 && (
+        <div className="ap-cta-bar">
+          <div className="leading-tight">
+            <p className="font-display text-lg">{formatPrice(event.price)}</p>
+            <p className={`text-xs ${scarcity.tone}`}>{scarcity.label}</p>
+          </div>
+          <a className="btn btn-primary btn-sm px-6" href="#reservar">
+            Reservar
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** En un afiche, "cinco pasos" lee mejor que "5 pasos". */
+function spellOut(n: number): string {
+  const words = ["cero", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
+  const w = words[n] ?? String(n);
+  return w.charAt(0).toUpperCase() + w.slice(1);
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-surface p-4">
+      <dt className="ap-eyebrow">{label}</dt>
+      <dd className="mt-2 leading-relaxed text-muted">{value}</dd>
     </div>
   );
 }

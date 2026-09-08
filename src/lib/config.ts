@@ -3,7 +3,7 @@ export const SITE_TAGLINE =
   process.env.NEXT_PUBLIC_SITE_TAGLINE ?? "Cena a puertas cerradas · La Plata";
 export const SITE_INTRO =
   process.env.NEXT_PUBLIC_SITE_INTRO ??
-  "Una experiencia de sabores para tu fin de semana: un recorrido gourmet de cinco pasos, cada plato con su trago, en una sola mesa larga y con pocos lugares. Una salida distinta, a puertas cerradas.";
+  "Una experiencia de sabores para tu fin de semana: un recorrido gourmet de cinco pasos, cada plato con su trago pensado al lado. Una salida distinta, a puertas cerradas.";
 
 /** Teléfonos de consulta. Solo se muestran a quien ya pagó (página de reserva y mail). */
 export const CONTACT_PHONES = (process.env.NEXT_PUBLIC_CONTACT_PHONES ?? "2215654325,2214388852")

@@ -13,10 +13,14 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
 
 ## Pantallas públicas
 
-- `/` — el home de siempre: la próxima cena, su semana, los pasos y el formulario de reserva.
-- `/apertura` — pantalla de afiche para compartir por WhatsApp: título grande, la fecha en grande,
-  el menú gigante y tenue de fondo, la carta completa y la reserva abajo, con barra fija en el celular.
-  Muestra la misma próxima cena, así que se mantiene sola.
+- `/` — **el link que se comparte**. Pantalla de afiche para la apertura: "Apertura" en grande, la fecha
+  como pieza gráfica, el menú gigante y tenue de fondo, la carta completa y la reserva abajo, con barra
+  fija en el celular. Muestra la próxima cena publicada, así que se mantiene sola.
+- `/fechas` — la versión de siempre: la semana de la próxima cena, los pasos, la reserva y el dibujo de la mesa.
+- `/apertura` — redirige a `/` (era la dirección vieja del afiche).
+
+Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: dicen "pocos lugares" y
+"últimos lugares" cuando quedan tres o menos.
 
 ## Cómo funciona una reserva
 
