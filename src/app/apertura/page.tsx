@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const event = await getNextEvent();
   const title = event ? `Apertura · ${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}` : `Apertura · ${SITE_NAME}`;
   const description = event
-    ? `Cena a puertas cerradas en La Plata. Cinco pasos, cada plato con su trago, en una sola mesa larga. ${formatPrice(event.price)} por persona, pocos lugares.`
+    ? `Cena a puertas cerradas en La Plata. Cinco pasos, cada plato con su trago pensado al lado. ${formatPrice(event.price)} por persona, pocos lugares.`
     : "Cena a puertas cerradas en La Plata.";
   return { title, description, openGraph: { title, description, type: "website" } };
 }
@@ -80,8 +80,8 @@ export default async function AperturaPage() {
           <p className="mt-8 font-display text-2xl sm:text-3xl">{event.title}</p>
           <p className="mx-auto mt-3 max-w-md leading-relaxed text-muted">
             {steps.length > 0
-              ? `${steps.length} pasos, cada plato con su trago, en una sola mesa larga. Una noche, no un restaurante.`
-              : "Una sola mesa larga. Una noche, no un restaurante."}
+              ? `${spellOut(steps.length)} pasos, cada plato con su trago pensado al lado. Una noche, no un restaurante.`
+              : "Una noche, no un restaurante."}
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-3">
@@ -184,6 +184,13 @@ export default async function AperturaPage() {
       )}
     </div>
   );
+}
+
+/** En un afiche, "cinco pasos" lee mejor que "5 pasos". */
+function spellOut(n: number): string {
+  const words = ["cero", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
+  const w = words[n] ?? String(n);
+  return w.charAt(0).toUpperCase() + w.slice(1);
 }
 
 function Fact({ label, value }: { label: string; value: string }) {
