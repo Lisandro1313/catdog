@@ -144,7 +144,16 @@ export default async function AdminHome() {
           <Num label="Gastos" value={formatPrice(money.expenses)} big tone="danger" />
           <Num label="Resultado" value={formatPrice(money.result)} big tone={money.result >= 0 ? "ok" : "danger"} />
         </div>
-        <p className="mt-3 text-xs text-muted">Los ingresos de barra y los gastos se cargan en la caja de cada cena.</p>
+        {nextEvent ? (
+          <p className="mt-3 text-xs text-muted">
+            Los ingresos de barra y los gastos se cargan en la caja de cada cena.{" "}
+            <Link href={`/admin/eventos/${nextEvent.id}#caja`} className="text-accent hover:text-accent-strong">
+              Cargar los de {nextEvent.title} →
+            </Link>
+          </p>
+        ) : (
+          <p className="mt-3 text-xs text-muted">Los ingresos de barra y los gastos se cargan en la caja de cada cena.</p>
+        )}
       </section>
 
       {/* Lista de cenas */}
@@ -214,6 +223,8 @@ export default async function AdminHome() {
               capacity: DEFAULT_CAPACITY,
               description: "",
               menu: "",
+              bar: "",
+              barPrice: "",
               address: "",
               published: true,
             }}

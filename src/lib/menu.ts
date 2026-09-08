@@ -20,3 +20,13 @@ export function parseMenu(menu: string | null | undefined): MenuStep[] {
       return { dish: parts[0], drink: parts.slice(1).join(" — ") || null };
     });
 }
+
+export type BarItem = {
+  name: string;
+  description: string | null;
+};
+
+/** Mismo formato que el menú: "Trago | descripción", uno por línea. */
+export function parseBar(bar: string | null | undefined): BarItem[] {
+  return parseMenu(bar).map((s) => ({ name: s.dish, description: s.drink }));
+}

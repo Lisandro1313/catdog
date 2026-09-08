@@ -17,6 +17,10 @@ model Event {
   /// Precio por persona en pesos argentinos (entero, sin centavos).
   price       Int
   capacity    Int      @default(15)
+  /// Carta de barra: un trago por línea, "nombre | descripción".
+  bar         String?
+  /// Precio de cada trago de barra, en pesos.
+  barPrice    Int?
   /// Dirección exacta: solo se muestra a quien ya pagó.
   address     String?
   published   Boolean  @default(true)

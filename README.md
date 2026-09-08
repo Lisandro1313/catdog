@@ -34,9 +34,9 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 ## Panel `/admin`
 
 - **Inicio:** qué cena está mostrando el home ahora (con pagos / en proceso / libres), estado de Mercado Pago y Resend, suscriptores, cubiertos vendidos, visitas al sitio (hoy, 7 y 30 días, gráfico de 14 días) y rendimiento global (reservas cobradas + barra − gastos).
-- **Cenas:** crear / editar / despublicar (título, fecha, precio, lugares, descripción, pasos de la noche en formato `plato | trago`, dirección privada).
+- **Cenas:** crear / editar / despublicar (título, fecha, precio, lugares, descripción, pasos de la noche en formato `plato | trago`, carta de barra en formato `trago | descripción` con su precio por trago, dirección privada).
 - **Reservas por cena:** marcar pagado a mano, cancelar (libera lugares, queda registro), **borrar** definitivamente (para pruebas o devoluciones ya resueltas), asignar o cambiar sillas, cargar reservas a mano (efectivo / transferencia / invitado).
-- **Caja por cena:** ingresos (barra, otros) y gastos (insumos, bebidas, personal, otros) con detalle y monto. Muestra reservas cobradas, barra, gastos y resultado.
+- **Caja por cena:** está en la página de la cena, sección **Caja** (`/admin/eventos/<id>#caja`), con acceso directo desde el bloque Rendimiento del inicio. Se carga tipo (ingreso o gasto), rubro, detalle y monto. Muestra reservas cobradas, barra, gastos y resultado.
 - **Contactos:** todas las personas que pagaron alguna vez, una fila por email, con teléfono, cantidad de cenas, lugares, gasto total y última cena. Botón para descargar CSV.
 - Botón "Avisar a suscriptores": manda el mail de nueva fecha a todos los anotados.
 - QR + link del sitio para el flyer.
@@ -82,7 +82,7 @@ Migraciones: `npm run db:migrate` (crea y aplica). En Vercel el build corre `pri
 
 ## Modelo de datos
 
-- `Event`: una cena (fecha, precio, capacidad, publicado).
+- `Event`: una cena (fecha, precio, capacidad, publicado, menú, carta de barra y su precio, dirección).
 - `Reservation`: nombre, email, cantidad de lugares, estado `PENDING | PAID | CANCELLED`, monto, vencimiento del hold, ids de Mercado Pago.
 - `Seat`: una silla elegida por una reserva pagada. Única por evento, así dos personas no pueden agarrar la misma.
 - `Subscriber`: emails anotados para enterarse de nuevas fechas.

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
 import { getFreeCount, getNextEvent } from "@/lib/reservations";
-import { parseMenu } from "@/lib/menu";
+import { parseBar, parseMenu } from "@/lib/menu";
+import { BarList } from "@/components/BarList";
 import { ReserveForm } from "@/components/ReserveForm";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { TrackVisit } from "@/components/TrackVisit";
@@ -23,6 +24,7 @@ export default async function Home() {
   const event = await getNextEvent();
   const free = event ? await getFreeCount(event.id, event.capacity) : 0;
   const steps = parseMenu(event?.menu);
+  const bar = parseBar(event?.bar);
 
   if (!event) {
     return (
@@ -122,6 +124,11 @@ export default async function Home() {
           </ol>
           {event.description && (
             <p className="mt-8 text-center leading-relaxed whitespace-pre-line text-muted">{event.description}</p>
+          )}
+          {bar.length > 0 && (
+            <div className="mt-10 border-t border-line pt-8">
+              <BarList items={bar} price={event.barPrice} />
+            </div>
           )}
         </section>
       )}

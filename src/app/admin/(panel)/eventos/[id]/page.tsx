@@ -186,7 +186,7 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
         </div>
       </section>
 
-      <section className="card p-6">
+      <section id="caja" className="card scroll-mt-6 p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="font-display text-2xl">Caja</h2>
           <p className="text-xs text-muted">Ventas de barra, costos de insumos y lo que haga falta.</p>
@@ -255,6 +255,8 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
               capacity: event.capacity,
               description: event.description ?? "",
               menu: event.menu ?? "",
+              bar: event.bar ?? "",
+              barPrice: event.barPrice ?? "",
               address: event.address ?? "",
               published: event.published,
             }}

@@ -11,6 +11,8 @@ type EventValues = {
   capacity: number;
   description: string;
   menu: string;
+  bar: string;
+  barPrice: number | "";
   address: string;
   published: boolean;
 };
@@ -58,6 +60,22 @@ export function EventForm({ action, initial, submitLabel }: Props) {
           placeholder={"Focaccia, manteca de tomate quemado, ricota casera | Vermut de la casa\nArancini de arroz y osobuco | Sour de arroz tostado"}
         />
       </label>
+      <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
+        <label className="grid gap-1 text-sm">
+          <span className="text-muted">La barra (uno por línea: trago | descripción)</span>
+          <textarea
+            className="input"
+            name="bar"
+            rows={5}
+            defaultValue={initial.bar}
+            placeholder={"Gin tonic cítrico | Gin nacional, tónica bien fría y piel de pomelo\nMojito de frutos rojos | Ron blanco, menta y lima"}
+          />
+        </label>
+        <label className="grid gap-1 text-sm">
+          <span className="text-muted">Precio por trago ($)</span>
+          <input className="input" type="number" name="barPrice" min={0} step={500} defaultValue={initial.barPrice} placeholder="5000" />
+        </label>
+      </div>
       <label className="grid gap-1 text-sm">
         <span className="text-muted">Dirección (solo la ve quien ya pagó)</span>
         <input className="input" name="address" defaultValue={initial.address} placeholder="Calle 66 entre 5 y 6, La Plata" />

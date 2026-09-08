@@ -5,6 +5,8 @@ import { WeekStrip } from "@/components/WeekStrip";
 import { ReserveForm } from "@/components/ReserveForm";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { MenuSteps } from "@/components/MenuSteps";
+import { BarList } from "@/components/BarList";
+import { parseBar } from "@/lib/menu";
 import { ResponsiveTableMap, TableLegend, type SeatVisual } from "@/components/TableMap";
 import { TrackVisit } from "@/components/TrackVisit";
 
@@ -15,6 +17,7 @@ export default async function FechasPage() {
   const [free, taken] = event
     ? await Promise.all([getFreeCount(event.id, event.capacity), getTakenSeats(event.id)])
     : [0, []];
+  const bar = parseBar(event?.bar);
   const takenSet = new Set(taken);
   const states: SeatVisual[] = event
     ? Array.from({ length: event.capacity }, (_, i) => (takenSet.has(i + 1) ? "taken" : "free"))
@@ -53,6 +56,11 @@ export default async function FechasPage() {
                 <div className="mt-6 border-t border-line pt-6">
                   <p className="eyebrow mb-4">La noche, en pasos</p>
                   <MenuSteps menu={event.menu} />
+                </div>
+              )}
+              {bar.length > 0 && (
+                <div className="mt-6 border-t border-line pt-6">
+                  <BarList items={bar} price={event.barPrice} />
                 </div>
               )}
               <p className="mt-6 text-xs text-muted">La dirección exacta se manda al confirmar la reserva.</p>
