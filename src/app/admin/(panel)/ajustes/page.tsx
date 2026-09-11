@@ -7,6 +7,7 @@ import { isMercadoPagoConfigured } from "@/lib/mp";
 import { isEmailConfigured } from "@/lib/email";
 import { formatShort } from "@/lib/dates";
 import { UsersPanel } from "@/components/admin/UsersPanel";
+import { InstallApp } from "@/components/admin/InstallApp";
 import { logoutAction } from "../../actions";
 
 export default async function AjustesPage() {
@@ -55,6 +56,14 @@ export default async function AjustesPage() {
           me={me}
           suggested={missing}
         />
+      </section>
+
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">La app en el celular</h2>
+        <p className="mt-1 text-sm text-muted">Solo el panel se instala. La página de reservas no ofrece nada de esto a la gente.</p>
+        <div className="mt-3">
+          <InstallApp variant="inline" />
+        </div>
       </section>
 
       <section className="card p-5 sm:p-6">

@@ -5,6 +5,7 @@ import { isAdmin, isAdminConfigured } from "@/lib/admin-auth";
 import { SITE_NAME } from "@/lib/config";
 import { logoutAction } from "../actions";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { InstallApp } from "@/components/admin/InstallApp";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </nav>
       <main className="mx-auto w-full max-w-4xl px-4 py-5 pb-24 sm:px-5 sm:py-8 sm:pb-8 flex flex-col gap-5 sm:gap-8">{children}</main>
+      <InstallApp variant="banner" />
       <AdminNav variant="bottom" />
     </div>
   );
