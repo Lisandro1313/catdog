@@ -4,8 +4,19 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { checkPassword, clearAdminSession, isAdmin, setAdminSession } from "@/lib/admin-auth";
+import {
+  checkMaster,
+  clearSession,
+  getSession,
+  hashPassword,
+  isAdmin,
+  setSession,
+  verifyPassword,
+  verifyUser,
+} from "@/lib/admin-auth";
 import { argentinaDay, parseArgentinaLocal } from "@/lib/dates";
+import { PARTNERS } from "@/lib/ledger-categories";
+import { storeReceipt } from "@/lib/receipts";
 import { sendNewEventBlast } from "@/lib/email";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
@@ -16,19 +27,94 @@ async function requireAdmin() {
   if (!(await isAdmin())) redirect("/admin/login");
 }
 
+/** Quién está usando el panel. Con la contraseña maestra el nombre lo elige en cada formulario. */
+async function whoAmI(): Promise<{ name: string; role: "master" | "user" }> {
+  const s = await getSession();
+  if (!s) redirect("/admin/login");
+  return s;
+}
+
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const password = String(formData.get("password") ?? "");
-  if (!checkPassword(password)) {
-    return { ok: false, message: "Contraseña incorrecta." };
+  const user = String(formData.get("user") ?? "").trim();
+  if (user) {
+    if (!(await verifyUser(user, password))) return { ok: false, message: "Contraseña incorrecta." };
+    await setSession({ name: user, role: "user" });
+  } else {
+    if (!checkMaster(password)) return { ok: false, message: "Contraseña incorrecta." };
+    await setSession({ name: "Admin", role: "master" });
   }
-  await setAdminSession();
   const next = String(formData.get("next") ?? "");
   redirect(next.startsWith("/admin") && !next.startsWith("/admin/login") ? next : "/admin");
 }
 
 export async function logoutAction() {
-  await clearAdminSession();
+  await clearSession();
   redirect("/admin/login");
+}
+
+// ---------------------------------------------------------------------------
+// Usuarios
+// ---------------------------------------------------------------------------
+
+const passwordRule = z.string().min(6, "La contraseña tiene que tener al menos 6 caracteres.").max(100);
+
+/** Crear usuario: requiere la contraseña maestra. */
+export async function createUserAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const master = String(formData.get("master") ?? "");
+  if (!name || name.length > 40) return { ok: false, message: "Poné un nombre." };
+  const pw = passwordRule.safeParse(password);
+  if (!pw.success) return { ok: false, message: pw.error.issues[0]?.message };
+  if (!checkMaster(master)) return { ok: false, message: "La contraseña maestra no es correcta." };
+  const exists = await prisma.user.findUnique({ where: { name } });
+  if (exists) return { ok: false, message: "Ya existe un usuario con ese nombre." };
+  await prisma.user.create({ data: { name, passwordHash: hashPassword(password) } });
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: `Usuario ${name} creado.` };
+}
+
+/** Cambiar la contraseña de otro usuario: requiere la contraseña maestra. */
+export async function resetUserPasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const master = String(formData.get("master") ?? "");
+  const pw = passwordRule.safeParse(password);
+  if (!pw.success) return { ok: false, message: pw.error.issues[0]?.message };
+  if (!checkMaster(master)) return { ok: false, message: "La contraseña maestra no es correcta." };
+  const user = await prisma.user.findUnique({ where: { name } });
+  if (!user) return { ok: false, message: "Usuario inexistente." };
+  await prisma.user.update({ where: { name }, data: { passwordHash: hashPassword(password) } });
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: `Contraseña de ${name} cambiada.` };
+}
+
+/** Cambiar mi propia contraseña: requiere la actual. */
+export async function changeOwnPasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await whoAmI();
+  if (me.role !== "user") return { ok: false, message: "Entraste con la maestra: esa se cambia en Vercel." };
+  const current = String(formData.get("current") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const pw = passwordRule.safeParse(password);
+  if (!pw.success) return { ok: false, message: pw.error.issues[0]?.message };
+  const user = await prisma.user.findUnique({ where: { name: me.name } });
+  if (!user || !verifyPassword(current, user.passwordHash)) return { ok: false, message: "La contraseña actual no es correcta." };
+  await prisma.user.update({ where: { name: me.name }, data: { passwordHash: hashPassword(password) } });
+  return { ok: true, message: "Contraseña cambiada." };
+}
+
+/** Borrar usuario: requiere la contraseña maestra. */
+export async function deleteUserAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  const master = String(formData.get("master") ?? "");
+  if (!checkMaster(master)) return { ok: false, message: "La contraseña maestra no es correcta." };
+  await prisma.user.deleteMany({ where: { name } });
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: `Usuario ${name} borrado.` };
 }
 
 const eventSchema = z.object({
@@ -277,12 +363,16 @@ export async function addLedgerEntryAction(_prev: LedgerActionState, formData: F
   });
   if (!parsed.success) return { ok: false, message: "Revisá el monto y el rubro." };
   const d = parsed.data;
+  const me = await whoAmI();
   const needsCategory = d.kind === "INCOME" || d.kind === "EXPENSE";
   if (needsCategory && !d.category) return { ok: false, message: "Elegí un rubro." };
-  if (!needsCategory && !d.by) return { ok: false, message: "Elegí el socio." };
+  // Con usuario propio, el movimiento se firma con ese nombre; con la maestra, con el que eligió.
+  const by = me.role === "user" ? me.name : d.by && PARTNERS.includes(d.by) ? d.by : (d.by ?? null);
+  if (!needsCategory && !by) return { ok: false, message: "Elegí el socio." };
   // El día llega como "2026-09-11" (fecha argentina) y se guarda como fecha sin hora.
   const day = d.day ? new Date(`${d.day}T00:00:00Z`) : argentinaDay();
-  await prisma.ledgerEntry.create({
+
+  const entry = await prisma.ledgerEntry.create({
     data: {
       eventId: d.eventId ?? null,
       kind: d.kind,
@@ -290,27 +380,115 @@ export async function addLedgerEntryAction(_prev: LedgerActionState, formData: F
       description: d.description ?? null,
       amount: d.amount,
       day,
-      by: d.by ?? null,
+      by,
       // Un gasto pagado "de la caja" no genera deuda con el socio.
       fromPocket: d.kind === "EXPENSE" ? d.fromPocket !== "no" : true,
+      createdBy: me.name,
     },
   });
+
+  // Comprobante (foto), opcional. Si falla la subida, el movimiento queda igual y se avisa.
+  const receipt = formData.get("receipt");
+  let receiptWarning = "";
+  if (receipt instanceof File && receipt.size > 0) {
+    try {
+      const url = await storeReceipt(entry.id, receipt);
+      await prisma.ledgerEntry.update({ where: { id: entry.id }, data: { receiptUrl: url } });
+    } catch (err) {
+      console.error("[comprobante] subida falló", err);
+      receiptWarning = " La foto no se pudo subir; podés agregarla después desde el movimiento.";
+    }
+  }
   if (d.eventId) revalidatePath(`/admin/eventos/${d.eventId}`);
   revalidatePath("/admin/gastos");
   revalidatePath("/admin");
   const label = { INCOME: "Ingreso", EXPENSE: "Gasto", CONTRIBUTION: "Aporte", WITHDRAWAL: "Retiro" }[d.kind];
-  return { ok: true, message: `${label} cargado.`, savedAt: Date.now() };
+  return { ok: true, message: `${label} cargado.${receiptWarning}`, savedAt: Date.now() };
 }
 
-export async function deleteLedgerEntryAction(formData: FormData) {
-  await requireAdmin();
-  const id = String(formData.get("id") ?? "");
-  const e = await prisma.ledgerEntry.findUnique({ where: { id }, select: { eventId: true } });
-  if (!e) return;
-  await prisma.ledgerEntry.delete({ where: { id } });
-  if (e.eventId) revalidatePath(`/admin/eventos/${e.eventId}`);
+function revalidateLedger(eventId: string | null) {
+  if (eventId) revalidatePath(`/admin/eventos/${eventId}`);
   revalidatePath("/admin/gastos");
   revalidatePath("/admin");
+}
+
+/** Borrado suave: va a la papelera y se puede restaurar. */
+export async function deleteLedgerEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await whoAmI();
+  const id = String(formData.get("id") ?? "");
+  const e = await prisma.ledgerEntry.findUnique({ where: { id }, select: { eventId: true, deletedAt: true } });
+  if (!e) return { ok: false, message: "Ese movimiento ya no existe." };
+  if (e.deletedAt) return { ok: false, message: "Ya estaba en la papelera." };
+  await prisma.ledgerEntry.update({ where: { id }, data: { deletedAt: new Date(), deletedBy: me.name } });
+  revalidateLedger(e.eventId);
+  return { ok: true, message: "Movimiento enviado a la papelera." };
+}
+
+export async function restoreLedgerEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await whoAmI();
+  const id = String(formData.get("id") ?? "");
+  const e = await prisma.ledgerEntry.findUnique({ where: { id }, select: { eventId: true } });
+  if (!e) return { ok: false, message: "Ese movimiento ya no existe." };
+  await prisma.ledgerEntry.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
+  revalidateLedger(e.eventId);
+  return { ok: true, message: "Movimiento restaurado." };
+}
+
+const editSchema = z.object({
+  id: z.string().min(1),
+  category: z.string().trim().max(40).optional(),
+  description: z.string().trim().max(200).optional(),
+  amount: z.coerce.number().int().min(1),
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  by: z.string().trim().max(40).optional(),
+  fromPocket: z.enum(["si", "no"]).optional(),
+});
+
+export async function updateLedgerEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await whoAmI();
+  const parsed = editSchema.safeParse({
+    id: formData.get("id"),
+    category: formData.get("category") || undefined,
+    description: formData.get("description") || undefined,
+    amount: formData.get("amount"),
+    day: formData.get("day"),
+    by: formData.get("by") || undefined,
+    fromPocket: formData.get("fromPocket") || undefined,
+  });
+  if (!parsed.success) return { ok: false, message: "Revisá el monto y la fecha." };
+  const d = parsed.data;
+  const e = await prisma.ledgerEntry.findUnique({ where: { id: d.id } });
+  if (!e || e.deletedAt) return { ok: false, message: "Ese movimiento no está disponible." };
+  const isMoney = e.kind === "INCOME" || e.kind === "EXPENSE";
+  if (isMoney && !d.category) return { ok: false, message: "Elegí un rubro." };
+
+  await prisma.ledgerEntry.update({
+    where: { id: d.id },
+    data: {
+      category: isMoney ? (d.category as string) : e.category,
+      description: d.description ?? null,
+      amount: d.amount,
+      day: new Date(`${d.day}T00:00:00Z`),
+      by: d.by ?? e.by,
+      fromPocket: e.kind === "EXPENSE" ? d.fromPocket !== "no" : e.fromPocket,
+      updatedAt: new Date(),
+      updatedBy: me.name,
+    },
+  });
+
+  const receipt = formData.get("receipt");
+  if (receipt instanceof File && receipt.size > 0) {
+    try {
+      const url = await storeReceipt(e.id, receipt);
+      await prisma.ledgerEntry.update({ where: { id: e.id }, data: { receiptUrl: url } });
+    } catch (err) {
+      console.error("[comprobante] subida falló", err);
+      revalidateLedger(e.eventId);
+      return { ok: true, message: "Guardado, pero la foto no se pudo subir." };
+    }
+  }
+  revalidateLedger(e.eventId);
+  return { ok: true, message: "Movimiento guardado." };
 }
 
 /** Reserva que se guarda en la caja para gastos fijos antes de repartir. */

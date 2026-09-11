@@ -14,6 +14,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@vercel/blob": "^2.8.0",
     "ai": "^7.0.98",
     "dotenv": "^17.4.2",
     "mercadopago": "^3.6.0",

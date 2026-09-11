@@ -36,7 +36,8 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 - **Inicio:** qué cena está mostrando el home ahora (con pagos / en proceso / libres), estado de Mercado Pago y Resend, suscriptores, cubiertos vendidos, visitas al sitio (hoy, 7 y 30 días, gráfico de 14 días) y rendimiento global (reservas cobradas + barra − gastos).
 - **Cenas:** crear / editar / despublicar (título, fecha, precio, lugares, descripción, pasos de la noche en formato `plato | trago`, carta de barra en formato `trago | descripción` con su precio por trago, dirección privada).
 - **Reservas por cena:** marcar pagado a mano, cancelar (libera lugares, queda registro), **borrar** definitivamente (para pruebas o devoluciones ya resueltas), asignar o cambiar sillas, cargar reservas a mano (efectivo / transferencia / invitado).
-- **Gastos (`/admin/gastos`)**: la pantalla del día a día, pensada para el celular. Se carga monto, rubro (verdulería, carnicería, almacén, bebidas, insumos, vajilla, alquiler, luz/gas/internet, viáticos, personal, otros), quién lo pagó y con qué plata (de su bolsillo o de la caja), detalle y fecha. También ingresos (barra, otros), **aportes** (un socio pone plata) y **retiros** (un socio se lleva plata).
+- **Gastos (`/admin/gastos`)**: la pantalla del día a día, pensada para el celular. Se carga monto, rubro (verdulería, carnicería, almacén, bebidas, insumos, vajilla, alquiler, luz/gas/internet, viáticos, personal, otros), con qué plata (de su bolsillo o de la caja), detalle, fecha y **foto del comprobante** (abre la cámara; la foto se achica en el teléfono antes de subir y se guarda privada en Vercel Blob). También ingresos (barra, otros), **aportes** (un socio pone plata) y **retiros** (un socio se lleva plata; pide confirmación en una ventana).
+- **Movimientos:** tocar uno abre una ventana con el detalle, la foto del comprobante y quién lo cargó / editó. Desde ahí se **edita** (monto, rubro, detalle, fecha, socio, con qué plata, foto) o se **borra** con confirmación. Lo borrado va a la **Papelera** (no cuenta en los números) y se puede restaurar. Nada se borra de verdad.
 - **Entre socios** (en la misma pantalla): ganancia acumulada, plata en el negocio, reserva para gastos fijos (editable) y, por socio, lo que puso, lo que le toca de ganancia, lo que ya retiró, lo que le deben, **lo que puede retirar hoy** y lo que queda pendiente. Regla: primero se devuelve lo que cada uno puso de su bolsillo, después la ganancia que supera la reserva se reparte en partes iguales; si la plata no alcanza, a prorrata y el resto queda para cuando entre.
 - **¿Cómo venimos? (IA)**: botón que le manda todos los números a Claude (vía Vercel AI Gateway) y devuelve, en criollo: estado, resumen, proyección de la semana que viene, cubiertos para cubrir gastos, un mensaje por socio, alertas y qué hacer esta semana. Se guarda el último análisis. Cuesta centavos por análisis.
 - **Esta semana** y **Semana a semana**: reservas (cuentan en la semana de la cena), barra, gastos y resultado; promedio de gastos y punto de equilibrio en cubiertos.
@@ -46,6 +47,14 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 - QR + link del sitio para el flyer.
 
 Las visitas se cuentan con un beacon desde las pantallas públicas (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. No cuenta las visitas al panel. El panel muestra el total y el desglose por página, así se ve qué link trae gente.
+
+## Usuarios: uno para cada socio
+
+En **Ajustes** (`/admin/ajustes`) se crean los usuarios. Cada socio entra con su nombre y su contraseña, y todo lo que carga, edita o borra queda firmado con su nombre. Para crear usuarios, cambiarles la contraseña o borrarlos hay que escribir la **contraseña maestra** (la variable `ADMIN_PASSWORD`), así ninguno de los dos puede tocar la cuenta del otro sin ella. Cada uno puede cambiar su propia contraseña con la actual.
+
+La contraseña maestra siempre sigue entrando (opción "Entrar con la contraseña maestra" en el login), por si alguien se olvida la suya. Entrando con la maestra, el formulario pregunta a nombre de quién se carga cada gasto.
+
+Pasos la primera vez: entrar con la maestra → Ajustes → "+ Nuevo usuario" → Lisandro con su contraseña → otra vez para Agustín → cerrar sesión → cada uno entra con el suyo (y lo instala como app en su teléfono).
 
 ## Instalar el panel como app en el celular
 
@@ -82,6 +91,7 @@ Las de la base ya las carga la integración de Neon. Faltan estas (se setean con
 | `NEXT_PUBLIC_SITE_NAME` / `NEXT_PUBLIC_SITE_TAGLINE` | Nombre y subtítulo | Opcionales (default "CatDog" / "Cena a puertas cerradas"). |
 | `NEXT_PUBLIC_PARTNERS` | Nombres de los socios, separados por coma | Opcional (default "Lisandro,Agustín"). |
 | `AI_GATEWAY_API_KEY` | Clave del AI Gateway | Opcional: en Vercel se usa el token OIDC del proyecto. |
+| `BLOB_READ_WRITE_TOKEN` | Fotos de comprobantes | Ya cargada por el store de Vercel Blob. |
 
 Después de agregar variables hay que volver a desplegar: `vercel deploy --prod`.
 
@@ -112,4 +122,6 @@ Migraciones: `npm run db:migrate` (crea y aplica). En Vercel el build corre `pri
 - `Subscriber`: emails anotados para enterarse de nuevas fechas.
 - `LedgerEntry`: movimientos de caja: ingreso, gasto, aporte o retiro; rubro, detalle, monto, día, quién, si salió del bolsillo del socio o de la caja; opcionalmente atado a una cena.
 - `Setting`: configuración editable desde el panel (`reserve` = reserva para gastos fijos; `ai:analysis` = último análisis de la IA).
+- `User`: usuarios del panel (nombre y contraseña con hash scrypt). La sesión es una cookie firmada con `APP_SECRET` (o `ADMIN_PASSWORD`).
+- Los comprobantes viven en el store privado de Vercel Blob `catdog-comprobantes` (variable `BLOB_READ_WRITE_TOKEN`, ya cargada) y se sirven solo con sesión desde `/admin/comprobante/[id]`.
 - `PageView`: visitas al home agregadas por día.

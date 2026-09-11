@@ -59,7 +59,7 @@ async function buildSnapshot(): Promise<string> {
   const from = new Date(today.getTime() - 28 * 24 * 60 * 60 * 1000);
   const byCat = await prisma.ledgerEntry.groupBy({
     by: ["category"],
-    where: { kind: "EXPENSE", day: { gte: from } },
+    where: { kind: "EXPENSE", day: { gte: from }, deletedAt: null },
     _sum: { amount: true },
     orderBy: { _sum: { amount: "desc" } },
   });

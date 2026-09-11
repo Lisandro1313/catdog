@@ -16,7 +16,7 @@ export default async function AdminHome() {
       orderBy: { date: "desc" },
       include: {
         reservations: { select: { status: true, expiresAt: true, quantity: true, amount: true } },
-        ledger: { select: { kind: true, amount: true } },
+        ledger: { where: { deletedAt: null }, select: { kind: true, amount: true } },
       },
     }),
     prisma.subscriber.count(),

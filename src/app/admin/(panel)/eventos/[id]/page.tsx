@@ -2,24 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/config";
-import { formatDayShort, formatShort, nowMs, toDatetimeLocal, todayIso } from "@/lib/dates";
-import { categoryLabel, getFinancials } from "@/lib/admin-stats";
+import { formatShort, nowMs, toDatetimeLocal, todayIso } from "@/lib/dates";
+import { categoryLabel, getFinancials, toRow } from "@/lib/admin-stats";
+import { getSession } from "@/lib/admin-auth";
 import { EventForm } from "@/components/admin/EventForm";
 import { AssignSeatsForm, ManualReservationForm, NotifyForm } from "@/components/admin/ActionForms";
 import { LedgerForm } from "@/components/admin/LedgerForm";
+import { MovementList } from "@/components/admin/MovementList";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
-import {
-  cancelReservationAction,
-  deleteEventAction,
-  deleteLedgerEntryAction,
-  deleteReservationAction,
-  markPaidAction,
-  updateEventAction,
-} from "../../../actions";
+import { cancelReservationAction, deleteEventAction, deleteReservationAction, markPaidAction, updateEventAction } from "../../../actions";
 
 export default async function AdminEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [event, subscribers, money] = await Promise.all([
+  const [event, subscribers, money, session] = await Promise.all([
     prisma.event.findUnique({
       where: { id },
       include: {
@@ -27,13 +22,16 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
           orderBy: { createdAt: "desc" },
           include: { seats: { orderBy: { number: "asc" } } },
         },
-        ledger: { orderBy: { createdAt: "desc" } },
+        ledger: { where: { deletedAt: null }, orderBy: { createdAt: "desc" }, include: { event: { select: { title: true } } } },
       },
     }),
     prisma.subscriber.count(),
     getFinancials(id),
+    getSession(),
   ]);
   if (!event) notFound();
+  const sessionName = session?.role === "user" ? session.name : undefined;
+  const today = todayIso();
 
   const now = nowMs();
   const active = event.reservations.filter(
@@ -216,36 +214,13 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
             </Link>
             .
           </p>
-          <LedgerForm eventId={event.id} today={todayIso()} defaultKind="INCOME" compact />
+          <LedgerForm eventId={event.id} today={today} defaultKind="INCOME" compact sessionName={sessionName} />
         </div>
 
         {event.ledger.length > 0 && (
-          <table className="mt-5 w-full text-sm">
-            <tbody className="divide-y divide-line">
-              {event.ledger.map((l) => (
-                <tr key={l.id}>
-                  <td className="py-2 pr-3 text-muted whitespace-nowrap">{formatDayShort(l.day)}</td>
-                  <td className="py-2 pr-3">
-                    <span className={l.kind === "INCOME" ? "text-ok" : "text-danger"}>{categoryLabel(l.kind, l.category)}</span>
-                    {l.description && <span className="text-muted"> · {l.description}</span>}
-                    {l.by && <span className="text-muted text-xs"> · {l.by}</span>}
-                  </td>
-                  <td className={`py-2 pr-3 text-right whitespace-nowrap ${l.kind === "INCOME" ? "text-ok" : "text-danger"}`}>
-                    {l.kind === "INCOME" ? "+" : "−"}
-                    {formatPrice(l.amount)}
-                  </td>
-                  <td className="py-2 text-right">
-                    <form action={deleteLedgerEntryAction}>
-                      <input type="hidden" name="id" value={l.id} />
-                      <ConfirmButton className="text-xs text-muted hover:text-danger" message="¿Borrar este movimiento?">
-                        borrar
-                      </ConfirmButton>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="mt-5">
+            <MovementList rows={event.ledger.map(toRow)} today={today} sessionName={sessionName} />
+          </div>
         )}
       </section>
 

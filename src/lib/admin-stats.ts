@@ -60,7 +60,7 @@ export async function getFinancials(eventId?: string): Promise<Financials> {
     prisma.reservation.aggregate({ where: { ...where, status: "PAID" }, _sum: { amount: true } }),
     prisma.ledgerEntry.groupBy({
       by: ["kind", "category"],
-      where: { ...where, kind: { in: ["INCOME", "EXPENSE"] } },
+      where: { ...where, kind: { in: ["INCOME", "EXPENSE"] }, deletedAt: null },
       _sum: { amount: true },
     }),
   ]);
@@ -142,9 +142,16 @@ export type LedgerRow = {
   category: string;
   description: string | null;
   amount: number;
-  day: Date;
+  /** "YYYY-MM-DD" (fecha argentina). Serializable para componentes cliente. */
+  day: string;
   by: string | null;
+  fromPocket: boolean;
+  hasReceipt: boolean;
   eventTitle: string | null;
+  createdBy: string | null;
+  updatedBy: string | null;
+  deletedBy: string | null;
+  deletedAt: string | null;
 };
 
 export type WeeklyReport = {
@@ -159,6 +166,53 @@ export type WeeklyReport = {
   recent: LedgerRow[];
 };
 
+type RawRow = {
+  id: string;
+  kind: AnyKind;
+  category: string;
+  description: string | null;
+  amount: number;
+  day: Date;
+  by: string | null;
+  fromPocket: boolean;
+  receiptUrl: string | null;
+  createdBy: string | null;
+  updatedBy: string | null;
+  deletedBy: string | null;
+  deletedAt: Date | null;
+  event: { title: string } | null;
+};
+
+export function toRow(l: RawRow): LedgerRow {
+  return {
+    id: l.id,
+    kind: l.kind,
+    category: l.category,
+    description: l.description,
+    amount: l.amount,
+    day: l.day.toISOString().slice(0, 10),
+    by: l.by,
+    fromPocket: l.fromPocket,
+    hasReceipt: Boolean(l.receiptUrl),
+    eventTitle: l.event?.title ?? null,
+    createdBy: l.createdBy,
+    updatedBy: l.updatedBy,
+    deletedBy: l.deletedBy,
+    deletedAt: l.deletedAt ? l.deletedAt.toISOString() : null,
+  };
+}
+
+/** Movimientos en la papelera (borrados), los más recientes primero. */
+export async function getTrash(): Promise<LedgerRow[]> {
+  const rows = await prisma.ledgerEntry.findMany({
+    where: { deletedAt: { not: null } },
+    orderBy: { deletedAt: "desc" },
+    take: 50,
+    include: { event: { select: { title: true } } },
+  });
+  return rows.map(toRow);
+}
+
 function mondayOf(dayUtcMidnight: number): number {
   const d = new Date(dayUtcMidnight);
   const dow = (d.getUTCDay() + 6) % 7; // lunes = 0
@@ -171,6 +225,7 @@ export async function getWeeklyReport(weeksBack = 8, nextEventPrice?: number): P
 
   const [ledger, paid, recent] = await Promise.all([
     prisma.ledgerEntry.findMany({
+      where: { deletedAt: null },
       select: { kind: true, amount: true, day: true, by: true, fromPocket: true },
     }),
     prisma.reservation.findMany({
@@ -178,6 +233,7 @@ export async function getWeeklyReport(weeksBack = 8, nextEventPrice?: number): P
       select: { amount: true, quantity: true, event: { select: { date: true } } },
     }),
     prisma.ledgerEntry.findMany({
+      where: { deletedAt: null },
       orderBy: [{ day: "desc" }, { createdAt: "desc" }],
       take: 60,
       include: { event: { select: { title: true } } },
@@ -248,16 +304,7 @@ export async function getWeeklyReport(weeksBack = 8, nextEventPrice?: number): P
     total,
     avgWeeklyExpenses,
     breakEvenCovers,
-    recent: recent.map((l) => ({
-      id: l.id,
-      kind: l.kind,
-      category: l.category,
-      description: l.description,
-      amount: l.amount,
-      day: l.day,
-      by: l.by,
-      eventTitle: l.event?.title ?? null,
-    })),
+    recent: recent.map(toRow),
   };
 }
 
@@ -312,7 +359,7 @@ export async function getReserve(): Promise<number> {
 
 export async function getPartnerReport(): Promise<PartnerReport> {
   const [ledger, paid, reserve] = await Promise.all([
-    prisma.ledgerEntry.findMany({ select: { kind: true, amount: true, by: true, fromPocket: true } }),
+    prisma.ledgerEntry.findMany({ where: { deletedAt: null }, select: { kind: true, amount: true, by: true, fromPocket: true } }),
     prisma.reservation.aggregate({ where: { status: "PAID" }, _sum: { amount: true } }),
     getReserve(),
   ]);

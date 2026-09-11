@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState, useSyncExternalStore } from "react";
+import { useActionState, useRef, useState, useSyncExternalStore } from "react";
 import { addLedgerEntryAction } from "@/app/admin/actions";
 import { KIND_LABEL, LEDGER_CATEGORIES, PARTNERS, type AnyKind } from "@/lib/ledger-categories";
+import { ReceiptInput } from "./ReceiptInput";
 
 type Props = {
   /** Si se pasa, el movimiento queda atado a esa cena. */
@@ -12,6 +13,8 @@ type Props = {
   defaultKind?: AnyKind;
   /** Modo compacto para la página de la cena: solo gasto / ingreso. */
   compact?: boolean;
+  /** Nombre del usuario logueado. Si viene, el movimiento se firma con él y no se pregunta quién. */
+  sessionName?: string;
 };
 
 // --- Quién carga: se recuerda en el teléfono -------------------------------
@@ -41,13 +44,22 @@ function formatThousands(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-export function LedgerForm({ eventId, today, defaultKind = "EXPENSE", compact = false }: Props) {
+export function LedgerForm({ eventId, today, defaultKind = "EXPENSE", compact = false, sessionName }: Props) {
   const [state, action, pending] = useActionState(addLedgerEntryAction, null);
   // Al guardar con éxito cambia la key y el form vuelve a los valores iniciales.
   const formKey = state?.ok ? state.savedAt : 0;
   return (
     <div>
-      <Fields key={formKey} eventId={eventId} today={today} defaultKind={defaultKind} compact={compact} action={action} pending={pending} />
+      <Fields
+        key={formKey}
+        eventId={eventId}
+        today={today}
+        defaultKind={defaultKind}
+        compact={compact}
+        sessionName={sessionName}
+        action={action}
+        pending={pending}
+      />
       {state?.message && (
         <p className={`mt-3 text-sm ${state.ok ? "text-ok" : "text-danger"}`} role="status">
           {state.ok ? "✓ " : ""}
@@ -63,6 +75,7 @@ function Fields({
   today,
   defaultKind,
   compact,
+  sessionName,
   action,
   pending,
 }: Props & { defaultKind: AnyKind; action: (formData: FormData) => void; pending: boolean }) {
@@ -71,7 +84,25 @@ function Fields({
   const [category, setCategory] = useState<string>("");
   const [fromPocket, setFromPocket] = useState(true);
   const stored = useSyncExternalStore(subscribeWho, readWho, () => "");
-  const who = PARTNERS.includes(stored) ? stored : (PARTNERS[0] ?? "");
+  // Con usuario propio, siempre firma él. Con la maestra, el que eligió (se recuerda en el teléfono).
+  const who = sessionName ?? (PARTNERS.includes(stored) ? stored : (PARTNERS[0] ?? ""));
+  const askWho = !sessionName && PARTNERS.length > 1;
+  const formRef = useRef<HTMLFormElement>(null);
+  const confirmRef = useRef<HTMLDialogElement>(null);
+  const confirmedRef = useRef(false);
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    // Un retiro mueve plata de verdad: se confirma en una ventana antes de guardar.
+    if (kind === "WITHDRAWAL" && !confirmedRef.current) {
+      e.preventDefault();
+      confirmRef.current?.showModal();
+    }
+  }
+  function confirmWithdrawal() {
+    confirmedRef.current = true;
+    confirmRef.current?.close();
+    formRef.current?.requestSubmit();
+  }
 
   const digits = amount.replace(/\D/g, "");
   const isMoney = kind === "INCOME" || kind === "EXPENSE";
@@ -87,7 +118,7 @@ function Fields({
   };
 
   return (
-    <form action={action} className="grid gap-4">
+    <form ref={formRef} action={action} onSubmit={onSubmit} className="grid gap-4">
       {eventId && <input type="hidden" name="eventId" value={eventId} />}
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="category" value={category} />
@@ -181,7 +212,12 @@ function Fields({
       {/* Quién, con qué plata, cuándo */}
       <div className="grid gap-3 sm:grid-cols-[1fr_170px]">
         <div className="grid gap-3">
-          {PARTNERS.length > 1 && (
+          {!askWho && sessionName && (kind === "CONTRIBUTION" || kind === "WITHDRAWAL") && (
+            <p className="text-sm text-muted">
+              {kind === "CONTRIBUTION" ? "Lo pone" : "Se lo lleva"}: <span className="text-ink">{sessionName}</span>
+            </p>
+          )}
+          {askWho && (
             <div>
               <p className="mb-2 text-xs text-muted">
                 {kind === "EXPENSE" ? "Lo pagó" : kind === "INCOME" ? "Lo cargó" : kind === "CONTRIBUTION" ? "Lo pone" : "Se lo lleva"}
@@ -234,9 +270,33 @@ function Fields({
         </label>
       </div>
 
+      {isMoney && <ReceiptInput />}
+
       <button className="btn btn-primary w-full py-3.5 text-base" type="submit" disabled={!canSave || pending}>
         {pending ? "Guardando…" : `Guardar ${KIND_LABEL[kind].toLowerCase()}${digits ? ` · $${formatThousands(digits)}` : ""}`}
       </button>
+
+      {/* Confirmación de retiro */}
+      <dialog
+        ref={confirmRef}
+        className="m-auto w-[min(92vw,24rem)] rounded-2xl border border-line bg-surface p-5 text-ink backdrop:bg-black/60"
+      >
+        <p className="text-xs uppercase tracking-wider text-accent">Retiro</p>
+        <p className="mt-2 font-display text-2xl">
+          {who || "Un socio"} se lleva ${formatThousands(digits) || "0"}
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          Se descuenta de lo que le corresponde a {who || "ese socio"} en &quot;Entre socios&quot;. ¿Confirmás?
+        </p>
+        <div className="mt-4 flex gap-2">
+          <button type="button" className="btn btn-primary btn-sm" onClick={confirmWithdrawal}>
+            Sí, registrar retiro
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => confirmRef.current?.close()}>
+            Cancelar
+          </button>
+        </div>
+      </dialog>
     </form>
   );
 }

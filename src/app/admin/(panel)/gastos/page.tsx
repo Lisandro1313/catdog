@@ -1,29 +1,25 @@
 import { formatPrice } from "@/lib/config";
 import { formatDay, formatDayShort, formatShort, todayIso } from "@/lib/dates";
 import { getNextEvent } from "@/lib/reservations";
-import { getPartnerReport, getWeeklyReport, type LedgerRow, type WeekReport } from "@/lib/admin-stats";
-import { categoryEmoji, categoryLabel } from "@/lib/ledger-categories";
+import { getSession } from "@/lib/admin-auth";
+import { getPartnerReport, getTrash, getWeeklyReport, type WeekReport } from "@/lib/admin-stats";
 import { getStoredAnalysis, isAiConfigured } from "@/lib/ai-analysis";
 import { LedgerForm } from "@/components/admin/LedgerForm";
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { MovementList } from "@/components/admin/MovementList";
 import { AnalysisButton, ReserveForm } from "@/components/admin/GastosForms";
-import { deleteLedgerEntryAction } from "../../actions";
 
 export default async function GastosPage() {
-  const nextEvent = await getNextEvent();
-  const [report, partners, stored] = await Promise.all([getWeeklyReport(8, nextEvent?.price), getPartnerReport(), getStoredAnalysis()]);
+  const [nextEvent, session] = await Promise.all([getNextEvent(), getSession()]);
+  const [report, partners, stored, trash] = await Promise.all([
+    getWeeklyReport(8, nextEvent?.price),
+    getPartnerReport(),
+    getStoredAnalysis(),
+    getTrash(),
+  ]);
   const { current, total } = report;
   const today = todayIso();
   const aiReady = isAiConfigured();
-
-  // Movimientos recientes agrupados por día.
-  const byDay = new Map<number, LedgerRow[]>();
-  for (const r of report.recent) {
-    const k = r.day.getTime();
-    if (!byDay.has(k)) byDay.set(k, []);
-    byDay.get(k)!.push(r);
-  }
-  const todayMs = new Date(`${today}T00:00:00Z`).getTime();
+  const sessionName = session?.role === "user" ? session.name : undefined;
 
   const estadoTone = { bien: "text-ok", justo: "text-accent", rojo: "text-danger" } as const;
   const estadoLabel = { bien: "Venimos bien", justo: "Venimos justos", rojo: "Estamos en rojo" } as const;
@@ -35,7 +31,7 @@ export default async function GastosPage() {
         <h2 className="font-display text-2xl">Cargar</h2>
         <p className="mt-1 text-sm text-muted">Monto, rubro, guardar. Lo demás es opcional.</p>
         <div className="mt-5">
-          <LedgerForm today={today} />
+          <LedgerForm today={today} sessionName={sessionName} />
         </div>
       </section>
 
@@ -197,49 +193,30 @@ export default async function GastosPage() {
 
       {/* 5. Movimientos */}
       <section className="card p-5 sm:p-6">
-        <h2 className="font-display text-2xl">Últimos movimientos</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-display text-2xl">Últimos movimientos</h2>
+          <p className="text-xs text-muted">Tocá uno para ver el detalle, editarlo o borrarlo.</p>
+        </div>
         {report.recent.length === 0 ? (
           <p className="mt-3 text-muted">Todavía no cargaste nada. Arrancá arriba.</p>
         ) : (
-          <div className="mt-4 divide-y divide-line">
-            {Array.from(byDay.entries()).map(([k, rows]) => (
-              <div key={k} className="py-3">
-                <p className="mb-2 text-xs uppercase tracking-wider text-muted">{k === todayMs ? "Hoy" : formatDayShort(new Date(k))}</p>
-                <ul className="grid gap-2">
-                  {rows.map((r) => {
-                    const sign = r.kind === "INCOME" || r.kind === "CONTRIBUTION" ? "+" : "−";
-                    const tone = r.kind === "INCOME" ? "text-ok" : r.kind === "EXPENSE" ? "text-danger" : "text-accent";
-                    return (
-                      <li key={r.id} className="flex items-center gap-3">
-                        <span className="text-lg" aria-hidden="true">
-                          {categoryEmoji(r.kind, r.category)}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm">
-                            {categoryLabel(r.kind, r.category)}
-                            {r.description && <span className="text-muted"> · {r.description}</span>}
-                          </p>
-                          <p className="text-xs text-muted">{[r.by, r.eventTitle].filter(Boolean).join(" · ")}</p>
-                        </div>
-                        <p className={`whitespace-nowrap font-display text-lg ${tone}`}>
-                          {sign}
-                          {formatPrice(r.amount)}
-                        </p>
-                        <form action={deleteLedgerEntryAction}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <ConfirmButton className="px-2 py-1 text-lg leading-none text-muted hover:text-danger" message="¿Borrar este movimiento?">
-                            ×
-                          </ConfirmButton>
-                        </form>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
+          <div className="mt-2">
+            <MovementList rows={report.recent} today={today} sessionName={sessionName} />
           </div>
         )}
       </section>
+
+      {trash.length > 0 && (
+        <details className="card p-5 sm:p-6">
+          <summary className="cursor-pointer font-display text-xl text-muted">
+            Papelera <span className="text-sm font-sans">({trash.length})</span>
+          </summary>
+          <p className="mt-2 text-xs text-muted">Movimientos borrados. No cuentan en los números. Tocá uno para restaurarlo.</p>
+          <div className="mt-2 opacity-80">
+            <MovementList rows={trash} today={today} mode="trash" sessionName={sessionName} />
+          </div>
+        </details>
+      )}
 
       {/* 6. Semana a semana */}
       <section className="card p-5 sm:p-6">
