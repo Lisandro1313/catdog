@@ -7,9 +7,13 @@ import { getAnalysisMode, getStoredAnalysis, modeLabel } from "@/lib/ai-analysis
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
 import { AnalysisButton, ReserveForm } from "@/components/admin/GastosForms";
+import { ensureFixedEntries, getWeeklyFixedTotal } from "@/lib/fixed-expenses";
+import Link from "next/link";
 
 export default async function GastosPage() {
-  const [nextEvent, session] = await Promise.all([getNextEvent(), getSession()]);
+  // Los gastos fijos de la semana se cargan solos al abrir la pantalla.
+  await ensureFixedEntries();
+  const [nextEvent, session, weeklyFixed] = await Promise.all([getNextEvent(), getSession(), getWeeklyFixedTotal()]);
   const [report, partners, stored, trash] = await Promise.all([
     getWeeklyReport(8, nextEvent?.price),
     getPartnerReport(),
@@ -170,9 +174,23 @@ export default async function GastosPage() {
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Num label="Reservas" value={formatPrice(current.reservations)} hint={current.covers ? `${current.covers} cubiertos` : undefined} />
           <Num label="Barra y otros" value={formatPrice(current.otherIncome)} />
-          <Num label="Gastos" value={formatPrice(current.expenses)} tone="danger" />
+          <Num
+            label="Gastos"
+            value={formatPrice(current.expenses)}
+            tone="danger"
+            hint={weeklyFixed > 0 ? `incluye ${formatPrice(weeklyFixed)} de fijos` : undefined}
+          />
           <Num label="Resultado" value={formatPrice(current.result)} tone={current.result >= 0 ? "ok" : "danger"} big />
         </div>
+        {weeklyFixed > 0 && (
+          <p className="mt-3 text-xs text-muted">
+            Cada semana arranca con <span className="text-danger">−{formatPrice(weeklyFixed)}</span> de gastos fijos (alquiler, servicios), cargados
+            solos el lunes.{" "}
+            <Link href="/admin/ajustes" className="text-accent hover:text-accent-strong">
+              Ver o cambiar los fijos →
+            </Link>
+          </p>
+        )}
         {report.avgWeeklyExpenses !== null && (
           <p className="mt-4 text-sm text-muted">
             Una semana promedio gasta <span className="text-ink">{formatPrice(report.avgWeeklyExpenses)}</span>.

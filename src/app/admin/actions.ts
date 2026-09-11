@@ -17,6 +17,8 @@ import {
 import { argentinaDay, parseArgentinaLocal } from "@/lib/dates";
 import { PARTNERS } from "@/lib/ledger-categories";
 import { storeReceipt } from "@/lib/receipts";
+import { ensureFixedEntries, refreshCurrentWeekEntry, weeklyAmount } from "@/lib/fixed-expenses";
+import { formatPrice } from "@/lib/config";
 import { sendNewEventBlast } from "@/lib/email";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
@@ -512,4 +514,61 @@ export async function runAnalysisAction(): Promise<ActionState> {
     console.error("[análisis] falló", err);
     return { ok: false, message: "No pude generar el análisis. Probá de nuevo en un rato." };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Gastos fijos (mensuales, prorrateados por semana)
+// ---------------------------------------------------------------------------
+
+const fixedSchema = z.object({
+  name: z.string().trim().min(2).max(60),
+  category: z.string().trim().min(1).max(40),
+  monthlyAmount: z.coerce.number().int().min(1),
+});
+
+export async function createFixedExpenseAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const parsed = fixedSchema.safeParse({
+    name: formData.get("name"),
+    category: formData.get("category"),
+    monthlyAmount: String(formData.get("monthlyAmount") ?? "").replace(/\D/g, ""),
+  });
+  if (!parsed.success) return { ok: false, message: "Poné nombre, rubro y monto mensual." };
+  const d = parsed.data;
+  await prisma.fixedExpense.create({ data: { ...d, startsOn: argentinaDay() } });
+  await ensureFixedEntries();
+  revalidatePath("/admin/gastos");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: `${d.name} cargado: ${formatPrice(weeklyAmount(d.monthlyAmount))} por semana.` };
+}
+
+export async function updateFixedExpenseAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const parsed = fixedSchema.safeParse({
+    name: formData.get("name"),
+    category: formData.get("category"),
+    monthlyAmount: String(formData.get("monthlyAmount") ?? "").replace(/\D/g, ""),
+  });
+  if (!parsed.success) return { ok: false, message: "Poné nombre, rubro y monto mensual." };
+  const f = await prisma.fixedExpense.findUnique({ where: { id } });
+  if (!f) return { ok: false, message: "Ese gasto fijo ya no existe." };
+  await prisma.fixedExpense.update({ where: { id }, data: parsed.data });
+  await refreshCurrentWeekEntry(id);
+  revalidatePath("/admin/gastos");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: "Gasto fijo guardado." };
+}
+
+/** Dar de baja: deja de generar semanas nuevas. Lo ya generado queda (fue un costo real). */
+export async function toggleFixedExpenseAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const f = await prisma.fixedExpense.findUnique({ where: { id } });
+  if (!f) return { ok: false, message: "Ese gasto fijo ya no existe." };
+  await prisma.fixedExpense.update({ where: { id }, data: { active: !f.active, startsOn: f.active ? f.startsOn : argentinaDay() } });
+  if (!f.active) await ensureFixedEntries();
+  revalidatePath("/admin/gastos");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: f.active ? `${f.name} dado de baja. No se generan más semanas.` : `${f.name} reactivado.` };
 }

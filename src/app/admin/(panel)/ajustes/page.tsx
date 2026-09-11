@@ -8,12 +8,15 @@ import { isEmailConfigured } from "@/lib/email";
 import { formatShort } from "@/lib/dates";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { InstallApp } from "@/components/admin/InstallApp";
+import { FixedExpensesPanel } from "@/components/admin/FixedExpensesPanel";
+import { getFixedExpenses } from "@/lib/fixed-expenses";
 import { logoutAction } from "../../actions";
 
 export default async function AjustesPage() {
-  const [session, users] = await Promise.all([
+  const [session, users, fixed] = await Promise.all([
     getSession(),
     prisma.user.findMany({ select: { name: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
+    getFixedExpenses(),
   ]);
   const me = session?.role === "user" ? session.name : null;
   const missing = PARTNERS.filter((p) => !users.some((u) => u.name === p));
@@ -56,6 +59,15 @@ export default async function AjustesPage() {
           me={me}
           suggested={missing}
         />
+      </section>
+
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">Gastos fijos</h2>
+        <p className="mt-1 text-sm text-muted">
+          Alquiler, luz, gas, internet: lo que se paga sí o sí. Cargás el monto mensual y cada lunes el sistema carga solo la parte de esa
+          semana, así la semana arranca en rojo y las cenas la tienen que llevar a verde.
+        </p>
+        <FixedExpensesPanel items={fixed} />
       </section>
 
       <section className="card p-5 sm:p-6">

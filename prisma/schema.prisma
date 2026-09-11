@@ -131,11 +131,31 @@ model LedgerEntry {
   /// Borrado suave: los movimientos borrados no cuentan pero se pueden restaurar desde la papelera.
   deletedAt   DateTime?
   deletedBy   String?
+  /// Si lo generó un gasto fijo: cuál y para qué semana (lunes, "YYYY-MM-DD"). Evita duplicados.
+  fixedExpenseId String?
+  fixedExpense   FixedExpense? @relation(fields: [fixedExpenseId], references: [id], onDelete: SetNull)
+  periodKey      String?
   createdAt   DateTime   @default(now())
 
+  @@unique([fixedExpenseId, periodKey])
   @@index([eventId])
   @@index([day])
   @@index([deletedAt])
+}
+
+/// Gastos fijos mensuales (alquiler, luz, gas, internet…). Cada semana se genera
+/// automáticamente un gasto por el prorrateo semanal (mensual × 12 ÷ 52).
+model FixedExpense {
+  id            String   @id @default(cuid())
+  name          String
+  category      String
+  monthlyAmount Int
+  active        Boolean  @default(true)
+  /// Desde qué día corre (se generan las semanas desde la de esta fecha).
+  startsOn      DateTime @db.Date
+  createdAt     DateTime @default(now())
+
+  entries LedgerEntry[]
 }
 
 /// Usuarios del panel: un socio, una contraseña. La contraseña maestra (ADMIN_PASSWORD) siempre entra.

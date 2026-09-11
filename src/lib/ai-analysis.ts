@@ -7,6 +7,7 @@ import { argentinaDay, formatDay, formatLong, weekOf } from "./dates";
 import { getNextEvent } from "./reservations";
 import { getPartnerReport, getWeeklyReport, type PartnerReport, type WeeklyReport } from "./admin-stats";
 import { LEDGER_CATEGORIES, categoryLabel } from "./ledger-categories";
+import { getWeeklyFixedTotal } from "./fixed-expenses";
 
 // ---------------------------------------------------------------------------
 // Qué devuelve el análisis (lo mismo venga de reglas o de un modelo).
@@ -98,10 +99,12 @@ type Snapshot = {
   partners: PartnerReport;
   byCat: { label: string; amount: number }[];
   catTotal: number;
+  /** Gastos fijos prorrateados por semana (alquiler, servicios). */
+  weeklyFixed: number;
 };
 
 async function buildSnapshot(): Promise<Snapshot> {
-  const [nextEvent, partners] = await Promise.all([getNextEvent(), getPartnerReport()]);
+  const [nextEvent, partners, weeklyFixed] = await Promise.all([getNextEvent(), getPartnerReport(), getWeeklyFixedTotal()]);
   const weekly = await getWeeklyReport(8, nextEvent?.price);
   const today = argentinaDay();
   const from = new Date(today.getTime() - 28 * 24 * 60 * 60 * 1000);
@@ -131,7 +134,7 @@ async function buildSnapshot(): Promise<Snapshot> {
       barPrice: nextEvent.barPrice ?? null,
     };
   }
-  return { today, next, weekly, partners, byCat, catTotal };
+  return { today, next, weekly, partners, byCat, catTotal, weeklyFixed };
 }
 
 // ---------------------------------------------------------------------------
@@ -185,7 +188,13 @@ export function buildRuleAnalysis(s: Snapshot): Analysis {
       }`,
     );
   }
-  if (avg !== null) resumen.push(`Una semana promedio gasta ${formatPrice(avg)}.`);
+  if (avg !== null) {
+    resumen.push(
+      s.weeklyFixed > 0
+        ? `Una semana promedio gasta ${formatPrice(avg)}, de los cuales ${formatPrice(s.weeklyFixed)} son fijos (alquiler, servicios) que corren aunque no haya cena.`
+        : `Una semana promedio gasta ${formatPrice(avg)}.`,
+    );
+  }
 
   // Proyección
   const semanaQueViene = next
@@ -310,6 +319,7 @@ GASTOS POR RUBRO, ÚLTIMOS 28 DÍAS:
 ${cats}
 
 PROMEDIO DE GASTOS POR SEMANA (últimas 4 con movimientos): ${weekly.avgWeeklyExpenses === null ? "sin datos" : formatPrice(weekly.avgWeeklyExpenses)}.
+GASTOS FIJOS PRORRATEADOS POR SEMANA (alquiler, servicios; se cargan solos cada lunes): ${formatPrice(s.weeklyFixed)}.
 CUBIERTOS POR SEMANA PARA CUBRIR ESE PROMEDIO: ${weekly.breakEvenCovers ?? "sin datos"}.
 
 ACUMULADO DESDE EL INICIO:
