@@ -8,7 +8,7 @@ export function ReserveForm({ current }: { current: number }) {
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
       <label className="grid gap-1 text-xs text-muted">
-        Reserva para gastos fijos
+        Colchón (opcional)
         <div className="flex items-center gap-1 rounded-lg border border-line bg-surface-2 px-3">
           <span className="text-muted">$</span>
           <input
@@ -16,7 +16,7 @@ export function ReserveForm({ current }: { current: number }) {
             name="reserve"
             inputMode="numeric"
             defaultValue={current ? current.toLocaleString("es-AR") : ""}
-            placeholder="200.000"
+            placeholder="0"
             aria-label="Reserva en pesos"
           />
         </div>

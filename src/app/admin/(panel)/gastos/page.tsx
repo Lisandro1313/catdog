@@ -108,14 +108,14 @@ export default async function GastosPage() {
       <section className="card p-5 sm:p-6">
         <h2 className="font-display text-2xl">Entre socios</h2>
         <p className="mt-1 text-sm text-muted">
-          Primero se devuelve lo que cada uno puso de su bolsillo. Después, la ganancia que sobra de la reserva se reparte en partes
+          Primero se devuelve lo que cada uno puso de su bolsillo. Después, la ganancia que sobra del colchón se reparte en partes
           iguales. Si hoy no alcanza, se paga lo que hay y el resto queda pendiente.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-4">
           <Num label="Ganancia acumulada" value={formatPrice(partners.profit)} tone={partners.profit >= 0 ? "ok" : "danger"} hint={`ingresos ${formatPrice(partners.income)} − gastos ${formatPrice(partners.expenses)}`} />
           <Num label="Plata en el negocio" value={formatPrice(partners.cash)} hint="ganancia + lo que pusieron − lo que retiraron" />
-          <Num label="Reserva guardada" value={formatPrice(partners.reserve)} hint="para gastos fijos" />
+          <Num label="Colchón guardado" value={formatPrice(partners.reserve)} hint="no se reparte" />
           <Num label="Disponible para repartir" value={formatPrice(partners.available)} tone={partners.available > 0 ? "ok" : undefined} big />
         </div>
 
@@ -157,8 +157,8 @@ export default async function GastosPage() {
         <div className="mt-5 border-t border-line pt-4">
           <ReserveForm current={partners.reserve} />
           <p className="mt-2 text-xs text-muted">
-            Plata que dejan en el negocio para alquiler, servicios y lo fijo. No se reparte. Cuando cargás un retiro, se descuenta de lo que
-            le corresponde a ese socio.
+            Plata que dejan en el negocio por las dudas, aparte de los gastos fijos (esos ya se descuentan solos cada semana). No se
+            reparte. Puede quedar en 0. Cuando cargás un retiro, se descuenta de lo que le corresponde a ese socio.
           </p>
         </div>
       </section>

@@ -240,7 +240,7 @@ export function buildRuleAnalysis(s: Snapshot): Analysis {
     alertas.push(`Faltan ${next.daysUntil} día${next.daysUntil === 1 ? "" : "s"} para la cena y hay ${next.paidCovers} de ${next.capacity} cubiertos pagos.`);
   }
   if (p.shortfall > 0 && alertas.length < 3) alertas.push(`Faltan ${formatPrice(p.shortfall)} para devolverles a los socios lo que pusieron.`);
-  if (p.reserve === 0 && hasData && alertas.length < 3) alertas.push("No hay reserva para gastos fijos: conviene fijar un monto en Entre socios.");
+  // (el colchón es opcional: los gastos fijos ya se descuentan solos cada semana)
 
   // Sugerencias
   const sugerencias: string[] = [];
@@ -261,7 +261,9 @@ export function buildRuleAnalysis(s: Snapshot): Analysis {
   if (top && s.catTotal > 0 && top.amount / s.catTotal >= 0.4 && s.byCat.length > 1) {
     sugerencias.push(`Revisar ${top.label.toLowerCase()}: es el gasto más pesado del mes.`);
   }
-  if (p.reserve === 0) sugerencias.push("Definir la reserva para gastos fijos (alquiler, servicios) antes de repartir.");
+  if (p.reserve === 0 && p.profit > 0 && s.weeklyFixed > 0 && p.profit > s.weeklyFixed * 2) {
+    sugerencias.push(`Ya hay ganancia: podrían dejar un colchón (por ejemplo ${formatPrice(s.weeklyFixed)}, una semana de fijos) antes de repartir.`);
+  }
   if (sugerencias.length === 0) sugerencias.push("Cargar todos los gastos con foto del comprobante para que los números sean confiables.");
 
   return {
@@ -327,7 +329,7 @@ ACUMULADO DESDE EL INICIO:
 - Gastos: ${formatPrice(partners.expenses)}
 - Ganancia: ${formatPrice(partners.profit)}
 - Plata en el negocio (caja): ${formatPrice(partners.cash)}
-- Reserva para gastos fijos que se guarda antes de repartir: ${formatPrice(partners.reserve)}
+- Colchón que se guarda antes de repartir (opcional; los gastos fijos ya se descuentan solos cada semana): ${formatPrice(partners.reserve)}
 - Disponible para repartir hoy: ${formatPrice(partners.available)}
 - Ganancia repartible (la que supera la reserva): ${formatPrice(partners.distributable)}
 ${partners.shortfall > 0 ? `- Falta ${formatPrice(partners.shortfall)} para pagar todo lo que se les debe a los socios.` : "- Alcanza para pagar todo lo que se les debe a los socios."}

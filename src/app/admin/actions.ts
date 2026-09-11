@@ -493,7 +493,7 @@ export async function updateLedgerEntryAction(_prev: ActionState, formData: Form
   return { ok: true, message: "Movimiento guardado." };
 }
 
-/** Reserva que se guarda en la caja para gastos fijos antes de repartir. */
+/** Colchón que se guarda en la caja antes de repartir (opcional). */
 export async function setReserveAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
   const n = parseInt(String(formData.get("reserve") ?? "").replace(/\D/g, ""), 10);
