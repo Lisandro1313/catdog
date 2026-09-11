@@ -39,7 +39,7 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 - **Gastos (`/admin/gastos`)**: la pantalla del día a día, pensada para el celular. Se carga monto, rubro (verdulería, carnicería, almacén, bebidas, insumos, vajilla, alquiler, luz/gas/internet, viáticos, personal, otros), con qué plata (de su bolsillo o de la caja), detalle, fecha y **foto del comprobante** (abre la cámara; la foto se achica en el teléfono antes de subir y se guarda privada en Vercel Blob). También ingresos (barra, otros), **aportes** (un socio pone plata) y **retiros** (un socio se lleva plata; pide confirmación en una ventana).
 - **Movimientos:** tocar uno abre una ventana con el detalle, la foto del comprobante y quién lo cargó / editó. Desde ahí se **edita** (monto, rubro, detalle, fecha, socio, con qué plata, foto) o se **borra** con confirmación. Lo borrado va a la **Papelera** (no cuenta en los números) y se puede restaurar. Nada se borra de verdad.
 - **Entre socios** (en la misma pantalla): ganancia acumulada, plata en el negocio, reserva para gastos fijos (editable) y, por socio, lo que puso, lo que le toca de ganancia, lo que ya retiró, lo que le deben, **lo que puede retirar hoy** y lo que queda pendiente. Regla: primero se devuelve lo que cada uno puso de su bolsillo, después la ganancia que supera la reserva se reparte en partes iguales; si la plata no alcanza, a prorrata y el resto queda para cuando entre.
-- **¿Cómo venimos? (IA)**: botón que le manda todos los números a Claude (vía Vercel AI Gateway) y devuelve, en criollo: estado, resumen, proyección de la semana que viene, cubiertos para cubrir gastos, un mensaje por socio, alertas y qué hacer esta semana. Se guarda el último análisis. Cuesta centavos por análisis.
+- **¿Cómo venimos?**: botón "Analizar" que lee todos los números y devuelve, en criollo: estado (bien / justos / rojo), resumen, proyección de la semana que viene, cubiertos para cubrir gastos, un mensaje por socio, alertas y qué hacer esta semana. **Por defecto lo hace el código con reglas: gratis, instantáneo, sin ningún servicio.** Si hay una clave de IA configurada, lo escribe un modelo (ver "Activar la IA"). Se guarda el último análisis con la fecha y el modo.
 - **Esta semana** y **Semana a semana**: reservas (cuentan en la semana de la cena), barra, gastos y resultado; promedio de gastos y punto de equilibrio en cubiertos.
 - **Caja por cena:** en la página de la cena, sección **Caja**, para lo puntual de esa noche (la barra al cierre, un insumo). Usa el mismo formulario.
 - **Contactos:** todas las personas que pagaron alguna vez, una fila por email, con teléfono, cantidad de cenas, lugares, gasto total y última cena. Botón para descargar CSV.
@@ -65,14 +65,22 @@ El panel es una PWA. En el celular, abrí `https://catdog-omega.vercel.app/admin
 
 Queda como una app llamada "Panel" que abre directo en Gastos. Cada socio la instala en su teléfono y elige su nombre una vez (se recuerda).
 
-## Activar la IA
+## Activar la IA (opcional, y gratis)
 
-El análisis usa Vercel AI Gateway con el modelo `anthropic/claude-opus-5`. En producción se autentica solo con el token de Vercel; no hace falta ninguna API key. Lo único que pide Vercel es **una tarjeta cargada en la cuenta** para desbloquear los créditos gratis del gateway:
+El análisis funciona sin IA, por reglas. Si querés que lo escriba un modelo, la opción gratis es **Gemini de Google**, que tiene nivel gratuito sin tarjeta (modelos Flash, 1.500 pedidos por día; acá se usa uno por análisis):
 
-1. Entrá a https://vercel.com/lisandro1313s-projects/~/ai (pestaña AI Gateway) y cargá una tarjeta cuando lo pida.
-2. Listo: el botón "Analizar con IA" en `/admin/gastos` empieza a funcionar. No hay que redeployar.
+1. Entrá a https://aistudio.google.com/apikey con tu cuenta de Google y creá una clave.
+2. Cargala en Vercel:
+   ```bash
+   vercel env add GOOGLE_GENERATIVE_AI_API_KEY production
+   ```
+3. Redeploy (`vercel deploy --prod` o cualquier push). En Ajustes va a decir "IA (Gemini, gratis)".
 
-Cada análisis cuesta del orden de $0,02 a $0,05 USD. Si en algún momento preferís una API key propia del gateway, cargala como `AI_GATEWAY_API_KEY`.
+Usa el alias `gemini-flash-latest` (siempre el Flash más nuevo) y, si falla, prueba `gemini-3.8-flash` y `gemini-2.5-flash`. Si la clave no anda o se agota el cupo, el análisis se hace por reglas y avisa.
+
+Aclaración: en el nivel gratuito, Google puede usar lo que le mandás para mejorar sus productos. Lo que se le manda son los números agregados (totales, semanas, cuentas entre socios), no nombres de clientes ni fotos.
+
+Alternativa con Claude (más capaz, pero no gratis): Vercel AI Gateway con `AI_GATEWAY_API_KEY`. Vercel exige una tarjeta cargada en la cuenta para habilitarlo; después regala créditos mensuales y cada análisis cuesta centavos.
 
 ## Variables de entorno
 
@@ -90,7 +98,8 @@ Las de la base ya las carga la integración de Neon. Faltan estas (se setean con
 | `ADMIN_EMAIL` | A dónde te avisamos cada reserva pagada | Tu mail. |
 | `NEXT_PUBLIC_SITE_NAME` / `NEXT_PUBLIC_SITE_TAGLINE` | Nombre y subtítulo | Opcionales (default "CatDog" / "Cena a puertas cerradas"). |
 | `NEXT_PUBLIC_PARTNERS` | Nombres de los socios, separados por coma | Opcional (default "Lisandro,Agustín"). |
-| `AI_GATEWAY_API_KEY` | Clave del AI Gateway | Opcional: en Vercel se usa el token OIDC del proyecto. |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | IA gratis (Gemini) para el análisis | Opcional: https://aistudio.google.com/apikey |
+| `AI_GATEWAY_API_KEY` | IA con Claude vía Vercel AI Gateway | Opcional; requiere tarjeta en Vercel. |
 | `BLOB_READ_WRITE_TOKEN` | Fotos de comprobantes | Ya cargada por el store de Vercel Blob. |
 
 Después de agregar variables hay que volver a desplegar: `vercel deploy --prod`.

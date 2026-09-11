@@ -3,7 +3,7 @@ import { formatDay, formatDayShort, formatShort, todayIso } from "@/lib/dates";
 import { getNextEvent } from "@/lib/reservations";
 import { getSession } from "@/lib/admin-auth";
 import { getPartnerReport, getTrash, getWeeklyReport, type WeekReport } from "@/lib/admin-stats";
-import { getStoredAnalysis, isAiConfigured } from "@/lib/ai-analysis";
+import { getAnalysisMode, getStoredAnalysis, modeLabel } from "@/lib/ai-analysis";
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
 import { AnalysisButton, ReserveForm } from "@/components/admin/GastosForms";
@@ -18,7 +18,7 @@ export default async function GastosPage() {
   ]);
   const { current, total } = report;
   const today = todayIso();
-  const aiReady = isAiConfigured();
+  const mode = getAnalysisMode();
   const sessionName = session?.role === "user" ? session.name : undefined;
 
   const estadoTone = { bien: "text-ok", justo: "text-accent", rojo: "text-danger" } as const;
@@ -42,16 +42,15 @@ export default async function GastosPage() {
             <h2 className="font-display text-2xl">¿Cómo venimos?</h2>
             <p className="mt-1 text-xs text-muted">
               {stored
-                ? `Análisis del ${formatShort(new Date(stored.generatedAt))}. Los números de abajo son de ahora.`
-                : "La IA lee todos los números y te lo explica en criollo."}
+                ? `Análisis del ${formatShort(new Date(stored.generatedAt))} · ${modeLabel(stored.model)}. Los números de abajo son de ahora.`
+                : mode === "reglas"
+                  ? "Lee todos los números y te lo explica en criollo. Gratis, sin IA."
+                  : "La IA lee todos los números y te lo explica en criollo."}
             </p>
           </div>
-          {aiReady ? (
-            <AnalysisButton hasPrevious={Boolean(stored)} />
-          ) : (
-            <p className="text-xs text-muted">La IA todavía no está activada en Vercel (ver README).</p>
-          )}
+          <AnalysisButton hasPrevious={Boolean(stored)} ai={mode !== "reglas"} />
         </div>
+        {stored?.note && <p className="mt-2 text-xs text-accent">{stored.note}</p>}
 
         {stored && (
           <div className="mt-5 grid gap-5">

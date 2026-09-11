@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/admin-auth";
 import { PARTNERS } from "@/lib/ledger-categories";
-import { isAiConfigured } from "@/lib/ai-analysis";
+import { getAnalysisMode } from "@/lib/ai-analysis";
 import { isReceiptStorageConfigured } from "@/lib/receipts";
 import { isMercadoPagoConfigured } from "@/lib/mp";
 import { isEmailConfigured } from "@/lib/email";
@@ -63,7 +63,17 @@ export default async function AjustesPage() {
           <Status ok={isMercadoPagoConfigured()} label="Mercado Pago (cobros)" />
           <Status ok={isEmailConfigured()} label="Mails (Resend)" />
           <Status ok={isReceiptStorageConfigured()} label="Fotos de comprobantes (Vercel Blob)" />
-          <Status ok={isAiConfigured()} label="IA (Vercel AI Gateway)" hint="Necesita una tarjeta cargada en Vercel para los créditos gratis." />
+          <Status
+            ok={getAnalysisMode() !== "reglas"}
+            label={
+              getAnalysisMode() === "gemini"
+                ? "IA (Gemini, gratis)"
+                : getAnalysisMode() === "gateway"
+                  ? "IA (Vercel AI Gateway)"
+                  : "IA para el análisis"
+            }
+            hint="Sin IA el análisis se hace por reglas, gratis. Para IA gratis: clave de Gemini (ver README)."
+          />
         </ul>
       </section>
     </>

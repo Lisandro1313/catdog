@@ -501,25 +501,15 @@ export async function setReserveAction(_prev: ActionState, formData: FormData): 
   return { ok: true, message: "Reserva guardada." };
 }
 
-/** Pide a la IA un análisis con los números actuales y lo guarda. */
+/** Genera el análisis con los números actuales y lo guarda (por reglas o con IA, según lo configurado). */
 export async function runAnalysisAction(): Promise<ActionState> {
   await requireAdmin();
   try {
-    await runAnalysis();
+    const r = await runAnalysis();
+    revalidatePath("/admin/gastos");
+    return r.note ? { ok: true, message: r.note } : { ok: true, message: "Análisis actualizado." };
   } catch (err) {
-    console.error("[ia] análisis falló", err);
-    const msg = err instanceof Error ? err.message : String(err);
-    if (/credit card|customer_verification/i.test(msg)) {
-      return {
-        ok: false,
-        message: "Falta habilitar la IA en Vercel: hay que cargar una tarjeta en AI Gateway para desbloquear los créditos gratis (ver README).",
-      };
-    }
-    if (/401|unauthenticated|credential|api key|oidc/i.test(msg)) {
-      return { ok: false, message: "La IA no está autenticada en Vercel: falta activar AI Gateway (ver README)." };
-    }
+    console.error("[análisis] falló", err);
     return { ok: false, message: "No pude generar el análisis. Probá de nuevo en un rato." };
   }
-  revalidatePath("/admin/gastos");
-  return { ok: true, message: "Análisis actualizado." };
 }

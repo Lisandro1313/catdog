@@ -29,12 +29,12 @@ export function ReserveForm({ current }: { current: number }) {
   );
 }
 
-export function AnalysisButton({ hasPrevious }: { hasPrevious: boolean }) {
+export function AnalysisButton({ hasPrevious, ai }: { hasPrevious: boolean; ai: boolean }) {
   const [state, action, pending] = useActionState(runAnalysisAction, null);
   return (
     <form action={action} className="flex flex-wrap items-center gap-3">
       <button className="btn btn-primary btn-sm" type="submit" disabled={pending}>
-        {pending ? "Analizando… (unos segundos)" : hasPrevious ? "Actualizar análisis" : "Analizar con IA"}
+        {pending ? (ai ? "Analizando… (unos segundos)" : "Calculando…") : hasPrevious ? "Actualizar análisis" : ai ? "Analizar con IA" : "Analizar"}
       </button>
       {state?.message && !state.ok && <p className="text-xs text-danger">{state.message}</p>}
     </form>
