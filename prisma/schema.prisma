@@ -98,20 +98,38 @@ model PageView {
 enum LedgerKind {
   INCOME
   EXPENSE
+  /// Un socio pone plata en el negocio (capital, o para cubrir algo).
+  CONTRIBUTION
+  /// Un socio se lleva plata del negocio.
+  WITHDRAWAL
 }
 
-/// Movimientos de caja de una cena: ventas de barra, costos de insumos, etc.
+/// Movimientos de caja: gastos del día a día y ventas de barra.
+/// Si tienen `eventId` pertenecen a una cena; si no, son gastos generales (alquiler, luz, verdulería...).
 model LedgerEntry {
   id          String     @id @default(cuid())
-  eventId     String
-  event       Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     String?
+  event       Event?     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   kind        LedgerKind
-  /// "barra" | "insumos" | "bebidas" | "personal" | "otros"
+  /// Rubro: ver src/lib/ledger-categories.ts
   category    String
   description String?
   /// Monto en pesos (entero).
   amount      Int
+  /// Día del movimiento (fecha argentina). Se usa para agrupar por semana.
+  day         DateTime   @default(dbgenerated("CURRENT_DATE")) @db.Date
+  /// Quién lo cargó / lo pagó / lo aportó / lo retiró.
+  by          String?
+  /// Solo para gastos: true = lo pagó el socio de su bolsillo (el negocio se lo debe); false = salió de la caja.
+  fromPocket  Boolean    @default(true)
   createdAt   DateTime   @default(now())
 
   @@index([eventId])
+  @@index([day])
+}
+
+/// Configuración editable desde el panel (por ejemplo la reserva para gastos fijos).
+model Setting {
+  key   String @id
+  value String
 }

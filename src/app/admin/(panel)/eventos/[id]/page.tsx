@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/config";
-import { formatShort, nowMs, toDatetimeLocal } from "@/lib/dates";
+import { formatDayShort, formatShort, nowMs, toDatetimeLocal, todayIso } from "@/lib/dates";
 import { categoryLabel, getFinancials } from "@/lib/admin-stats";
 import { EventForm } from "@/components/admin/EventForm";
 import { AssignSeatsForm, ManualReservationForm, NotifyForm } from "@/components/admin/ActionForms";
@@ -209,7 +209,14 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
         )}
 
         <div className="mt-5 border-t border-line pt-5">
-          <LedgerForm eventId={event.id} />
+          <p className="mb-3 text-sm text-muted">
+            Cargar algo de esta cena (la barra al cierre, un insumo puntual). Los gastos del día a día van en{" "}
+            <Link href="/admin/gastos" className="text-accent hover:text-accent-strong">
+              Gastos
+            </Link>
+            .
+          </p>
+          <LedgerForm eventId={event.id} today={todayIso()} defaultKind="INCOME" compact />
         </div>
 
         {event.ledger.length > 0 && (
@@ -217,10 +224,11 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
             <tbody className="divide-y divide-line">
               {event.ledger.map((l) => (
                 <tr key={l.id}>
-                  <td className="py-2 pr-3 text-muted whitespace-nowrap">{formatShort(l.createdAt).slice(0, 5)}</td>
+                  <td className="py-2 pr-3 text-muted whitespace-nowrap">{formatDayShort(l.day)}</td>
                   <td className="py-2 pr-3">
                     <span className={l.kind === "INCOME" ? "text-ok" : "text-danger"}>{categoryLabel(l.kind, l.category)}</span>
                     {l.description && <span className="text-muted"> · {l.description}</span>}
+                    {l.by && <span className="text-muted text-xs"> · {l.by}</span>}
                   </td>
                   <td className={`py-2 pr-3 text-right whitespace-nowrap ${l.kind === "INCOME" ? "text-ok" : "text-danger"}`}>
                     {l.kind === "INCOME" ? "+" : "−"}

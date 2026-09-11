@@ -5,9 +5,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { checkPassword, clearAdminSession, isAdmin, setAdminSession } from "@/lib/admin-auth";
-import { parseArgentinaLocal } from "@/lib/dates";
+import { argentinaDay, parseArgentinaLocal } from "@/lib/dates";
 import { sendNewEventBlast } from "@/lib/email";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
+import { runAnalysis } from "@/lib/ai-analysis";
 
 export type ActionState = { ok: boolean; message?: string } | null;
 
@@ -21,7 +22,8 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     return { ok: false, message: "Contraseña incorrecta." };
   }
   await setAdminSession();
-  redirect("/admin");
+  const next = String(formData.get("next") ?? "");
+  redirect(next.startsWith("/admin") && !next.startsWith("/admin/login") ? next : "/admin");
 }
 
 export async function logoutAction() {
@@ -249,30 +251,55 @@ export async function deleteReservationAction(formData: FormData) {
 }
 
 const ledgerSchema = z.object({
-  eventId: z.string().min(1),
-  kind: z.enum(["INCOME", "EXPENSE"]),
-  category: z.string().trim().min(1).max(40),
+  eventId: z.string().min(1).optional(),
+  kind: z.enum(["INCOME", "EXPENSE", "CONTRIBUTION", "WITHDRAWAL"]),
+  category: z.string().trim().max(40).optional(),
   description: z.string().trim().max(200).optional(),
   amount: z.coerce.number().int().min(1),
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  by: z.string().trim().max(40).optional(),
+  fromPocket: z.enum(["si", "no"]).optional(),
 });
 
-export async function addLedgerEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export type LedgerActionState = { ok: boolean; message?: string; savedAt?: number } | null;
+
+export async function addLedgerEntryAction(_prev: LedgerActionState, formData: FormData): Promise<LedgerActionState> {
   await requireAdmin();
   const parsed = ledgerSchema.safeParse({
-    eventId: formData.get("eventId"),
+    eventId: formData.get("eventId") || undefined,
     kind: formData.get("kind"),
-    category: formData.get("category"),
+    category: formData.get("category") || undefined,
     description: formData.get("description") || undefined,
     amount: formData.get("amount"),
+    day: formData.get("day") || undefined,
+    by: formData.get("by") || undefined,
+    fromPocket: formData.get("fromPocket") || undefined,
   });
-  if (!parsed.success) return { ok: false, message: "Revisá tipo, rubro y monto." };
+  if (!parsed.success) return { ok: false, message: "Revisá el monto y el rubro." };
   const d = parsed.data;
+  const needsCategory = d.kind === "INCOME" || d.kind === "EXPENSE";
+  if (needsCategory && !d.category) return { ok: false, message: "Elegí un rubro." };
+  if (!needsCategory && !d.by) return { ok: false, message: "Elegí el socio." };
+  // El día llega como "2026-09-11" (fecha argentina) y se guarda como fecha sin hora.
+  const day = d.day ? new Date(`${d.day}T00:00:00Z`) : argentinaDay();
   await prisma.ledgerEntry.create({
-    data: { eventId: d.eventId, kind: d.kind, category: d.category, description: d.description ?? null, amount: d.amount },
+    data: {
+      eventId: d.eventId ?? null,
+      kind: d.kind,
+      category: needsCategory ? (d.category as string) : "socio",
+      description: d.description ?? null,
+      amount: d.amount,
+      day,
+      by: d.by ?? null,
+      // Un gasto pagado "de la caja" no genera deuda con el socio.
+      fromPocket: d.kind === "EXPENSE" ? d.fromPocket !== "no" : true,
+    },
   });
-  revalidatePath(`/admin/eventos/${d.eventId}`);
+  if (d.eventId) revalidatePath(`/admin/eventos/${d.eventId}`);
+  revalidatePath("/admin/gastos");
   revalidatePath("/admin");
-  return { ok: true, message: "Movimiento cargado." };
+  const label = { INCOME: "Ingreso", EXPENSE: "Gasto", CONTRIBUTION: "Aporte", WITHDRAWAL: "Retiro" }[d.kind];
+  return { ok: true, message: `${label} cargado.`, savedAt: Date.now() };
 }
 
 export async function deleteLedgerEntryAction(formData: FormData) {
@@ -281,6 +308,40 @@ export async function deleteLedgerEntryAction(formData: FormData) {
   const e = await prisma.ledgerEntry.findUnique({ where: { id }, select: { eventId: true } });
   if (!e) return;
   await prisma.ledgerEntry.delete({ where: { id } });
-  revalidatePath(`/admin/eventos/${e.eventId}`);
+  if (e.eventId) revalidatePath(`/admin/eventos/${e.eventId}`);
+  revalidatePath("/admin/gastos");
   revalidatePath("/admin");
+}
+
+/** Reserva que se guarda en la caja para gastos fijos antes de repartir. */
+export async function setReserveAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const n = parseInt(String(formData.get("reserve") ?? "").replace(/\D/g, ""), 10);
+  if (!Number.isFinite(n) || n < 0) return { ok: false, message: "Poné un número." };
+  await prisma.setting.upsert({ where: { key: "reserve" }, update: { value: String(n) }, create: { key: "reserve", value: String(n) } });
+  revalidatePath("/admin/gastos");
+  return { ok: true, message: "Reserva guardada." };
+}
+
+/** Pide a la IA un análisis con los números actuales y lo guarda. */
+export async function runAnalysisAction(): Promise<ActionState> {
+  await requireAdmin();
+  try {
+    await runAnalysis();
+  } catch (err) {
+    console.error("[ia] análisis falló", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/credit card|customer_verification/i.test(msg)) {
+      return {
+        ok: false,
+        message: "Falta habilitar la IA en Vercel: hay que cargar una tarjeta en AI Gateway para desbloquear los créditos gratis (ver README).",
+      };
+    }
+    if (/401|unauthenticated|credential|api key|oidc/i.test(msg)) {
+      return { ok: false, message: "La IA no está autenticada en Vercel: falta activar AI Gateway (ver README)." };
+    }
+    return { ok: false, message: "No pude generar el análisis. Probá de nuevo en un rato." };
+  }
+  revalidatePath("/admin/gastos");
+  return { ok: true, message: "Análisis actualizado." };
 }

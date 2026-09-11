@@ -139,3 +139,13 @@ export function formatDayNumber(date: Date): string {
 export function formatMonth(date: Date): string {
   return new Intl.DateTimeFormat("es-AR", { month: "long", timeZone: TIMEZONE }).format(date);
 }
+
+/** Hoy en Argentina como "YYYY-MM-DD" (para <input type="date">). */
+export function todayIso(now: Date = new Date()): string {
+  return argentinaDay(now).toISOString().slice(0, 10);
+}
+
+/** "lun 8/9" */
+export function formatDayShort(date: Date): string {
+  return new Intl.DateTimeFormat("es-AR", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" }).format(date);
+}

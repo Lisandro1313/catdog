@@ -1,0 +1,21 @@
+{
+  "name": "Panel · Cena a puertas cerradas",
+  "short_name": "Panel",
+  "description": "Gastos, reservas y caja de las cenas.",
+  "start_url": "/admin/gastos",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#141210",
+  "theme_color": "#141210",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Cargar gasto", "url": "/admin/gastos", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Cenas", "url": "/admin", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
