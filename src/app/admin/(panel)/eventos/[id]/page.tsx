@@ -123,6 +123,7 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
                             </a>
                           </>
                         )}
+                        {r.notes && <p className="mt-1 max-w-[16rem] text-xs text-accent">“{r.notes}”</p>}
                       </td>
                       <td className="py-2 pr-3">
                         {r.status === "PAID" && (

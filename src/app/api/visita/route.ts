@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
   } catch {
     // sin body: cuenta como home
   }
-  // No contamos las visitas del panel.
-  if (path.startsWith("/admin")) return NextResponse.json({ ok: true });
+  // No contamos las visitas del panel ni las del entorno local (la base es la misma que en producción).
+  if (path.startsWith("/admin") || process.env.NODE_ENV !== "production") return NextResponse.json({ ok: true });
 
   const day = argentinaDay();
   await prisma.pageView.upsert({

@@ -58,6 +58,8 @@ model Reservation {
   paidVia        String?
   paidAt         DateTime?
   seatsChosenAt  DateTime?
+  /// Lo que el invitado quiere que sepamos (alergias, vegetariano, celebración).
+  notes          String?
   /// Hasta cuándo se mantienen los lugares si el pago sigue pendiente.
   expiresAt      DateTime
   createdAt      DateTime          @default(now())
@@ -170,4 +172,13 @@ model User {
 model Setting {
   key   String @id
   value String
+}
+
+/// Fotos del lugar para el home. Se suben desde Ajustes (Vercel Blob, públicas).
+model Photo {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  sort      Int      @default(0)
+  createdAt DateTime @default(now())
 }

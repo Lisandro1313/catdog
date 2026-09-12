@@ -59,6 +59,7 @@ export type CreateHoldInput = {
   name: string;
   email: string;
   phone?: string;
+  notes?: string;
 };
 
 /**
@@ -97,6 +98,7 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
         name: input.name,
         email: input.email,
         phone: input.phone || null,
+        notes: input.notes || null,
         quantity: input.quantity,
         amount,
         expiresAt,
@@ -230,6 +232,7 @@ export async function markPaid(reservationId: string, via: string, mpPaymentId?:
       name: updated.name,
       email: updated.email,
       phone: updated.phone,
+      notes: updated.notes,
       event: updated.event,
       quantity: updated.quantity,
       amount: updated.amount,

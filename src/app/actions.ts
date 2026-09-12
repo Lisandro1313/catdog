@@ -11,6 +11,7 @@ const reserveSchema = z.object({
   name: z.string().trim().min(2, "Poné tu nombre").max(80),
   email: z.email("Email inválido").max(120),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
+  notes: z.string().trim().max(300).optional().or(z.literal("")),
 });
 
 export type ReserveResult =
@@ -29,6 +30,7 @@ export async function reserveAction(input: unknown): Promise<ReserveResult> {
       name: parsed.data.name,
       email: parsed.data.email.toLowerCase(),
       phone: parsed.data.phone || undefined,
+      notes: parsed.data.notes || undefined,
     });
     return { ok: true, checkoutUrl };
   } catch (err) {

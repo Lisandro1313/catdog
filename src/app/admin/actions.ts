@@ -19,6 +19,7 @@ import { PARTNERS } from "@/lib/ledger-categories";
 import { storeReceipt } from "@/lib/receipts";
 import { ensureFixedEntries, refreshCurrentWeekEntry, weeklyAmount } from "@/lib/fixed-expenses";
 import { formatPrice } from "@/lib/config";
+import { addPhoto, removePhoto } from "@/lib/photos";
 import { sendNewEventBlast } from "@/lib/email";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
@@ -571,4 +572,42 @@ export async function toggleFixedExpenseAction(_prev: ActionState, formData: For
   revalidatePath("/admin/gastos");
   revalidatePath("/admin/ajustes");
   return { ok: true, message: f.active ? `${f.name} dado de baja. No se generan más semanas.` : `${f.name} reactivado.` };
+}
+
+// ---------------------------------------------------------------------------
+// Home: fotos del lugar y "Sobre nosotros"
+// ---------------------------------------------------------------------------
+
+export async function addPhotoAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const file = formData.get("photo");
+  const caption = String(formData.get("caption") ?? "").trim().slice(0, 120) || null;
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Elegí una foto." };
+  try {
+    await addPhoto(file, caption);
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "No se pudo subir la foto." };
+  }
+  revalidatePath("/");
+  revalidatePath("/fechas");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: "Foto agregada. Ya se ve en el home." };
+}
+
+export async function removePhotoAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  await removePhoto(String(formData.get("id") ?? ""));
+  revalidatePath("/");
+  revalidatePath("/fechas");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: "Foto borrada." };
+}
+
+export async function setAboutAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const text = String(formData.get("about") ?? "").trim().slice(0, 2000);
+  await prisma.setting.upsert({ where: { key: "about" }, update: { value: text }, create: { key: "about", value: text } });
+  revalidatePath("/");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: text ? "Texto guardado." : "Texto vacío: se muestra el de fábrica." };
 }

@@ -10,13 +10,17 @@ import { UsersPanel } from "@/components/admin/UsersPanel";
 import { InstallApp } from "@/components/admin/InstallApp";
 import { FixedExpensesPanel } from "@/components/admin/FixedExpensesPanel";
 import { getFixedExpenses } from "@/lib/fixed-expenses";
+import { DEFAULT_ABOUT, getAbout, getPhotos } from "@/lib/photos";
+import { AboutPanel, PhotosPanel } from "@/components/admin/HomeContentPanel";
 import { logoutAction } from "../../actions";
 
 export default async function AjustesPage() {
-  const [session, users, fixed] = await Promise.all([
+  const [session, users, fixed, photos, about] = await Promise.all([
     getSession(),
     prisma.user.findMany({ select: { name: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     getFixedExpenses(),
+    getPhotos(),
+    getAbout(),
   ]);
   const me = session?.role === "user" ? session.name : null;
   const missing = PARTNERS.filter((p) => !users.some((u) => u.name === p));
@@ -59,6 +63,21 @@ export default async function AjustesPage() {
           me={me}
           suggested={missing}
         />
+      </section>
+
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">Fotos del lugar</h2>
+        <p className="mt-1 text-sm text-muted">
+          Van al home, en la sección de fotos. Sacalas con el celular con luz natural o con las velas prendidas: la fachada, la mesa
+          puesta, un plato, la barra. Se achican solas antes de subir.
+        </p>
+        <PhotosPanel photos={photos} />
+      </section>
+
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">Quiénes somos</h2>
+        <p className="mt-1 text-sm text-muted">El texto que cuenta quiénes son y qué es la noche. Lo lee la gente antes de decidir reservar.</p>
+        <AboutPanel current={about} isDefault={about === DEFAULT_ABOUT} />
       </section>
 
       <section className="card p-5 sm:p-6">

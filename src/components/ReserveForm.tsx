@@ -17,6 +17,7 @@ export function ReserveForm({ eventId, price, free, maxSeats }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -24,7 +25,7 @@ export function ReserveForm({ eventId, price, free, maxSeats }: Props) {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await reserveAction({ eventId, quantity, name, email, phone });
+      const result = await reserveAction({ eventId, quantity, name, email, phone, notes });
       if (result.ok) {
         window.location.href = result.checkoutUrl;
       } else {
@@ -93,6 +94,15 @@ export function ReserveForm({ eventId, price, free, maxSeats }: Props) {
           autoComplete="tel"
         />
       </div>
+
+      <textarea
+        className="input"
+        placeholder="¿Algo que tengamos que saber? Alergias, vegetariano, festejo… (opcional)"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        rows={2}
+        maxLength={300}
+      />
 
       {error && <p className="text-sm text-danger">{error}</p>}
 

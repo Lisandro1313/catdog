@@ -13,23 +13,29 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
 
 ## Pantallas públicas
 
-- `/` — **el link que se comparte**. Pantalla de afiche para la apertura: "Apertura" en grande, la fecha
-  como pieza gráfica, el menú gigante y tenue de fondo, la carta completa y la reserva abajo, con barra
-  fija en el celular. Muestra la próxima cena publicada, así que se mantiene sola.
+- `/` — **el link que se comparte**. Una sola página larga, pensada primero para el celular, que va
+  ganando confianza hasta la reserva: afiche ("Apertura" si es la primera cena, después "Próxima cena",
+  con fecha, hora y cuenta regresiva), **cómo es la noche** (seis momentos con horario calculado desde la
+  hora de la cena), **la carta** con su trago por paso y la barra, **fotos de la casa** (se suben desde
+  Ajustes; si no hay, la sección no aparece), **quiénes somos** (texto editable desde Ajustes), **dónde**
+  (zona + mapa centrado en la cuadra, sin marcador ni número), **preguntas frecuentes** y la reserva, con
+  barra fija abajo en el celular y un menú de anclas arriba en escritorio. Muestra la próxima cena
+  publicada, así que se mantiene sola.
 - `/fechas` — la versión de siempre: la semana de la próxima cena, los pasos, la reserva y el dibujo de la mesa.
 - `/apertura` — redirige a `/` (era la dirección vieja del afiche).
 
 Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: dicen "pocos lugares" y
-"últimos lugares" cuando quedan tres o menos.
+"últimos lugares" cuando quedan tres o menos. Tampoco dicen el número de la casa: en público es
+"Calle 66, entre 2 y 3"; el número aparece solo después de pagar (página de la reserva y mail).
 
 ## Cómo funciona una reserva
 
 1. El home muestra **solo la próxima cena publicada**, su semana (lunes a domingo) y los pasos de la noche con su trago.
-2. El usuario elige **cuántos son** (hasta 4), completa nombre / email / WhatsApp y toca "Reservar y pagar".
+2. El usuario elige **cuántos son** (hasta 4), completa nombre / email / WhatsApp, puede avisar algo (alergias, vegetariano, festejo) y toca "Reservar y pagar".
 3. Se crea una reserva `PENDING` que **bloquea ese cupo 30 minutos** y se lo manda a Mercado Pago.
 4. Mercado Pago avisa al webhook `/api/mp/webhook` (y además la página de retorno `/reserva/[id]` verifica el pago por si el webhook demora). Si está aprobado, la reserva pasa a `PAID`, salen los mails y **recién ahí elige su silla** en la mesa, desde esa misma página (el link va en el mail). Puede cambiarla hasta el día de la cena si hay lugar.
 5. Si no paga en 30 minutos, el cupo vuelve a estar libre solo.
-6. La dirección exacta solo la ve quien ya pagó (en la página de su reserva y en el mail).
+6. La dirección exacta solo la ve quien ya pagó (en la página de su reserva y en el mail). El mail de confirmación es una ficha: cena, cuándo, dónde (con número), lugares y monto, silla o link para elegirla, hora de llegada, pasos de la noche y los WhatsApp de consulta.
 
 ## Panel `/admin`
 
@@ -43,11 +49,12 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 - **¿Cómo venimos?**: botón "Analizar" que lee todos los números y devuelve, en criollo: estado (bien / justos / rojo), resumen, proyección de la semana que viene, cubiertos para cubrir gastos, un mensaje por socio, alertas y qué hacer esta semana. **Por defecto lo hace el código con reglas: gratis, instantáneo, sin ningún servicio.** Si hay una clave de IA configurada, lo escribe un modelo (ver "Activar la IA"). Se guarda el último análisis con la fecha y el modo.
 - **Esta semana** y **Semana a semana**: reservas (cuentan en la semana de la cena), barra, gastos y resultado; promedio de gastos y punto de equilibrio en cubiertos.
 - **Caja por cena:** en la página de la cena, sección **Caja**, para lo puntual de esa noche (la barra al cierre, un insumo). Usa el mismo formulario.
+- **Fotos del lugar y Quiénes somos** (en Ajustes): se suben fotos de la casa (se achican en el teléfono antes de subir, se guardan públicas en Blob) con un epígrafe opcional, y se edita el texto de "Quiénes somos" que sale en el home. Sin fotos, el home no muestra la sección.
 - **Contactos:** todas las personas que pagaron alguna vez, una fila por email, con teléfono, cantidad de cenas, lugares, gasto total y última cena. Botón para descargar CSV.
 - Botón "Avisar a suscriptores": manda el mail de nueva fecha a todos los anotados.
 - QR + link del sitio para el flyer.
 
-Las visitas se cuentan con un beacon desde las pantallas públicas (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. No cuenta las visitas al panel. El panel muestra el total y el desglose por página, así se ve qué link trae gente.
+Las visitas se cuentan con un beacon desde las pantallas públicas (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. No cuenta las visitas al panel ni las hechas desde `npm run dev` (la base es la misma que en producción). El panel muestra el total y el desglose por página, así se ve qué link trae gente.
 
 ## Usuarios: uno para cada socio
 
@@ -127,11 +134,12 @@ Migraciones: `npm run db:migrate` (crea y aplica). En Vercel el build corre `pri
 ## Modelo de datos
 
 - `Event`: una cena (fecha, precio, capacidad, publicado, menú, carta de barra y su precio, dirección).
-- `Reservation`: nombre, email, cantidad de lugares, estado `PENDING | PAID | CANCELLED`, monto, vencimiento del hold, ids de Mercado Pago.
+- `Reservation`: nombre, email, cantidad de lugares, aviso opcional (alergias, etc.), estado `PENDING | PAID | CANCELLED`, monto, vencimiento del hold, ids de Mercado Pago.
 - `Seat`: una silla elegida por una reserva pagada. Única por evento, así dos personas no pueden agarrar la misma.
 - `Subscriber`: emails anotados para enterarse de nuevas fechas.
 - `LedgerEntry`: movimientos de caja: ingreso, gasto, aporte o retiro; rubro, detalle, monto, día, quién, si salió del bolsillo del socio o de la caja; opcionalmente atado a una cena.
-- `Setting`: configuración editable desde el panel (`reserve` = colchón que no se reparte; `ai:analysis` = último análisis de la IA).
+- `Setting`: configuración editable desde el panel (`reserve` = colchón que no se reparte; `ai:analysis` = último análisis de la IA; `about` = texto de "Quiénes somos").
+- `Photo`: fotos del lugar para el home (URL pública en Blob, epígrafe, orden).
 - `FixedExpense`: gastos fijos mensuales; sus entradas semanales en `LedgerEntry` llevan `fixedExpenseId` + `periodKey` (lunes) únicos, para no duplicar.
 - `User`: usuarios del panel (nombre y contraseña con hash scrypt). La sesión es una cookie firmada con `APP_SECRET` (o `ADMIN_PASSWORD`).
 - Los comprobantes viven en el store privado de Vercel Blob `catdog-comprobantes` (variable `BLOB_READ_WRITE_TOKEN`, ya cargada) y se sirven solo con sesión desde `/admin/comprobante/[id]`.

@@ -58,32 +58,36 @@ export async function sendReservationConfirmed(input: {
   if (!r || input.to.endsWith("@local")) return { skipped: true as const };
   const link = `${siteUrl()}/reserva/${input.reservationId}`;
   const lugares = input.quantity === 1 ? "1 lugar" : `${input.quantity} lugares`;
-  const seatsBlock =
+  const row = (k: string, v: string) =>
+    `<tr><td style="padding:8px 12px 8px 0;color:#9a9187;font-size:13px;letter-spacing:.08em;text-transform:uppercase;vertical-align:top;white-space:nowrap">${k}</td><td style="padding:8px 0;color:#f3ede4;vertical-align:top">${v}</td></tr>`;
+  const seatsText =
     input.seats.length > 0
-      ? `<p>Tu lugar en la mesa: <strong>${input.seats.join(", ")}</strong>.</p>`
-      : `<p><strong>Falta un paso:</strong> entrá al link y elegí tu silla en la mesa.<br>
-         <a href="${link}" style="color:#c9a96e">${link}</a></p>`;
+      ? `<strong>${input.seats.join(", ")}</strong>`
+      : `Todavía no elegiste. <a href="${link}" style="color:#c9a96e">Elegí tu silla acá</a>.`;
   const body = `
-    <p>Hola ${input.name}, tu reserva está confirmada: ${lugares}.</p>
-    <p><strong>${input.event.title}</strong><br>
-    ${formatLong(input.event.date)} · ${formatTime(input.event.date)} hs</p>
-    ${input.event.address ? `<p><em>Dónde:</em> ${input.event.address}</p>` : ""}
+    <p>Hola ${input.name}. Te esperamos.</p>
+    <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:20px 0;border-top:1px solid #2c2823;border-bottom:1px solid #2c2823;width:100%">
+      ${row("Cena", `<strong>${input.event.title}</strong>`)}
+      ${row("Cuándo", `${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs`)}
+      ${input.event.address ? row("Dónde", `<strong>${input.event.address}</strong>`) : ""}
+      ${row("Reserva", `${lugares} a nombre de ${input.name} · ${formatPrice(input.amount)} pagados`)}
+      ${row("Tu lugar", seatsText)}
+    </table>
+    <p style="color:#c9a96e"><strong>Llegá ${formatTime(input.event.date)} hs.</strong> Se recibe con un trago de pie, y a la mesa se pasa un rato después.</p>
+    ${input.event.menu ? `<p><em>La noche, en pasos:</em><br>${input.event.menu.replace(/\n/g, "<br>")}</p>` : ""}
     ${
       CONTACT_PHONES.length
-        ? `<p><em>Consultas por WhatsApp:</em> ${CONTACT_PHONES.map(
+        ? `<p>Cualquier cosa, escribinos por WhatsApp: ${CONTACT_PHONES.map(
             (p) => `<a href="${whatsappUrl(p)}" style="color:#c9a96e">${formatPhone(p)}</a>`,
           ).join(" · ")}</p>`
         : ""
     }
-    ${seatsBlock}
-    <p>Pagaste ${formatPrice(input.amount)}.</p>
-    ${input.event.menu ? `<p><em>La noche, en pasos:</em><br>${input.event.menu.replace(/\n/g, "<br>")}</p>` : ""}
-    <p>¡Te esperamos!</p>`;
+    <p>Guardá este mail: tiene la dirección y el link de tu reserva.</p>`;
   const { error } = await r.emails.send({
     from: from(),
     to: input.to,
-    subject: `Reserva confirmada · ${input.event.title}`,
-    html: layout("¡Reserva confirmada!", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>. Si tenés alguna consulta, respondé este mail.`),
+    subject: `Reserva confirmada · ${input.event.title} · ${formatLong(input.event.date)}`,
+    html: layout("¡Reserva confirmada!", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`),
   });
   if (error) console.error("[email] confirmación falló", error);
   return { skipped: false as const, error };
@@ -93,6 +97,7 @@ export async function sendAdminNewReservation(input: {
   name: string;
   email: string;
   phone: string | null;
+  notes?: string | null;
   event: EventLike;
   quantity: number;
   amount: number;
@@ -105,6 +110,7 @@ export async function sendAdminNewReservation(input: {
     <p><strong>${input.name}</strong> reservó ${input.quantity} lugar${input.quantity > 1 ? "es" : ""}.</p>
     <p>${input.event.title} · ${formatLong(input.event.date)}</p>
     <p>Email: ${input.email}<br>Tel: ${input.phone ?? "-"}<br>Pagó ${formatPrice(input.amount)} vía ${input.via}.</p>
+    ${input.notes ? `<p><em>Nos avisa:</em> ${input.notes}</p>` : ""}
     <p><a href="${siteUrl()}/admin" style="color:#c9a96e">Ver panel</a></p>`;
   const { error } = await r.emails.send({
     from: from(),
