@@ -30,8 +30,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title, description, openGraph: { title, description, type: "website" } };
 }
 
-const MIN = 60 * 1000;
-
 export default async function HomePage() {
   const [event, about, photos, eventCount] = await Promise.all([getNextEvent(), getAbout(), getPhotos(), prisma.event.count()]);
   const free = event ? await getFreeCount(event.id, event.capacity) : 0;
@@ -40,7 +38,6 @@ export default async function HomePage() {
   const heroTitle = eventCount <= 1 ? "Apertura" : "Próxima cena";
 
   const scarcity = free <= 3 ? { label: "últimos lugares", tone: "text-danger" } : { label: "pocos lugares", tone: "text-muted" };
-  const t = (offsetMin: number) => (event ? formatTime(new Date(event.date.getTime() + offsetMin * MIN)) : "");
   const countdown = event
     ? (() => {
         const { daysUntil } = weekOf(event.date);
@@ -48,14 +45,6 @@ export default async function HomePage() {
       })()
     : null;
 
-  const moments = [
-    { at: t(0), title: "La llegada", text: "Portón, pasillo con velas, puerta. Te reciben con un trago en la mano antes de sentarte." },
-    { at: t(30), title: "La barra", text: "De pie, veinte minutos. Se conocen entre ustedes y nadie tiene que presentar a nadie." },
-    { at: t(50), title: "A la mesa", text: "Una sola mesa larga. Tu silla la elegís cuando reservás; lo demás lo trae cada plato." },
-    { at: t(60), title: "Los cinco pasos", text: "Un paso cada rato, con su trago. El cocinero sale a presentar cada uno y vuelve a la cocina." },
-    { at: t(165), title: "La sobremesa", text: "Se deja la mesa, vuelven los sillones, sube la música y se abre la barra. Nadie mira el reloj." },
-    { at: t(240), title: "El cierre", text: "Un último trago corto, todos de pie, y afuera. Con ganas de más, no cuando ya se querían ir." },
-  ];
 
   const faqs = [
     {
@@ -97,7 +86,6 @@ export default async function HomePage() {
             {SITE_NAME}
           </a>
           <div className="flex gap-6 text-muted">
-            <a href="#noche" className="hover:text-ink">La noche</a>
             <a href="#carta" className="hover:text-ink">La carta</a>
             <a href="#nosotros" className="hover:text-ink">Quiénes somos</a>
             <a href="#donde" className="hover:text-ink">Dónde</a>
@@ -149,8 +137,8 @@ export default async function HomePage() {
                   <p className="text-danger">Se agotó.</p>
                 )}
               </div>
-              <a href="#noche" className="mt-12 inline-block text-xs tracking-[0.2em] uppercase text-muted hover:text-ink">
-                ↓ Cómo es la noche
+              <a href="#carta" className="mt-12 inline-block text-xs tracking-[0.2em] uppercase text-muted hover:text-ink">
+                ↓ La carta de la noche
               </a>
             </>
           ) : (
@@ -167,25 +155,6 @@ export default async function HomePage() {
 
       {event && (
         <>
-          {/* Cómo es la noche */}
-          <section id="noche" className="mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16">
-            <div className="text-center">
-              <p className="ap-eyebrow">Cómo es la noche</p>
-              <h2 className="ap-display mt-3 text-3xl sm:text-4xl">Seis momentos</h2>
-              <p className="mx-auto mt-3 max-w-md text-sm text-muted">No hay carta para elegir ni mozo que apure. Hay una noche que va pasando.</p>
-            </div>
-            <ol className="relative mt-10 border-l border-line pl-6">
-              {moments.map((m, i) => (
-                <li key={i} className="relative pb-8 last:pb-0">
-                  <span className="absolute -left-[1.85rem] top-1 h-3 w-3 rounded-full border-2 border-accent bg-bg" aria-hidden="true" />
-                  <p className="text-xs tracking-[0.2em] uppercase text-accent">{m.at} hs</p>
-                  <p className="mt-1 font-display text-xl">{m.title}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-muted">{m.text}</p>
-                </li>
-              ))}
-            </ol>
-          </section>
-
           {/* La carta */}
           {steps.length > 0 && (
             <section id="carta" className="mx-auto w-full max-w-xl scroll-mt-16 px-6 py-14">

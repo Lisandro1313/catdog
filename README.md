@@ -15,8 +15,7 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
 
 - `/` — **el link que se comparte**. Una sola página larga, pensada primero para el celular, que va
   ganando confianza hasta la reserva: afiche ("Apertura" si es la primera cena, después "Próxima cena",
-  con fecha, hora y cuenta regresiva), **cómo es la noche** (seis momentos con horario calculado desde la
-  hora de la cena), **la carta** con su trago por paso y la barra, **fotos de la casa** (se suben desde
+  con fecha, hora y cuenta regresiva), **la carta** con su trago por paso y la barra, **fotos de la casa** (se suben desde
   Ajustes; si no hay, la sección no aparece), **quiénes somos** (texto editable desde Ajustes), **dónde**
   (zona + mapa centrado en la cuadra, sin marcador ni número), **preguntas frecuentes** y la reserva, con
   barra fija abajo en el celular y un menú de anclas arriba en escritorio. Muestra la próxima cena
