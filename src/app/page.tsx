@@ -2,15 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
-import { getFreeCount, getNextEvent } from "@/lib/reservations";
+import { getUpcomingEvents } from "@/lib/reservations";
 import { parseBar, parseMenu } from "@/lib/menu";
 import { getAbout, getPhotos } from "@/lib/photos";
 import { prisma } from "@/lib/prisma";
 import { BarList } from "@/components/BarList";
-import { ReserveForm } from "@/components/ReserveForm";
+import { ReserveForm, type ReservableEvent } from "@/components/ReserveForm";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { TrackVisit } from "@/components/TrackVisit";
 import { PhotoStrip } from "@/components/PhotoStrip";
+import { StickyCta } from "@/components/StickyCta";
+import { Reveal } from "@/components/Reveal";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,7 @@ const ZONE = "Calle 66, entre 2 y 3 · La Plata";
 const MAP_CENTER = "-34.9218,-57.9306";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const event = await getNextEvent();
+  const [event] = await getUpcomingEvents(1);
   const title = event
     ? `${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)} · Cena a puertas cerradas en La Plata`
     : `Cena a puertas cerradas en La Plata`;
@@ -31,13 +33,24 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [event, about, photos, eventCount] = await Promise.all([getNextEvent(), getAbout(), getPhotos(), prisma.event.count()]);
-  const free = event ? await getFreeCount(event.id, event.capacity) : 0;
+  const [upcoming, about, photos, eventCount] = await Promise.all([getUpcomingEvents(), getAbout(), getPhotos(), prisma.event.count()]);
+  // El afiche muestra la fecha más cercana; si se llenó, la reserva pasa a la siguiente con lugar.
+  const event = upcoming[0] ?? null;
+  const free = event?.free ?? 0;
+  const nextOpen = upcoming.find((e) => e.free > 0) ?? null;
+  const soldOut = Boolean(event) && free <= 0;
   const steps = parseMenu(event?.menu);
   const bar = parseBar(event?.bar);
   const heroTitle = eventCount <= 1 ? "Apertura" : "Próxima cena";
+  const dateShort = (d: Date) => `${formatWeekday(d)} ${formatDayNumber(d)}`;
+  const dateLong = (d: Date) => `${formatWeekday(d)} ${formatDayNumber(d)} de ${formatMonth(d)}, ${formatTime(d)} hs`;
+  const reservable: ReservableEvent[] = upcoming.map((e) => ({ id: e.id, short: dateShort(e.date), long: dateLong(e.date), price: e.price, free: e.free }));
 
-  const scarcity = free <= 3 ? { label: "últimos lugares", tone: "text-danger" } : { label: "pocos lugares", tone: "text-muted" };
+  const scarcity = soldOut
+    ? { label: nextOpen ? `agotado · hay lugar el ${dateShort(nextOpen.date)}` : "agotado", tone: "text-danger" }
+    : free <= 3
+      ? { label: "últimos lugares", tone: "text-danger" }
+      : { label: "pocos lugares", tone: "text-muted" };
   const countdown = event
     ? (() => {
         const { daysUntil } = weekOf(event.date);
@@ -68,6 +81,10 @@ export default async function HomePage() {
       a: "Contanos al reservar, hay un campo para eso. Lo tenemos en cuenta antes de cocinar.",
     },
     {
+      q: "¿Y si la fecha ya se llenó?",
+      a: "Es una sola mesa y se llena rápido. Cuando una fecha se agota, abrimos la reserva para el viernes siguiente: la elegís ahí mismo en el formulario.",
+    },
+    {
       q: "¿Y si no puedo ir?",
       a: "Escribinos con tiempo por el WhatsApp que te llega con la confirmación y lo resolvemos entre todos.",
     },
@@ -78,6 +95,7 @@ export default async function HomePage() {
   return (
     <div className="ap flex flex-1 flex-col pb-24 sm:pb-0">
       <TrackVisit path="/" />
+      <Reveal />
 
       {/* Nav de anclas (escritorio) */}
       <nav className="sticky top-0 z-20 hidden border-b border-line/60 bg-bg/85 backdrop-blur sm:block" aria-label="Secciones">
@@ -113,10 +131,16 @@ export default async function HomePage() {
                 <span className="num">{formatDayNumber(event.date)}</span>
                 <span className="word">{formatMonth(event.date)}</span>
               </div>
-              <p className="mt-3 text-sm tracking-[0.2em] uppercase text-muted">
-                {formatTime(event.date)} hs
-                {countdown && <span className="text-accent"> · {countdown}</span>}
-              </p>
+              {soldOut ? (
+                <p className="mt-4">
+                  <span className="ap-soldout">Agotado</span>
+                </p>
+              ) : (
+                <p className="mt-3 text-sm tracking-[0.2em] uppercase text-muted">
+                  {formatTime(event.date)} hs
+                  {countdown && <span className="text-accent"> · {countdown}</span>}
+                </p>
+              )}
               <hr className="ap-rule mx-auto mt-8 w-56" />
               <p className="mt-8 font-display text-2xl sm:text-3xl">{event.title}</p>
               <p className="mx-auto mt-3 max-w-md leading-relaxed text-muted">
@@ -124,7 +148,7 @@ export default async function HomePage() {
                 trago pensado al lado. Una noche, no un restaurante.
               </p>
               <div className="mt-10 flex flex-col items-center gap-3">
-                {free > 0 ? (
+                {!soldOut ? (
                   <>
                     <a className="btn btn-primary px-8" href="#reservar">
                       Reservar mi lugar
@@ -133,8 +157,23 @@ export default async function HomePage() {
                       {formatPrice(event.price)} por persona · <span className={scarcity.tone}>{scarcity.label}</span>
                     </p>
                   </>
+                ) : nextOpen ? (
+                  <>
+                    <p className="max-w-sm text-sm leading-relaxed text-muted">
+                      Esta fecha ya se llenó. La próxima es el <span className="text-ink">{dateLong(nextOpen.date)}</span>.
+                    </p>
+                    <a className="btn btn-primary px-8" href="#reservar">
+                      Reservar para el {dateShort(nextOpen.date)}
+                    </a>
+                    <p className="text-sm text-muted">{formatPrice(nextOpen.price)} por persona</p>
+                  </>
                 ) : (
-                  <p className="text-danger">Se agotó.</p>
+                  <>
+                    <p className="max-w-sm text-sm leading-relaxed text-muted">Esta fecha ya se llenó. Dejá tu mail y te avisamos cuando abramos la próxima.</p>
+                    <a className="btn btn-ghost px-8" href="#avisos">
+                      Avisame de la próxima
+                    </a>
+                  </>
                 )}
               </div>
               <a href="#carta" className="mt-12 inline-block text-xs tracking-[0.2em] uppercase text-muted hover:text-ink">
@@ -157,7 +196,7 @@ export default async function HomePage() {
         <>
           {/* La carta */}
           {steps.length > 0 && (
-            <section id="carta" className="mx-auto w-full max-w-xl scroll-mt-16 px-6 py-14">
+            <section id="carta" className="reveal mx-auto w-full max-w-xl scroll-mt-16 px-6 py-14">
               <div className="text-center">
                 <p className="ap-eyebrow">La carta de esta noche</p>
                 <h2 className="ap-display mt-3 text-3xl sm:text-4xl">{event.title}</h2>
@@ -185,7 +224,7 @@ export default async function HomePage() {
 
           {/* Fotos */}
           {photos.length > 0 && (
-            <section id="fotos" className="scroll-mt-16 py-10">
+            <section id="fotos" className="reveal scroll-mt-16 py-10">
               <div className="mx-auto max-w-2xl px-6 text-center">
                 <p className="ap-eyebrow">La casa</p>
               </div>
@@ -196,7 +235,7 @@ export default async function HomePage() {
           )}
 
           {/* Quiénes somos */}
-          <section id="nosotros" className="mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16">
+          <section id="nosotros" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16">
             <div className="text-center">
               <p className="ap-eyebrow">Quiénes somos</p>
               <h2 className="ap-display mt-3 text-3xl sm:text-4xl">La casa de la calle 66</h2>
@@ -209,7 +248,7 @@ export default async function HomePage() {
           </section>
 
           {/* Dónde */}
-          <section id="donde" className="mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-14">
+          <section id="donde" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-14">
             <div className="grid gap-6 sm:grid-cols-[1fr_1fr] sm:items-center">
               <div>
                 <p className="ap-eyebrow">Dónde</p>
@@ -236,7 +275,7 @@ export default async function HomePage() {
           </section>
 
           {/* Preguntas */}
-          <section id="preguntas" className="mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-14">
+          <section id="preguntas" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-14">
             <div className="text-center">
               <p className="ap-eyebrow">Preguntas que nos hacen</p>
             </div>
@@ -260,13 +299,15 @@ export default async function HomePage() {
             <div className="text-center">
               <p className="ap-eyebrow">Tu lugar</p>
               <h2 className="ap-display mt-4 text-4xl sm:text-5xl">Reservá</h2>
-              <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-muted">
-                Elegís cuántos son y pagás por Mercado Pago. Después elegís tu silla en la mesa y te llega la dirección exacta.
-              </p>
             </div>
+            <ol className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-2 text-center text-xs text-muted">
+              <Step n="1" text="Elegís cuántos son" />
+              <Step n="2" text="Pagás por Mercado Pago" />
+              <Step n="3" text="Elegís tu silla y te llega la dirección" />
+            </ol>
             <div className="card mt-8 p-6 sm:p-8">
-              {free > 0 ? (
-                <ReserveForm eventId={event.id} price={event.price} free={free} maxSeats={MAX_SEATS_PER_RESERVATION} />
+              {nextOpen ? (
+                <ReserveForm events={reservable} defaultEventId={nextOpen.id} maxSeats={MAX_SEATS_PER_RESERVATION} />
               ) : (
                 <div className="text-center">
                   <p className="font-display text-2xl">Se agotó</p>
@@ -279,13 +320,20 @@ export default async function HomePage() {
             </div>
             <dl className="mt-10 grid gap-px overflow-hidden rounded-xl border border-line bg-line text-sm sm:grid-cols-3">
               <Fact label="Dónde" value={`${ZONE}. El número te llega al confirmar.`} />
-              <Fact label="Cuándo" value={`${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}, ${formatTime(event.date)} hs.`} />
-              <Fact label="Cuánto" value={`${formatPrice(event.price)} por persona, por Mercado Pago.`} />
+              <Fact
+                label="Cuándo"
+                value={
+                  upcoming.length > 1
+                    ? `Los viernes, ${formatTime(event.date)} hs. Próximas: ${upcoming.map((e) => dateShort(e.date)).join(", ")}.`
+                    : `${dateLong(event.date)}.`
+                }
+              />
+              <Fact label="Cuánto" value={`${formatPrice((nextOpen ?? event).price)} por persona, por Mercado Pago.`} />
             </dl>
           </section>
 
           {/* Avisos */}
-          <section className="mx-auto w-full max-w-xl px-6 pb-16">
+          <section id="avisos" className="mx-auto w-full max-w-xl scroll-mt-16 px-6 pb-16">
             <div className="card p-6">
               <p className="font-display text-xl">¿No llegás a esta fecha?</p>
               <p className="mt-1 text-sm text-muted">Dejá tu mail y te avisamos cuando abramos la próxima. Un mail por cena, nada más.</p>
@@ -303,16 +351,12 @@ export default async function HomePage() {
       </footer>
 
       {/* Barra fija en el celular */}
-      {event && free > 0 && (
-        <div className="ap-cta-bar">
-          <div className="leading-tight">
-            <p className="font-display text-lg">{formatPrice(event.price)}</p>
-            <p className={`text-xs ${scarcity.tone}`}>{scarcity.label}</p>
-          </div>
-          <a className="btn btn-primary btn-sm px-6" href="#reservar">
-            Reservar
-          </a>
-        </div>
+      {event && nextOpen && (
+        <StickyCta
+          price={formatPrice(nextOpen.price)}
+          scarcity={scarcity}
+          label={soldOut ? `Reservar el ${formatDayNumber(nextOpen.date)}` : "Reservar"}
+        />
       )}
     </div>
   );
@@ -322,6 +366,15 @@ function spellOut(n: number): string {
   const words = ["cero", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
   const w = words[n] ?? String(n);
   return w.charAt(0).toUpperCase() + w.slice(1);
+}
+
+function Step({ n, text }: { n: string; text: string }) {
+  return (
+    <li className="rounded-xl border border-line bg-surface/60 px-2 py-3">
+      <span className="font-display text-lg text-accent">{n}</span>
+      <span className="mt-1 block leading-snug">{text}</span>
+    </li>
+  );
 }
 
 function Fact({ label, value }: { label: string; value: string }) {

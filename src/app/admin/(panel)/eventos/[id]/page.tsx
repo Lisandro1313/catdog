@@ -10,10 +10,17 @@ import { AssignSeatsForm, ManualReservationForm, NotifyForm } from "@/components
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
-import { cancelReservationAction, deleteEventAction, deleteReservationAction, markPaidAction, updateEventAction } from "../../../actions";
+import { cancelReservationAction, deleteEventAction, deleteReservationAction, duplicateEventAction, markPaidAction, updateEventAction } from "../../../actions";
 
-export default async function AdminEventPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AdminEventPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { id } = await params;
+  const copiada = (await searchParams).copiada === "1";
   const [event, subscribers, money, session] = await Promise.all([
     prisma.event.findUnique({
       where: { id },
@@ -49,6 +56,12 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
         <span>/</span>
         <span className="text-ink">{event.title}</span>
       </div>
+
+      {copiada && (
+        <p className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+          Copiada para la semana que viene. Revisá la carta y la fecha, y marcá <strong>Publicada</strong> para que aparezca en el sitio.
+        </p>
+      )}
 
       <section className="grid gap-4 sm:grid-cols-4">
         <Stat label="Pagos" value={`${paidSeats}/${event.capacity}`} />
@@ -246,7 +259,14 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
             }}
           />
         </div>
-        <form action={deleteEventAction} className="mt-6 border-t border-line pt-5">
+        <form action={duplicateEventAction} className="mt-6 border-t border-line pt-5">
+          <input type="hidden" name="id" value={event.id} />
+          <button className="btn btn-ghost btn-sm" type="submit">
+            Repetir la semana que viene
+          </button>
+          <span className="ml-3 text-xs text-muted">Crea una copia con la misma carta, siete días después, sin publicar.</span>
+        </form>
+        <form action={deleteEventAction} className="mt-4">
           <input type="hidden" name="id" value={event.id} />
           <ConfirmButton
             message={

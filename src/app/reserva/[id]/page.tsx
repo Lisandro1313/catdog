@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { confirmPaymentById, getTakenSeats } from "@/lib/reservations";
 import { isMercadoPagoConfigured } from "@/lib/mp";
-import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, whatsappUrl } from "@/lib/config";
-import { formatLong, formatTime, nowMs } from "@/lib/dates";
+import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, siteUrl, whatsappUrl } from "@/lib/config";
+import { formatDayNumber, formatLong, formatTime, formatWeekday, nowMs } from "@/lib/dates";
+import { googleCalendarUrl } from "@/lib/calendar";
 import { SeatChooser } from "@/components/SeatChooser";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,10 @@ export default async function ReservationPage({ params, searchParams }: Props) {
     reservation.status === "PAID"
       ? (await getTakenSeats(reservation.eventId)).filter((n) => !mine.includes(n))
       : [];
+  const reservationUrl = `${siteUrl()}/reserva/${reservation.id}`;
+  const shareText = `Tengo lugar para la cena a puertas cerradas del ${formatLong(reservation.event.date)}, ${formatTime(reservation.event.date)} hs${
+    reservation.event.address ? `, en ${reservation.event.address}` : ""
+  }. ${reservation.quantity > 1 ? "Venís conmigo 🙂 " : ""}Mirá de qué va: ${siteUrl()}`;
 
   return (
     <div className="flex flex-1 flex-col items-center px-5 py-12 sm:py-16">
@@ -65,6 +70,30 @@ export default async function ReservationPage({ params, searchParams }: Props) {
                 <div className="mt-6 rounded-xl bg-surface-2 p-4">
                   <p className="eyebrow">Dónde</p>
                   <p className="mt-1 font-display text-xl">{reservation.event.address}</p>
+                  <p className="mt-1 text-xs text-muted">Casa sin cartel: portón, pasillo y puerta. Llegá {formatTime(reservation.event.date)} hs.</p>
+                </div>
+              )}
+              {upcoming && (
+                <div className="mt-4 flex flex-wrap justify-center gap-2 text-sm">
+                  <a
+                    className="btn btn-ghost btn-sm"
+                    href={googleCalendarUrl(reservation.event, reservationUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    + Google Calendar
+                  </a>
+                  <a className="btn btn-ghost btn-sm" href={`/reserva/${reservation.id}/calendario`}>
+                    + Apple / otro calendario
+                  </a>
+                  <a
+                    className="btn btn-ghost btn-sm"
+                    href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {reservation.quantity > 1 ? "Avisar a los que vienen" : "Contarle a alguien"}
+                  </a>
                 </div>
               )}
               {CONTACT_PHONES.length > 0 && (
@@ -123,6 +152,14 @@ export default async function ReservationPage({ params, searchParams }: Props) {
           )}
         </div>
 
+        {reservation.status === "PAID" && upcoming && (
+          <ol className="grid gap-2 text-sm sm:grid-cols-3">
+            <Next n="1" done={mine.length > 0} text={mine.length > 0 ? "Silla elegida" : "Elegí tu silla acá abajo"} />
+            <Next n="2" text="Guardá este link: tiene la dirección y tu lugar" />
+            <Next n="3" text={`El ${formatWeekday(reservation.event.date)} ${formatDayNumber(reservation.event.date)}, ${formatTime(reservation.event.date)} hs. Se recibe con un trago de pie`} />
+          </ol>
+        )}
+
         {reservation.status === "PAID" && (
           <div className="card p-6 sm:p-8">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -160,5 +197,14 @@ export default async function ReservationPage({ params, searchParams }: Props) {
         )}
       </div>
     </div>
+  );
+}
+
+function Next({ n, text, done }: { n: string; text: string; done?: boolean }) {
+  return (
+    <li className={`flex items-start gap-3 rounded-xl border border-line px-4 py-3 ${done ? "bg-surface-2 text-muted" : "bg-surface"}`}>
+      <span className={`font-display text-lg ${done ? "text-ok" : "text-accent"}`}>{done ? "✓" : n}</span>
+      <span className="leading-snug">{text}</span>
+    </li>
   );
 }

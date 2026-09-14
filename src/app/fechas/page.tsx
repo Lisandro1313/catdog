@@ -1,5 +1,5 @@
 import { SITE_INTRO, SITE_NAME, SITE_TAGLINE, MAX_SEATS_PER_RESERVATION, formatPrice } from "@/lib/config";
-import { formatLong, formatTime } from "@/lib/dates";
+import { formatDayNumber, formatLong, formatTime, formatWeekday } from "@/lib/dates";
 import { getFreeCount, getNextEvent, getTakenSeats } from "@/lib/reservations";
 import { WeekStrip } from "@/components/WeekStrip";
 import { ReserveForm } from "@/components/ReserveForm";
@@ -75,7 +75,18 @@ export default async function FechasPage() {
               </div>
               {free > 0 ? (
                 <div className="mt-6">
-                  <ReserveForm eventId={event.id} price={event.price} free={free} maxSeats={MAX_SEATS_PER_RESERVATION} />
+                  <ReserveForm
+                    events={[
+                      {
+                        id: event.id,
+                        short: `${formatWeekday(event.date)} ${formatDayNumber(event.date)}`,
+                        long: `${formatLong(event.date)}, ${formatTime(event.date)} hs`,
+                        price: event.price,
+                        free,
+                      },
+                    ]}
+                    maxSeats={MAX_SEATS_PER_RESERVATION}
+                  />
                 </div>
               ) : (
                 <p className="mt-6 text-muted">

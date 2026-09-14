@@ -41,7 +41,7 @@ function layout(capacity: number, vertical: boolean): Layout {
     const tableW = hasHead ? 690 : 760;
     const tableY = 128;
     const tableH = 96;
-    const step = tableW / perSide;
+    const step = perSide > 0 ? tableW / perSide : tableW;
     for (let i = 0; i < perSide; i++) positions.push({ n: i + 1, cx: tableX + step * (i + 0.5), cy: 62, side: "top" });
     if (hasHead) positions.push({ n: perSide + 1, cx: tableX + tableW + 70, cy: tableY + tableH / 2, side: "head" });
     for (let i = 0; i < perSide; i++) {
@@ -55,7 +55,8 @@ function layout(capacity: number, vertical: boolean): Layout {
   const tableX = 112;
   const tableW = 136;
   const tableY = 40;
-  const tableH = step * perSide;
+  // Con un solo lugar la mesa igual tiene un largo mínimo.
+  const tableH = step * Math.max(1, perSide);
   for (let i = 0; i < perSide; i++) positions.push({ n: i + 1, cx: 60, cy: tableY + step * (i + 0.5), side: "left" });
   if (hasHead) positions.push({ n: perSide + 1, cx: tableX + tableW / 2, cy: tableY + tableH + 62, side: "foot" });
   for (let i = 0; i < perSide; i++) {

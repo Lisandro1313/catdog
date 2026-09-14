@@ -18,8 +18,14 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
   con fecha, hora y cuenta regresiva), **la carta** con su trago por paso y la barra, **fotos de la casa** (se suben desde
   Ajustes; si no hay, la sección no aparece), **quiénes somos** (texto editable desde Ajustes), **dónde**
   (zona + mapa centrado en la cuadra, sin marcador ni número), **preguntas frecuentes** y la reserva, con
-  barra fija abajo en el celular y un menú de anclas arriba en escritorio. Muestra la próxima cena
-  publicada, así que se mantiene sola.
+  barra fija abajo en el celular (se esconde mientras el formulario está a la vista) y un menú de anclas
+  arriba en escritorio. Muestra la próxima cena publicada, así que se mantiene sola.
+- **Cuando una fecha se llena** el afiche la marca "Agotado" y manda a reservar para la siguiente
+  publicada; el formulario muestra las próximas fechas como botones (las llenas, tachadas). Si no hay
+  ninguna con lugar, pide el mail para avisar. Para que esto funcione hay que tener cargada la cena
+  siguiente: en la página de una cena, "Repetir la semana que viene" la copia siete días después.
+- **Vista previa al compartir**: el link genera solo una imagen (`/opengraph-image`) con la próxima
+  fecha, la carta y el precio, que WhatsApp e Instagram muestran debajo del link.
 - `/fechas` — la versión de siempre: la semana de la próxima cena, los pasos, la reserva y el dibujo de la mesa.
 - `/apertura` — redirige a `/` (era la dirección vieja del afiche).
 
@@ -29,17 +35,17 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 
 ## Cómo funciona una reserva
 
-1. El home muestra **solo la próxima cena publicada**, su semana (lunes a domingo) y los pasos de la noche con su trago.
+1. El home muestra la **próxima cena publicada** (y, si se llenó, ofrece la siguiente) con los pasos de la noche y su trago.
 2. El usuario elige **cuántos son** (hasta 4), completa nombre / email / WhatsApp, puede avisar algo (alergias, vegetariano, festejo) y toca "Reservar y pagar".
 3. Se crea una reserva `PENDING` que **bloquea ese cupo 30 minutos** y se lo manda a Mercado Pago.
 4. Mercado Pago avisa al webhook `/api/mp/webhook` (y además la página de retorno `/reserva/[id]` verifica el pago por si el webhook demora). Si está aprobado, la reserva pasa a `PAID`, salen los mails y **recién ahí elige su silla** en la mesa, desde esa misma página (el link va en el mail). Puede cambiarla hasta el día de la cena si hay lugar.
 5. Si no paga en 30 minutos, el cupo vuelve a estar libre solo.
-6. La dirección exacta solo la ve quien ya pagó (en la página de su reserva y en el mail). El mail de confirmación es una ficha: cena, cuándo, dónde (con número), lugares y monto, silla o link para elegirla, hora de llegada, pasos de la noche y los WhatsApp de consulta.
+6. La dirección exacta solo la ve quien ya pagó (en la página de su reserva y en el mail). Esa página tiene además "qué pasa ahora", botones para agregar la cena a Google Calendar o bajar el `.ics` (`/reserva/[id]/calendario`, solo si está paga) y uno para avisar por WhatsApp a los que vienen. El mail de confirmación es una ficha: cena, cuándo, dónde (con número), lugares y monto, silla o link para elegirla, hora de llegada, pasos de la noche y los WhatsApp de consulta.
 
 ## Panel `/admin`
 
 - **Inicio:** qué cena está mostrando el home ahora (con pagos / en proceso / libres), estado de Mercado Pago y Resend, suscriptores, cubiertos vendidos, visitas al sitio (hoy, 7 y 30 días, gráfico de 14 días) y rendimiento global (reservas cobradas + barra − gastos).
-- **Cenas:** crear / editar / despublicar (título, fecha, precio, lugares, descripción, pasos de la noche en formato `plato | trago`, carta de barra en formato `trago | descripción` con su precio por trago, dirección privada).
+- **Cenas:** crear / editar / despublicar / **repetir la semana que viene** (copia sin publicar, siete días después, con la misma carta) (título, fecha, precio, lugares, descripción, pasos de la noche en formato `plato | trago`, carta de barra en formato `trago | descripción` con su precio por trago, dirección privada).
 - **Reservas por cena:** marcar pagado a mano, cancelar (libera lugares, queda registro), **borrar** definitivamente (para pruebas o devoluciones ya resueltas), asignar o cambiar sillas, cargar reservas a mano (efectivo / transferencia / invitado).
 - **Gastos (`/admin/gastos`)**: la pantalla del día a día, pensada para el celular. Se carga monto, rubro (verdulería, carnicería, almacén, bebidas, insumos, vajilla, alquiler, luz/gas/internet, viáticos, personal, otros), con qué plata (de su bolsillo o de la caja), detalle, fecha y **foto del comprobante** (abre la cámara; la foto se achica en el teléfono antes de subir y se guarda privada en Vercel Blob). También ingresos (barra, otros), **aportes** (un socio pone plata) y **retiros** (un socio se lleva plata; pide confirmación en una ventana).
 - **Movimientos:** tocar uno abre una ventana con el detalle, la foto del comprobante y quién lo cargó / editó. Desde ahí se **edita** (monto, rubro, detalle, fecha, socio, con qué plata, foto) o se **borra** con confirmación. Lo borrado va a la **Papelera** (no cuenta en los números) y se puede restaurar. Nada se borra de verdad.

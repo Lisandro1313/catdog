@@ -26,6 +26,23 @@ export async function getNextEvent() {
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
+export type UpcomingEvent = Awaited<ReturnType<typeof getNextEvent>> & { free: number };
+
+/**
+ * Las próximas cenas publicadas (la más cercana primero), cada una con sus lugares libres.
+ * El home las usa para pasar la reserva a la fecha siguiente cuando la primera se llena.
+ */
+export async function getUpcomingEvents(limit = 4): Promise<NonNullable<UpcomingEvent>[]> {
+  const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000);
+  const events = await prisma.event.findMany({
+    where: { published: true, date: { gte: cutoff } },
+    orderBy: { date: "asc" },
+    take: limit,
+  });
+  const free = await Promise.all(events.map((e) => getFreeCount(e.id, e.capacity)));
+  return events.map((e, i) => ({ ...e, free: free[i] }));
+}
+
 /** Cupos ocupados: pagados + en proceso de pago (hold vigente). */
 export async function getOccupancy(eventId: string, db: Db = prisma) {
   const now = new Date();
