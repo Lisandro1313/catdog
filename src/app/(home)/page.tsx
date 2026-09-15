@@ -18,7 +18,7 @@ import { AnchorNav } from "@/components/AnchorNav";
 import { Countdown } from "@/components/Countdown";
 import { MapFacade } from "@/components/MapFacade";
 import { ShareButton } from "@/components/ShareButton";
-import { siteUrl } from "@/lib/config";
+import { contactEmail, siteUrl } from "@/lib/config";
 import { foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 
@@ -121,6 +121,14 @@ export default async function HomePage() {
       q: "¿Y si no puedo ir?",
       a: "Avisanos con tiempo por el WhatsApp que te llega con la confirmación. Podés pasarle tu lugar a otra persona (nos decís el nombre y listo) o, si hay lugar, cambiar a otra fecha.",
     },
+    ...(contactEmail()
+      ? [
+          {
+            q: "¿Tenés otra duda?",
+            a: `Escribinos a ${contactEmail()} y te respondemos nosotros. Después de reservar también tenés nuestro WhatsApp.`,
+          },
+        ]
+      : []),
   ];
 
   const aboutParagraphs = about.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
@@ -471,6 +479,13 @@ export default async function HomePage() {
             Ver todas las fechas
           </Link>
         </p>
+        {contactEmail() && (
+          <p className="mt-3">
+            <a href={`mailto:${contactEmail()}`} className="hover:text-ink">
+              {contactEmail()}
+            </a>
+          </p>
+        )}
         <p className="mt-4">Hecho en La Plata · {new Date().getFullYear()}</p>
         <p className="mt-2">
           <Link href="/condiciones" className="hover:text-ink">

@@ -6,7 +6,7 @@ import { formatShort, nowMs, toDatetimeLocal, todayIso } from "@/lib/dates";
 import { categoryLabel, getFinancials, toRow } from "@/lib/admin-stats";
 import { getSession } from "@/lib/admin-auth";
 import { EventForm } from "@/components/admin/EventForm";
-import { AssignSeatsForm, ManualReservationForm, NotifyForm, RequestReviewsForm } from "@/components/admin/ActionForms";
+import { AssignSeatsForm, ManualReservationForm, NotifyForm, RemindersNowForm, RequestReviewsForm } from "@/components/admin/ActionForms";
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
@@ -82,6 +82,9 @@ export default async function AdminEventPage({
         <Stat label="Libres" value={String(event.capacity - paidSeats - holdSeats)} />
         <Stat label="Cobrado en reservas" value={formatPrice(money.reservations)} />
       </section>
+      {!past && paidPeople > 0 && event.date.getTime() - now < 3 * 24 * 60 * 60 * 1000 && (
+        <RemindersNowForm eventId={event.id} pending={event.reservations.filter((r) => r.status === "PAID" && !r.remindedAt).length} />
+      )}
       {paidPeople > 0 && event.reservations.some((r) => r.remindedAt) && (
         <p className="text-sm text-muted">
           Confirmaron que vienen:{" "}

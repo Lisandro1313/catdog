@@ -24,6 +24,11 @@ export function whatsappUrl(raw: string, text?: string): string {
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
 
+/** Mail de contacto público: la misma casilla desde la que salen los mails (o una explícita). Vacío = no se muestra. */
+export function contactEmail(): string {
+  return (process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? process.env.GMAIL_USER ?? "").trim();
+}
+
 /** Precio por defecto por persona (ARS) al crear un evento nuevo. */
 export const DEFAULT_PRICE = 21000;
 export const DEFAULT_CAPACITY = 15;

@@ -87,7 +87,7 @@ Las visitas se cuentan con un beacon desde las pantallas públicas (`/api/visita
 Una vez por día, a las 11 de la mañana (Argentina), Vercel llama a `/api/cron/diario` (configurado en
 `vercel.json`, protegido con `CRON_SECRET`). Hace tres cosas, todas idempotentes:
 
-1. **Recordatorio el día anterior** a cada persona que pagó: fecha, hora, dirección con número, su silla
+1. **Recordatorio el día anterior** a cada persona que pagó (en la página de la cena hay un botón "Mandar recordatorio ahora" por si querés adelantarlo o la tarea no corrió): fecha, hora, dirección con número, su silla
    (o el link para elegirla) y dos botones: **"Confirmo que voy"** (un toque, sin login; queda marcado en
    el panel como "✓ confirmó que viene") y **"No voy a poder"** (abre WhatsApp con el mensaje armado).
    En la página de la cena se ve cuántos lugares confirmaron.
@@ -145,6 +145,7 @@ Las de la base ya las carga la integración de Neon. Faltan estas (se setean con
 | `RESEND_API_KEY` | Mandar mails por Resend | La carga sola la integración Resend de Vercel (ver abajo). **Sin dominio verificado solo manda a tu propia casilla**: la gente no recibe la confirmación. |
 | `EMAIL_FROM` | Remitente en Resend | Solo cuando hay dominio verificado en Resend, p. ej. `CatDog <hola@tudominio.ar>`. |
 | `CRON_SECRET` | Protege la tarea diaria | Ya seteada (valor aleatorio). Vercel la manda sola al llamar al cron. |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | Mail de contacto que se muestra en el sitio | Opcional: si no está, se muestra la casilla de Gmail que manda los mails. |
 | `NEXT_PUBLIC_SITE_URL` | URL pública del sitio | Ya seteada: `https://catdog-omega.vercel.app`. Se usa en los links de vuelta de Mercado Pago, mails y vista previa. **Cambiarla cuando haya dominio propio.** |
 | `ADMIN_EMAIL` | A dónde te avisamos cada reserva pagada | Tu mail. |
 | `NEXT_PUBLIC_SITE_NAME` / `NEXT_PUBLIC_SITE_TAGLINE` | Nombre y subtítulo | Opcionales (default "CatDog" / "Cena a puertas cerradas"). |

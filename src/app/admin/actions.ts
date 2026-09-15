@@ -20,7 +20,7 @@ import { storeReceipt } from "@/lib/receipts";
 import { ensureFixedEntries, refreshCurrentWeekEntry, weeklyAmount } from "@/lib/fixed-expenses";
 import { formatPrice, siteUrl } from "@/lib/config";
 import { addPhoto, removePhoto } from "@/lib/photos";
-import { renderReservationConfirmed, sendNewEventBlast, sendReviewRequests } from "@/lib/email";
+import { renderReservationConfirmed, sendNewEventBlast, sendReminder, sendReviewRequests } from "@/lib/email";
 import { isEmailConfigured, sendMail } from "@/lib/mailer";
 import { icsFor } from "@/lib/calendar";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
@@ -745,4 +745,28 @@ export async function sendTestMailAction(_prev: ActionState, formData: FormData)
   const { error } = await sendMail({ to, ...mail, subject: `[PRUEBA] ${mail.subject}` });
   if (error) return { ok: false, message: `No salió: ${error.message}` };
   return { ok: true, message: `Enviado a ${to}. Fijate en la bandeja (y en spam, la primera vez).` };
+}
+
+/** Manda el recordatorio a quienes pagaron esta cena y todavía no lo recibieron (por si la tarea diaria no corrió). */
+export async function sendRemindersNowAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const event = await prisma.event.findUnique({
+    where: { id },
+    include: { reservations: { where: { status: "PAID", remindedAt: null }, include: { seats: { orderBy: { number: "asc" } } } } },
+  });
+  if (!event) return { ok: false, message: "Cena inexistente." };
+  if (!isEmailConfigured()) return { ok: false, message: "Los mails no están configurados." };
+  if (event.reservations.length === 0) return { ok: true, message: "Ya les llegó a todos." };
+  let sent = 0;
+  let failed = 0;
+  for (const r of event.reservations) {
+    const res = await sendReminder({ to: r.email, name: r.name, event, quantity: r.quantity, seats: r.seats.map((s) => s.number), reservationId: r.id });
+    if (res.skipped || !res.error) {
+      await prisma.reservation.update({ where: { id: r.id }, data: { remindedAt: new Date() } });
+      if (!res.skipped) sent++;
+    } else failed++;
+  }
+  revalidatePath(`/admin/eventos/${id}`);
+  return { ok: failed === 0, message: `Recordatorio enviado a ${sent} persona${sent === 1 ? "" : "s"}${failed ? ` (${failed} fallaron)` : ""}.` };
 }

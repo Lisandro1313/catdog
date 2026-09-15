@@ -1,7 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { assignSeatsAction, manualReservationAction, notifySubscribersAction, requestReviewsAction, sendTestMailAction } from "@/app/admin/actions";
+import {
+  assignSeatsAction,
+  manualReservationAction,
+  notifySubscribersAction,
+  requestReviewsAction,
+  sendRemindersNowAction,
+  sendTestMailAction,
+} from "@/app/admin/actions";
 
 export function NotifyForm({ eventId, subscribers, notifiedAt }: { eventId: string; subscribers: number; notifiedAt: string | null }) {
   const [state, action, pending] = useActionState(notifySubscribersAction, null);
@@ -113,6 +120,26 @@ export function TestMailForm({ defaultTo }: { defaultTo: string }) {
       </button>
       <p className="basis-full text-xs text-muted">Manda la confirmación con datos de ejemplo. Sirve para ver que los mails salen y cómo se ven.</p>
       {state?.message && <p className={`basis-full text-sm ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
+    </form>
+  );
+}
+
+export function RemindersNowForm({ eventId, pending: pendingCount }: { eventId: string; pending: number }) {
+  const [state, action, pending] = useActionState(sendRemindersNowAction, null);
+  return (
+    <form
+      action={action}
+      className="flex flex-wrap items-center gap-3"
+      onSubmit={(e) => {
+        if (!confirm(`¿Mandar ahora el recordatorio a las ${pendingCount} personas que todavía no lo recibieron?`)) e.preventDefault();
+      }}
+    >
+      <input type="hidden" name="id" value={eventId} />
+      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending || pendingCount === 0}>
+        {pending ? "Enviando…" : pendingCount === 0 ? "Recordatorio: ya les llegó a todos" : `Mandar recordatorio ahora (${pendingCount})`}
+      </button>
+      <span className="text-xs text-muted">Sale solo el día anterior a las 11. Esto es por si querés adelantarlo o la tarea no corrió.</span>
+      {state?.message && <p className={`text-sm basis-full ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
     </form>
   );
 }
