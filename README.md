@@ -78,7 +78,8 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 - **Fotos del lugar y Quiénes somos** (en Ajustes): se suben fotos de la casa (se achican en el teléfono antes de subir, se guardan públicas en Blob) con un epígrafe opcional, y se edita el texto de "Quiénes somos" que sale en el home. Sin fotos, el home no muestra la sección.
 - **Contactos:** todas las personas que pagaron alguna vez, una fila por email, con teléfono, cantidad de cenas, lugares, gasto total y última cena. Botón para descargar CSV.
 - Botón "Avisar a suscriptores": manda el mail de nueva fecha a todos los anotados.
-- QR + link del sitio para el flyer.
+- QR + link del sitio para el flyer, y **afiches para redes** que se arman solos con la próxima cena: historia de Instagram / estado de WhatsApp (1080×1920, `/api/afiche?f=historia`) y cuadrado (1080×1080, `/api/afiche?f=cuadrado`). Se abren en otra pestaña y se guardan como imagen.
+- **Antes de abrir**: lista en el inicio del panel con lo que falta (cobros reales, mails, fotos, Quiénes somos, Instagram, fecha siguiente publicada). Desaparece cuando está todo.
 
 Las visitas se cuentan con un beacon desde las pantallas públicas (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. Cada vez que alguien toca "Reservar y pagar" se cuenta un intento (`/reservar`): el inicio del panel muestra el embudo visitas → intentos → pagos. No cuenta las visitas al panel ni las hechas desde `npm run dev` (la base es la misma que en producción). El panel muestra el total y el desglose por página, así se ve qué link trae gente.
 

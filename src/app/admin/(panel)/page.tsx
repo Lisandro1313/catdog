@@ -7,10 +7,12 @@ import { mercadoPagoMode } from "@/lib/mp";
 import { emailReachesEveryone, mailModeLabel } from "@/lib/mailer";
 import { getNextEvent } from "@/lib/reservations";
 import { getFinancials, getVisitStats } from "@/lib/admin-stats";
+import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos } from "@/lib/photos";
 import { EventForm } from "@/components/admin/EventForm";
 import { createEventAction } from "../actions";
 
 export default async function AdminHome() {
+  const [photos, about, instagram] = await Promise.all([getPhotos(), getAbout(), getInstagram()]);
   const [events, subscribers, nextEvent, visits, money] = await Promise.all([
     prisma.event.findMany({
       orderBy: { date: "desc" },
@@ -86,6 +88,39 @@ export default async function AdminHome() {
           </p>
         )}
       </section>
+
+      {(() => {
+        const upcomingPublished = events.filter((e) => e.published && e.date.getTime() > now).length;
+        const items: { ok: boolean; label: string; href: string }[] = [
+          { ok: mercadoPagoMode() === "produccion", label: "Mercado Pago en producción (cobros reales)", href: "/admin/ajustes" },
+          { ok: emailReachesEveryone(), label: "Mails que le llegan a la gente (Gmail)", href: "/admin/ajustes" },
+          { ok: photos.length > 0, label: `Fotos de la casa en el home (${photos.length})`, href: "/admin/ajustes" },
+          { ok: about !== DEFAULT_ABOUT, label: "Texto “Quiénes somos” escrito por ustedes", href: "/admin/ajustes" },
+          { ok: Boolean(instagram), label: "Instagram cargado (opcional)", href: "/admin/ajustes" },
+          { ok: upcomingPublished >= 2, label: "La fecha siguiente ya publicada (para cuando se llene)", href: nextEvent ? `/admin/eventos/${nextEvent.id}` : "/admin" },
+        ];
+        const pending = items.filter((i) => !i.ok);
+        return pending.length > 0 ? (
+          <section className="card p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-2xl">Antes de abrir</h2>
+              <p className="text-sm text-muted">
+                {items.length - pending.length} de {items.length} listos
+              </p>
+            </div>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {items.map((i) => (
+                <li key={i.label} className="flex items-start gap-2 text-sm">
+                  <span className={i.ok ? "text-ok" : "text-muted"} aria-hidden="true">
+                    {i.ok ? "✓" : "○"}
+                  </span>
+                  {i.ok ? <span className="text-muted">{i.label}</span> : <Link href={i.href} className="hover:text-accent">{i.label}</Link>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null;
+      })()}
 
       {mercadoPagoMode() === "prueba" && (
         <section className="rounded-xl border border-danger/60 bg-danger/10 p-4 text-sm">
@@ -279,9 +314,20 @@ export default async function AdminHome() {
       <section className="card p-6 flex flex-col sm:flex-row gap-6 items-center">
         <div className="w-40 shrink-0 rounded-xl overflow-hidden" dangerouslySetInnerHTML={{ __html: qr }} />
         <div>
-          <h2 className="font-display text-2xl">Para el flyer</h2>
+          <h2 className="font-display text-2xl">Para el flyer y las redes</h2>
           <p className="mt-2 text-muted text-sm">Este QR lleva al sitio. Clic derecho → guardar imagen, o copiá el link:</p>
           <p className="mt-2 font-mono text-sm break-all text-accent">{url}</p>
+          {nextEvent && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a href="/api/afiche?f=historia" target="_blank" rel="noopener" className="btn btn-ghost btn-sm">
+                Afiche para historia / estado (1080×1920)
+              </a>
+              <a href="/api/afiche?f=cuadrado" target="_blank" rel="noopener" className="btn btn-ghost btn-sm">
+                Afiche cuadrado (1080×1080)
+              </a>
+              <p className="basis-full text-xs text-muted">Se arman solos con la próxima cena. Se abren en otra pestaña: mantené apretado (celular) o clic derecho para guardar.</p>
+            </div>
+          )}
         </div>
       </section>
     </>
