@@ -89,7 +89,7 @@ export default async function HomePage() {
   const faqs = [
     {
       q: "¿Qué incluye el precio?",
-      a: "Los cinco pasos de la cena, cada uno con el trago que lo acompaña. Lo que quieras tomar además, de la barra, va aparte.",
+      a: "El cóctel sin alcohol de recepción, los cinco pasos de la cena con el cóctel de autor que acompaña a cada uno, y agua en la mesa. Lo que quieras tomar además, de la barra, va aparte.",
     },
     {
       q: "¿Puedo ir solo o sola?",
@@ -244,7 +244,7 @@ export default async function HomePage() {
                   <p className="ap-eyebrow">La carta de esta noche</p>
                   <h2 className="ap-display mt-3 text-3xl sm:text-4xl">{event.title}</h2>
                   <p className="ap-ornament mt-4">✦</p>
-                  <p className="mt-4 text-sm text-muted">Cada paso sale de la cocina con su trago pensado al lado. Hay versión sin alcohol de todos.</p>
+                  <p className="mt-4 text-sm text-muted">Cada paso sale de la cocina con un cóctel de autor pensado para ese plato. Si no tomás alcohol, avisanos al reservar y te armamos la versión sin.</p>
                 </div>
                 <ol className="mt-8">
                   {steps.map((s, i) => (

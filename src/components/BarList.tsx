@@ -13,7 +13,7 @@ export function BarList({ items, price }: { items: BarItem[]; price: number | nu
         <p className="ap-eyebrow">La barra</p>
         {price != null && price > 0 && (
           <p className="text-xs text-muted">
-            {formatPrice(price)} <span className="opacity-70">cada uno, aparte del menú</span>
+            {formatPrice(price)} <span className="opacity-70">cada uno, aparte del menú · los de la cena también se pueden pedir</span>
           </p>
         )}
       </div>

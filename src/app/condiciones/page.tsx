@@ -34,8 +34,8 @@ export default function CondicionesPage() {
 
         <Block title="Qué incluye">
           <p>
-            Los pasos de la cena, cada uno con el trago que lo acompaña (hay versión sin alcohol de todos). Lo que quieras tomar además, de la
-            barra, se paga aparte esa noche.
+            El cóctel sin alcohol de recepción, los pasos de la cena con el cóctel que acompaña a cada uno, y agua en la mesa. Si no tomás
+            alcohol, avisanos al reservar. Lo que quieras tomar además, de la barra, se paga aparte esa noche.
           </p>
           <p>Contanos alergias o si comés distinto al reservar: hay un campo para eso. Lo tenemos en cuenta antes de cocinar.</p>
         </Block>
