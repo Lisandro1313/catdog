@@ -1,131 +1,89 @@
-import { SITE_INTRO, SITE_NAME, SITE_TAGLINE, MAX_SEATS_PER_RESERVATION, formatPrice } from "@/lib/config";
-import { formatDayNumber, formatLong, formatTime, formatWeekday } from "@/lib/dates";
-import { getFreeCount, getNextEvent, getTakenSeats } from "@/lib/reservations";
-import { WeekStrip } from "@/components/WeekStrip";
-import { ReserveForm } from "@/components/ReserveForm";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { SITE_NAME, formatPrice } from "@/lib/config";
+import { formatDayNumber, formatMonth, formatTime, formatWeekday } from "@/lib/dates";
+import { getUpcomingEvents } from "@/lib/reservations";
+import { parseMenu } from "@/lib/menu";
 import { SubscribeForm } from "@/components/SubscribeForm";
-import { MenuSteps } from "@/components/MenuSteps";
-import { BarList } from "@/components/BarList";
-import { parseBar } from "@/lib/menu";
-import { ResponsiveTableMap, TableLegend, type SeatVisual } from "@/components/TableMap";
 import { TrackVisit } from "@/components/TrackVisit";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
+export const metadata: Metadata = {
+  title: `Próximas fechas · ${SITE_NAME}`,
+  description: "Las próximas cenas a puertas cerradas en La Plata: fecha, carta y reserva.",
+};
+
+/** Todas las fechas publicadas, la más cercana primero. Sin cupos ni mesa: solo "pocos lugares" / "agotado". */
 export default async function FechasPage() {
-  const event = await getNextEvent();
-  const [free, taken] = event
-    ? await Promise.all([getFreeCount(event.id, event.capacity), getTakenSeats(event.id)])
-    : [0, []];
-  const bar = parseBar(event?.bar);
-  const takenSet = new Set(taken);
-  const states: SeatVisual[] = event
-    ? Array.from({ length: event.capacity }, (_, i) => (takenSet.has(i + 1) ? "taken" : "free"))
-    : [];
+  const events = await getUpcomingEvents(12);
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="ap mx-auto w-full max-w-2xl px-6 py-14 sm:py-20">
       <TrackVisit path="/fechas" />
-      <header className="mx-auto w-full max-w-3xl px-5 pt-10 pb-6 text-center">
-        <p className="eyebrow">{SITE_TAGLINE}</p>
-        <h1 className="font-display mt-3 text-5xl sm:text-6xl tracking-tight">{SITE_NAME}</h1>
-        <p className="mt-4 text-muted max-w-lg mx-auto leading-relaxed">{SITE_INTRO}</p>
-      </header>
+      <div className="text-center">
+        <p className="ap-eyebrow">{SITE_NAME}</p>
+        <h1 className="ap-display mt-3 text-4xl sm:text-5xl">Próximas fechas</h1>
+        <p className="mx-auto mt-4 max-w-md text-muted">Los viernes, en una casa de La Plata. Cinco pasos, cada plato con su cóctel de autor.</p>
+      </div>
 
-      <main className="mx-auto w-full max-w-3xl px-5 pb-20 flex flex-col gap-8">
-        {event ? (
-          <>
-            <section className="card p-6 sm:p-8">
-              <WeekStrip date={event.date} />
-              <div className="mt-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                <div>
-                  <h2 className="font-display text-3xl sm:text-4xl">{event.title}</h2>
-                  <p className="mt-2 text-lg">
-                    {formatLong(event.date)} · {formatTime(event.date)} hs
+      {events.length === 0 ? (
+        <div className="card mt-10 p-6 text-center">
+          <p className="font-display text-2xl">Todavía no hay fecha</p>
+          <p className="mt-2 text-sm text-muted">Dejá tu mail y sos de los primeros en enterarte.</p>
+          <div className="mt-4 text-left">
+            <SubscribeForm />
+          </div>
+        </div>
+      ) : (
+        <ol className="mt-10 grid gap-4">
+          {events.map((e, i) => {
+            const steps = parseMenu(e.menu);
+            const soldOut = e.free <= 0;
+            const tone = soldOut ? "text-danger" : e.free <= 3 ? "text-danger" : "text-muted";
+            const label = soldOut ? "Agotado" : e.free <= 3 ? "Últimos lugares" : "Pocos lugares";
+            return (
+              <li key={e.id} className={`card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6 ${i === 0 ? "card-gold" : ""}`}>
+                <div className="ap-date shrink-0">
+                  <span className="word">{formatWeekday(e.date)}</span>
+                  <span className="num !text-5xl">{formatDayNumber(e.date)}</span>
+                  <span className="word">{formatMonth(e.date)}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-xl">{e.title}</p>
+                  <p className="text-sm text-muted">
+                    {formatTime(e.date)} hs · {formatPrice(e.price)} por persona · <span className={tone}>{label}</span>
                   </p>
+                  {steps.length > 0 && (
+                    <p className="mt-2 line-clamp-2 text-sm text-muted">{steps.map((s) => s.dish).join(" · ")}</p>
+                  )}
                 </div>
-                <div className="text-left sm:text-right">
-                  <p className="text-2xl font-semibold">{formatPrice(event.price)}</p>
-                  <p className="text-sm text-muted">por persona, todo incluido</p>
+                <div className="shrink-0">
+                  {soldOut ? (
+                    <span className="btn btn-ghost btn-sm pointer-events-none opacity-60">Agotado</span>
+                  ) : (
+                    <Link href={`/?fecha=${e.id}#reservar`} className="btn btn-primary btn-sm">
+                      Reservar
+                    </Link>
+                  )}
                 </div>
-              </div>
-              {event.description && (
-                <p className="mt-5 text-ink/90 whitespace-pre-line leading-relaxed">{event.description}</p>
-              )}
-              {event.menu && (
-                <div className="mt-6 border-t border-line pt-6">
-                  <p className="eyebrow mb-4">La noche, en pasos</p>
-                  <MenuSteps menu={event.menu} />
-                </div>
-              )}
-              {bar.length > 0 && (
-                <div className="mt-6 border-t border-line pt-6">
-                  <BarList items={bar} price={event.barPrice} />
-                </div>
-              )}
-              <p className="mt-6 text-xs text-muted">La dirección exacta se manda al confirmar la reserva.</p>
-            </section>
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
-            <section className="card p-6 sm:p-8">
-              <div className="flex items-baseline justify-between gap-4">
-                <h3 className="font-display text-2xl">Reservá tu lugar</h3>
-                <p className={`text-sm font-medium ${free <= 3 ? "text-danger" : "text-muted"}`}>
-                  {free === 0 ? "Sin lugares" : free <= 3 ? "Últimos lugares" : "Pocos lugares"}
-                </p>
-              </div>
-              {free > 0 ? (
-                <div className="mt-6">
-                  <ReserveForm
-                    events={[
-                      {
-                        id: event.id,
-                        short: `${formatWeekday(event.date)} ${formatDayNumber(event.date)}`,
-                        long: `${formatLong(event.date)}, ${formatTime(event.date)} hs`,
-                        price: event.price,
-                        free,
-                      },
-                    ]}
-                    maxSeats={MAX_SEATS_PER_RESERVATION}
-                  />
-                </div>
-              ) : (
-                <p className="mt-6 text-muted">
-                  Se llenó. Dejá tu mail abajo y te avisamos si se libera un lugar o cuando haya nueva fecha.
-                </p>
-              )}
-            </section>
+      <div className="card mt-10 p-6">
+        <p className="font-display text-xl">¿Te avisamos cuando abramos una nueva?</p>
+        <p className="mt-1 text-sm text-muted">Un mail por cena, nada más.</p>
+        <SubscribeForm />
+      </div>
 
-            <section className="card p-6 sm:p-8">
-              <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <h3 className="font-display text-2xl">La mesa</h3>
-                <p className="text-sm text-muted">Una sola, larga. Tu silla la elegís después de pagar.</p>
-              </div>
-              <div className="mt-4">
-                <ResponsiveTableMap capacity={event.capacity} states={states} />
-              </div>
-              <div className="mt-2">
-                <TableLegend showSelected={false} />
-              </div>
-            </section>
-          </>
-        ) : (
-          <section className="card p-8 text-center">
-            <p className="eyebrow">Próximamente</p>
-            <h2 className="font-display mt-3 text-3xl">Todavía no hay fecha</h2>
-            <p className="mt-3 text-muted">Dejá tu mail y sos de los primeros en enterarte.</p>
-          </section>
-        )}
-
-        <section className="card p-6 sm:p-8">
-          <h3 className="font-display text-2xl">Avisame cuando haya nueva fecha</h3>
-          <p className="mt-2 text-sm text-muted">Un mail por cena, nada más. Te podés bajar cuando quieras.</p>
-          <SubscribeForm />
-        </section>
-      </main>
-
-      <footer className="border-t border-line py-6 text-center text-xs text-muted">
-        {SITE_NAME} · {SITE_TAGLINE}
-      </footer>
+      <p className="mt-10 text-center">
+        <Link href="/" className="text-sm text-muted hover:text-ink">
+          ← Volver al inicio
+        </Link>
+      </p>
     </div>
   );
 }

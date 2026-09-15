@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { reserveAction } from "@/app/actions";
 import { formatPrice } from "@/lib/config";
 
@@ -14,6 +14,9 @@ export type ReservableEvent = {
   price: number;
   free: number;
 };
+
+const REMEMBER_KEY = "catdog:reserva";
+type Remembered = { name: string; email: string; phone: string };
 
 type Props = {
   events: ReservableEvent[];
@@ -36,6 +39,26 @@ export function ReserveForm({ events, defaultEventId, maxSeats }: Props) {
   const [redirecting, setRedirecting] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Al montar: la fecha que viene en el link (?fecha=id) y los datos de la última vez, si los hay.
+  useEffect(() => {
+    // Después de hidratar (por eso diferido): así el servidor y el primer pintado coinciden.
+    const id = setTimeout(() => {
+      try {
+        const wanted = new URLSearchParams(window.location.search).get("fecha");
+        if (wanted && events.some((e) => e.id === wanted && e.free > 0)) setEventId(wanted);
+        const saved = JSON.parse(localStorage.getItem(REMEMBER_KEY) ?? "null") as Remembered | null;
+        if (saved) {
+          if (saved.name) setName(saved.name);
+          if (saved.email) setEmail(saved.email);
+          if (saved.phone) setPhone(saved.phone);
+        }
+      } catch {
+        // Sin localStorage o sin URL: seguimos vacíos.
+      }
+    }, 0);
+    return () => clearTimeout(id);
+  }, [events]);
+
   if (!event) return null;
 
   function pickEvent(id: string, free: number) {
@@ -50,6 +73,11 @@ export function ReserveForm({ events, defaultEventId, maxSeats }: Props) {
     startTransition(async () => {
       const result = await reserveAction({ eventId, quantity, name, email, phone, notes });
       if (result.ok) {
+        try {
+          localStorage.setItem(REMEMBER_KEY, JSON.stringify({ name, email, phone } satisfies Remembered));
+        } catch {
+          // Sin localStorage no pasa nada.
+        }
         setRedirecting(true);
         window.location.href = result.checkoutUrl;
       } else {

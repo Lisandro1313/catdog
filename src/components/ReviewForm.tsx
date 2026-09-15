@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { submitReviewAction } from "@/app/actions";
 
 type Props = { reservationId: string; defaultName: string; existing?: { rating: number; text: string } | null };
@@ -21,6 +22,9 @@ export function ReviewForm({ reservationId, defaultName, existing }: Props) {
       <div className="text-center">
         <p className="font-display text-3xl">¡Gracias!</p>
         <p className="mt-2 text-muted">Leemos todas. Si querés, contales a otros que se anoten: son pocos lugares.</p>
+        <Link href="/" className="btn btn-primary mt-6">
+          Ver la próxima fecha
+        </Link>
       </div>
     );
   }

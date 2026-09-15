@@ -38,7 +38,11 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
 - **Google**: el home lleva datos estructurados (`FoodEvent`: fecha, precio, disponibilidad, zona sin
   número) para que aparezca como evento en las búsquedas, más `robots.txt` y `sitemap.xml`.
   Páginas de error y "no encontrado" en criollo.
-- `/fechas` — la versión de siempre: la semana de la próxima cena, los pasos, la reserva y el dibujo de la mesa.
+- `/fechas` — lista de todas las próximas fechas publicadas (día, carta resumida, precio, "pocos lugares" /
+  "agotado") con botón Reservar que lleva al home con esa fecha ya elegida (`/?fecha=<id>`). Sin mesa ni cupos.
+- El formulario recuerda nombre, mail y WhatsApp en el navegador de quien ya reservó una vez, así la
+  semana siguiente reserva en dos toques.
+- Si hay fotos cargadas, la primera queda de fondo del afiche, muy oscurecida, con el texto siempre por delante.
 - `/apertura` — redirige a `/` (era la dirección vieja del afiche).
 
 Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: dicen "pocos lugares" y

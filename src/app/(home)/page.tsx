@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
 import { getUpcomingEvents } from "@/lib/reservations";
@@ -152,6 +153,11 @@ export default async function HomePage() {
 
       {/* Afiche */}
       <section id="inicio" className="relative flex min-h-[92vh] items-center overflow-hidden px-6 py-20 sm:min-h-[88vh]">
+        {photos[0] && (
+          <div className="ap-photo" aria-hidden="true">
+            <Image src={photos[0].url} alt="" fill sizes="100vw" priority className="object-cover" />
+          </div>
+        )}
         <div className="ap-frame" aria-hidden="true" />
         <div className="ap-backdrop" aria-hidden="true">
           {steps.map((s, i) => (

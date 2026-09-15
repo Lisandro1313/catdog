@@ -69,7 +69,7 @@ export default async function AjustesPage() {
       <section className="card p-5 sm:p-6">
         <h2 className="font-display text-2xl">Fotos del lugar</h2>
         <p className="mt-1 text-sm text-muted">
-          Van al home, en la sección de fotos. Sacalas con el celular con luz natural o con las velas prendidas: la fachada, la mesa
+          Van al home, en la sección de fotos; la primera, además, queda de fondo del afiche (muy oscurecida). Sacalas con el celular con luz natural o con las velas prendidas: la fachada, la mesa
           puesta, un plato, la barra. Se achican solas antes de subir.
         </p>
         <PhotosPanel photos={photos} />
