@@ -41,7 +41,7 @@ export default async function FechasPage() {
             const steps = parseMenu(e.menu);
             const soldOut = e.free <= 0;
             const tone = soldOut ? "text-danger" : e.free <= 3 ? "text-danger" : "text-muted";
-            const label = soldOut ? "Agotado" : e.free <= 3 ? "Últimos lugares" : "Pocos lugares";
+            const label = e.closedAt ? "Reservas cerradas" : soldOut ? "Agotado" : e.free <= 3 ? "Últimos lugares" : "Pocos lugares";
             return (
               <li key={e.id} className={`card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6 ${i === 0 ? "card-gold" : ""}`}>
                 <div className="ap-date shrink-0">
@@ -60,7 +60,7 @@ export default async function FechasPage() {
                 </div>
                 <div className="shrink-0">
                   {soldOut ? (
-                    <span className="btn btn-ghost btn-sm pointer-events-none opacity-60">Agotado</span>
+                    <span className="btn btn-ghost btn-sm pointer-events-none opacity-60">{e.closedAt ? "Cerrado" : "Agotado"}</span>
                   ) : (
                     <Link href={`/?fecha=${e.id}#reservar`} className="btn btn-primary btn-sm">
                       Reservar

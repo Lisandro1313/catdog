@@ -34,7 +34,7 @@ export async function removePhoto(id: string) {
 }
 
 /** Texto "Sobre nosotros" del home, editable desde Ajustes. */
-export const DEFAULT_ABOUT = `Somos dos amigos de La Plata que cocinan y atienden la barra en una casa de techos altos, paredes de ladrillo y pisos de madera, sin cartel en la calle.
+export const DEFAULT_ABOUT = `Somos Lisandro y Agustín, dos amigos de La Plata que cocinan y atienden la barra en una casa de techos altos, paredes de ladrillo y pisos de madera, sin cartel en la calle.
 
 Una noche por semana abrimos la casa. Se llega, se toma algo de pie, se conoce al de al lado y se come en cinco pasos, cada uno con un cóctel de autor pensado para ese plato.
 

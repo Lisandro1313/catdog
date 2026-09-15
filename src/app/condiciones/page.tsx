@@ -42,7 +42,7 @@ export default function CondicionesPage() {
 
         <Block title="La casa">
           <p>
-            Es una casa particular, no un local: por eso la dirección exacta llega solo con la confirmación. Se recibe con un trago de pie; llegá a
+            Es una casa particular, no un local: por eso la dirección exacta llega solo con la confirmación. Se recibe de pie con un cóctel sin alcohol de la casa; llegá a
             la hora indicada así arrancamos todos juntos.
           </p>
           <p>Las bebidas con alcohol son para mayores de 18 años.</p>

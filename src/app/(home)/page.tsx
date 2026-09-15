@@ -67,6 +67,7 @@ export default async function HomePage() {
   const free = event?.free ?? 0;
   const nextOpen = upcoming.find((e) => e.free > 0) ?? null;
   const soldOut = Boolean(event) && free <= 0;
+  const soldOutLabel = event?.closedAt ? "Reservas cerradas" : "Agotado";
   const steps = parseMenu(event?.menu);
   const bar = parseBar(event?.bar);
   const heroTitle = eventCount <= 1 ? "Apertura" : "Próxima cena";
@@ -75,7 +76,7 @@ export default async function HomePage() {
   const reservable: ReservableEvent[] = upcoming.map((e) => ({ id: e.id, short: dateShort(e.date), long: dateLong(e.date), price: e.price, free: e.free }));
 
   const scarcity = soldOut
-    ? { label: nextOpen ? `agotado · hay lugar el ${dateShort(nextOpen.date)}` : "agotado", tone: "text-danger" }
+    ? { label: nextOpen ? `${soldOutLabel.toLowerCase()} · hay lugar el ${dateShort(nextOpen.date)}` : soldOutLabel.toLowerCase(), tone: "text-danger" }
     : free <= 3
       ? { label: "últimos lugares", tone: "text-danger" }
       : { label: "pocos lugares", tone: "text-muted" };
@@ -178,7 +179,7 @@ export default async function HomePage() {
               </div>
               {soldOut ? (
                 <p className="mt-4">
-                  <span className="ap-soldout">Agotado</span>
+                  <span className="ap-soldout">{soldOutLabel}</span>
                 </p>
               ) : (
                 <p className="mt-3 text-sm tracking-[0.2em] uppercase text-muted">
@@ -352,7 +353,7 @@ export default async function HomePage() {
                   confirmación de la reserva.
                 </p>
                 <p className="mt-3 text-sm text-muted">
-                  Llegá <span className="text-ink">{formatTime(event.date)} hs</span>. Se recibe con un trago de pie.
+                  Llegá <span className="text-ink">{formatTime(event.date)} hs</span>. Se recibe de pie con un cóctel sin alcohol de la casa.
                 </p>
               </div>
               <MapFacade center={MAP_CENTER} title="Mapa de la zona" />

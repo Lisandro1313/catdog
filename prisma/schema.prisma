@@ -28,6 +28,8 @@ model Event {
   notifiedAt  DateTime?
   /// Cuándo se mandó el pedido de opiniones (manual o automático), para no repetirlo.
   reviewsRequestedAt DateTime?
+  /// Reservas cerradas a mano (p. ej. el día de la cena, para cerrar la lista): el público ve "reservas cerradas".
+  closedAt    DateTime?
   createdAt   DateTime @default(now())
 
   reservations Reservation[]

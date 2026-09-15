@@ -713,3 +713,15 @@ export async function toggleArrivedAction(formData: FormData) {
   revalidatePath(`/admin/eventos/${r.eventId}/noche`);
   revalidatePath(`/admin/eventos/${r.eventId}`);
 }
+
+/** Cerrar / reabrir las reservas de una cena (el público ve "reservas cerradas" y pasa a la fecha siguiente). */
+export async function toggleClosedAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const e = await prisma.event.findUnique({ where: { id }, select: { closedAt: true } });
+  if (!e) return;
+  await prisma.event.update({ where: { id }, data: { closedAt: e.closedAt ? null : new Date() } });
+  revalidatePath("/");
+  revalidatePath("/fechas");
+  revalidatePath(`/admin/eventos/${id}`);
+}

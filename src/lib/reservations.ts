@@ -40,7 +40,8 @@ export async function getUpcomingEvents(limit = 4): Promise<NonNullable<Upcoming
     take: limit,
   });
   const free = await Promise.all(events.map((e) => getFreeCount(e.id, e.capacity)));
-  return events.map((e, i) => ({ ...e, free: free[i] }));
+  // Con las reservas cerradas a mano, para el público no quedan lugares.
+  return events.map((e, i) => ({ ...e, free: e.closedAt ? 0 : free[i] }));
 }
 
 /** Cupos ocupados: pagados + en proceso de pago (hold vigente). */
@@ -91,6 +92,7 @@ const MAX_HOLDS_PER_IP = 2;
 export async function createHoldAndCheckout(input: CreateHoldInput) {
   const event = await prisma.event.findUnique({ where: { id: input.eventId } });
   if (!event || !event.published) throw new ReservationError("El evento ya no está disponible.");
+  if (event.closedAt) throw new ReservationError("Las reservas para esa fecha ya están cerradas.");
   if (event.date.getTime() < Date.now()) throw new ReservationError("Ese evento ya pasó.");
   if (input.quantity < 1 || input.quantity > MAX_SEATS_PER_RESERVATION) {
     throw new ReservationError(`Podés reservar entre 1 y ${MAX_SEATS_PER_RESERVATION} lugares.`);

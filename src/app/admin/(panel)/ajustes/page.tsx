@@ -3,7 +3,7 @@ import { getSession } from "@/lib/admin-auth";
 import { PARTNERS } from "@/lib/ledger-categories";
 import { getAnalysisMode } from "@/lib/ai-analysis";
 import { isReceiptStorageConfigured } from "@/lib/receipts";
-import { isMercadoPagoConfigured } from "@/lib/mp";
+import { mercadoPagoMode } from "@/lib/mp";
 import { emailReachesEveryone, mailModeLabel } from "@/lib/mailer";
 import { formatShort } from "@/lib/dates";
 import { UsersPanel } from "@/components/admin/UsersPanel";
@@ -119,7 +119,10 @@ export default async function AjustesPage() {
       <section className="card p-5 sm:p-6">
         <h2 className="font-display text-2xl">Estado de los servicios</h2>
         <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-          <Status ok={isMercadoPagoConfigured()} label="Mercado Pago (cobros)" />
+          <Status
+            ok={mercadoPagoMode() === "produccion"}
+            label={`Mercado Pago · ${mercadoPagoMode() === "prueba" ? "modo PRUEBA: los pagos no son reales" : mercadoPagoMode() === "produccion" ? "producción" : "sin token"}`}
+          />
           <Status ok={emailReachesEveryone()} label={`Mails · ${mailModeLabel()}`} />
           <Status ok={isReceiptStorageConfigured()} label="Fotos de comprobantes (Vercel Blob)" />
           <Status

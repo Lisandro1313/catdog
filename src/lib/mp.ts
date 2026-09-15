@@ -12,6 +12,13 @@ export function isMercadoPagoConfigured(): boolean {
   return Boolean(process.env.MP_ACCESS_TOKEN);
 }
 
+/** "prueba" con credenciales TEST- (los pagos no son reales), "produccion" con APP_USR-, "sin-token" si falta. */
+export function mercadoPagoMode(): "prueba" | "produccion" | "sin-token" {
+  const t = process.env.MP_ACCESS_TOKEN ?? "";
+  if (!t) return "sin-token";
+  return t.startsWith("TEST-") ? "prueba" : "produccion";
+}
+
 export type CreatePreferenceInput = {
   reservationId: string;
   title: string;

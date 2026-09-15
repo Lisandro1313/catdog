@@ -18,6 +18,7 @@ import {
   deleteReviewAction,
   duplicateEventAction,
   markPaidAction,
+  toggleClosedAction,
   updateEventAction,
 } from "../../../actions";
 
@@ -329,7 +330,18 @@ export default async function AdminEventPage({
             }}
           />
         </div>
-        <form action={duplicateEventAction} className="mt-6 border-t border-line pt-5">
+        <form action={toggleClosedAction} className="mt-6 border-t border-line pt-5">
+          <input type="hidden" name="id" value={event.id} />
+          <button className={`btn btn-sm ${event.closedAt ? "btn-primary" : "btn-ghost"}`} type="submit">
+            {event.closedAt ? "Reabrir reservas" : "Cerrar reservas"}
+          </button>
+          <span className="ml-3 text-xs text-muted">
+            {event.closedAt
+              ? "Cerradas: el sitio dice “reservas cerradas” y manda a la fecha siguiente. Tocá para volver a abrir."
+              : "Para cerrar la lista (p. ej. el día de la cena, antes de comprar). Las reservas ya pagas siguen igual."}
+          </span>
+        </form>
+        <form action={duplicateEventAction} className="mt-4">
           <input type="hidden" name="id" value={event.id} />
           <button className="btn btn-ghost btn-sm" type="submit">
             Repetir la semana que viene

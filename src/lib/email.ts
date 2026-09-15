@@ -102,7 +102,7 @@ export function renderReservationConfirmed(input: ConfirmationInput): RenderedMa
       ${row("Reserva", `${lugares} a nombre de ${input.name} · ${formatPrice(input.amount)} pagados`)}
       ${row("Tu lugar", seatsText)}
     </table>
-    <p style="color:#c9a96e"><strong>Llegá ${formatTime(input.event.date)} hs.</strong> Se recibe con un trago de pie, y a la mesa se pasa un rato después.</p>
+    <p style="color:#c9a96e"><strong>Llegá ${formatTime(input.event.date)} hs.</strong> Se recibe de pie con un cóctel sin alcohol de la casa, y a la mesa se pasa un rato después.</p>
     ${menuHtml(input.event.menu)}
     ${
       CONTACT_PHONES.length
@@ -217,7 +217,7 @@ export function renderReminder(input: ReminderInput): RenderedMail {
     }text-decoration:none;font-weight:bold">${label}</a>`;
   const body = `
     <p>Hola ${first}. Mañana es la cena: <strong>${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs</strong>.</p>
-    ${input.event.address ? `<p style="font-size:18px"><strong>${input.event.address}</strong><br><span style="color:#9a9187;font-size:14px">Casa sin cartel: portón, pasillo y puerta. Se recibe con un trago de pie.</span></p>` : ""}
+    ${input.event.address ? `<p style="font-size:18px"><strong>${input.event.address}</strong><br><span style="color:#9a9187;font-size:14px">Casa sin cartel: portón, pasillo y puerta. Se recibe de pie con un cóctel sin alcohol de la casa.</span></p>` : ""}
     <p>${input.quantity === 1 ? "Tu lugar" : `Tus ${input.quantity} lugares`}: ${
       input.seats.length ? `silla${input.seats.length > 1 ? "s" : ""} <strong>${input.seats.join(", ")}</strong>` : `<a href="${link}" style="color:#c9a96e">todavía no elegiste la silla, elegila acá</a>`
     }.</p>

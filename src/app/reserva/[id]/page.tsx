@@ -201,7 +201,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
           <ol className="grid gap-2 text-sm sm:grid-cols-3">
             <Next n="1" done={mine.length > 0} text={mine.length > 0 ? "Silla elegida" : "Elegí tu silla acá abajo"} />
             <Next n="2" text="Guardá este link: tiene la dirección y tu lugar" />
-            <Next n="3" text={`El ${formatWeekday(reservation.event.date)} ${formatDayNumber(reservation.event.date)}, ${formatTime(reservation.event.date)} hs. Se recibe con un trago de pie`} />
+            <Next n="3" text={`El ${formatWeekday(reservation.event.date)} ${formatDayNumber(reservation.event.date)}, ${formatTime(reservation.event.date)} hs. Se recibe con un cóctel sin alcohol de la casa`} />
           </ol>
         )}
 

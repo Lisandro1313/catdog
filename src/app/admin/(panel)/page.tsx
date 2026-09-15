@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_CAPACITY, DEFAULT_PRICE, formatPrice, siteUrl } from "@/lib/config";
 import { formatDay, formatLong, formatShort, formatTime, nowMs, toDatetimeLocal } from "@/lib/dates";
-import { isMercadoPagoConfigured } from "@/lib/mp";
+import { mercadoPagoMode } from "@/lib/mp";
 import { emailReachesEveryone, mailModeLabel } from "@/lib/mailer";
 import { getNextEvent } from "@/lib/reservations";
 import { getFinancials, getVisitStats } from "@/lib/admin-stats";
@@ -87,9 +87,25 @@ export default async function AdminHome() {
         )}
       </section>
 
+      {mercadoPagoMode() === "prueba" && (
+        <section className="rounded-xl border border-danger/60 bg-danger/10 p-4 text-sm">
+          <p className="font-medium text-danger">Mercado Pago está en modo prueba: los pagos NO son reales.</p>
+          <p className="mt-1 text-muted">
+            Para cobrar de verdad hay que cargar el Access Token de producción (empieza con <code>APP_USR-</code>) en Vercel como{" "}
+            <code>MP_ACCESS_TOKEN</code> y redeployar. Está explicado en el README, sección &ldquo;Variables de entorno&rdquo;.
+          </p>
+        </section>
+      )}
+
       {/* Estado + números generales */}
       <section className="grid gap-4 sm:grid-cols-4">
-        <Status ok={isMercadoPagoConfigured()} label="Mercado Pago" hint="MP_ACCESS_TOKEN" />
+        <Status
+          ok={mercadoPagoMode() === "produccion"}
+          label="Mercado Pago"
+          hint={mercadoPagoMode() === "prueba" ? "token de PRUEBA (TEST-)" : "MP_ACCESS_TOKEN"}
+          okLabel="Producción"
+          badLabel={mercadoPagoMode() === "prueba" ? "Modo prueba" : "Falta"}
+        />
         <Status ok={emailReachesEveryone()} label="Emails" hint={mailModeLabel()} />
         <div className="card p-4">
           <p className="text-xs text-muted">Suscriptores</p>
@@ -282,12 +298,24 @@ function Num({ label, value, big = false, tone }: { label: string; value: string
   );
 }
 
-function Status({ ok, label, hint }: { ok: boolean; label: string; hint: string }) {
+function Status({
+  ok,
+  label,
+  hint,
+  okLabel = "Configurado",
+  badLabel = "Falta",
+}: {
+  ok: boolean;
+  label: string;
+  hint: string;
+  okLabel?: string;
+  badLabel?: string;
+}) {
   return (
     <div className="card p-4">
       <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 font-medium ${ok ? "text-ok" : "text-danger"}`}>{ok ? "Configurado" : "Falta"}</p>
-      {!ok && <p className="text-xs text-muted mt-1">Variable {hint}</p>}
+      <p className={`mt-1 font-medium ${ok ? "text-ok" : "text-danger"}`}>{ok ? okLabel : badLabel}</p>
+      {!ok && <p className="text-xs text-muted mt-1">{hint.startsWith("token") ? hint : `Variable ${hint}`}</p>}
     </div>
   );
 }
