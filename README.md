@@ -72,7 +72,7 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 - **¿Cómo venimos?**: botón "Analizar" que lee todos los números y devuelve, en criollo: estado (bien / justos / rojo), resumen, proyección de la semana que viene, cubiertos para cubrir gastos, un mensaje por socio, alertas y qué hacer esta semana. **Por defecto lo hace el código con reglas: gratis, instantáneo, sin ningún servicio.** Si hay una clave de IA configurada, lo escribe un modelo (ver "Activar la IA"). Se guarda el último análisis con la fecha y el modo.
 - **Esta semana** y **Semana a semana**: reservas (cuentan en la semana de la cena), barra, gastos y resultado; promedio de gastos y punto de equilibrio en cubiertos.
 - **Caja por cena:** en la página de la cena, sección **Caja**, para lo puntual de esa noche (la barra al cierre, un insumo). Usa el mismo formulario.
-- **Vista para la noche** (botón en la página de la cena): lista para el celular en la puerta, ordenada por silla, con nombre, cantidad, teléfono (abre WhatsApp), si confirmó, lo que avisó (alergias, resaltado y resumido arriba "para la cocina") y el botón **Llegó** para marcar quién entró. Arriba: vienen / confirmaron / llegaron.
+- **Vista para la noche** (botón en la página de la cena; funciona **sin señal** con la última lista que cargó la app instalada, y se puede imprimir): lista para el celular en la puerta, ordenada por silla, con nombre, cantidad, teléfono (abre WhatsApp), si confirmó, lo que avisó (alergias, resaltado y resumido arriba "para la cocina") y el botón **Llegó** para marcar quién entró. Arriba: vienen / confirmaron / llegaron.
 - **Los mails que salen** (en Ajustes): vista previa de los cuatro mails (confirmación, recordatorio, ¿cómo la pasaste?, nueva fecha) con la próxima cena y datos de ejemplo.
 - **Opiniones** (en la página de cada cena, cuando ya pasó): botón "Pedir opiniones por mail" (un mail con link personal a cada persona que pagó) y la lista de opiniones recibidas con **Publicar / Ocultar / Borrar**. Solo las publicadas salen en el home.
 - **Instagram** (en Ajustes, bajo Quiénes somos): el usuario, sin la @. Aparece en el home; vacío no se muestra.
@@ -96,6 +96,7 @@ Una vez por día, a las 11 de la mañana (Argentina), Vercel llama a `/api/cron/
    En la página de la cena se ve cuántos lugares confirmaron.
 2. **Pedido de opiniones** al día siguiente de cada cena (si no se pidió a mano antes).
 3. **Gastos fijos** de la semana, por si nadie abrió el panel.
+4. **Borrador de la cena siguiente**: si la última ya pasó y no hay ninguna cargada, deja una copia siete días después, sin publicar, para revisar y publicar.
 
 Si hace falta correrlo a mano: `curl -H "Authorization: Bearer $CRON_SECRET" https://catdog-omega.vercel.app/api/cron/diario`.
 
