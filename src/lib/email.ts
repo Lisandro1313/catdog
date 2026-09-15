@@ -3,6 +3,33 @@ import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, siteUrl, whatsappU
 import { formatLong, formatTime } from "./dates";
 import { parseMenu } from "./menu";
 import { isEmailConfigured, sendMail, sendMany } from "./mailer";
+import { icsFor } from "./calendar";
+
+function withText(m: { subject: string; html: string }): RenderedMail {
+  return { ...m, text: toText(m.html) };
+}
+
+/** Versión en texto plano del mismo mail (misma info que el HTML: eso ayuda a que no caiga en spam). */
+export function toText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, label: string) => {
+      const t = label.replace(/<[^>]+>/g, "").trim();
+      return t && t !== href ? `${t} (${href})` : href;
+    })
+    .replace(/<\/(p|div|tr|h1|h2|h3|li)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/td>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 
 export { isEmailConfigured };
 
@@ -46,7 +73,7 @@ function menuHtml(menu: string | null | undefined): string {
     .join("");
   return `<p style="margin:22px 0 4px;color:#9a9187;font-size:13px;letter-spacing:.08em;text-transform:uppercase">La noche, en pasos</p><table cellpadding="0" cellspacing="0" style="border-collapse:collapse">${rows}</table>`;
 }
-export type RenderedMail = { subject: string; html: string };
+export type RenderedMail = { subject: string; html: string; text?: string; ics?: string };
 
 export type ConfirmationInput = {
   name: string;
@@ -85,9 +112,12 @@ export function renderReservationConfirmed(input: ConfirmationInput): RenderedMa
         : ""
     }
     <p>Guardá este mail: tiene la dirección y el link de tu reserva.</p>`;
+  const html = layout("¡Reserva confirmada!", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`);
   return {
     subject: `Reserva confirmada · ${input.event.title} · ${formatLong(input.event.date)}`,
-    html: layout("¡Reserva confirmada!", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`),
+    html,
+    text: toText(html),
+    ics: icsFor(input.event, link, input.reservationId),
   };
 }
 
@@ -125,7 +155,7 @@ export async function sendAdminNewReservation(input: {
 }
 
 export function renderNewEvent(event: EventLike, email: string): RenderedMail {
-  return {
+  return withText({
     subject: `Nueva fecha: ${event.title} · ${formatLong(event.date)}`,
     html: layout(
       "Hay nueva fecha",
@@ -137,7 +167,7 @@ export function renderNewEvent(event: EventLike, email: string): RenderedMail {
        <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl()}</a></p>`,
       `Recibís este mail porque te anotaste para enterarte de nuevas fechas. <a href="${unsubscribeUrl(email)}" style="color:#8a8279">Darse de baja</a>.`,
     ),
-  };
+  });
 }
 
 export async function sendNewEventBlast(input: {
@@ -150,7 +180,7 @@ export async function sendNewEventBlast(input: {
 
 /** Al día siguiente de la cena: un mail corto pidiendo la opinión, con link personal. */
 export function renderReviewRequest(event: EventLike, p: { id: string; name: string }): RenderedMail {
-  return {
+  return withText({
     subject: `¿Cómo la pasaste? · ${event.title}`,
     html: layout(
       "Gracias por venir",
@@ -160,7 +190,7 @@ export function renderReviewRequest(event: EventLike, p: { id: string; name: str
        <p>Y si conocés a alguien que le gustaría venir, la próxima fecha está en <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl().replace(/^https?:\/\//, "")}</a>.</p>`,
       "Recibís este mail porque viniste a una de nuestras cenas.",
     ),
-  };
+  });
 }
 
 export async function sendReviewRequests(input: {
@@ -194,9 +224,11 @@ export function renderReminder(input: ReminderInput): RenderedMail {
     <p style="margin-top:24px">¿Nos confirmás con un toque? Cocinamos justo para los que vienen.</p>
     <p>${btn(`${link}?confirmo=1`, "Confirmo que voy")}${btn(noPuedo, "No voy a poder", false)}</p>
     <p style="color:#9a9187;font-size:14px">Si no podés venir, podés pasarle tu lugar a otra persona: avisanos el nombre por WhatsApp.</p>`;
+  const html = layout("Es mañana", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`);
   return {
     subject: `Mañana te esperamos · ${input.event.title} · ${formatTime(input.event.date)} hs`,
-    html: layout("Es mañana", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`),
+    html,
+    text: toText(html),
   };
 }
 

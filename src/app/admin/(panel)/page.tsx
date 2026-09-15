@@ -71,6 +71,14 @@ export default async function AdminHome() {
               <Num label="en proceso" value={String(nextStats.holding)} />
               <Num label="libres" value={String(nextStats.free)} tone={nextStats.free <= 3 ? "danger" : undefined} />
             </div>
+            <div className="flex basis-full flex-wrap gap-2">
+              <Link href={`/admin/eventos/${nextEvent.id}/noche`} className="btn btn-ghost btn-sm">
+                Vista para la noche
+              </Link>
+              <Link href={`/admin/eventos/${nextEvent.id}`} className="btn btn-ghost btn-sm">
+                Reservas y carta
+              </Link>
+            </div>
           </div>
         ) : (
           <p className="mt-3 text-muted">

@@ -16,7 +16,8 @@ type Props = {
 };
 
 export function SeatChooser({ reservationId, capacity, taken, mine, quantity }: Props) {
-  const [selected, setSelected] = useState<number[]>(mine);
+  // Si todavía no eligió, le sugerimos las primeras sillas libres seguidas (puede cambiarlas).
+  const [selected, setSelected] = useState<number[]>(() => (mine.length > 0 ? mine : suggestAdjacent(capacity, taken, quantity)));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -81,4 +82,15 @@ export function SeatChooser({ reservationId, capacity, taken, mine, quantity }: 
       )}
     </div>
   );
+}
+
+/** Primer grupo de `n` sillas libres consecutivas (por número); si no hay, las primeras libres. */
+function suggestAdjacent(capacity: number, taken: number[], n: number): number[] {
+  const free = Array.from({ length: capacity }, (_, i) => i + 1).filter((x) => !taken.includes(x));
+  if (n <= 1 || free.length === 0) return [];
+  for (let i = 0; i + n <= free.length; i++) {
+    const run = free.slice(i, i + n);
+    if (run[run.length - 1] - run[0] === n - 1) return run;
+  }
+  return free.slice(0, n);
 }

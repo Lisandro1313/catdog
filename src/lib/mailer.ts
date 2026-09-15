@@ -9,7 +9,15 @@ import { SITE_NAME } from "./config";
  * - Resend: sin dominio verificado solo puede mandar a la casilla dueña de la cuenta.
  *   Variables: RESEND_API_KEY y, con dominio verificado, EMAIL_FROM.
  */
-export type Mail = { to: string; subject: string; html: string };
+export type Mail = {
+  to: string;
+  subject: string;
+  html: string;
+  /** Versión en texto plano (mejora la entrega; los clientes viejos la muestran). */
+  text?: string;
+  /** Invitación de calendario (.ics) para que Gmail muestre la tarjeta "Agregar al calendario". */
+  ics?: string;
+};
 export type MailResult = { error: { message: string } | null };
 
 export type MailMode = "gmail" | "resend" | "none";
@@ -61,10 +69,24 @@ export async function sendMail(mail: Mail): Promise<MailResult> {
   if (mode === "none") return { error: { message: "mails no configurados" } };
   try {
     if (mode === "gmail") {
-      await gmailTransport().sendMail({ from: from(), to: mail.to, subject: mail.subject, html: mail.html });
+      await gmailTransport().sendMail({
+        from: from(),
+        to: mail.to,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+        icalEvent: mail.ics ? { method: "PUBLISH", content: mail.ics } : undefined,
+      });
       return { error: null };
     }
-    const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: from(), ...mail });
+    const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: from(),
+      to: mail.to,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+      attachments: mail.ics ? [{ filename: "cena.ics", content: Buffer.from(mail.ics).toString("base64"), contentType: "text/calendar" }] : undefined,
+    });
     return { error: error ? { message: error.message } : null };
   } catch (err) {
     return { error: { message: err instanceof Error ? err.message : String(err) } };
@@ -80,9 +102,9 @@ export async function sendMany(mails: Mail[]): Promise<{ sent: number; failed: n
     const r = new Resend(process.env.RESEND_API_KEY);
     let sent = 0;
     let failed = 0;
-    // Resend permite hasta 100 mails por batch.
+    // Resend permite hasta 100 mails por batch (sin adjuntos).
     for (let i = 0; i < mails.length; i += 100) {
-      const chunk = mails.slice(i, i + 100).map((m) => ({ from: from(), ...m }));
+      const chunk = mails.slice(i, i + 100).map((m) => ({ from: from(), to: m.to, subject: m.subject, html: m.html, text: m.text }));
       const { error } = await r.batch.send(chunk);
       if (error) {
         console.error("[email] batch falló", error);
