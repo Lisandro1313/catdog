@@ -94,6 +94,9 @@ export default async function AdminEventPage({
       <section className="card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl">Reservas</h2>
+          <Link href={`/admin/eventos/${event.id}/noche`} className="btn btn-ghost btn-sm">
+            Vista para la noche
+          </Link>
           <NotifyForm
             eventId={event.id}
             subscribers={subscribers}

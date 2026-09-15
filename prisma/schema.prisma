@@ -66,6 +66,8 @@ model Reservation {
   /// Recordatorio del día anterior y confirmación de asistencia desde ese mail.
   remindedAt     DateTime?
   confirmedAt    DateTime?
+  /// Marcado en la puerta, la noche de la cena.
+  arrivedAt      DateTime?
   /// Hasta cuándo se mantienen los lugares si el pago sigue pendiente.
   expiresAt      DateTime
   createdAt      DateTime          @default(now())

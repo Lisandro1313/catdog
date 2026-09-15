@@ -701,3 +701,15 @@ export async function requestReviewsAction(_prev: ActionState, formData: FormDat
   revalidatePath(`/admin/eventos/${id}`);
   return { ok: true, message: `Pedido enviado a ${sent} persona${sent === 1 ? "" : "s"}${failed ? ` (${failed} fallaron)` : ""}.` };
 }
+
+// --- La noche: llegadas ---
+
+export async function toggleArrivedAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const r = await prisma.reservation.findUnique({ where: { id }, select: { arrivedAt: true, eventId: true } });
+  if (!r) return;
+  await prisma.reservation.update({ where: { id }, data: { arrivedAt: r.arrivedAt ? null : new Date() } });
+  revalidatePath(`/admin/eventos/${r.eventId}/noche`);
+  revalidatePath(`/admin/eventos/${r.eventId}`);
+}

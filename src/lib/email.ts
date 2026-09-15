@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, siteUrl, whatsappUrl } from "./config";
 import { formatLong, formatTime } from "./dates";
+import { parseMenu } from "./menu";
 import { isEmailConfigured, sendMail, sendMany } from "./mailer";
 
 export { isEmailConfigured };
@@ -19,7 +20,7 @@ function unsubscribeUrl(email: string): string {
 }
 
 function layout(title: string, body: string, footer = ""): string {
-  return `<!doctype html><html><body style="margin:0;background:#141210;font-family:Georgia,serif;color:#f3ede4">
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${title}</title></head><body style="margin:0;background:#141210;font-family:Georgia,serif;color:#f3ede4">
   <div style="max-width:560px;margin:0 auto;padding:32px 24px">
     <p style="letter-spacing:.2em;text-transform:uppercase;font-size:12px;color:#c9a96e;margin:0 0 8px">${SITE_NAME}</p>
     <h1 style="font-size:28px;font-weight:normal;margin:0 0 24px">${title}</h1>
@@ -31,16 +32,32 @@ function layout(title: string, body: string, footer = ""): string {
 
 type EventLike = { title: string; date: Date; price: number; description?: string | null; menu?: string | null; address?: string | null };
 
-export async function sendReservationConfirmed(input: {
-  to: string;
+/** La carta en el mail: número, plato y, debajo, el cóctel en dorado. */
+function menuHtml(menu: string | null | undefined): string {
+  const steps = parseMenu(menu);
+  if (steps.length === 0) return "";
+  const rows = steps
+    .map(
+      (st, i) =>
+        `<tr><td style="padding:6px 10px 6px 0;color:#c9a96e;vertical-align:top">${String(i + 1).padStart(2, "0")}</td><td style="padding:6px 0;vertical-align:top">${st.dish}${
+          st.drink ? `<br><span style="color:#c9a96e;font-style:italic;font-size:14px">${st.drink}</span>` : ""
+        }</td></tr>`,
+    )
+    .join("");
+  return `<p style="margin:22px 0 4px;color:#9a9187;font-size:13px;letter-spacing:.08em;text-transform:uppercase">La noche, en pasos</p><table cellpadding="0" cellspacing="0" style="border-collapse:collapse">${rows}</table>`;
+}
+export type RenderedMail = { subject: string; html: string };
+
+export type ConfirmationInput = {
   name: string;
   event: EventLike;
   quantity: number;
   seats: number[];
   amount: number;
   reservationId: string;
-}) {
-  if (!isEmailConfigured() || input.to.endsWith("@local")) return { skipped: true as const };
+};
+
+export function renderReservationConfirmed(input: ConfirmationInput): RenderedMail {
   const link = `${siteUrl()}/reserva/${input.reservationId}`;
   const lugares = input.quantity === 1 ? "1 lugar" : `${input.quantity} lugares`;
   const row = (k: string, v: string) =>
@@ -59,7 +76,7 @@ export async function sendReservationConfirmed(input: {
       ${row("Tu lugar", seatsText)}
     </table>
     <p style="color:#c9a96e"><strong>Llegá ${formatTime(input.event.date)} hs.</strong> Se recibe con un trago de pie, y a la mesa se pasa un rato después.</p>
-    ${input.event.menu ? `<p><em>La noche, en pasos:</em><br>${input.event.menu.replace(/\n/g, "<br>")}</p>` : ""}
+    ${menuHtml(input.event.menu)}
     ${
       CONTACT_PHONES.length
         ? `<p>Cualquier cosa, escribinos por WhatsApp: ${CONTACT_PHONES.map(
@@ -68,11 +85,15 @@ export async function sendReservationConfirmed(input: {
         : ""
     }
     <p>Guardá este mail: tiene la dirección y el link de tu reserva.</p>`;
-  const { error } = await sendMail({
-    to: input.to,
+  return {
     subject: `Reserva confirmada · ${input.event.title} · ${formatLong(input.event.date)}`,
     html: layout("¡Reserva confirmada!", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`),
-  });
+  };
+}
+
+export async function sendReservationConfirmed(input: ConfirmationInput & { to: string }) {
+  if (!isEmailConfigured() || input.to.endsWith("@local")) return { skipped: true as const };
+  const { error } = await sendMail({ to: input.to, ...renderReservationConfirmed(input) });
   if (error) console.error("[email] confirmación falló", error);
   return { skipped: false as const, error };
 }
@@ -103,63 +124,58 @@ export async function sendAdminNewReservation(input: {
   if (error) console.error("[email] aviso admin falló", error);
 }
 
+export function renderNewEvent(event: EventLike, email: string): RenderedMail {
+  return {
+    subject: `Nueva fecha: ${event.title} · ${formatLong(event.date)}`,
+    html: layout(
+      "Hay nueva fecha",
+      `<p><strong>${event.title}</strong><br>
+       ${formatLong(event.date)} · ${formatTime(event.date)} hs<br>
+       ${formatPrice(event.price)} por persona.</p>
+       ${event.description ? `<p>${event.description.replace(/\n/g, "<br>")}</p>` : ""}
+       <p>Son pocos lugares. Reservá el tuyo acá:<br>
+       <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl()}</a></p>`,
+      `Recibís este mail porque te anotaste para enterarte de nuevas fechas. <a href="${unsubscribeUrl(email)}" style="color:#8a8279">Darse de baja</a>.`,
+    ),
+  };
+}
+
 export async function sendNewEventBlast(input: {
   emails: string[];
   event: EventLike;
 }): Promise<{ sent: number; failed: number }> {
   if (!isEmailConfigured() || input.emails.length === 0) return { sent: 0, failed: 0 };
-
-  const subject = `Nueva fecha: ${input.event.title} · ${formatLong(input.event.date)}`;
-  const messages = input.emails.map((email) => ({
-    to: email,
-    subject,
-    html: layout(
-      "Hay nueva fecha",
-      `<p><strong>${input.event.title}</strong><br>
-       ${formatLong(input.event.date)} · ${formatTime(input.event.date)} hs<br>
-       ${formatPrice(input.event.price)} por persona.</p>
-       ${input.event.description ? `<p>${input.event.description.replace(/\n/g, "<br>")}</p>` : ""}
-       <p>Son pocos lugares. Reservá el tuyo acá:<br>
-       <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl()}</a></p>`,
-      `Recibís este mail porque te anotaste para enterarte de nuevas fechas. <a href="${unsubscribeUrl(email)}" style="color:#8a8279">Darse de baja</a>.`,
-    ),
-  }));
-
-  return sendMany(messages);
+  return sendMany(input.emails.map((email) => ({ to: email, ...renderNewEvent(input.event, email) })));
 }
 
 /** Al día siguiente de la cena: un mail corto pidiendo la opinión, con link personal. */
+export function renderReviewRequest(event: EventLike, p: { id: string; name: string }): RenderedMail {
+  return {
+    subject: `¿Cómo la pasaste? · ${event.title}`,
+    html: layout(
+      "Gracias por venir",
+      `<p>Hola ${p.name.split(" ")[0]}. Gracias por venir el ${formatLong(event.date).toLowerCase()}.</p>
+       <p>¿Nos contás cómo la pasaste? Son dos minutos y nos sirve mucho para las próximas:</p>
+       <p><a href="${siteUrl()}/opinar/${p.id}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#c9a96e;color:#141210;text-decoration:none;font-weight:bold">Dejar mi opinión</a></p>
+       <p>Y si conocés a alguien que le gustaría venir, la próxima fecha está en <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl().replace(/^https?:\/\//, "")}</a>.</p>`,
+      "Recibís este mail porque viniste a una de nuestras cenas.",
+    ),
+  };
+}
+
 export async function sendReviewRequests(input: {
   event: EventLike;
   people: { id: string; name: string; email: string }[];
 }): Promise<{ sent: number; failed: number }> {
   const people = input.people.filter((p) => !p.email.endsWith("@local"));
   if (!isEmailConfigured() || people.length === 0) return { sent: 0, failed: 0 };
-  const messages = people.map((p) => ({
-    to: p.email,
-    subject: `¿Cómo la pasaste? · ${input.event.title}`,
-    html: layout(
-      "Gracias por venir",
-      `<p>Hola ${p.name.split(" ")[0]}. Gracias por sentarte a la mesa el ${formatLong(input.event.date).toLowerCase()}.</p>
-       <p>¿Nos contás cómo la pasaste? Son dos minutos y nos sirve mucho para las próximas:</p>
-       <p><a href="${siteUrl()}/opinar/${p.id}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#c9a96e;color:#141210;text-decoration:none;font-weight:bold">Dejar mi opinión</a></p>
-       <p>Y si conocés a alguien que le gustaría venir, la próxima fecha está en <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl().replace(/^https?:\/\//, "")}</a>.</p>`,
-      "Recibís este mail porque viniste a una de nuestras cenas.",
-    ),
-  }));
-  return sendMany(messages);
+  return sendMany(people.map((p) => ({ to: p.email, ...renderReviewRequest(input.event, p) })));
 }
 
 /** El día anterior: recordatorio con dirección, hora y dos botones (confirmo / no puedo). */
-export async function sendReminder(input: {
-  to: string;
-  name: string;
-  event: EventLike;
-  quantity: number;
-  seats: number[];
-  reservationId: string;
-}) {
-  if (!isEmailConfigured() || input.to.endsWith("@local")) return { skipped: true as const };
+export type ReminderInput = { name: string; event: EventLike; quantity: number; seats: number[]; reservationId: string };
+
+export function renderReminder(input: ReminderInput): RenderedMail {
   const link = `${siteUrl()}/reserva/${input.reservationId}`;
   const first = input.name.split(" ")[0];
   const noPuedo = CONTACT_PHONES[0]
@@ -178,11 +194,15 @@ export async function sendReminder(input: {
     <p style="margin-top:24px">¿Nos confirmás con un toque? Cocinamos justo para los que vienen.</p>
     <p>${btn(`${link}?confirmo=1`, "Confirmo que voy")}${btn(noPuedo, "No voy a poder", false)}</p>
     <p style="color:#9a9187;font-size:14px">Si no podés venir, podés pasarle tu lugar a otra persona: avisanos el nombre por WhatsApp.</p>`;
-  const { error } = await sendMail({
-    to: input.to,
+  return {
     subject: `Mañana te esperamos · ${input.event.title} · ${formatTime(input.event.date)} hs`,
     html: layout("Es mañana", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`),
-  });
+  };
+}
+
+export async function sendReminder(input: ReminderInput & { to: string }) {
+  if (!isEmailConfigured() || input.to.endsWith("@local")) return { skipped: true as const };
+  const { error } = await sendMail({ to: input.to, ...renderReminder(input) });
   if (error) console.error("[email] recordatorio falló", error);
   return { skipped: false as const, error };
 }

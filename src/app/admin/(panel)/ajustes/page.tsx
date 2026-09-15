@@ -83,6 +83,23 @@ export default async function AjustesPage() {
       </section>
 
       <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">Los mails que salen</h2>
+        <p className="mt-1 text-sm text-muted">Así los ve la gente (con la próxima cena y datos de ejemplo). Se abren en otra pestaña.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            ["confirmacion", "Reserva confirmada"],
+            ["recordatorio", "Recordatorio del día anterior"],
+            ["opinion", "¿Cómo la pasaste?"],
+            ["nueva-fecha", "Nueva fecha (suscriptores)"],
+          ].map(([tipo, label]) => (
+            <a key={tipo} href={`/admin/mails/${tipo}`} target="_blank" rel="noopener" className="btn btn-ghost btn-sm">
+              {label}
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section className="card p-5 sm:p-6">
         <h2 className="font-display text-2xl">Gastos fijos</h2>
         <p className="mt-1 text-sm text-muted">
           Alquiler, luz, gas, internet: lo que se paga sí o sí. Cargás el monto mensual y cada lunes el sistema carga solo la parte de esa
