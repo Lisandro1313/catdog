@@ -108,7 +108,7 @@ export function ReserveForm({ events, defaultEventId, maxSeats }: Props) {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="btn btn-ghost h-10 w-10 !p-0 text-lg"
+              className="btn btn-ghost h-11 w-11 !min-h-0 !p-0 text-lg"
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               disabled={quantity <= 1}
               aria-label="Menos"
@@ -120,7 +120,7 @@ export function ReserveForm({ events, defaultEventId, maxSeats }: Props) {
             </span>
             <button
               type="button"
-              className="btn btn-ghost h-10 w-10 !p-0 text-lg"
+              className="btn btn-ghost h-11 w-11 !min-h-0 !p-0 text-lg"
               onClick={() => setQuantity((q) => Math.min(max, q + 1))}
               disabled={quantity >= max}
               aria-label="Más"

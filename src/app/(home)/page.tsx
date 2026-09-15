@@ -13,6 +13,8 @@ import { TrackVisit } from "@/components/TrackVisit";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { StickyCta } from "@/components/StickyCta";
 import { Reveal } from "@/components/Reveal";
+import { AnchorNav } from "@/components/AnchorNav";
+import { Countdown } from "@/components/Countdown";
 import { foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 
@@ -113,26 +115,25 @@ export default async function HomePage() {
         />
       )}
 
+      <a href="#reservar" className="skip-link">
+        Ir a reservar
+      </a>
+
       {/* Nav de anclas (escritorio) */}
-      <nav className="sticky top-0 z-20 hidden border-b border-line/60 bg-bg/85 backdrop-blur sm:block" aria-label="Secciones">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-3 text-sm">
-          <a href="#inicio" className="font-display text-lg">
-            {SITE_NAME}
-          </a>
-          <div className="flex gap-6 text-muted">
-            <a href="#carta" className="hover:text-ink">La carta</a>
-            <a href="#nosotros" className="hover:text-ink">Quiénes somos</a>
-            {reviews.length > 0 && (
-              <a href="#opiniones" className="hover:text-ink">Opiniones</a>
-            )}
-            <a href="#donde" className="hover:text-ink">Dónde</a>
-            <a href="#reservar" className="btn btn-primary btn-sm">Reservar</a>
-          </div>
-        </div>
-      </nav>
+      <AnchorNav
+        brand={SITE_NAME}
+        items={[
+          { href: "#carta", label: "La carta" },
+          { href: "#nosotros", label: "Quiénes somos" },
+          ...(reviews.length > 0 ? [{ href: "#opiniones", label: "Opiniones" }] : []),
+          { href: "#donde", label: "Dónde" },
+          { href: "#preguntas", label: "Preguntas" },
+        ]}
+      />
 
       {/* Afiche */}
-      <section id="inicio" className="relative flex min-h-[88vh] items-center overflow-hidden px-6 py-20">
+      <section id="inicio" className="relative flex min-h-[92vh] items-center overflow-hidden px-6 py-20 sm:min-h-[88vh]">
+        <div className="ap-frame" aria-hidden="true" />
         <div className="ap-backdrop" aria-hidden="true">
           {steps.map((s, i) => (
             <span key={i}>{s.dish}</span>
@@ -157,7 +158,7 @@ export default async function HomePage() {
               ) : (
                 <p className="mt-3 text-sm tracking-[0.2em] uppercase text-muted">
                   {formatTime(event.date)} hs
-                  {countdown && <span className="text-accent"> · {countdown}</span>}
+                  <Countdown dateIso={event.date.toISOString()} initial={countdown} />
                 </p>
               )}
               <hr className="ap-rule mx-auto mt-8 w-56" />
@@ -195,8 +196,11 @@ export default async function HomePage() {
                   </>
                 )}
               </div>
-              <a href="#carta" className="mt-12 inline-block text-xs tracking-[0.2em] uppercase text-muted hover:text-ink">
-                ↓ La carta de la noche
+              <a href="#carta" className="mt-12 inline-flex flex-col items-center gap-1 text-xs tracking-[0.2em] uppercase text-muted hover:text-ink">
+                La carta de la noche
+                <span className="ap-cue" aria-hidden="true">
+                  ↓
+                </span>
               </a>
             </>
           ) : (
@@ -215,29 +219,32 @@ export default async function HomePage() {
         <>
           {/* La carta */}
           {steps.length > 0 && (
-            <section id="carta" className="reveal mx-auto w-full max-w-xl scroll-mt-16 px-6 py-14">
-              <div className="text-center">
-                <p className="ap-eyebrow">La carta de esta noche</p>
-                <h2 className="ap-display mt-3 text-3xl sm:text-4xl">{event.title}</h2>
-                <p className="mt-3 text-sm text-muted">Cada paso sale de la cocina con su trago pensado al lado. Hay versión sin alcohol de todos.</p>
-              </div>
-              <ol className="mt-8">
-                {steps.map((s, i) => (
-                  <li key={i} className="ap-step">
-                    <span className="n">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="dish">{s.dish}</span>
-                    {s.drink && <span className="drink">{s.drink}</span>}
-                  </li>
-                ))}
-              </ol>
-              {event.description && (
-                <p className="mt-8 text-center leading-relaxed whitespace-pre-line text-muted">{event.description}</p>
-              )}
-              {bar.length > 0 && (
-                <div className="mt-10 border-t border-line pt-8">
-                  <BarList items={bar} price={event.barPrice} />
+            <section id="carta" className="reveal mx-auto w-full max-w-xl scroll-mt-16 px-4 py-16 sm:px-6 sm:py-24">
+              <div className="menu-card">
+                <div className="text-center">
+                  <p className="ap-eyebrow">La carta de esta noche</p>
+                  <h2 className="ap-display mt-3 text-3xl sm:text-4xl">{event.title}</h2>
+                  <p className="ap-ornament mt-4">✦</p>
+                  <p className="mt-4 text-sm text-muted">Cada paso sale de la cocina con su trago pensado al lado. Hay versión sin alcohol de todos.</p>
                 </div>
-              )}
+                <ol className="mt-8">
+                  {steps.map((s, i) => (
+                    <li key={i} className="ap-step reveal" style={{ transitionDelay: `${i * 90}ms` }}>
+                      <span className="n">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="dish">{s.dish}</span>
+                      {s.drink && <span className="drink">{s.drink}</span>}
+                    </li>
+                  ))}
+                </ol>
+                {event.description && (
+                  <p className="mt-8 text-center text-sm leading-relaxed whitespace-pre-line text-muted">{event.description}</p>
+                )}
+                {bar.length > 0 && (
+                  <div className="mt-10 border-t border-accent/15 pt-8">
+                    <BarList items={bar} price={event.barPrice} />
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
@@ -245,6 +252,7 @@ export default async function HomePage() {
           {photos.length > 0 && (
             <section id="fotos" className="reveal scroll-mt-16 py-10">
               <div className="mx-auto max-w-2xl px-6 text-center">
+                <p className="ap-ornament mb-3">✦</p>
                 <p className="ap-eyebrow">La casa</p>
               </div>
               <div className="mt-6">
@@ -254,9 +262,10 @@ export default async function HomePage() {
           )}
 
           {/* Quiénes somos */}
-          <section id="nosotros" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16">
+          <section id="nosotros" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
             <div className="text-center">
-              <p className="ap-eyebrow">Quiénes somos</p>
+              <p className="ap-ornament mb-3">✦</p>
+                <p className="ap-eyebrow">Quiénes somos</p>
               <h2 className="ap-display mt-3 text-3xl sm:text-4xl">La casa de la calle 66</h2>
             </div>
             <div className="mx-auto mt-8 max-w-prose space-y-4 text-center leading-relaxed text-ink/90">
@@ -280,8 +289,9 @@ export default async function HomePage() {
 
           {/* Lo que dicen */}
           {reviews.length > 0 && (
-            <section id="opiniones" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-14">
+            <section id="opiniones" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
               <div className="text-center">
+                <p className="ap-ornament mb-3">✦</p>
                 <p className="ap-eyebrow">Lo que dicen los que vinieron</p>
                 {rating && rating.count >= 3 && (
                   <p className="mt-3 text-sm text-muted">
@@ -307,7 +317,7 @@ export default async function HomePage() {
           )}
 
           {/* Dónde */}
-          <section id="donde" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-14">
+          <section id="donde" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
             <div className="grid gap-6 sm:grid-cols-[1fr_1fr] sm:items-center">
               <div>
                 <p className="ap-eyebrow">Dónde</p>
@@ -334,13 +344,14 @@ export default async function HomePage() {
           </section>
 
           {/* Preguntas */}
-          <section id="preguntas" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-14">
+          <section id="preguntas" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
             <div className="text-center">
-              <p className="ap-eyebrow">Preguntas que nos hacen</p>
+              <p className="ap-ornament mb-3">✦</p>
+                <p className="ap-eyebrow">Preguntas que nos hacen</p>
             </div>
             <div className="mt-6 divide-y divide-line border-y border-line">
               {faqs.map((f) => (
-                <details key={f.q} className="group py-4">
+                <details key={f.q} className="faq group py-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-lg">
                     {f.q}
                     <span className="text-muted transition-transform group-open:rotate-45" aria-hidden="true">
@@ -354,9 +365,10 @@ export default async function HomePage() {
           </section>
 
           {/* Reserva */}
-          <section id="reservar" className="mx-auto w-full max-w-xl scroll-mt-8 px-6 py-14">
+          <section id="reservar" className="mx-auto w-full max-w-xl scroll-mt-8 px-6 py-16 sm:py-24">
             <div className="text-center">
-              <p className="ap-eyebrow">Tu lugar</p>
+              <p className="ap-ornament mb-3">✦</p>
+                <p className="ap-eyebrow">Tu lugar</p>
               <h2 className="ap-display mt-4 text-4xl sm:text-5xl">Reservá</h2>
             </div>
             <ol className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-2 text-center text-xs text-muted">
@@ -364,7 +376,7 @@ export default async function HomePage() {
               <Step n="2" text="Pagás por Mercado Pago" />
               <Step n="3" text="Elegís tu silla y te llega la dirección" />
             </ol>
-            <div className="card mt-8 p-6 sm:p-8">
+            <div className="card card-gold mt-8 p-6 sm:p-8">
               {nextOpen ? (
                 <ReserveForm events={reservable} defaultEventId={nextOpen.id} maxSeats={MAX_SEATS_PER_RESERVATION} />
               ) : (
@@ -402,8 +414,10 @@ export default async function HomePage() {
         </>
       )}
 
-      <footer className="border-t border-line py-8 text-center text-xs text-muted">
-        <p>{SITE_NAME} · Cena a puertas cerradas · La Plata</p>
+      <footer className="border-t border-line py-10 text-center text-xs text-muted">
+        <p className="ap-ornament mb-4">✦</p>
+        <p className="font-display text-base text-ink">{SITE_NAME}</p>
+        <p className="mt-1">Cena a puertas cerradas · {ZONE}</p>
         {instagram && (
           <a
             href={`https://instagram.com/${instagram}`}
@@ -414,9 +428,12 @@ export default async function HomePage() {
             <InstagramIcon /> @{instagram}
           </a>
         )}
-        <Link href="/fechas" className="mt-2 inline-block hover:text-ink">
-          Ver todas las fechas
-        </Link>
+        <p className="mt-3">
+          <Link href="/fechas" className="hover:text-ink">
+            Ver todas las fechas
+          </Link>
+        </p>
+        <p className="mt-4 opacity-60">Hecho en La Plata · {new Date().getFullYear()}</p>
       </footer>
 
       {/* Barra fija en el celular */}
