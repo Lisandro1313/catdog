@@ -18,10 +18,11 @@ import { argentinaDay, parseArgentinaLocal } from "@/lib/dates";
 import { PARTNERS } from "@/lib/ledger-categories";
 import { storeReceipt } from "@/lib/receipts";
 import { ensureFixedEntries, refreshCurrentWeekEntry, weeklyAmount } from "@/lib/fixed-expenses";
-import { formatPrice } from "@/lib/config";
+import { formatPrice, siteUrl } from "@/lib/config";
 import { addPhoto, removePhoto } from "@/lib/photos";
 import { renderReservationConfirmed, sendNewEventBlast, sendReviewRequests } from "@/lib/email";
 import { isEmailConfigured, sendMail } from "@/lib/mailer";
+import { icsFor } from "@/lib/calendar";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
 
@@ -739,6 +740,8 @@ export async function sendTestMailAction(_prev: ActionState, formData: FormData)
     (await prisma.event.findFirst({ orderBy: { date: "desc" } }));
   if (!event) return { ok: false, message: "Cargá una cena primero." };
   const mail = renderReservationConfirmed({ name: "Prueba", event, quantity: 2, seats: [4, 5], amount: event.price * 2, reservationId: "prueba" });
+  const organizer = process.env.GMAIL_USER;
+  if (organizer) mail.ics = icsFor(event, `${siteUrl()}/reserva/prueba`, `prueba-${Date.now()}`, { organizer, attendee: to });
   const { error } = await sendMail({ to, ...mail, subject: `[PRUEBA] ${mail.subject}` });
   if (error) return { ok: false, message: `No salió: ${error.message}` };
   return { ok: true, message: `Enviado a ${to}. Fijate en la bandeja (y en spam, la primera vez).` };

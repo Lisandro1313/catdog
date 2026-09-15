@@ -123,7 +123,11 @@ export function renderReservationConfirmed(input: ConfirmationInput): RenderedMa
 
 export async function sendReservationConfirmed(input: ConfirmationInput & { to: string }) {
   if (!isEmailConfigured() || input.to.endsWith("@local")) return { skipped: true as const };
-  const { error } = await sendMail({ to: input.to, ...renderReservationConfirmed(input) });
+  const mail = renderReservationConfirmed(input);
+  // Como invitación (con organizador y asistente) Gmail muestra la tarjeta del calendario.
+  const organizer = process.env.GMAIL_USER;
+  if (organizer) mail.ics = icsFor(input.event, `${siteUrl()}/reserva/${input.reservationId}`, input.reservationId, { organizer, attendee: input.to });
+  const { error } = await sendMail({ to: input.to, ...mail });
   if (error) console.error("[email] confirmación falló", error);
   return { skipped: false as const, error };
 }

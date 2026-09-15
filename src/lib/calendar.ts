@@ -29,16 +29,23 @@ export function googleCalendarUrl(event: CalEvent, reservationUrl: string): stri
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-/** Archivo .ics (Apple Calendar, Outlook y cualquier otro). */
-export function icsFor(event: CalEvent, reservationUrl: string, uid: string): string {
+/**
+ * Archivo .ics (Apple Calendar, Outlook y cualquier otro). Con `invite` (organizador y asistente) va como
+ * invitación (METHOD:REQUEST): así Gmail muestra la tarjeta "Agregar al calendario" en vez de un adjunto.
+ */
+export function icsFor(event: CalEvent, reservationUrl: string, uid: string, invite?: { organizer: string; attendee: string }): string {
   const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     `PRODID:-//${SITE_NAME}//Reservas//ES`,
     "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+    invite ? "METHOD:REQUEST" : "METHOD:PUBLISH",
     "BEGIN:VEVENT",
+    invite ? `ORGANIZER;CN=${esc(SITE_NAME)}:mailto:${invite.organizer}` : "",
+    invite ? `ATTENDEE;CN=Invitado;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;RSVP=FALSE:mailto:${invite.attendee}` : "",
+    "STATUS:CONFIRMED",
+    "SEQUENCE:0",
     `UID:${uid}@catdog`,
     `DTSTAMP:${stampUtc(new Date())}`,
     `DTSTART:${stampUtc(event.date)}`,

@@ -75,7 +75,7 @@ export async function sendMail(mail: Mail): Promise<MailResult> {
         subject: mail.subject,
         text: mail.text,
         html: mail.html,
-        icalEvent: mail.ics ? { method: "PUBLISH", content: mail.ics } : undefined,
+        icalEvent: mail.ics ? { method: mail.ics.includes("METHOD:REQUEST") ? "REQUEST" : "PUBLISH", content: mail.ics } : undefined,
       });
       return { error: null };
     }
