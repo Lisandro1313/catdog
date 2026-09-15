@@ -121,13 +121,28 @@ export default async function AdminHome() {
             </div>
           </div>
         </div>
+        {(() => {
+          const home = visits.byPath.find((p) => p.path === "/")?.count ?? 0;
+          const tries = visits.byPath.find((p) => p.path === "/reservar")?.count ?? 0;
+          return home > 0 ? (
+            <p className="mt-4 text-sm text-muted">
+              Embudo (30 días): <strong className="text-ink">{home}</strong> visitas al inicio →{" "}
+              <strong className="text-ink">{tries}</strong> empezaron a reservar
+              {tries > 0 && <span> ({Math.round((tries / home) * 100)}%)</span>}. Los pagos están arriba, en la próxima cena.
+            </p>
+          ) : null;
+        })()}
         {visits.byPath.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-2 text-xs">
             {visits.byPath.map((p) => (
               <li key={p.path} className="rounded-full border border-line px-3 py-1 text-muted">
-                <a href={p.path} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
-                  {p.path}
-                </a>
+                {p.path === "/reservar" ? (
+                  <span>intentos de reserva</span>
+                ) : (
+                  <a href={p.path} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
+                    {p.path}
+                  </a>
+                )}
                 <span className="text-ink"> {p.count}</span>
               </li>
             ))}

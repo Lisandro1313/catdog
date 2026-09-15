@@ -70,6 +70,12 @@ export function ReserveForm({ events, defaultEventId, maxSeats }: Props) {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    try {
+      // Cuenta el intento (sin datos personales) para ver el embudo visitas → intentos → pagos en el panel.
+      navigator.sendBeacon?.("/api/visita", new Blob([JSON.stringify({ path: "/reservar" })], { type: "application/json" }));
+    } catch {
+      // Sin beacon no pasa nada.
+    }
     startTransition(async () => {
       const result = await reserveAction({ eventId, quantity, name, email, phone, notes });
       if (result.ok) {

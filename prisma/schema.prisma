@@ -68,6 +68,8 @@ model Reservation {
   confirmedAt    DateTime?
   /// Marcado en la puerta, la noche de la cena.
   arrivedAt      DateTime?
+  /// Huella (hash) de la IP que creó el hold, para limitar reservas en proceso por persona.
+  ipHash         String?
   /// Hasta cuándo se mantienen los lugares si el pago sigue pendiente.
   expiresAt      DateTime
   createdAt      DateTime          @default(now())

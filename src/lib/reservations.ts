@@ -77,7 +77,12 @@ export type CreateHoldInput = {
   email: string;
   phone?: string;
   notes?: string;
+  /** Hash de la IP (no la IP): para que nadie bloquee la mesa con muchas reservas sin pagar. */
+  ipHash?: string;
 };
+
+/** Cuántas reservas en proceso (sin pagar) puede tener a la vez una misma IP en una cena. */
+const MAX_HOLDS_PER_IP = 2;
 
 /**
  * Crea la reserva PENDING (bloquea `quantity` cupos por HOLD_MINUTES) y genera el link de pago.
@@ -95,6 +100,23 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
   }
 
   await purgeExpiredHolds(event.id);
+
+  // Si esta misma persona ya tiene una reserva en proceso para esta cena, la reusamos:
+  // vuelve al mismo pago en vez de bloquear más lugares.
+  const existing = await prisma.reservation.findFirst({
+    where: { eventId: event.id, email: input.email, status: "PENDING", expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+  });
+  if (existing?.mpInitPoint) return { reservationId: existing.id, checkoutUrl: existing.mpInitPoint };
+
+  if (input.ipHash) {
+    const holds = await prisma.reservation.count({
+      where: { eventId: event.id, ipHash: input.ipHash, status: "PENDING", expiresAt: { gt: new Date() } },
+    });
+    if (holds >= MAX_HOLDS_PER_IP) {
+      throw new ReservationError("Ya tenés reservas en proceso. Terminá el pago de la anterior o esperá unos minutos.");
+    }
+  }
 
   const expiresAt = new Date(Date.now() + HOLD_MINUTES * 60 * 1000);
   const amount = event.price * input.quantity;
@@ -116,6 +138,7 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
         email: input.email,
         phone: input.phone || null,
         notes: input.notes || null,
+        ipHash: input.ipHash ?? null,
         quantity: input.quantity,
         amount,
         expiresAt,

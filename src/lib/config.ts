@@ -12,14 +12,15 @@ export const CONTACT_PHONES = (process.env.NEXT_PUBLIC_CONTACT_PHONES ?? "221565
   .filter(Boolean);
 
 /** "2215654325" -> "221 565-4325" */
-export function formatPhone(digits: string): string {
+export function formatPhone(raw: string): string {
+  const digits = normalizeArPhone(raw);
   if (digits.length === 10) return `${digits.slice(0, 3)} ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  return digits;
+  return raw;
 }
 
 /** Link a WhatsApp con prefijo de Argentina para celulares (+54 9). */
-export function whatsappUrl(digits: string, text?: string): string {
-  const base = `https://wa.me/549${digits}`;
+export function whatsappUrl(raw: string, text?: string): string {
+  const base = `https://wa.me/549${normalizeArPhone(raw)}`;
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
 
@@ -51,4 +52,23 @@ export function formatPrice(amount: number): string {
     currency: "ARS",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+/**
+ * Deja un celular argentino como 10 dígitos (área + número), que es lo que espera wa.me con el 549 adelante.
+ * Acepta "+54 9 221 555-1234", "0221 15 555 1234", "221 5551234", etc. Si no se entiende, devuelve solo los dígitos.
+ */
+export function normalizeArPhone(raw: string): string {
+  let d = raw.replace(/\D/g, "");
+  if (d.startsWith("54")) d = d.slice(2);
+  if (d.startsWith("9") && d.length > 10) d = d.slice(1);
+  if (d.startsWith("0")) d = d.slice(1);
+  // "15" después del código de área (2 a 4 dígitos)
+  for (const pos of [2, 3, 4]) {
+    if (d.length === 12 && d.slice(pos, pos + 2) === "15") {
+      d = d.slice(0, pos) + d.slice(pos + 2);
+      break;
+    }
+  }
+  return d;
 }

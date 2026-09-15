@@ -177,6 +177,27 @@ export default async function ReservationPage({ params, searchParams }: Props) {
         )}
 
         {reservation.status === "PAID" && upcoming && (
+          <div className="card p-6">
+            <p className="eyebrow">Esa noche</p>
+            <ul className="mt-3 grid gap-2 text-sm text-muted sm:grid-cols-2">
+              <li>
+                <span className="text-ink">Llegá {formatTime(reservation.event.date)} hs.</span> Es una casa sin cartel: portón, pasillo y puerta.
+              </li>
+              <li>
+                <span className="text-ink">Te recibimos con un cóctel sin alcohol</span> de la casa, de pie, mientras llegan todos.
+              </li>
+              <li>
+                <span className="text-ink">La cena está paga.</span> Lo que quieras tomar además, de la barra, se paga esa noche.
+              </li>
+              <li>
+                <span className="text-ink">¿Alergias o algo que tengamos que saber?</span>{" "}
+                {reservation.notes ? `Ya lo tenemos anotado: “${reservation.notes}”.` : "Avisanos por WhatsApp antes del jueves."}
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {reservation.status === "PAID" && upcoming && (
           <ol className="grid gap-2 text-sm sm:grid-cols-3">
             <Next n="1" done={mine.length > 0} text={mine.length > 0 ? "Silla elegida" : "Elegí tu silla acá abajo"} />
             <Next n="2" text="Guardá este link: tiene la dirección y tu lugar" />

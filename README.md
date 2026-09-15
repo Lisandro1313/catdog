@@ -55,7 +55,7 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 2. El usuario elige **cuántos son** (hasta 4), completa nombre / email / WhatsApp, puede avisar algo (alergias, vegetariano, festejo) y toca "Reservar y pagar".
 3. Se crea una reserva `PENDING` que **bloquea ese cupo 30 minutos** y se lo manda a Mercado Pago.
 4. Mercado Pago avisa al webhook `/api/mp/webhook` (y además la página de retorno `/reserva/[id]` verifica el pago por si el webhook demora). Si está aprobado, la reserva pasa a `PAID`, salen los mails y **recién ahí elige su silla** en la mesa, desde esa misma página (el link va en el mail). Puede cambiarla hasta el día de la cena si hay lugar.
-5. Si no paga en 30 minutos, el cupo vuelve a estar libre solo.
+5. Si no paga en 30 minutos, el cupo vuelve a estar libre solo. Si la misma persona (mismo mail) vuelve a intentar mientras su reserva sigue en proceso, se la lleva al mismo pago en vez de bloquear más lugares; y una misma conexión no puede tener más de dos reservas sin pagar a la vez en una cena (para que nadie bloquee la mesa).
 6. La dirección exacta solo la ve quien ya pagó (en la página de su reserva y en el mail). Esa página tiene además "qué pasa ahora", botones para agregar la cena a Google Calendar o bajar el `.ics` (`/reserva/[id]/calendario`, solo si está paga) y uno para avisar por WhatsApp a los que vienen. El mail de confirmación es una ficha: cena, cuándo, dónde (con número), lugares y monto, silla o link para elegirla, hora de llegada, pasos de la noche y los WhatsApp de consulta.
 
 ## Panel `/admin`
@@ -79,7 +79,7 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 - Botón "Avisar a suscriptores": manda el mail de nueva fecha a todos los anotados.
 - QR + link del sitio para el flyer.
 
-Las visitas se cuentan con un beacon desde las pantallas públicas (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. No cuenta las visitas al panel ni las hechas desde `npm run dev` (la base es la misma que en producción). El panel muestra el total y el desglose por página, así se ve qué link trae gente.
+Las visitas se cuentan con un beacon desde las pantallas públicas (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. Cada vez que alguien toca "Reservar y pagar" se cuenta un intento (`/reservar`): el inicio del panel muestra el embudo visitas → intentos → pagos. No cuenta las visitas al panel ni las hechas desde `npm run dev` (la base es la misma que en producción). El panel muestra el total y el desglose por página, así se ve qué link trae gente.
 
 ## Tareas automáticas (cron de Vercel, gratis)
 

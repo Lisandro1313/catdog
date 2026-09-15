@@ -393,6 +393,20 @@ export default async function HomePage() {
               <Step n="3" text="Elegís tu silla y te llega la dirección" />
             </ol>
             <div className="card card-gold mt-8 p-6 sm:p-8">
+              {nextOpen && (
+                <div className="mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-line pb-5">
+                  <p>
+                    <span className="font-display text-3xl">{formatPrice(nextOpen.price)}</span>
+                    <span className="text-sm text-muted"> por persona</span>
+                  </p>
+                  <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+                    <li>✓ Cóctel de recepción</li>
+                    <li>✓ {steps.length > 0 ? `${steps.length} pasos` : "La cena completa"}</li>
+                    <li>✓ Un cóctel de autor por paso</li>
+                    <li>✓ Agua en la mesa</li>
+                  </ul>
+                </div>
+              )}
               {nextOpen ? (
                 <ReserveForm events={reservable} defaultEventId={nextOpen.id} maxSeats={MAX_SEATS_PER_RESERVATION} />
               ) : (
