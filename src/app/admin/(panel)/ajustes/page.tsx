@@ -4,23 +4,24 @@ import { PARTNERS } from "@/lib/ledger-categories";
 import { getAnalysisMode } from "@/lib/ai-analysis";
 import { isReceiptStorageConfigured } from "@/lib/receipts";
 import { isMercadoPagoConfigured } from "@/lib/mp";
-import { isEmailConfigured } from "@/lib/email";
+import { emailReachesEveryone, mailModeLabel } from "@/lib/mailer";
 import { formatShort } from "@/lib/dates";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { InstallApp } from "@/components/admin/InstallApp";
 import { FixedExpensesPanel } from "@/components/admin/FixedExpensesPanel";
 import { getFixedExpenses } from "@/lib/fixed-expenses";
-import { DEFAULT_ABOUT, getAbout, getPhotos } from "@/lib/photos";
-import { AboutPanel, PhotosPanel } from "@/components/admin/HomeContentPanel";
+import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos } from "@/lib/photos";
+import { AboutPanel, InstagramPanel, PhotosPanel } from "@/components/admin/HomeContentPanel";
 import { logoutAction } from "../../actions";
 
 export default async function AjustesPage() {
-  const [session, users, fixed, photos, about] = await Promise.all([
+  const [session, users, fixed, photos, about, instagram] = await Promise.all([
     getSession(),
     prisma.user.findMany({ select: { name: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     getFixedExpenses(),
     getPhotos(),
     getAbout(),
+    getInstagram(),
   ]);
   const me = session?.role === "user" ? session.name : null;
   const missing = PARTNERS.filter((p) => !users.some((u) => u.name === p));
@@ -78,6 +79,7 @@ export default async function AjustesPage() {
         <h2 className="font-display text-2xl">Quiénes somos</h2>
         <p className="mt-1 text-sm text-muted">El texto que cuenta quiénes son y qué es la noche. Lo lee la gente antes de decidir reservar.</p>
         <AboutPanel current={about} isDefault={about === DEFAULT_ABOUT} />
+        <InstagramPanel current={instagram} />
       </section>
 
       <section className="card p-5 sm:p-6">
@@ -101,7 +103,7 @@ export default async function AjustesPage() {
         <h2 className="font-display text-2xl">Estado de los servicios</h2>
         <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           <Status ok={isMercadoPagoConfigured()} label="Mercado Pago (cobros)" />
-          <Status ok={isEmailConfigured()} label="Mails (Resend)" />
+          <Status ok={emailReachesEveryone()} label={`Mails · ${mailModeLabel()}`} />
           <Status ok={isReceiptStorageConfigured()} label="Fotos de comprobantes (Vercel Blob)" />
           <Status
             ok={getAnalysisMode() !== "reglas"}

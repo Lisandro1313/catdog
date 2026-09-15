@@ -15,7 +15,7 @@ type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-const include = { event: true, seats: { orderBy: { number: "asc" as const } } };
+const include = { event: true, seats: { orderBy: { number: "asc" as const } }, review: { select: { id: true } } };
 
 export default async function ReservationPage({ params, searchParams }: Props) {
   const { id } = await params;
@@ -151,6 +151,18 @@ export default async function ReservationPage({ params, searchParams }: Props) {
             </>
           )}
         </div>
+
+        {reservation.status === "PAID" && !upcoming && (
+          <div className="card p-6 text-center">
+            <p className="font-display text-2xl">{reservation.review ? "Gracias por tu opinión" : "¿Cómo la pasaste?"}</p>
+            <p className="mt-2 text-sm text-muted">
+              {reservation.review ? "Podés editarla cuando quieras." : "Contanos en dos minutos: nos ayuda con las próximas cenas."}
+            </p>
+            <Link href={`/opinar/${reservation.id}`} className="btn btn-primary mt-5">
+              {reservation.review ? "Ver o editar" : "Dejar mi opinión"}
+            </Link>
+          </div>
+        )}
 
         {reservation.status === "PAID" && upcoming && (
           <ol className="grid gap-2 text-sm sm:grid-cols-3">

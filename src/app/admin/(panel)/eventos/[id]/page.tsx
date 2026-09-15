@@ -6,11 +6,20 @@ import { formatShort, nowMs, toDatetimeLocal, todayIso } from "@/lib/dates";
 import { categoryLabel, getFinancials, toRow } from "@/lib/admin-stats";
 import { getSession } from "@/lib/admin-auth";
 import { EventForm } from "@/components/admin/EventForm";
-import { AssignSeatsForm, ManualReservationForm, NotifyForm } from "@/components/admin/ActionForms";
+import { AssignSeatsForm, ManualReservationForm, NotifyForm, RequestReviewsForm } from "@/components/admin/ActionForms";
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
-import { cancelReservationAction, deleteEventAction, deleteReservationAction, duplicateEventAction, markPaidAction, updateEventAction } from "../../../actions";
+import {
+  approveReviewAction,
+  cancelReservationAction,
+  deleteEventAction,
+  deleteReservationAction,
+  deleteReviewAction,
+  duplicateEventAction,
+  markPaidAction,
+  updateEventAction,
+} from "../../../actions";
 
 export default async function AdminEventPage({
   params,
@@ -30,6 +39,7 @@ export default async function AdminEventPage({
           include: { seats: { orderBy: { number: "asc" } } },
         },
         ledger: { where: { deletedAt: null }, orderBy: { createdAt: "desc" }, include: { event: { select: { title: true } } } },
+        reviews: { orderBy: { createdAt: "desc" } },
       },
     }),
     prisma.subscriber.count(),
@@ -45,6 +55,8 @@ export default async function AdminEventPage({
     (r) => r.status === "PAID" || (r.status === "PENDING" && r.expiresAt.getTime() > now),
   );
   const paidSeats = active.filter((r) => r.status === "PAID").reduce((n, r) => n + r.quantity, 0);
+  const paidPeople = event.reservations.filter((r) => r.status === "PAID").length;
+  const past = event.date.getTime() < now;
   const holdSeats = active.filter((r) => r.status === "PENDING").reduce((n, r) => n + r.quantity, 0);
 
   return (
@@ -197,6 +209,47 @@ export default async function AdminEventPage({
           <ManualReservationForm eventId={event.id} />
         </div>
       </section>
+
+      {past && (
+        <section className="card p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-display text-2xl">Opiniones</h2>
+            <RequestReviewsForm eventId={event.id} people={paidPeople} />
+          </div>
+          {event.reviews.length === 0 ? (
+            <p className="mt-4 text-sm text-muted">Todavía nadie opinó. Las que se aprueban salen en el home.</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-line">
+              {event.reviews.map((rv) => (
+                <li key={rv.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm">
+                      <span className="text-accent">{"★".repeat(rv.rating)}</span>
+                      <span className="text-line">{"★".repeat(5 - rv.rating)}</span>
+                      <span className="ml-2 font-medium">{rv.name}</span>
+                      <span className={`ml-2 text-xs ${rv.approved ? "text-ok" : "text-muted"}`}>{rv.approved ? "publicada" : "pendiente"}</span>
+                    </p>
+                    <p className="mt-1 text-sm text-muted">{rv.text}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <form action={approveReviewAction}>
+                      <input type="hidden" name="id" value={rv.id} />
+                      <input type="hidden" name="approved" value={rv.approved ? "0" : "1"} />
+                      <button className="btn btn-ghost btn-sm" type="submit">
+                        {rv.approved ? "Ocultar" : "Publicar"}
+                      </button>
+                    </form>
+                    <form action={deleteReviewAction}>
+                      <input type="hidden" name="id" value={rv.id} />
+                      <ConfirmButton message={`¿Borrar la opinión de ${rv.name}?`}>Borrar</ConfirmButton>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <section id="caja" className="card scroll-mt-6 p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-3">

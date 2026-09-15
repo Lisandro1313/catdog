@@ -26,6 +26,13 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
   siguiente: en la página de una cena, "Repetir la semana que viene" la copia siete días después.
 - **Vista previa al compartir**: el link genera solo una imagen (`/opengraph-image`) con la próxima
   fecha, la carta y el precio, que WhatsApp e Instagram muestran debajo del link.
+- **Opiniones**: después de la cena, cada persona que pagó puede dejar estrellas y una frase en
+  `/opinar/[id de su reserva]` (el link va en el mail "¿cómo la pasaste?" y en su página de reserva).
+  Quedan pendientes hasta que se aprueban desde el panel; las aprobadas salen en el home en
+  "Lo que dicen los que vinieron" (con el promedio cuando hay tres o más).
+- **Google**: el home lleva datos estructurados (`FoodEvent`: fecha, precio, disponibilidad, zona sin
+  número) para que aparezca como evento en las búsquedas, más `robots.txt` y `sitemap.xml`.
+  Páginas de error y "no encontrado" en criollo.
 - `/fechas` — la versión de siempre: la semana de la próxima cena, los pasos, la reserva y el dibujo de la mesa.
 - `/apertura` — redirige a `/` (era la dirección vieja del afiche).
 
@@ -54,6 +61,8 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 - **¿Cómo venimos?**: botón "Analizar" que lee todos los números y devuelve, en criollo: estado (bien / justos / rojo), resumen, proyección de la semana que viene, cubiertos para cubrir gastos, un mensaje por socio, alertas y qué hacer esta semana. **Por defecto lo hace el código con reglas: gratis, instantáneo, sin ningún servicio.** Si hay una clave de IA configurada, lo escribe un modelo (ver "Activar la IA"). Se guarda el último análisis con la fecha y el modo.
 - **Esta semana** y **Semana a semana**: reservas (cuentan en la semana de la cena), barra, gastos y resultado; promedio de gastos y punto de equilibrio en cubiertos.
 - **Caja por cena:** en la página de la cena, sección **Caja**, para lo puntual de esa noche (la barra al cierre, un insumo). Usa el mismo formulario.
+- **Opiniones** (en la página de cada cena, cuando ya pasó): botón "Pedir opiniones por mail" (un mail con link personal a cada persona que pagó) y la lista de opiniones recibidas con **Publicar / Ocultar / Borrar**. Solo las publicadas salen en el home.
+- **Instagram** (en Ajustes, bajo Quiénes somos): el usuario, sin la @. Aparece en el home; vacío no se muestra.
 - **Fotos del lugar y Quiénes somos** (en Ajustes): se suben fotos de la casa (se achican en el teléfono antes de subir, se guardan públicas en Blob) con un epígrafe opcional, y se edita el texto de "Quiénes somos" que sale en el home. Sin fotos, el home no muestra la sección.
 - **Contactos:** todas las personas que pagaron alguna vez, una fila por email, con teléfono, cantidad de cenas, lugares, gasto total y última cena. Botón para descargar CSV.
 - Botón "Avisar a suscriptores": manda el mail de nueva fecha a todos los anotados.
@@ -106,8 +115,10 @@ Las de la base ya las carga la integración de Neon. Faltan estas (se setean con
 | `APP_SECRET` | Firmar links de baja de mails | Ya está seteada. |
 | `MP_ACCESS_TOKEN` | Cobrar | [Panel de desarrolladores de Mercado Pago](https://www.mercadopago.com.ar/developers/panel/app) → tu aplicación → **Credenciales de producción** → Access Token (empieza con `APP_USR-`). |
 | `MP_WEBHOOK_SECRET` | Verificar que las notificaciones vienen de MP (opcional pero recomendado) | Misma app → **Webhooks** → configurar URL `https://TU-DOMINIO/api/mp/webhook`, evento "Pagos" → copiar la **clave secreta**. |
-| `RESEND_API_KEY` | Mandar mails | La carga sola la integración Resend de Vercel (ver abajo). |
-| `EMAIL_FROM` | Remitente | Sin dominio verificado dejá `CatDog <onboarding@resend.dev>` (solo manda a tu propia casilla). Para mandarle a la gente hay que verificar un dominio en Resend. |
+| `GMAIL_USER` + `GMAIL_APP_PASSWORD` | Mandar mails por Gmail (gratis, sin dominio propio) | Ver "Mails por Gmail" abajo. Si están cargadas, tienen prioridad sobre Resend. |
+| `RESEND_API_KEY` | Mandar mails por Resend | La carga sola la integración Resend de Vercel (ver abajo). **Sin dominio verificado solo manda a tu propia casilla**: la gente no recibe la confirmación. |
+| `EMAIL_FROM` | Remitente en Resend | Solo cuando hay dominio verificado en Resend, p. ej. `CatDog <hola@tudominio.ar>`. |
+| `NEXT_PUBLIC_SITE_URL` | URL pública del sitio | Ya seteada: `https://catdog-omega.vercel.app`. Se usa en los links de vuelta de Mercado Pago, mails y vista previa. **Cambiarla cuando haya dominio propio.** |
 | `ADMIN_EMAIL` | A dónde te avisamos cada reserva pagada | Tu mail. |
 | `NEXT_PUBLIC_SITE_NAME` / `NEXT_PUBLIC_SITE_TAGLINE` | Nombre y subtítulo | Opcionales (default "CatDog" / "Cena a puertas cerradas"). |
 | `NEXT_PUBLIC_PARTNERS` | Nombres de los socios, separados por coma | Opcional (default "Lisandro,Agustín"). |
@@ -116,6 +127,21 @@ Las de la base ya las carga la integración de Neon. Faltan estas (se setean con
 | `BLOB_READ_WRITE_TOKEN` | Fotos de comprobantes | Ya cargada por el store de Vercel Blob. |
 
 Después de agregar variables hay que volver a desplegar: `vercel deploy --prod`.
+
+## Mails por Gmail (gratis, sin dominio)
+
+Mientras no haya dominio propio, la forma de que **la gente reciba** la confirmación es mandar desde
+una cuenta de Gmail (hasta 500 mails por día, de sobra):
+
+1. Entrá a la cuenta de Gmail que va a mandar (puede ser una nueva tipo `cenas.catdog@gmail.com`).
+2. Activá la **verificación en dos pasos**: https://myaccount.google.com/security
+3. Creá una **contraseña de aplicación**: https://myaccount.google.com/apppasswords → nombre "CatDog"
+   → te da 16 letras.
+4. Cargá las dos variables en Vercel (Settings → Environment Variables, o por terminal):
+   `GMAIL_USER` = la casilla, `GMAIL_APP_PASSWORD` = esas 16 letras (sin espacios).
+5. Redeploy. En Ajustes → "Estado de los servicios" tiene que decir "Mails · Gmail (…)" en verde.
+
+Los mails salen como "CatDog <tu casilla>". Las respuestas de la gente te llegan a esa casilla.
 
 ## Activar Resend
 
@@ -143,7 +169,8 @@ Migraciones: `npm run db:migrate` (crea y aplica). En Vercel el build corre `pri
 - `Seat`: una silla elegida por una reserva pagada. Única por evento, así dos personas no pueden agarrar la misma.
 - `Subscriber`: emails anotados para enterarse de nuevas fechas.
 - `LedgerEntry`: movimientos de caja: ingreso, gasto, aporte o retiro; rubro, detalle, monto, día, quién, si salió del bolsillo del socio o de la caja; opcionalmente atado a una cena.
-- `Setting`: configuración editable desde el panel (`reserve` = colchón que no se reparte; `ai:analysis` = último análisis de la IA; `about` = texto de "Quiénes somos").
+- `Setting`: configuración editable desde el panel (`reserve` = colchón que no se reparte; `ai:analysis` = último análisis de la IA; `about` = texto de "Quiénes somos"; `instagram` = usuario).
+- `Review`: opinión de una reserva pagada (una por reserva): nombre para mostrar, estrellas, texto, aprobada o no.
 - `Photo`: fotos del lugar para el home (URL pública en Blob, epígrafe, orden).
 - `FixedExpense`: gastos fijos mensuales; sus entradas semanales en `LedgerEntry` llevan `fixedExpenseId` + `periodKey` (lunes) únicos, para no duplicar.
 - `User`: usuarios del panel (nombre y contraseña con hash scrypt). La sesión es una cookie firmada con `APP_SECRET` (o `ADMIN_PASSWORD`).

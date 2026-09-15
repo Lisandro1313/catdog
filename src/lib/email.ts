@@ -1,23 +1,9 @@
-import { Resend } from "resend";
 import { createHmac } from "node:crypto";
 import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, siteUrl, whatsappUrl } from "./config";
 import { formatLong, formatTime } from "./dates";
+import { isEmailConfigured, sendMail, sendMany } from "./mailer";
 
-function resend(): Resend | null {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return null;
-  return new Resend(key);
-}
-
-function from(): string {
-  // Sin dominio verificado en Resend solo se puede mandar desde onboarding@resend.dev
-  // y únicamente a la casilla dueña de la cuenta.
-  return process.env.EMAIL_FROM ?? `${SITE_NAME} <onboarding@resend.dev>`;
-}
-
-export function isEmailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
-}
+export { isEmailConfigured };
 
 function secret(): string {
   return process.env.APP_SECRET ?? process.env.ADMIN_PASSWORD ?? "dev-secret";
@@ -54,8 +40,7 @@ export async function sendReservationConfirmed(input: {
   amount: number;
   reservationId: string;
 }) {
-  const r = resend();
-  if (!r || input.to.endsWith("@local")) return { skipped: true as const };
+  if (!isEmailConfigured() || input.to.endsWith("@local")) return { skipped: true as const };
   const link = `${siteUrl()}/reserva/${input.reservationId}`;
   const lugares = input.quantity === 1 ? "1 lugar" : `${input.quantity} lugares`;
   const row = (k: string, v: string) =>
@@ -83,8 +68,7 @@ export async function sendReservationConfirmed(input: {
         : ""
     }
     <p>Guardá este mail: tiene la dirección y el link de tu reserva.</p>`;
-  const { error } = await r.emails.send({
-    from: from(),
+  const { error } = await sendMail({
     to: input.to,
     subject: `Reserva confirmada · ${input.event.title} · ${formatLong(input.event.date)}`,
     html: layout("¡Reserva confirmada!", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`),
@@ -103,17 +87,15 @@ export async function sendAdminNewReservation(input: {
   amount: number;
   via: string;
 }) {
-  const r = resend();
   const adminEmail = process.env.ADMIN_EMAIL;
-  if (!r || !adminEmail) return;
+  if (!isEmailConfigured() || !adminEmail) return;
   const body = `
     <p><strong>${input.name}</strong> reservó ${input.quantity} lugar${input.quantity > 1 ? "es" : ""}.</p>
     <p>${input.event.title} · ${formatLong(input.event.date)}</p>
     <p>Email: ${input.email}<br>Tel: ${input.phone ?? "-"}<br>Pagó ${formatPrice(input.amount)} vía ${input.via}.</p>
     ${input.notes ? `<p><em>Nos avisa:</em> ${input.notes}</p>` : ""}
     <p><a href="${siteUrl()}/admin" style="color:#c9a96e">Ver panel</a></p>`;
-  const { error } = await r.emails.send({
-    from: from(),
+  const { error } = await sendMail({
     to: adminEmail,
     subject: `Nueva reserva: ${input.name} (${input.quantity})`,
     html: layout("Nueva reserva", body),
@@ -125,12 +107,10 @@ export async function sendNewEventBlast(input: {
   emails: string[];
   event: EventLike;
 }): Promise<{ sent: number; failed: number }> {
-  const r = resend();
-  if (!r || input.emails.length === 0) return { sent: 0, failed: 0 };
+  if (!isEmailConfigured() || input.emails.length === 0) return { sent: 0, failed: 0 };
 
   const subject = `Nueva fecha: ${input.event.title} · ${formatLong(input.event.date)}`;
   const messages = input.emails.map((email) => ({
-    from: from(),
     to: email,
     subject,
     html: layout(
@@ -145,18 +125,27 @@ export async function sendNewEventBlast(input: {
     ),
   }));
 
-  let sent = 0;
-  let failed = 0;
-  // Resend permite hasta 100 mails por batch.
-  for (let i = 0; i < messages.length; i += 100) {
-    const chunk = messages.slice(i, i + 100);
-    const { error } = await r.batch.send(chunk);
-    if (error) {
-      console.error("[email] batch falló", error);
-      failed += chunk.length;
-    } else {
-      sent += chunk.length;
-    }
-  }
-  return { sent, failed };
+  return sendMany(messages);
+}
+
+/** Al día siguiente de la cena: un mail corto pidiendo la opinión, con link personal. */
+export async function sendReviewRequests(input: {
+  event: EventLike;
+  people: { id: string; name: string; email: string }[];
+}): Promise<{ sent: number; failed: number }> {
+  const people = input.people.filter((p) => !p.email.endsWith("@local"));
+  if (!isEmailConfigured() || people.length === 0) return { sent: 0, failed: 0 };
+  const messages = people.map((p) => ({
+    to: p.email,
+    subject: `¿Cómo la pasaste? · ${input.event.title}`,
+    html: layout(
+      "Gracias por venir",
+      `<p>Hola ${p.name.split(" ")[0]}. Gracias por sentarte a la mesa el ${formatLong(input.event.date).toLowerCase()}.</p>
+       <p>¿Nos contás cómo la pasaste? Son dos minutos y nos sirve mucho para las próximas:</p>
+       <p><a href="${siteUrl()}/opinar/${p.id}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#c9a96e;color:#141210;text-decoration:none;font-weight:bold">Dejar mi opinión</a></p>
+       <p>Y si conocés a alguien que le gustaría venir, la próxima fecha está en <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl().replace(/^https?:\/\//, "")}</a>.</p>`,
+      "Recibís este mail porque viniste a una de nuestras cenas.",
+    ),
+  }));
+  return sendMany(messages);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { addPhotoAction, removePhotoAction, setAboutAction } from "@/app/admin/actions";
+import { addPhotoAction, removePhotoAction, setAboutAction, setInstagramAction } from "@/app/admin/actions";
 import { compressImage, replaceInputFile } from "@/lib/client-image";
 import type { PhotoRow } from "@/lib/photos";
 
@@ -81,6 +81,26 @@ function PhotoCard({ photo }: { photo: PhotoRow }) {
         )}
       </div>
     </li>
+  );
+}
+
+export function InstagramPanel({ current }: { current: string }) {
+  const [state, action, pending] = useActionState(setInstagramAction, null);
+  return (
+    <form action={action} className="mt-4 flex flex-wrap items-end gap-3">
+      <label className="grid gap-1 text-xs text-muted">
+        Usuario de Instagram
+        <div className="flex items-center gap-1">
+          <span className="text-muted">@</span>
+          <input className="input" name="instagram" defaultValue={current} placeholder="lacasadela66" maxLength={40} />
+        </div>
+      </label>
+      <button className="btn btn-primary btn-sm" type="submit" disabled={pending}>
+        {pending ? "Guardando…" : "Guardar"}
+      </button>
+      <p className="basis-full text-xs text-muted">Aparece abajo del texto de “Quiénes somos” y en el pie del home. Vacío = no se muestra.</p>
+      {state?.message && <p className={`basis-full text-sm ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
+    </form>
   );
 }
 

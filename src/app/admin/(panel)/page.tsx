@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { DEFAULT_CAPACITY, DEFAULT_PRICE, formatPrice, siteUrl } from "@/lib/config";
 import { formatDay, formatLong, formatShort, formatTime, nowMs, toDatetimeLocal } from "@/lib/dates";
 import { isMercadoPagoConfigured } from "@/lib/mp";
-import { isEmailConfigured } from "@/lib/email";
+import { emailReachesEveryone, mailModeLabel } from "@/lib/mailer";
 import { getNextEvent } from "@/lib/reservations";
 import { getFinancials, getVisitStats } from "@/lib/admin-stats";
 import { EventForm } from "@/components/admin/EventForm";
@@ -82,7 +82,7 @@ export default async function AdminHome() {
       {/* Estado + números generales */}
       <section className="grid gap-4 sm:grid-cols-4">
         <Status ok={isMercadoPagoConfigured()} label="Mercado Pago" hint="MP_ACCESS_TOKEN" />
-        <Status ok={isEmailConfigured()} label="Emails (Resend)" hint="RESEND_API_KEY" />
+        <Status ok={emailReachesEveryone()} label="Emails" hint={mailModeLabel()} />
         <div className="card p-4">
           <p className="text-xs text-muted">Suscriptores</p>
           <p className="font-display text-3xl">{subscribers}</p>

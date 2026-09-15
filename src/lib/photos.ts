@@ -40,6 +40,12 @@ Una noche por semana ponemos una sola mesa larga. Se llega, se toma algo de pie,
 
 No es un restaurante: es una noche en casa, con la puerta cerrada y la cocina abierta.`;
 
+/** Usuario de Instagram sin la @ (vacío si no cargaron). */
+export async function getInstagram(): Promise<string> {
+  const s = await prisma.setting.findUnique({ where: { key: "instagram" } });
+  return (s?.value ?? "").trim().replace(/^@/, "");
+}
+
 export async function getAbout(): Promise<string> {
   const s = await prisma.setting.findUnique({ where: { key: "about" } });
   return s?.value?.trim() || DEFAULT_ABOUT;

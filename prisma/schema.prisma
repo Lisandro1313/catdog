@@ -31,6 +31,7 @@ model Event {
   reservations Reservation[]
   seats        Seat[]
   ledger       LedgerEntry[]
+  reviews      Review[]
 }
 
 enum ReservationStatus {
@@ -64,7 +65,8 @@ model Reservation {
   expiresAt      DateTime
   createdAt      DateTime          @default(now())
 
-  seats Seat[]
+  seats  Seat[]
+  review Review?
 
   @@index([eventId, status])
 }
@@ -181,4 +183,21 @@ model Photo {
   caption   String?
   sort      Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+/// Opinión de alguien que vino. Aparece en el home solo cuando se aprueba desde el panel.
+model Review {
+  id            String      @id @default(cuid())
+  reservationId String      @unique
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  eventId       String
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name          String
+  rating        Int
+  text          String
+  approved      Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([approved, createdAt])
 }

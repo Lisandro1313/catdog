@@ -4,7 +4,7 @@ import { MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config"
 import { formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
 import { getUpcomingEvents } from "@/lib/reservations";
 import { parseBar, parseMenu } from "@/lib/menu";
-import { getAbout, getPhotos } from "@/lib/photos";
+import { getAbout, getInstagram, getPhotos } from "@/lib/photos";
 import { prisma } from "@/lib/prisma";
 import { BarList } from "@/components/BarList";
 import { ReserveForm, type ReservableEvent } from "@/components/ReserveForm";
@@ -13,6 +13,8 @@ import { TrackVisit } from "@/components/TrackVisit";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { StickyCta } from "@/components/StickyCta";
 import { Reveal } from "@/components/Reveal";
+import { foodEventJsonLd } from "@/lib/structured-data";
+import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [upcoming, about, photos, eventCount] = await Promise.all([getUpcomingEvents(), getAbout(), getPhotos(), prisma.event.count()]);
+  const [upcoming, about, photos, eventCount, reviews, rating, instagram] = await Promise.all([
+    getUpcomingEvents(),
+    getAbout(),
+    getPhotos(),
+    prisma.event.count(),
+    getApprovedReviews(),
+    getAverageRating(),
+    getInstagram(),
+  ]);
   // El afiche muestra la fecha más cercana; si se llenó, la reserva pasa a la siguiente con lugar.
   const event = upcoming[0] ?? null;
   const free = event?.free ?? 0;
@@ -86,7 +96,7 @@ export default async function HomePage() {
     },
     {
       q: "¿Y si no puedo ir?",
-      a: "Escribinos con tiempo por el WhatsApp que te llega con la confirmación y lo resolvemos entre todos.",
+      a: "Avisanos con tiempo por el WhatsApp que te llega con la confirmación. Podés pasarle tu lugar a otra persona (nos decís el nombre y listo) o, si hay lugar, cambiar a otra fecha.",
     },
   ];
 
@@ -96,6 +106,12 @@ export default async function HomePage() {
     <div className="ap flex flex-1 flex-col pb-24 sm:pb-0">
       <TrackVisit path="/" />
       <Reveal />
+      {event && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(foodEventJsonLd(event, photos.map((p) => p.url))) }}
+        />
+      )}
 
       {/* Nav de anclas (escritorio) */}
       <nav className="sticky top-0 z-20 hidden border-b border-line/60 bg-bg/85 backdrop-blur sm:block" aria-label="Secciones">
@@ -106,6 +122,9 @@ export default async function HomePage() {
           <div className="flex gap-6 text-muted">
             <a href="#carta" className="hover:text-ink">La carta</a>
             <a href="#nosotros" className="hover:text-ink">Quiénes somos</a>
+            {reviews.length > 0 && (
+              <a href="#opiniones" className="hover:text-ink">Opiniones</a>
+            )}
             <a href="#donde" className="hover:text-ink">Dónde</a>
             <a href="#reservar" className="btn btn-primary btn-sm">Reservar</a>
           </div>
@@ -245,7 +264,47 @@ export default async function HomePage() {
                 <p key={i}>{p}</p>
               ))}
             </div>
+            {instagram && (
+              <p className="mt-6 text-center">
+                <a
+                  href={`https://instagram.com/${instagram}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink"
+                >
+                  <InstagramIcon /> @{instagram}
+                </a>
+              </p>
+            )}
           </section>
+
+          {/* Lo que dicen */}
+          {reviews.length > 0 && (
+            <section id="opiniones" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-14">
+              <div className="text-center">
+                <p className="ap-eyebrow">Lo que dicen los que vinieron</p>
+                {rating && rating.count >= 3 && (
+                  <p className="mt-3 text-sm text-muted">
+                    <span className="text-accent">{"★".repeat(Math.round(rating.avg))}</span> {rating.avg} de 5 · {rating.count} opiniones
+                  </p>
+                )}
+              </div>
+              <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+                {reviews.map((r) => (
+                  <li key={r.id} className="card p-5">
+                    <p className="text-sm text-accent" aria-label={`${r.rating} de 5`}>
+                      {"★".repeat(r.rating)}
+                      <span className="text-line">{"★".repeat(5 - r.rating)}</span>
+                    </p>
+                    <p className="mt-3 leading-relaxed">“{r.text}”</p>
+                    <p className="mt-3 text-xs text-muted">
+                      {r.name} · {r.eventTitle}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {/* Dónde */}
           <section id="donde" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-14">
@@ -345,6 +404,16 @@ export default async function HomePage() {
 
       <footer className="border-t border-line py-8 text-center text-xs text-muted">
         <p>{SITE_NAME} · Cena a puertas cerradas · La Plata</p>
+        {instagram && (
+          <a
+            href={`https://instagram.com/${instagram}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center gap-1.5 hover:text-ink"
+          >
+            <InstagramIcon /> @{instagram}
+          </a>
+        )}
         <Link href="/fechas" className="mt-2 inline-block hover:text-ink">
           Ver todas las fechas
         </Link>
@@ -366,6 +435,16 @@ function spellOut(n: number): string {
   const words = ["cero", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
   const w = words[n] ?? String(n);
   return w.charAt(0).toUpperCase() + w.slice(1);
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
 }
 
 function Step({ n, text }: { n: string; text: string }) {

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ReservationError, chooseSeats, createHoldAndCheckout } from "@/lib/reservations";
 import { MAX_SEATS_PER_RESERVATION } from "@/lib/config";
+import { canReview } from "@/lib/reviews";
 
 const reserveSchema = z.object({
   eventId: z.string().min(1),
@@ -69,6 +70,30 @@ export async function subscribeAction(_prev: SubscribeResult | null, formData: F
     where: { email: email.data },
     update: {},
     create: { email: email.data },
+  });
+  return { ok: true };
+}
+
+const reviewSchema = z.object({
+  reservationId: z.string().min(1),
+  name: z.string().trim().min(2, "Poné cómo querés que aparezca tu nombre").max(60),
+  rating: z.number().int().min(1, "Elegí las estrellas").max(5),
+  text: z.string().trim().min(10, "Contanos un poquito más").max(400, "Hasta 400 caracteres"),
+});
+
+export type ReviewResult = { ok: true } | { ok: false; error: string };
+
+/** Opinión de alguien que vino: queda pendiente hasta que se aprueba en el panel. */
+export async function submitReviewAction(input: unknown): Promise<ReviewResult> {
+  const parsed = reviewSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  const { reservationId, name, rating, text } = parsed.data;
+  const reservation = await prisma.reservation.findUnique({ where: { id: reservationId }, include: { event: true } });
+  if (!reservation || !canReview(reservation)) return { ok: false, error: "Esta reserva todavía no puede opinar." };
+  await prisma.review.upsert({
+    where: { reservationId },
+    update: { name, rating, text, approved: false },
+    create: { reservationId, eventId: reservation.eventId, name, rating, text },
   });
   return { ok: true };
 }

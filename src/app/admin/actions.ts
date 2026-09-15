@@ -20,7 +20,8 @@ import { storeReceipt } from "@/lib/receipts";
 import { ensureFixedEntries, refreshCurrentWeekEntry, weeklyAmount } from "@/lib/fixed-expenses";
 import { formatPrice } from "@/lib/config";
 import { addPhoto, removePhoto } from "@/lib/photos";
-import { sendNewEventBlast } from "@/lib/email";
+import { sendNewEventBlast, sendReviewRequests } from "@/lib/email";
+import { isEmailConfigured } from "@/lib/mailer";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
 
@@ -266,7 +267,7 @@ export async function notifySubscribersAction(_prev: ActionState, formData: Form
   if (!event) return { ok: false, message: "Evento inexistente." };
   const subs = await prisma.subscriber.findMany({ select: { email: true } });
   if (subs.length === 0) return { ok: false, message: "No hay suscriptores todavía." };
-  if (!process.env.RESEND_API_KEY) return { ok: false, message: "Falta RESEND_API_KEY: los mails no están habilitados." };
+  if (!isEmailConfigured()) return { ok: false, message: "Los mails no están configurados (ver Ajustes → Estado de los servicios)." };
 
   const { sent, failed } = await sendNewEventBlast({ emails: subs.map((s) => s.email), event });
   await prisma.event.update({ where: { id }, data: { notifiedAt: new Date() } });
@@ -652,4 +653,49 @@ export async function setAboutAction(_prev: ActionState, formData: FormData): Pr
   revalidatePath("/");
   revalidatePath("/admin/ajustes");
   return { ok: true, message: text ? "Texto guardado." : "Texto vacío: se muestra el de fábrica." };
+}
+
+export async function setInstagramAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const raw = String(formData.get("instagram") ?? "").trim();
+  const handle = raw.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/.*$/, "");
+  if (handle && !/^[A-Za-z0-9._]{1,30}$/.test(handle)) return { ok: false, message: "Ese usuario no parece válido." };
+  await prisma.setting.upsert({ where: { key: "instagram" }, update: { value: handle }, create: { key: "instagram", value: handle } });
+  revalidatePath("/");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: handle ? `Instagram guardado: @${handle}` : "Instagram quitado." };
+}
+
+// --- Opiniones ---
+
+export async function approveReviewAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const approved = formData.get("approved") === "1";
+  const r = await prisma.review.update({ where: { id }, data: { approved } });
+  revalidatePath("/");
+  revalidatePath(`/admin/eventos/${r.eventId}`);
+}
+
+export async function deleteReviewAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const r = await prisma.review.delete({ where: { id } });
+  revalidatePath("/");
+  revalidatePath(`/admin/eventos/${r.eventId}`);
+}
+
+/** Manda "¿cómo la pasaste?" a todos los que pagaron esa cena (una vez por cena). */
+export async function requestReviewsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const event = await prisma.event.findUnique({ where: { id }, include: { reservations: { where: { status: "PAID" } } } });
+  if (!event) return { ok: false, message: "Cena inexistente." };
+  if (event.date.getTime() > Date.now()) return { ok: false, message: "La cena todavía no pasó." };
+  if (!isEmailConfigured()) return { ok: false, message: "Los mails no están configurados (ver Ajustes → Estado de los servicios)." };
+  const { sent, failed } = await sendReviewRequests({
+    event,
+    people: event.reservations.map((r) => ({ id: r.id, name: r.name, email: r.email })),
+  });
+  return { ok: true, message: `Pedido enviado a ${sent} persona${sent === 1 ? "" : "s"}${failed ? ` (${failed} fallaron)` : ""}.` };
 }

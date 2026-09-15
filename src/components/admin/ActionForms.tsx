@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { assignSeatsAction, manualReservationAction, notifySubscribersAction } from "@/app/admin/actions";
+import { assignSeatsAction, manualReservationAction, notifySubscribersAction, requestReviewsAction } from "@/app/admin/actions";
 
 export function NotifyForm({ eventId, subscribers, notifiedAt }: { eventId: string; subscribers: number; notifiedAt: string | null }) {
   const [state, action, pending] = useActionState(notifySubscribersAction, null);
@@ -76,6 +76,26 @@ export function AssignSeatsForm({ reservationId, current, quantity }: { reservat
         {pending ? "…" : current.length ? "Cambiar" : "Asignar"}
       </button>
       {state?.message && !state.ok && <p className="text-xs text-danger basis-full">{state.message}</p>}
+    </form>
+  );
+}
+
+export function RequestReviewsForm({ eventId, people }: { eventId: string; people: number }) {
+  const [state, action, pending] = useActionState(requestReviewsAction, null);
+  return (
+    <form
+      action={action}
+      className="flex flex-wrap items-center gap-3"
+      onSubmit={(e) => {
+        if (!confirm(`¿Mandar "¿cómo la pasaste?" a las ${people} personas que pagaron esta cena?`)) e.preventDefault();
+      }}
+    >
+      <input type="hidden" name="id" value={eventId} />
+      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending || people === 0}>
+        {pending ? "Enviando…" : "Pedir opiniones por mail"}
+      </button>
+      <span className="text-xs text-muted">Un mail con link personal a cada persona que vino.</span>
+      {state?.message && <p className={`text-sm basis-full ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
     </form>
   );
 }
