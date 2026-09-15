@@ -103,7 +103,7 @@ export function ReserveForm({ events, defaultEventId, maxSeats }: Props) {
         <div className="flex items-center justify-between rounded-xl border border-line bg-surface-2 px-4 py-3">
           <div>
             <p className="text-sm text-muted">¿Cuántos son?</p>
-            <p className="text-xs text-muted/70">hasta {max} por reserva</p>
+            <p className="text-xs text-muted">hasta {max} por reserva</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -190,6 +190,13 @@ export function ReserveForm({ events, defaultEventId, maxSeats }: Props) {
           <path d="M8 11V7a4 4 0 0 1 8 0v4" />
         </svg>
         Pago seguro por Mercado Pago. Tu cupo queda guardado 30 minutos mientras pagás.
+      </p>
+      <p className="text-center text-xs text-muted">
+        Al reservar aceptás las{" "}
+        <a href="/condiciones" className="underline decoration-line underline-offset-2 hover:text-ink" target="_blank" rel="noopener">
+          condiciones
+        </a>
+        .
       </p>
     </form>
   );

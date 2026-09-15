@@ -15,6 +15,9 @@ import { StickyCta } from "@/components/StickyCta";
 import { Reveal } from "@/components/Reveal";
 import { AnchorNav } from "@/components/AnchorNav";
 import { Countdown } from "@/components/Countdown";
+import { MapFacade } from "@/components/MapFacade";
+import { ShareButton } from "@/components/ShareButton";
+import { siteUrl } from "@/lib/config";
 import { foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 
@@ -33,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = event
     ? `Una mesa larga en una casa de La Plata. Cinco pasos, cada plato con su trago. ${formatPrice(event.price)} por persona, pocos lugares.`
     : "Una mesa larga en una casa de La Plata. Cinco pasos, cada plato con su trago.";
-  return { title, description, openGraph: { title, description, type: "website" } };
+  return { title, description, openGraph: { title, description, type: "website" }, twitter: { card: "summary_large_image", title, description } };
 }
 
 export default async function HomePage() {
@@ -83,6 +86,10 @@ export default async function HomePage() {
     {
       q: "¿Dónde es exactamente?",
       a: `${ZONE}. Es una casa sin cartel: el número exacto te llega con la confirmación de la reserva, por mail y en tu página de reserva.`,
+    },
+    {
+      q: "¿Cómo llego?",
+      a: "Está en el casco urbano de La Plata, a pocas cuadras del centro: se llega en auto, en micro o caminando. Con la confirmación te mandamos el número exacto y alguna referencia para encontrar la puerta.",
     },
     {
       q: "¿Cómo se paga?",
@@ -330,16 +337,7 @@ export default async function HomePage() {
                   Llegá <span className="text-ink">{formatTime(event.date)} hs</span>. Se recibe con un trago de pie.
                 </p>
               </div>
-              <div className="overflow-hidden rounded-2xl border border-line bg-surface-2">
-                <iframe
-                  title="Mapa de la zona"
-                  src={`https://maps.google.com/maps?ll=${MAP_CENTER}&z=16&t=m&output=embed`}
-                  className="h-56 w-full sm:h-64"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  style={{ filter: "grayscale(1) invert(0.92) contrast(0.9) brightness(0.9)" }}
-                />
-              </div>
+              <MapFacade center={MAP_CENTER} title="Mapa de la zona" />
             </div>
           </section>
 
@@ -410,6 +408,13 @@ export default async function HomePage() {
               <p className="mt-1 text-sm text-muted">Dejá tu mail y te avisamos cuando abramos la próxima. Un mail por cena, nada más.</p>
               <SubscribeForm />
             </div>
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted">¿Conocés a alguien que tiene que venir?</p>
+              <ShareButton
+                className="btn btn-ghost btn-sm mt-3"
+                text={`Mirá esto: cena a puertas cerradas en La Plata, ${dateLong(event.date)}. Una mesa larga, cinco pasos, cada plato con su trago. ${siteUrl()}`}
+              />
+            </div>
           </section>
         </>
       )}
@@ -433,7 +438,12 @@ export default async function HomePage() {
             Ver todas las fechas
           </Link>
         </p>
-        <p className="mt-4 opacity-60">Hecho en La Plata · {new Date().getFullYear()}</p>
+        <p className="mt-4">Hecho en La Plata · {new Date().getFullYear()}</p>
+        <p className="mt-2">
+          <Link href="/condiciones" className="hover:text-ink">
+            Condiciones y privacidad
+          </Link>
+        </p>
       </footer>
 
       {/* Barra fija en el celular */}

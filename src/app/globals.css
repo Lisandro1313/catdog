@@ -256,9 +256,9 @@ html {
 }
 
 .ap-eyebrow {
-  letter-spacing: 0.28em;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   color: var(--ap-gold);
 }
 @media (min-width: 640px) {
@@ -403,19 +403,30 @@ html {
   font-family: var(--font-playfair), Georgia, serif;
 }
 .ap-date .num {
+  position: relative;
   font-size: clamp(3.4rem, 16vw, 6rem);
   line-height: 0.85;
   color: var(--ap-gold);
   text-shadow: 0 0 28px rgba(201, 169, 110, 0.25);
+}
+/* Halo que respira detrás del número: anima opacidad (lo hace la GPU, no repinta el texto). */
+.ap-date .num::before {
+  content: "";
+  position: absolute;
+  inset: -30% -25%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(201, 169, 110, 0.22), transparent 65%);
   animation: breathe 6s ease-in-out infinite;
+  will-change: opacity;
 }
 @keyframes breathe {
   0%,
   100% {
-    text-shadow: 0 0 22px rgba(201, 169, 110, 0.18);
+    opacity: 0.35;
   }
   50% {
-    text-shadow: 0 0 40px rgba(201, 169, 110, 0.42);
+    opacity: 1;
   }
 }
 .ap-date .word {

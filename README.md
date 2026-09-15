@@ -30,6 +30,11 @@ y recibe la confirmación. Vos administrás todo desde `/admin`.
   `/opinar/[id de su reserva]` (el link va en el mail "¿cómo la pasaste?" y en su página de reserva).
   Quedan pendientes hasta que se aprueban desde el panel; las aprobadas salen en el home en
   "Lo que dicen los que vinieron" (con el promedio cuando hay tres o más).
+- `/condiciones` — condiciones de reserva, cambios, qué incluye y privacidad. Linkeada desde el
+  formulario ("Al reservar aceptás las condiciones") y el pie. **Es un borrador para revisar.**
+- El mapa de la zona se carga recién cuando la sección se acerca a la pantalla (o al tocar "Ver el
+  mapa"): son ~450 KB de JavaScript de Google que antes cargaban con la página.
+- Botón "Compartir la cena": en el celular abre la hoja nativa (WhatsApp, etc.); en escritorio copia el texto.
 - **Google**: el home lleva datos estructurados (`FoodEvent`: fecha, precio, disponibilidad, zona sin
   número) para que aparezca como evento en las búsquedas, más `robots.txt` y `sitemap.xml`.
   Páginas de error y "no encontrado" en criollo.
