@@ -20,7 +20,7 @@ export function ReviewForm({ reservationId, defaultName, existing }: Props) {
     return (
       <div className="text-center">
         <p className="font-display text-3xl">¡Gracias!</p>
-        <p className="mt-2 text-muted">Leemos todas. Si querés, contales a otros que se anoten: es una sola mesa.</p>
+        <p className="mt-2 text-muted">Leemos todas. Si querés, contales a otros que se anoten: son pocos lugares.</p>
       </div>
     );
   }

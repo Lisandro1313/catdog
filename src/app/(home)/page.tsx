@@ -39,8 +39,8 @@ export async function generateMetadata(): Promise<Metadata> {
     ? `${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)} · Cena a puertas cerradas en La Plata`
     : `Cena a puertas cerradas en La Plata`;
   const description = event
-    ? `Una mesa larga en una casa de La Plata. Cinco pasos, cada plato con su trago. ${formatPrice(event.price)} por persona, pocos lugares.`
-    : "Una mesa larga en una casa de La Plata. Cinco pasos, cada plato con su trago.";
+    ? `Una cena en una casa de La Plata. Cinco pasos, cada plato con su cóctel de autor. ${formatPrice(event.price)} por persona, pocos lugares.`
+    : "Una cena en una casa de La Plata. Cinco pasos, cada plato con su cóctel de autor.";
   // La imagen se genera en /opengraph-image; el sufijo cambia con la fecha para que WhatsApp no muestre una vieja.
   const image = { url: `/opengraph-image?v=${event ? event.date.getTime() : 0}`, width: 1200, height: 630, alt: "Cena a puertas cerradas en La Plata" };
   return {
@@ -93,7 +93,7 @@ export default async function HomePage() {
     },
     {
       q: "¿Puedo ir solo o sola?",
-      a: "Sí, y está bueno. Es una mesa larga pensada para compartir: mucha gente viene sola o de a dos y termina charlando con desconocidos.",
+      a: "Sí, y está bueno. La noche está pensada para compartir: mucha gente viene sola o de a dos y termina charlando con desconocidos.",
     },
     {
       q: "¿Dónde es exactamente?",
@@ -113,7 +113,7 @@ export default async function HomePage() {
     },
     {
       q: "¿Y si la fecha ya se llenó?",
-      a: "Es una sola mesa y se llena rápido. Cuando una fecha se agota, abrimos la reserva para el viernes siguiente: la elegís ahí mismo en el formulario.",
+      a: "Son pocos lugares y se llenan rápido. Cuando una fecha se agota, abrimos la reserva para el viernes siguiente: la elegís ahí mismo en el formulario.",
     },
     {
       q: "¿Y si no puedo ir?",
@@ -183,8 +183,8 @@ export default async function HomePage() {
               <hr className="ap-rule mx-auto mt-8 w-56" />
               <p className="mt-8 font-display text-2xl sm:text-3xl">{event.title}</p>
               <p className="mx-auto mt-3 max-w-md leading-relaxed text-muted">
-                Una casa, una mesa larga y {steps.length > 0 ? `${spellOut(steps.length).toLowerCase()} pasos` : "una cena"}, cada plato con su
-                trago pensado al lado. Una noche, no un restaurante.
+                Una casa y {steps.length > 0 ? `${spellOut(steps.length).toLowerCase()} pasos` : "una cena"}, cada plato con un cóctel de autor
+                pensado para ese plato. Una noche, no un restaurante.
               </p>
               <div className="mt-10 flex flex-col items-center gap-3">
                 {!soldOut ? (
@@ -342,8 +342,8 @@ export default async function HomePage() {
                 <p className="ap-eyebrow">Dónde</p>
                 <p className="mt-3 font-display text-2xl sm:text-3xl">{ZONE}</p>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
-                  Una casa sin cartel en el casco de La Plata. Se entra por un portón y un pasillo, y adentro hay una sola mesa. El número
-                  exacto te llega con la confirmación de la reserva.
+                  Una casa sin cartel en el casco de La Plata. Se entra por un portón y un pasillo. El número exacto te llega con la
+                  confirmación de la reserva.
                 </p>
                 <p className="mt-3 text-sm text-muted">
                   Llegá <span className="text-ink">{formatTime(event.date)} hs</span>. Se recibe con un trago de pie.
@@ -424,7 +424,7 @@ export default async function HomePage() {
               <p className="text-sm text-muted">¿Conocés a alguien que tiene que venir?</p>
               <ShareButton
                 className="btn btn-ghost btn-sm mt-3"
-                text={`Mirá esto: cena a puertas cerradas en La Plata, ${dateLong(event.date)}. Una mesa larga, cinco pasos, cada plato con su trago. ${siteUrl()}`}
+                text={`Mirá esto: cena a puertas cerradas en La Plata, ${dateLong(event.date)}. Cinco pasos, cada plato con su cóctel de autor. ${siteUrl()}`}
               />
             </div>
           </section>

@@ -26,7 +26,7 @@ export default function CondicionesPage() {
 
         <Block title="Cambios y cancelaciones">
           <p>
-            Es una sola mesa y cocinamos para las personas que reservaron, así que avisá con la mayor anticipación posible. Podés{" "}
+            Son pocos lugares y cocinamos para las personas que reservaron, así que avisá con la mayor anticipación posible. Podés{" "}
             <strong>pasarle tu lugar a otra persona</strong> (nos decís el nombre por WhatsApp) o, si hay lugar, <strong>cambiar a otra fecha</strong>.
           </p>
           <p>Si somos nosotros los que tenemos que suspender una fecha, te devolvemos el total o te pasamos a la fecha que prefieras.</p>

@@ -9,10 +9,10 @@ const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["lati
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: `${SITE_NAME} · ${SITE_TAGLINE}`,
-  description: `${SITE_TAGLINE}. Pocos lugares, una sola mesa. Reservá el tuyo.`,
+  description: `${SITE_TAGLINE}. Pocos lugares. Reservá el tuyo.`,
   openGraph: {
     title: `${SITE_NAME} · ${SITE_TAGLINE}`,
-    description: `${SITE_TAGLINE}. Pocos lugares, una sola mesa. Reservá el tuyo.`,
+    description: `${SITE_TAGLINE}. Pocos lugares. Reservá el tuyo.`,
     type: "website",
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },

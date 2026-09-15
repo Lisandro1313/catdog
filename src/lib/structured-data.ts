@@ -15,7 +15,7 @@ export function foodEventJsonLd(event: EventLike, photos: string[]) {
     name: `${SITE_NAME} · ${event.title}`,
     description:
       event.description ??
-      "Cena a puertas cerradas en una casa de La Plata: una mesa larga, cinco pasos, cada plato con su trago.",
+      "Cena a puertas cerradas en una casa de La Plata: cinco pasos, cada plato con su cóctel de autor.",
     startDate: event.date.toISOString(),
     endDate: end.toISOString(),
     eventStatus: "https://schema.org/EventScheduled",

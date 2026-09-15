@@ -36,7 +36,7 @@ export async function removePhoto(id: string) {
 /** Texto "Sobre nosotros" del home, editable desde Ajustes. */
 export const DEFAULT_ABOUT = `Somos dos amigos de La Plata que cocinan y atienden la barra en una casa de techos altos, paredes de ladrillo y pisos de madera, sin cartel en la calle.
 
-Una noche por semana ponemos una sola mesa larga. Se llega, se toma algo de pie, se conoce al de al lado y se come en cinco pasos, cada uno con su trago pensado para ese plato.
+Una noche por semana abrimos la casa. Se llega, se toma algo de pie, se conoce al de al lado y se come en cinco pasos, cada uno con un cóctel de autor pensado para ese plato.
 
 No es un restaurante: es una noche en casa, con la puerta cerrada y la cocina abierta.`;
 
