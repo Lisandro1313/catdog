@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { formatLong, formatTime } from "@/lib/dates";
 import { formatPhone, whatsappUrl } from "@/lib/config";
 import { toggleArrivedAction } from "../../../../actions";
+import { OfflineBadge } from "@/components/admin/OfflineBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -32,11 +33,12 @@ export default async function NochePage({ params }: { params: Promise<{ id: stri
   const withNotes = rows.filter((r) => r.notes);
 
   return (
-    <>
-      <div className="flex items-center gap-3 text-sm text-muted">
+    <div className="noche contents">
+      <div className="flex items-center justify-between gap-3 text-sm text-muted print:hidden">
         <Link href={`/admin/eventos/${event.id}`} className="hover:text-ink">
           ← {event.title}
         </Link>
+        <OfflineBadge />
       </div>
 
       <section className="card p-5">
@@ -89,7 +91,7 @@ export default async function NochePage({ params }: { params: Promise<{ id: stri
               </p>
               {r.notes && <p className="mt-1 text-sm text-accent">⚠ {r.notes}</p>}
             </div>
-            <form action={toggleArrivedAction}>
+            <form action={toggleArrivedAction} className="print:hidden">
               <input type="hidden" name="id" value={r.id} />
               <button className={`btn btn-sm ${r.arrivedAt ? "btn-ghost" : "btn-primary"}`} type="submit">
                 {r.arrivedAt ? "✓ Llegó" : "Llegó"}
@@ -98,7 +100,7 @@ export default async function NochePage({ params }: { params: Promise<{ id: stri
           </article>
         ))}
       </section>
-    </>
+    </div>
   );
 }
 

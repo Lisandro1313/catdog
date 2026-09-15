@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { sendReminder, sendReviewRequests } from "./email";
 import { isEmailConfigured } from "./mailer";
 import { ensureFixedEntries } from "./fixed-expenses";
+import { ensureNextDraft } from "./events";
 
 const H = 60 * 60 * 1000;
 
@@ -9,12 +10,14 @@ const H = 60 * 60 * 1000;
  * Tareas del día. Corre una vez por día (cron de Vercel) y es idempotente:
  * - recordatorio a quienes pagaron una cena que es dentro de las próximas 40 horas (una sola vez por reserva);
  * - pedido de opiniones para cenas que pasaron hace entre 12 h y 4 días (una sola vez por cena);
- * - gastos fijos de la semana, por si nadie abrió el panel.
+ * - gastos fijos de la semana, por si nadie abrió el panel;
+ * - un borrador de la cena de la semana siguiente si la última ya pasó y no hay ninguna cargada.
  */
 export async function runDailyTasks(now = new Date()) {
-  const out = { reminders: 0, remindersFailed: 0, reviewRequests: 0, fixed: 0 };
+  const out = { reminders: 0, remindersFailed: 0, reviewRequests: 0, fixed: 0, draft: null as string | null };
 
   out.fixed = await ensureFixedEntries();
+  out.draft = await ensureNextDraft(now);
 
   if (!isEmailConfigured()) return { ...out, note: "mails no configurados" };
 

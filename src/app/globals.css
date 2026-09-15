@@ -554,6 +554,27 @@ details.faq > summary::-webkit-details-marker {
   transform: scaleX(1);
 }
 
+/* Impresión de la lista de la noche: fondo claro, sin botones ni barras */
+@media print {
+  body,
+  .noche .card {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+  body::before,
+  body::after,
+  .grain,
+  nav,
+  .ap-cta-bar {
+    display: none !important;
+  }
+  .noche .text-muted,
+  .noche .text-accent {
+    color: #333 !important;
+  }
+}
+
 /* Barra fija de reserva en el celular */
 .ap-cta-bar {
   position: fixed;
