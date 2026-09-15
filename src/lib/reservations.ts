@@ -259,28 +259,77 @@ export async function markPaid(reservationId: string, via: string, mpPaymentId?:
   });
 
   const seats = updated.seats.map((s) => s.number).sort((a, b) => a - b);
-  // Los mails no deben tumbar la confirmación si fallan.
-  await Promise.allSettled([
-    sendReservationConfirmed({
-      to: updated.email,
-      name: updated.name,
-      event: updated.event,
-      quantity: updated.quantity,
-      seats,
-      amount: updated.amount,
-      reservationId: updated.id,
-    }),
-    sendAdminNewReservation({
-      name: updated.name,
-      email: updated.email,
-      phone: updated.phone,
-      notes: updated.notes,
-      event: updated.event,
-      quantity: updated.quantity,
-      amount: updated.amount,
-      via,
-    }),
-  ]);
+  // Los mails no deben tumbar la confirmación si fallan. Primero el de la persona; el aviso al admin cuenta cómo salió.
+  const customerMail = await sendReservationConfirmed({
+    to: updated.email,
+    name: updated.name,
+    event: updated.event,
+    quantity: updated.quantity,
+    seats,
+    amount: updated.amount,
+    reservationId: updated.id,
+  }).then((r) => (r.skipped ? ("omitido" as const) : r.error ? ("fallo" as const) : ("ok" as const)), () => "fallo" as const);
+  await sendAdminNewReservation({
+    name: updated.name,
+    email: updated.email,
+    phone: updated.phone,
+    notes: updated.notes,
+    event: updated.event,
+    quantity: updated.quantity,
+    amount: updated.amount,
+    via,
+    customerMail,
+  }).catch((err) => console.error("[email] aviso admin falló", err));
+  return updated;
+}
+
+/**
+ * Quien pagó le pasa su lugar a otra persona: cambia nombre/mail/teléfono (las sillas quedan),
+ * le llega la confirmación al nuevo y avisamos al admin. Hasta el inicio de la cena.
+ */
+export async function transferReservation(reservationId: string, to: { name: string; email: string; phone?: string }) {
+  const reservation = await prisma.reservation.findUnique({ where: { id: reservationId }, include: { event: true, seats: true } });
+  if (!reservation) throw new ReservationError("Reserva inexistente.");
+  if (reservation.status !== "PAID") throw new ReservationError("Solo se puede pasar una reserva ya paga.");
+  if (reservation.event.date.getTime() < Date.now()) throw new ReservationError("Esa cena ya pasó.");
+  if (reservation.arrivedAt) throw new ReservationError("Esa reserva ya fue usada.");
+  if (to.email === reservation.email) throw new ReservationError("Es el mismo mail que ya tiene la reserva.");
+
+  const previous = `${reservation.name} (${reservation.email})`;
+  const note = `Reserva pasada de ${previous}.`;
+  const updated = await prisma.reservation.update({
+    where: { id: reservationId },
+    data: {
+      name: to.name,
+      email: to.email,
+      phone: to.phone ?? null,
+      notes: reservation.notes ? `${reservation.notes}\n${note}` : note,
+      confirmedAt: null,
+    },
+    include: { event: true, seats: { orderBy: { number: "asc" } } },
+  });
+
+  const customerMail = await sendReservationConfirmed({
+    to: updated.email,
+    name: updated.name,
+    event: updated.event,
+    quantity: updated.quantity,
+    seats: updated.seats.map((s) => s.number),
+    amount: updated.amount,
+    reservationId: updated.id,
+  }).then((r) => (r.skipped ? ("omitido" as const) : r.error ? ("fallo" as const) : ("ok" as const)), () => "fallo" as const);
+  await sendAdminNewReservation({
+    name: updated.name,
+    email: updated.email,
+    phone: updated.phone,
+    notes: reservation.notes,
+    event: updated.event,
+    quantity: updated.quantity,
+    amount: updated.amount,
+    via: "cambio de nombre",
+    customerMail,
+    transferredFrom: previous,
+  }).catch((err) => console.error("[email] aviso admin falló", err));
   return updated;
 }
 

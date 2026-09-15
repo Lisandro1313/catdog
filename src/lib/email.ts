@@ -141,19 +141,41 @@ export async function sendAdminNewReservation(input: {
   quantity: number;
   amount: number;
   via: string;
+  /** Si el mail de confirmación a la persona salió bien (para enterarse de un problema a tiempo). */
+  customerMail?: "ok" | "fallo" | "omitido";
+  /** Para un cambio de nombre: quién tenía la reserva antes. */
+  transferredFrom?: string;
 }) {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!isEmailConfigured() || !adminEmail) return;
-  const body = `
+  const transfer = Boolean(input.transferredFrom);
+  const mailLine =
+    input.customerMail === "fallo"
+      ? `<p style="color:#d98c74"><strong>Ojo:</strong> el mail de confirmación a ${input.email} no salió. Avisale por WhatsApp o mandale el link de su reserva desde el panel.</p>`
+      : input.customerMail === "ok"
+        ? `<p style="color:#9a9187;font-size:14px">Le mandamos la confirmación con la dirección a ${input.email}.</p>`
+        : "";
+  const body = transfer
+    ? `
+    <p><strong>${input.transferredFrom}</strong> le pasó su reserva a <strong>${input.name}</strong> (${input.quantity} lugar${input.quantity > 1 ? "es" : ""}).</p>
+    <p>${input.event.title} · ${formatLong(input.event.date)}</p>
+    <p>Email: ${input.email}<br>Tel: ${input.phone ?? "-"}</p>
+    ${input.notes ? `<p><em>Nos avisa:</em> ${input.notes}</p>` : ""}
+    ${mailLine}
+    <p><a href="${siteUrl()}/admin" style="color:#c9a96e">Ver panel</a></p>`
+    : `
     <p><strong>${input.name}</strong> reservó ${input.quantity} lugar${input.quantity > 1 ? "es" : ""}.</p>
     <p>${input.event.title} · ${formatLong(input.event.date)}</p>
     <p>Email: ${input.email}<br>Tel: ${input.phone ?? "-"}<br>Pagó ${formatPrice(input.amount)} vía ${input.via}.</p>
     ${input.notes ? `<p><em>Nos avisa:</em> ${input.notes}</p>` : ""}
+    ${mailLine}
     <p><a href="${siteUrl()}/admin" style="color:#c9a96e">Ver panel</a></p>`;
+  const html = layout(transfer ? "Cambio de nombre en una reserva" : "Nueva reserva", body);
   const { error } = await sendMail({
     to: adminEmail,
-    subject: `Nueva reserva: ${input.name} (${input.quantity})`,
-    html: layout("Nueva reserva", body),
+    subject: transfer ? `Reserva pasada a ${input.name}` : `Nueva reserva: ${input.name} (${input.quantity})`,
+    html,
+    text: toText(html),
   });
   if (error) console.error("[email] aviso admin falló", error);
 }

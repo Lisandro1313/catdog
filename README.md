@@ -57,6 +57,7 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
    Al elegir la silla, si son dos o más, el dibujo ya sugiere sillas seguidas (se pueden cambiar).
 4. Mercado Pago avisa al webhook `/api/mp/webhook` (y además la página de retorno `/reserva/[id]` verifica el pago por si el webhook demora). Si está aprobado, la reserva pasa a `PAID`, salen los mails y **recién ahí elige su silla** en la mesa, desde esa misma página (el link va en el mail). Puede cambiarla hasta el día de la cena si hay lugar.
 5. Si no paga en 30 minutos, el cupo vuelve a estar libre solo. Si la misma persona (mismo mail) vuelve a intentar mientras su reserva sigue en proceso, se la lleva al mismo pago en vez de bloquear más lugares; y una misma conexión no puede tener más de dos reservas sin pagar a la vez en una cena (para que nadie bloquee la mesa).
+   En esa misma página, quien no puede ir puede **pasarle su lugar a otra persona** (nombre, mail, WhatsApp): las sillas y el pago quedan, la reserva pasa a su nombre, le llega la confirmación con la dirección y a ustedes un aviso. Hasta el inicio de la cena; no si ya se marcó "Llegó".
 6. La dirección exacta solo la ve quien ya pagó (en la página de su reserva y en el mail). Esa página tiene además "qué pasa ahora", botones para agregar la cena a Google Calendar o bajar el `.ics` (`/reserva/[id]/calendario`, solo si está paga) y uno para avisar por WhatsApp a los que vienen. El mail de confirmación es una ficha: cena, cuándo, dónde (con número), lugares y monto, silla o link para elegirla, hora de llegada, pasos de la noche y los WhatsApp de consulta.
 
 ## Panel `/admin`
@@ -77,6 +78,7 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 - **Instagram** (en Ajustes, bajo Quiénes somos): el usuario, sin la @. Aparece en el home; vacío no se muestra.
 - **Fotos del lugar y Quiénes somos** (en Ajustes): se suben fotos de la casa (se achican en el teléfono antes de subir, se guardan públicas en Blob) con un epígrafe opcional, y se edita el texto de "Quiénes somos" que sale en el home. Sin fotos, el home no muestra la sección.
 - **Contactos:** todas las personas que pagaron alguna vez, una fila por email, con teléfono, cantidad de cenas, lugares, gasto total y última cena. Botón para descargar CSV.
+- El aviso "Nueva reserva" que les llega por mail dice si la confirmación a la persona salió bien; si falló, lo marca en rojo para que le avisen por WhatsApp.
 - Botón "Avisar a suscriptores": manda el mail de nueva fecha a todos los anotados.
 - QR + link del sitio para el flyer, y **afiches para redes** que se arman solos con la próxima cena: historia de Instagram / estado de WhatsApp (1080×1920, `/api/afiche?f=historia`) y cuadrado (1080×1080, `/api/afiche?f=cuadrado`). Se abren en otra pestaña y se guardan como imagen.
 - **Antes de abrir**: lista en el inicio del panel con lo que falta (cobros reales, mails, fotos, Quiénes somos, Instagram, fecha siguiente publicada). Desaparece cuando está todo.

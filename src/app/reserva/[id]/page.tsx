@@ -7,6 +7,7 @@ import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, siteUrl, whatsappU
 import { formatDayNumber, formatLong, formatTime, formatWeekday, nowMs } from "@/lib/dates";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { SeatChooser } from "@/components/SeatChooser";
+import { TransferForm } from "@/components/TransferForm";
 
 export const dynamic = "force-dynamic";
 
@@ -231,6 +232,11 @@ export default async function ReservationPage({ params, searchParams }: Props) {
                   mine={mine}
                   quantity={reservation.quantity}
                 />
+              </div>
+            )}
+            {upcoming && (
+              <div className="mt-8 border-t border-line pt-5">
+                <TransferForm reservationId={reservation.id} currentName={reservation.name} />
               </div>
             )}
             <div className="mt-8 border-t border-line pt-5 text-center">
