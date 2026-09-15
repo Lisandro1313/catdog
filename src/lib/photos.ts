@@ -22,6 +22,18 @@ export async function addPhoto(file: File, caption: string | null): Promise<Phot
   return { id: row.id, url: row.url, caption: row.caption };
 }
 
+/** Mueve una foto un lugar hacia adelante o atrás; "portada" la pone primera (queda de fondo del afiche). */
+export async function movePhoto(id: string, where: "adelante" | "atras" | "portada") {
+  const rows = await prisma.photo.findMany({ orderBy: [{ sort: "asc" }, { createdAt: "asc" }], select: { id: true } });
+  const ids = rows.map((r) => r.id);
+  const i = ids.indexOf(id);
+  if (i < 0) return;
+  ids.splice(i, 1);
+  const j = where === "portada" ? 0 : where === "adelante" ? Math.max(0, i - 1) : Math.min(ids.length, i + 1);
+  ids.splice(j, 0, id);
+  await prisma.$transaction(ids.map((pid, idx) => prisma.photo.update({ where: { id: pid }, data: { sort: idx + 1 } })));
+}
+
 export async function removePhoto(id: string) {
   const row = await prisma.photo.findUnique({ where: { id } });
   if (!row) return;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { addPhotoAction, removePhotoAction, setAboutAction, setInstagramAction } from "@/app/admin/actions";
+import { addPhotoAction, movePhotoAction, removePhotoAction, setAboutAction, setInstagramAction } from "@/app/admin/actions";
 import { compressImage, replaceInputFile } from "@/lib/client-image";
 import type { PhotoRow } from "@/lib/photos";
 
@@ -24,8 +24,8 @@ export function PhotosPanel({ photos }: { photos: PhotoRow[] }) {
     <div className="mt-4 grid gap-4">
       {photos.length > 0 ? (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {photos.map((p) => (
-            <PhotoCard key={p.id} photo={p} />
+          {photos.map((p, i) => (
+            <PhotoCard key={p.id} photo={p} index={i} total={photos.length} />
           ))}
         </ul>
       ) : (
@@ -54,14 +54,48 @@ export function PhotosPanel({ photos }: { photos: PhotoRow[] }) {
   );
 }
 
-function PhotoCard({ photo }: { photo: PhotoRow }) {
+function PhotoCard({ photo, index, total }: { photo: PhotoRow; index: number; total: number }) {
   const [state, action, pending] = useActionState(removePhotoAction, null);
   const [confirm, setConfirm] = useState(false);
   if (state?.ok) return null;
+  const isCover = index === 0;
   return (
-    <li className="overflow-hidden rounded-xl border border-line bg-surface-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={photo.url} alt={photo.caption ?? ""} className="aspect-[4/3] w-full object-cover" />
+    <li className={`overflow-hidden rounded-xl border bg-surface-2 ${isCover ? "border-accent/60" : "border-line"}`}>
+      <div className="relative">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={photo.url} alt={photo.caption ?? ""} className="aspect-[4/3] w-full object-cover" />
+        {isCover && <span className="absolute left-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-[#1a150d]">Portada</span>}
+      </div>
+      <div className="flex items-center gap-1 px-2 pt-2 text-xs">
+        {!isCover && (
+          <form action={movePhotoAction}>
+            <input type="hidden" name="id" value={photo.id} />
+            <input type="hidden" name="where" value="portada" />
+            <button className="text-accent hover:text-accent-strong" type="submit" title="Usar de portada (fondo del afiche)">
+              ★ portada
+            </button>
+          </form>
+        )}
+        <span className="flex-1" />
+        {index > 0 && (
+          <form action={movePhotoAction}>
+            <input type="hidden" name="id" value={photo.id} />
+            <input type="hidden" name="where" value="adelante" />
+            <button className="btn btn-ghost !min-h-0 px-2 py-0.5" type="submit" aria-label="Mover antes">
+              ←
+            </button>
+          </form>
+        )}
+        {index < total - 1 && (
+          <form action={movePhotoAction}>
+            <input type="hidden" name="id" value={photo.id} />
+            <input type="hidden" name="where" value="atras" />
+            <button className="btn btn-ghost !min-h-0 px-2 py-0.5" type="submit" aria-label="Mover después">
+              →
+            </button>
+          </form>
+        )}
+      </div>
       <div className="flex items-center justify-between gap-2 p-2 text-xs">
         <span className="truncate text-muted">{photo.caption ?? "Sin pie de foto"}</span>
         {confirm ? (

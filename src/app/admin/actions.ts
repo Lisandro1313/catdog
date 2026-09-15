@@ -19,8 +19,8 @@ import { PARTNERS } from "@/lib/ledger-categories";
 import { storeReceipt } from "@/lib/receipts";
 import { ensureFixedEntries, refreshCurrentWeekEntry, weeklyAmount } from "@/lib/fixed-expenses";
 import { formatPrice, siteUrl } from "@/lib/config";
-import { addPhoto, removePhoto } from "@/lib/photos";
-import { renderReservationConfirmed, sendNewEventBlast, sendReminder, sendReviewRequests } from "@/lib/email";
+import { addPhoto, movePhoto, removePhoto } from "@/lib/photos";
+import { renderReservationConfirmed, sendNewEventBlast, sendReminder, sendReservationCancelled, sendReviewRequests } from "@/lib/email";
 import { isEmailConfigured, sendMail } from "@/lib/mailer";
 import { icsFor } from "@/lib/calendar";
 import { duplicateWeekLater } from "@/lib/events";
@@ -261,9 +261,13 @@ export async function markPaidAction(formData: FormData) {
 export async function cancelReservationAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
-  const r = await prisma.reservation.findUnique({ where: { id }, select: { eventId: true } });
+  const r = await prisma.reservation.findUnique({ where: { id }, include: { event: true } });
   if (!r) return;
   await cancelReservation(id);
+  // Solo avisamos a quien había pagado (una pendiente que se cancela no necesita mail).
+  if (r.status === "PAID") {
+    await sendReservationCancelled({ to: r.email, name: r.name, event: r.event, quantity: r.quantity, amount: r.amount }).catch(() => {});
+  }
   revalidatePath("/");
   revalidatePath(`/admin/eventos/${r.eventId}`);
 }
@@ -604,6 +608,15 @@ export async function addPhotoAction(_prev: ActionState, formData: FormData): Pr
   revalidatePath("/fechas");
   revalidatePath("/admin/ajustes");
   return { ok: true, message: "Foto agregada. Ya se ve en el home." };
+}
+
+export async function movePhotoAction(formData: FormData) {
+  await requireAdmin();
+  const where = String(formData.get("where") ?? "");
+  if (where !== "adelante" && where !== "atras" && where !== "portada") return;
+  await movePhoto(String(formData.get("id") ?? ""), where);
+  revalidatePath("/");
+  revalidatePath("/admin/ajustes");
 }
 
 export async function removePhotoAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

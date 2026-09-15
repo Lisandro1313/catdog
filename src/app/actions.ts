@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { ReservationError, chooseSeats, createHoldAndCheckout, transferReservation } from "@/lib/reservations";
 import { MAX_SEATS_PER_RESERVATION, normalizeArPhone } from "@/lib/config";
 import { canReview } from "@/lib/reviews";
+import { sendAdminNewReview } from "@/lib/email";
 
 const reserveSchema = z.object({
   eventId: z.string().min(1),
@@ -100,6 +101,7 @@ export async function submitReviewAction(input: unknown): Promise<ReviewResult> 
     update: { name, rating, text, approved: false },
     create: { reservationId, eventId: reservation.eventId, name, rating, text },
   });
+  sendAdminNewReview({ name, rating, text, event: reservation.event, eventId: reservation.eventId }).catch(() => {});
   return { ok: true };
 }
 

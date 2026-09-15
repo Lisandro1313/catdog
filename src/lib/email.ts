@@ -180,6 +180,37 @@ export async function sendAdminNewReservation(input: {
   if (error) console.error("[email] aviso admin falló", error);
 }
 
+/** A la persona: su reserva fue cancelada desde el panel (devolución o cambio se conversa por WhatsApp). */
+export async function sendReservationCancelled(input: { to: string; name: string; event: EventLike; quantity: number; amount: number }) {
+  if (!isEmailConfigured() || input.to.endsWith("@local")) return;
+  const contact = CONTACT_PHONES.length
+    ? `Cualquier duda, escribinos por WhatsApp: ${CONTACT_PHONES.map((p) => `<a href="${whatsappUrl(p)}" style="color:#c9a96e">${formatPhone(p)}</a>`).join(" · ")}.`
+    : "";
+  const html = layout(
+    "Reserva cancelada",
+    `<p>Hola ${input.name.split(" ")[0]}. Cancelamos tu reserva de ${input.quantity === 1 ? "1 lugar" : `${input.quantity} lugares`} para <strong>${input.event.title}</strong>, ${formatLong(input.event.date)}.</p>
+     <p>Si fue algo que hablamos, la devolución de ${formatPrice(input.amount)} sigue el camino que acordamos por WhatsApp. Si esto te sorprende, escribinos y lo vemos ya.</p>
+     <p>${contact}</p>
+     <p>Las próximas fechas están siempre en <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl().replace(/^https?:\/\//, "")}</a>. Ojalá te veamos en la próxima.</p>`,
+  );
+  const { error } = await sendMail({ to: input.to, subject: `Reserva cancelada · ${input.event.title} · ${formatLong(input.event.date)}`, html, text: toText(html) });
+  if (error) console.error("[email] cancelación falló", error);
+}
+
+/** Aviso al admin: llegó una opinión (queda pendiente hasta publicarla desde el panel). */
+export async function sendAdminNewReview(input: { name: string; rating: number; text: string; event: EventLike; eventId: string }) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!isEmailConfigured() || !adminEmail) return;
+  const html = layout(
+    "Nueva opinión",
+    `<p><strong>${input.name}</strong> dejó ${input.rating} de 5 sobre ${input.event.title} (${formatLong(input.event.date)}):</p>
+     <p style="font-size:18px">“${input.text}”</p>
+     <p>No se publica hasta que la aprueben: <a href="${siteUrl()}/admin/eventos/${input.eventId}" style="color:#c9a96e">ver en el panel</a>.</p>`,
+  );
+  const { error } = await sendMail({ to: adminEmail, subject: `Nueva opinión: ${input.name} (${"★".repeat(input.rating)})`, html, text: toText(html) });
+  if (error) console.error("[email] aviso opinión falló", error);
+}
+
 export function renderNewEvent(event: EventLike, email: string): RenderedMail {
   return withText({
     subject: `Nueva fecha: ${event.title} · ${formatLong(event.date)}`,
@@ -189,7 +220,8 @@ export function renderNewEvent(event: EventLike, email: string): RenderedMail {
        ${formatLong(event.date)} · ${formatTime(event.date)} hs<br>
        ${formatPrice(event.price)} por persona.</p>
        ${event.description ? `<p>${event.description.replace(/\n/g, "<br>")}</p>` : ""}
-       <p>Son pocos lugares. Reservá el tuyo acá:<br>
+       ${menuHtml(event.menu)}
+       <p style="margin-top:20px">Son pocos lugares. Reservá el tuyo acá:<br>
        <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl()}</a></p>`,
       `Recibís este mail porque te anotaste para enterarte de nuevas fechas. <a href="${unsubscribeUrl(email)}" style="color:#8a8279">Darse de baja</a>.`,
     ),
