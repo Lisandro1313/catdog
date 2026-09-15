@@ -21,7 +21,12 @@ import { siteUrl } from "@/lib/config";
 import { foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 
-export const dynamic = "force-dynamic";
+/**
+ * El home se genera y se guarda un minuto (ISR): responde al instante y los metadatos
+ * (título, descripción, vista previa) van en el <head>, donde los leen WhatsApp y Google.
+ * "Pocos lugares" / "agotado" pueden atrasarse hasta un minuto: para el público alcanza.
+ */
+export const revalidate = 60;
 
 /** Zona pública (sin el número): lo que se dice antes de pagar. */
 const ZONE = "Calle 66, entre 2 y 3 · La Plata";
