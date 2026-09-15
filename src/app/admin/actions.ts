@@ -20,8 +20,8 @@ import { storeReceipt } from "@/lib/receipts";
 import { ensureFixedEntries, refreshCurrentWeekEntry, weeklyAmount } from "@/lib/fixed-expenses";
 import { formatPrice } from "@/lib/config";
 import { addPhoto, removePhoto } from "@/lib/photos";
-import { sendNewEventBlast, sendReviewRequests } from "@/lib/email";
-import { isEmailConfigured } from "@/lib/mailer";
+import { renderReservationConfirmed, sendNewEventBlast, sendReviewRequests } from "@/lib/email";
+import { isEmailConfigured, sendMail } from "@/lib/mailer";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
 
@@ -724,4 +724,22 @@ export async function toggleClosedAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/fechas");
   revalidatePath(`/admin/eventos/${id}`);
+}
+
+// --- Mail de prueba ---
+
+/** Manda la confirmación de ejemplo a la casilla indicada, para ver que los mails salen y cómo llegan. */
+export async function sendTestMailAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const to = String(formData.get("to") ?? "").trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, message: "Ese mail no parece válido." };
+  if (!isEmailConfigured()) return { ok: false, message: "Los mails no están configurados." };
+  const event =
+    (await prisma.event.findFirst({ where: { published: true }, orderBy: { date: "asc" } })) ??
+    (await prisma.event.findFirst({ orderBy: { date: "desc" } }));
+  if (!event) return { ok: false, message: "Cargá una cena primero." };
+  const mail = renderReservationConfirmed({ name: "Prueba", event, quantity: 2, seats: [4, 5], amount: event.price * 2, reservationId: "prueba" });
+  const { error } = await sendMail({ to, ...mail, subject: `[PRUEBA] ${mail.subject}` });
+  if (error) return { ok: false, message: `No salió: ${error.message}` };
+  return { ok: true, message: `Enviado a ${to}. Fijate en la bandeja (y en spam, la primera vez).` };
 }

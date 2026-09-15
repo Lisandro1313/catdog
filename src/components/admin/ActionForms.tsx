@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { assignSeatsAction, manualReservationAction, notifySubscribersAction, requestReviewsAction } from "@/app/admin/actions";
+import { assignSeatsAction, manualReservationAction, notifySubscribersAction, requestReviewsAction, sendTestMailAction } from "@/app/admin/actions";
 
 export function NotifyForm({ eventId, subscribers, notifiedAt }: { eventId: string; subscribers: number; notifiedAt: string | null }) {
   const [state, action, pending] = useActionState(notifySubscribersAction, null);
@@ -96,6 +96,23 @@ export function RequestReviewsForm({ eventId, people }: { eventId: string; peopl
       </button>
       <span className="text-xs text-muted">Un mail con link personal a cada persona que vino.</span>
       {state?.message && <p className={`text-sm basis-full ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
+    </form>
+  );
+}
+
+export function TestMailForm({ defaultTo }: { defaultTo: string }) {
+  const [state, action, pending] = useActionState(sendTestMailAction, null);
+  return (
+    <form action={action} className="mt-4 flex flex-wrap items-end gap-3">
+      <label className="grid gap-1 text-xs text-muted">
+        Mandar una prueba a
+        <input className="input" name="to" type="email" defaultValue={defaultTo} placeholder="tu@mail.com" required />
+      </label>
+      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending}>
+        {pending ? "Enviando…" : "Mandar mail de prueba"}
+      </button>
+      <p className="basis-full text-xs text-muted">Manda la confirmación con datos de ejemplo. Sirve para ver que los mails salen y cómo se ven.</p>
+      {state?.message && <p className={`basis-full text-sm ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
     </form>
   );
 }

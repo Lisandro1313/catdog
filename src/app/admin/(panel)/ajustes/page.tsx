@@ -12,6 +12,7 @@ import { FixedExpensesPanel } from "@/components/admin/FixedExpensesPanel";
 import { getFixedExpenses } from "@/lib/fixed-expenses";
 import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos } from "@/lib/photos";
 import { AboutPanel, InstagramPanel, PhotosPanel } from "@/components/admin/HomeContentPanel";
+import { TestMailForm } from "@/components/admin/ActionForms";
 import { logoutAction } from "../../actions";
 
 export default async function AjustesPage() {
@@ -97,6 +98,7 @@ export default async function AjustesPage() {
             </a>
           ))}
         </div>
+        <TestMailForm defaultTo={process.env.ADMIN_EMAIL ?? ""} />
       </section>
 
       <section className="card p-5 sm:p-6">
