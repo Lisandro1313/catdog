@@ -14,6 +14,7 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} · ${SITE_TAGLINE}`,
     description: `${SITE_TAGLINE}. Pocos lugares, una sola mesa. Reservá el tuyo.`,
     type: "website",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };
 

@@ -41,7 +41,14 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = event
     ? `Una mesa larga en una casa de La Plata. Cinco pasos, cada plato con su trago. ${formatPrice(event.price)} por persona, pocos lugares.`
     : "Una mesa larga en una casa de La Plata. Cinco pasos, cada plato con su trago.";
-  return { title, description, openGraph: { title, description, type: "website" }, twitter: { card: "summary_large_image", title, description } };
+  // La imagen se genera en /opengraph-image; el sufijo cambia con la fecha para que WhatsApp no muestre una vieja.
+  const image = { url: `/opengraph-image?v=${event ? event.date.getTime() : 0}`, width: 1200, height: 630, alt: "Cena a puertas cerradas en La Plata" };
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website", images: [image] },
+    twitter: { card: "summary_large_image", title, description, images: [image.url] },
+  };
 }
 
 export default async function HomePage() {
