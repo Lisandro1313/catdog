@@ -26,6 +26,8 @@ model Event {
   published   Boolean  @default(true)
   /// Cuándo se les avisó a los suscriptores (null = todavía no).
   notifiedAt  DateTime?
+  /// Cuándo se mandó el pedido de opiniones (manual o automático), para no repetirlo.
+  reviewsRequestedAt DateTime?
   createdAt   DateTime @default(now())
 
   reservations Reservation[]
@@ -61,6 +63,9 @@ model Reservation {
   seatsChosenAt  DateTime?
   /// Lo que el invitado quiere que sepamos (alergias, vegetariano, celebración).
   notes          String?
+  /// Recordatorio del día anterior y confirmación de asistencia desde ese mail.
+  remindedAt     DateTime?
+  confirmedAt    DateTime?
   /// Hasta cuándo se mantienen los lugares si el pago sigue pendiente.
   expiresAt      DateTime
   createdAt      DateTime          @default(now())

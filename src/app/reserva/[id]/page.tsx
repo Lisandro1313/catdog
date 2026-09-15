@@ -21,6 +21,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
   const { id } = await params;
   const sp = await searchParams;
   const paymentId = typeof sp.payment_id === "string" ? sp.payment_id : null;
+  const confirming = sp.confirmo === "1";
 
   let reservation = await prisma.reservation.findUnique({ where: { id }, include });
   if (!reservation) notFound();
@@ -34,6 +35,12 @@ export default async function ReservationPage({ params, searchParams }: Props) {
     }
     reservation = await prisma.reservation.findUnique({ where: { id }, include });
     if (!reservation) notFound();
+  }
+
+  // "Confirmo que voy" desde el mail del día anterior: un toque, sin login.
+  if (confirming && reservation.status === "PAID" && !reservation.confirmedAt) {
+    await prisma.reservation.update({ where: { id }, data: { confirmedAt: new Date() } });
+    reservation = (await prisma.reservation.findUnique({ where: { id }, include })) ?? reservation;
   }
 
   const mine = reservation.seats.map((s) => s.number);
@@ -56,6 +63,11 @@ export default async function ReservationPage({ params, searchParams }: Props) {
 
           {reservation.status === "PAID" && (
             <>
+              {confirming && reservation.confirmedAt && (
+                <p className="mx-auto mb-4 inline-block rounded-full border border-ok/50 bg-ok/10 px-4 py-1.5 text-sm text-ok">
+                  ✓ Gracias por confirmar, te esperamos
+                </p>
+              )}
               <h1 className="font-display mt-3 text-4xl">¡Reserva confirmada!</h1>
               <p className="mt-4 text-lg">
                 {formatLong(reservation.event.date)} · {formatTime(reservation.event.date)} hs

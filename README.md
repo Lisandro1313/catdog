@@ -75,6 +75,20 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 
 Las visitas se cuentan con un beacon desde las pantallas públicas (`/api/visita`), una por sesión de navegador, sin cookies ni datos personales. No cuenta las visitas al panel ni las hechas desde `npm run dev` (la base es la misma que en producción). El panel muestra el total y el desglose por página, así se ve qué link trae gente.
 
+## Tareas automáticas (cron de Vercel, gratis)
+
+Una vez por día, a las 11 de la mañana (Argentina), Vercel llama a `/api/cron/diario` (configurado en
+`vercel.json`, protegido con `CRON_SECRET`). Hace tres cosas, todas idempotentes:
+
+1. **Recordatorio el día anterior** a cada persona que pagó: fecha, hora, dirección con número, su silla
+   (o el link para elegirla) y dos botones: **"Confirmo que voy"** (un toque, sin login; queda marcado en
+   el panel como "✓ confirmó que viene") y **"No voy a poder"** (abre WhatsApp con el mensaje armado).
+   En la página de la cena se ve cuántos lugares confirmaron.
+2. **Pedido de opiniones** al día siguiente de cada cena (si no se pidió a mano antes).
+3. **Gastos fijos** de la semana, por si nadie abrió el panel.
+
+Si hace falta correrlo a mano: `curl -H "Authorization: Bearer $CRON_SECRET" https://catdog-omega.vercel.app/api/cron/diario`.
+
 ## Usuarios: uno para cada socio
 
 En **Ajustes** (`/admin/ajustes`) se crean los usuarios. Cada socio entra con su nombre y su contraseña, y todo lo que carga, edita o borra queda firmado con su nombre. Para crear usuarios, cambiarles la contraseña o borrarlos hay que escribir la **contraseña maestra** (la variable `ADMIN_PASSWORD`), así ninguno de los dos puede tocar la cuenta del otro sin ella. Cada uno puede cambiar su propia contraseña con la actual.
@@ -123,6 +137,7 @@ Las de la base ya las carga la integración de Neon. Faltan estas (se setean con
 | `GMAIL_USER` + `GMAIL_APP_PASSWORD` | Mandar mails por Gmail (gratis, sin dominio propio) | Ver "Mails por Gmail" abajo. Si están cargadas, tienen prioridad sobre Resend. |
 | `RESEND_API_KEY` | Mandar mails por Resend | La carga sola la integración Resend de Vercel (ver abajo). **Sin dominio verificado solo manda a tu propia casilla**: la gente no recibe la confirmación. |
 | `EMAIL_FROM` | Remitente en Resend | Solo cuando hay dominio verificado en Resend, p. ej. `CatDog <hola@tudominio.ar>`. |
+| `CRON_SECRET` | Protege la tarea diaria | Ya seteada (valor aleatorio). Vercel la manda sola al llamar al cron. |
 | `NEXT_PUBLIC_SITE_URL` | URL pública del sitio | Ya seteada: `https://catdog-omega.vercel.app`. Se usa en los links de vuelta de Mercado Pago, mails y vista previa. **Cambiarla cuando haya dominio propio.** |
 | `ADMIN_EMAIL` | A dónde te avisamos cada reserva pagada | Tu mail. |
 | `NEXT_PUBLIC_SITE_NAME` / `NEXT_PUBLIC_SITE_TAGLINE` | Nombre y subtítulo | Opcionales (default "CatDog" / "Cena a puertas cerradas"). |
@@ -170,7 +185,7 @@ Migraciones: `npm run db:migrate` (crea y aplica). En Vercel el build corre `pri
 ## Modelo de datos
 
 - `Event`: una cena (fecha, precio, capacidad, publicado, menú, carta de barra y su precio, dirección).
-- `Reservation`: nombre, email, cantidad de lugares, aviso opcional (alergias, etc.), estado `PENDING | PAID | CANCELLED`, monto, vencimiento del hold, ids de Mercado Pago.
+- `Reservation`: nombre, email, cantidad de lugares, aviso opcional (alergias, etc.), recordatorio enviado y asistencia confirmada, estado `PENDING | PAID | CANCELLED`, monto, vencimiento del hold, ids de Mercado Pago.
 - `Seat`: una silla elegida por una reserva pagada. Única por evento, así dos personas no pueden agarrar la misma.
 - `Subscriber`: emails anotados para enterarse de nuevas fechas.
 - `LedgerEntry`: movimientos de caja: ingreso, gasto, aporte o retiro; rubro, detalle, monto, día, quién, si salió del bolsillo del socio o de la caja; opcionalmente atado a una cena.

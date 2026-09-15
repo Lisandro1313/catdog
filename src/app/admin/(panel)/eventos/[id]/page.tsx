@@ -81,6 +81,15 @@ export default async function AdminEventPage({
         <Stat label="Libres" value={String(event.capacity - paidSeats - holdSeats)} />
         <Stat label="Cobrado en reservas" value={formatPrice(money.reservations)} />
       </section>
+      {paidPeople > 0 && event.reservations.some((r) => r.remindedAt) && (
+        <p className="text-sm text-muted">
+          Confirmaron que vienen:{" "}
+          <strong className="text-ink">
+            {event.reservations.filter((r) => r.status === "PAID" && r.confirmedAt).reduce((n, r) => n + r.quantity, 0)} de {paidSeats}
+          </strong>{" "}
+          lugares pagos (desde el recordatorio del día anterior).
+        </p>
+      )}
 
       <section className="card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -155,6 +164,11 @@ export default async function AdminEventPage({
                           <span className="text-ok">
                             Pagado · {r.paidVia}
                             {r.paidAt && <span className="block text-xs text-muted">{formatShort(r.paidAt)}</span>}
+                            {r.confirmedAt ? (
+                              <span className="block text-xs text-ok">✓ confirmó que viene</span>
+                            ) : r.remindedAt ? (
+                              <span className="block text-xs text-muted">recordatorio enviado</span>
+                            ) : null}
                           </span>
                         )}
                         {r.status === "PENDING" && !expired && (

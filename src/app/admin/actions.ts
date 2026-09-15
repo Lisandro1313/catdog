@@ -697,5 +697,7 @@ export async function requestReviewsAction(_prev: ActionState, formData: FormDat
     event,
     people: event.reservations.map((r) => ({ id: r.id, name: r.name, email: r.email })),
   });
+  await prisma.event.update({ where: { id }, data: { reviewsRequestedAt: new Date() } });
+  revalidatePath(`/admin/eventos/${id}`);
   return { ok: true, message: `Pedido enviado a ${sent} persona${sent === 1 ? "" : "s"}${failed ? ` (${failed} fallaron)` : ""}.` };
 }

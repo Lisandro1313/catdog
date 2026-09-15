@@ -149,3 +149,40 @@ export async function sendReviewRequests(input: {
   }));
   return sendMany(messages);
 }
+
+/** El día anterior: recordatorio con dirección, hora y dos botones (confirmo / no puedo). */
+export async function sendReminder(input: {
+  to: string;
+  name: string;
+  event: EventLike;
+  quantity: number;
+  seats: number[];
+  reservationId: string;
+}) {
+  if (!isEmailConfigured() || input.to.endsWith("@local")) return { skipped: true as const };
+  const link = `${siteUrl()}/reserva/${input.reservationId}`;
+  const first = input.name.split(" ")[0];
+  const noPuedo = CONTACT_PHONES[0]
+    ? whatsappUrl(CONTACT_PHONES[0], `Hola! Soy ${input.name}. No voy a poder ir a la cena del ${formatLong(input.event.date)}.`)
+    : link;
+  const btn = (href: string, label: string, primary = true) =>
+    `<a href="${href}" style="display:inline-block;margin:6px 6px 6px 0;padding:12px 22px;border-radius:999px;${
+      primary ? "background:#c9a96e;color:#141210;" : "border:1px solid #6f675f;color:#f3ede4;"
+    }text-decoration:none;font-weight:bold">${label}</a>`;
+  const body = `
+    <p>Hola ${first}. Mañana es la cena: <strong>${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs</strong>.</p>
+    ${input.event.address ? `<p style="font-size:18px"><strong>${input.event.address}</strong><br><span style="color:#9a9187;font-size:14px">Casa sin cartel: portón, pasillo y puerta. Se recibe con un trago de pie.</span></p>` : ""}
+    <p>${input.quantity === 1 ? "Tu lugar" : `Tus ${input.quantity} lugares`}: ${
+      input.seats.length ? `silla${input.seats.length > 1 ? "s" : ""} <strong>${input.seats.join(", ")}</strong>` : `<a href="${link}" style="color:#c9a96e">todavía no elegiste la silla, elegila acá</a>`
+    }.</p>
+    <p style="margin-top:24px">¿Nos confirmás con un toque? Cocinamos justo para los que vienen.</p>
+    <p>${btn(`${link}?confirmo=1`, "Confirmo que voy")}${btn(noPuedo, "No voy a poder", false)}</p>
+    <p style="color:#9a9187;font-size:14px">Si no podés venir, podés pasarle tu lugar a otra persona: avisanos el nombre por WhatsApp.</p>`;
+  const { error } = await sendMail({
+    to: input.to,
+    subject: `Mañana te esperamos · ${input.event.title} · ${formatTime(input.event.date)} hs`,
+    html: layout("Es mañana", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`),
+  });
+  if (error) console.error("[email] recordatorio falló", error);
+  return { skipped: false as const, error };
+}
