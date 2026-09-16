@@ -287,7 +287,7 @@ export default async function HomePage() {
             <section id="fotos" className="reveal scroll-mt-16 py-10">
               <div className="mx-auto max-w-2xl px-6 text-center">
                 <p className="ap-ornament mb-3">✦</p>
-                <p className="ap-eyebrow">La casa</p>
+                <p className="ap-eyebrow">Un anticipo</p>
               </div>
               <div className="mt-6">
                 <PhotoStrip photos={photos} />
