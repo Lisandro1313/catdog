@@ -188,6 +188,13 @@ La instalación quedó a mitad porque hay que aceptar los términos en el navega
 2. Corré `vercel integration add resend/resend-email --no-claim --name catdog-mail` (carga `RESEND_API_KEY` sola).
 3. `vercel deploy --prod`.
 
+## Carta de la barra en PDF (para imprimir y plastificar)
+
+`node scripts/carta-tragos.mjs` genera `exports/carta-tragos-oscura.pdf` y `exports/carta-tragos-clara.pdf` (A4)
+a partir de `scripts/carta-tragos.json` (secciones, tragos, descripciones y precios: se editan ahí). Si existe
+`fotos/qr-mp.png` (el QR de cobro bajado de la app de Mercado Pago), va ese QR; si no, un QR que muestra el alias.
+Usa el Chrome instalado para imprimir a PDF.
+
 ## Desarrollo local
 
 ```bash

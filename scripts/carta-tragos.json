@@ -1,0 +1,52 @@
+{
+  "titulo": "La barra",
+  "subtitulo": "Cócteles de autor y clásicos",
+  "pago": {
+    "alias": "lisandroetc",
+    "titular": "Lisandro Etcheverry",
+    "nota": "Se paga en la mesa o al final, como prefieras."
+  },
+  "secciones": [
+    {
+      "nombre": "De autor",
+      "precio": 5000,
+      "items": [
+        { "nombre": "Tónico de Verano", "desc": "Gin, tónica, pepino y pimienta. Refrescante." },
+        { "nombre": "Passione", "desc": "Vodka, Aperol, licor de cítricos, jugo de naranja y menta. Un abrazo al paladar." },
+        { "nombre": "De la Casa", "desc": "Gin, Punt e Mes, Cynar, tónica, limón y romero. Como en casa." },
+        { "nombre": "Hormiga Negra", "desc": "Cynar, Malbec, reducción de vino, limón, soda y tomillo. Un cóctel de vino." },
+        { "nombre": "Rosaura", "desc": "Gin macerado con frutos rojos, tónica y menta. Frutado y fresco." },
+        { "nombre": "Jardín de la Abuela", "desc": "Gin, tónica, pomelo y menta. Como un día de campo." },
+        { "nombre": "Jazz Tropical", "desc": "Gin, Campari, vermut rosso, almíbar de vino, tónica, pomelo y tomillo. Exótico y vibrante." },
+        { "nombre": "Vita di Aperol", "desc": "Gin, Aperol, tónica y limón. Refrescante y ligero." },
+        { "nombre": "Black Cynar Julep", "desc": "Cynar, pomelo y soda. Un toque herbal." },
+        { "nombre": "Gin Bill", "desc": "Gin, Campari, almíbar de vino, pomelo y limón. Un corte de cine." }
+      ]
+    },
+    {
+      "nombre": "Clásicos",
+      "precio": 4000,
+      "items": [
+        { "nombre": "Gin tonic", "desc": "Gin, tónica y limón." },
+        { "nombre": "Mojito", "desc": "Ron blanco, menta, lima, azúcar y soda." },
+        { "nombre": "Caipiroska", "desc": "Vodka, lima y azúcar." },
+        { "nombre": "Caipirinha", "desc": "Cachaça, lima y azúcar." },
+        { "nombre": "Fernet con cola", "desc": "El de siempre, bien frío." },
+        { "nombre": "Negroni", "desc": "Gin, Campari y vermut rosso." },
+        { "nombre": "Aperol spritz", "desc": "Aperol, espumante y soda." },
+        { "nombre": "Campari con naranja", "desc": "Campari y jugo de naranja." },
+        { "nombre": "Cuba libre", "desc": "Ron, cola y lima." },
+        { "nombre": "Vermut con soda", "desc": "Vermut rosso, soda y una rodaja de naranja." }
+      ]
+    },
+    {
+      "nombre": "Sin alcohol",
+      "precio": 2500,
+      "items": [
+        { "nombre": "Tónica con pomelo y romero", "desc": "" },
+        { "nombre": "Limonada con jengibre y menta", "desc": "" },
+        { "nombre": "Gaseosa · agua con gas · agua", "desc": "" }
+      ]
+    }
+  ]
+}
