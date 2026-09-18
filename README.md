@@ -53,7 +53,9 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 
 1. El home muestra la **próxima cena publicada** (y, si se llenó, ofrece la siguiente) con los pasos de la noche y su trago.
 2. El usuario elige **cuántos son** (hasta 4), completa nombre / email / WhatsApp, puede avisar algo (alergias, vegetariano, festejo) y toca "Reservar y pagar".
-3. Se crea una reserva `PENDING` que **bloquea ese cupo 30 minutos** y se lo manda a Mercado Pago.
+3. Según lo que esté elegido en Ajustes → **Cómo se cobra**:
+   - **Transferencia** (el modo actual): se crea la reserva `PENDING`, el lugar queda guardado unas horas (configurable; nunca más allá de media hora antes de la cena) y la página de la reserva muestra el monto, el alias y el titular, con botones para mandar el comprobante por WhatsApp. A ustedes les llega un mail "Reserva a confirmar". Cuando ven el comprobante, en la cena tocan **Marcar pagado** y recién ahí sale la confirmación con la dirección. Las que vencen sin comprobante quedan en la lista como "Sin comprobante (vencida)" y se pueden marcar pagas igual.
+   - **Mercado Pago**: se crea la reserva `PENDING` que **bloquea ese cupo 30 minutos** y se lo manda a Mercado Pago.
    Al elegir la silla, si son dos o más, el dibujo ya sugiere sillas seguidas (se pueden cambiar).
 4. Mercado Pago avisa al webhook `/api/mp/webhook` (y además la página de retorno `/reserva/[id]` verifica el pago por si el webhook demora). Si está aprobado, la reserva pasa a `PAID`, salen los mails y **recién ahí elige su silla** en la mesa, desde esa misma página (el link va en el mail). Puede cambiarla hasta el día de la cena si hay lugar.
 5. Si no paga en 30 minutos, el cupo vuelve a estar libre solo. Si la misma persona (mismo mail) vuelve a intentar mientras su reserva sigue en proceso, se la lleva al mismo pago en vez de bloquear más lugares; y una misma conexión no puede tener más de dos reservas sin pagar a la vez en una cena (para que nadie bloquee la mesa).

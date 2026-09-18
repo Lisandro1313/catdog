@@ -45,3 +45,6 @@ next-env.d.ts
 
 # prisma generated client
 /src/generated
+
+# Fotos originales del lugar (se suben a Blob desde el panel o con un script; no van al repo)
+fotos/

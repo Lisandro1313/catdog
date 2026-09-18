@@ -24,6 +24,7 @@ import { renderReservationConfirmed, sendNewEventBlast, sendReminder, sendReserv
 import { isEmailConfigured, sendMail } from "@/lib/mailer";
 import { icsFor } from "@/lib/calendar";
 import { duplicateWeekLater } from "@/lib/events";
+import { setPaymentConfig } from "@/lib/payment";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
 
@@ -750,4 +751,23 @@ export async function sendRemindersNowAction(_prev: ActionState, formData: FormD
   }
   revalidatePath(`/admin/eventos/${id}`);
   return { ok: failed === 0, message: `Recordatorio enviado a ${sent} persona${sent === 1 ? "" : "s"}${failed ? ` (${failed} fallaron)` : ""}.` };
+}
+
+// --- Cómo se cobra ---
+
+export async function setPaymentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const mode = String(formData.get("mode")) === "transferencia" ? "transferencia" : "mercadopago";
+  const alias = String(formData.get("alias") ?? "").trim().slice(0, 80);
+  const holder = String(formData.get("holder") ?? "").trim().slice(0, 80);
+  const bank = String(formData.get("bank") ?? "").trim().slice(0, 80);
+  const holdHours = Math.min(168, Math.max(1, Math.round(Number(formData.get("holdHours")) || 24)));
+  if (mode === "transferencia" && !alias) return { ok: false, message: "Para cobrar por transferencia hay que cargar el alias o CBU." };
+  await setPaymentConfig({ mode, alias, holder, bank, holdHours });
+  revalidatePath("/");
+  revalidatePath("/fechas");
+  revalidatePath("/condiciones");
+  revalidatePath("/admin");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: mode === "transferencia" ? `Listo: se cobra por transferencia (alias ${alias}).` : "Listo: se cobra por Mercado Pago." };
 }

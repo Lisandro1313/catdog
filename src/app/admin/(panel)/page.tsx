@@ -8,11 +8,13 @@ import { emailReachesEveryone, mailModeLabel } from "@/lib/mailer";
 import { getNextEvent } from "@/lib/reservations";
 import { getFinancials, getVisitStats } from "@/lib/admin-stats";
 import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos } from "@/lib/photos";
+import { getPaymentConfig } from "@/lib/payment";
 import { EventForm } from "@/components/admin/EventForm";
 import { createEventAction } from "../actions";
 
 export default async function AdminHome() {
-  const [photos, about, instagram] = await Promise.all([getPhotos(), getAbout(), getInstagram()]);
+  const [photos, about, instagram, payment] = await Promise.all([getPhotos(), getAbout(), getInstagram(), getPaymentConfig()]);
+  const byTransfer = payment.mode === "transferencia";
   const [events, subscribers, nextEvent, visits, money] = await Promise.all([
     prisma.event.findMany({
       orderBy: { date: "desc" },
@@ -92,7 +94,9 @@ export default async function AdminHome() {
       {(() => {
         const upcomingPublished = events.filter((e) => e.published && e.date.getTime() > now).length;
         const items: { ok: boolean; label: string; href: string }[] = [
-          { ok: mercadoPagoMode() === "produccion", label: "Mercado Pago en producción (cobros reales)", href: "/admin/ajustes" },
+          byTransfer
+            ? { ok: Boolean(payment.alias), label: `Cobro por transferencia con alias cargado${payment.alias ? ` (${payment.alias})` : ""}`, href: "/admin/ajustes" }
+            : { ok: mercadoPagoMode() === "produccion", label: "Mercado Pago en producción (cobros reales)", href: "/admin/ajustes" },
           { ok: emailReachesEveryone(), label: "Mails que le llegan a la gente (Gmail)", href: "/admin/ajustes" },
           { ok: photos.length > 0, label: `Fotos de la casa en el home (${photos.length})`, href: "/admin/ajustes" },
           { ok: about !== DEFAULT_ABOUT, label: "Texto “Quiénes somos” escrito por ustedes", href: "/admin/ajustes" },
@@ -122,7 +126,7 @@ export default async function AdminHome() {
         ) : null;
       })()}
 
-      {mercadoPagoMode() === "prueba" && (
+      {!byTransfer && mercadoPagoMode() === "prueba" && (
         <section className="rounded-xl border border-danger/60 bg-danger/10 p-4 text-sm">
           <p className="font-medium text-danger">Mercado Pago está en modo prueba: los pagos NO son reales.</p>
           <p className="mt-1 text-muted">
@@ -134,13 +138,17 @@ export default async function AdminHome() {
 
       {/* Estado + números generales */}
       <section className="grid gap-4 sm:grid-cols-4">
-        <Status
-          ok={mercadoPagoMode() === "produccion"}
-          label="Mercado Pago"
-          hint={mercadoPagoMode() === "prueba" ? "token de PRUEBA (TEST-)" : "MP_ACCESS_TOKEN"}
-          okLabel="Producción"
-          badLabel={mercadoPagoMode() === "prueba" ? "Modo prueba" : "Falta"}
-        />
+        {byTransfer ? (
+          <Status ok={Boolean(payment.alias)} label="Cobro" hint="alias en Ajustes" okLabel={`Transferencia · ${payment.alias}`} badLabel="Falta el alias" />
+        ) : (
+          <Status
+            ok={mercadoPagoMode() === "produccion"}
+            label="Mercado Pago"
+            hint={mercadoPagoMode() === "prueba" ? "token de PRUEBA (TEST-)" : "MP_ACCESS_TOKEN"}
+            okLabel="Producción"
+            badLabel={mercadoPagoMode() === "prueba" ? "Modo prueba" : "Falta"}
+          />
+        )}
         <Status ok={emailReachesEveryone()} label="Emails" hint={mailModeLabel()} />
         <div className="card p-4">
           <p className="text-xs text-muted">Suscriptores</p>

@@ -21,6 +21,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { contactEmail, siteUrl } from "@/lib/config";
 import { foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
+import { getPaymentConfig } from "@/lib/payment";
 
 /**
  * El home se genera y se guarda un minuto (ISR): responde al instante y los metadatos
@@ -53,7 +54,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [upcoming, about, photos, eventCount, reviews, rating, instagram] = await Promise.all([
+  const [upcoming, about, photos, eventCount, reviews, rating, instagram, payment] = await Promise.all([
     getUpcomingEvents(),
     getAbout(),
     getPhotos(),
@@ -61,7 +62,9 @@ export default async function HomePage() {
     getApprovedReviews(),
     getAverageRating(),
     getInstagram(),
+    getPaymentConfig(),
   ]);
+  const byTransfer = payment.mode === "transferencia";
   // El afiche muestra la fecha más cercana; si se llenó, la reserva pasa a la siguiente con lugar.
   const event = upcoming[0] ?? null;
   const free = event?.free ?? 0;
@@ -107,7 +110,9 @@ export default async function HomePage() {
     },
     {
       q: "¿Cómo se paga?",
-      a: "Por Mercado Pago al reservar: tarjeta, débito o dinero en cuenta. Mientras pagás, tu cupo queda guardado 30 minutos.",
+      a: byTransfer
+        ? `Por transferencia. Reservás en la página, te mostramos el alias y nos mandás el comprobante por WhatsApp. Tu lugar queda guardado ${payment.holdHours} horas mientras tanto, y con el comprobante te llega la confirmación con la dirección.`
+        : "Por Mercado Pago al reservar: tarjeta, débito o dinero en cuenta. Mientras pagás, tu cupo queda guardado 30 minutos.",
     },
     {
       q: "¿Comés distinto? ¿Alergias?",
@@ -398,8 +403,8 @@ export default async function HomePage() {
             </div>
             <ol className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-2 text-center text-xs text-muted">
               <Step n="1" text="Elegís cuántos son" />
-              <Step n="2" text="Pagás por Mercado Pago" />
-              <Step n="3" text="Elegís tu silla y te llega la dirección" />
+              <Step n="2" text={byTransfer ? "Transferís y nos mandás el comprobante" : "Pagás por Mercado Pago"} />
+              <Step n="3" text={byTransfer ? "Te confirmamos, elegís tu silla y te llega la dirección" : "Elegís tu silla y te llega la dirección"} />
             </ol>
             <div className="card card-gold mt-8 p-6 sm:p-8">
               {nextOpen && (
@@ -417,7 +422,7 @@ export default async function HomePage() {
                 </div>
               )}
               {nextOpen ? (
-                <ReserveForm events={reservable} defaultEventId={nextOpen.id} maxSeats={MAX_SEATS_PER_RESERVATION} />
+                <ReserveForm events={reservable} defaultEventId={nextOpen.id} maxSeats={MAX_SEATS_PER_RESERVATION} byTransfer={byTransfer} holdHours={payment.holdHours} />
               ) : (
                 <div className="text-center">
                   <p className="font-display text-2xl">Se agotó</p>
@@ -438,7 +443,7 @@ export default async function HomePage() {
                     : `${dateLong(event.date)}.`
                 }
               />
-              <Fact label="Cuánto" value={`${formatPrice((nextOpen ?? event).price)} por persona, por Mercado Pago.`} />
+              <Fact label="Cuánto" value={`${formatPrice((nextOpen ?? event).price)} por persona, ${byTransfer ? "por transferencia" : "por Mercado Pago"}.`} />
             </dl>
           </section>
 

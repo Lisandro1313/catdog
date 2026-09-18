@@ -145,6 +145,8 @@ export async function sendAdminNewReservation(input: {
   customerMail?: "ok" | "fallo" | "omitido";
   /** Para un cambio de nombre: quién tenía la reserva antes. */
   transferredFrom?: string;
+  /** Reservó y va a transferir: todavía no pagó. */
+  pendingTransfer?: boolean;
 }) {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!isEmailConfigured() || !adminEmail) return;
@@ -155,7 +157,15 @@ export async function sendAdminNewReservation(input: {
       : input.customerMail === "ok"
         ? `<p style="color:#9a9187;font-size:14px">Le mandamos la confirmación con la dirección a ${input.email}.</p>`
         : "";
-  const body = transfer
+  const body = input.pendingTransfer
+    ? `
+    <p><strong>${input.name}</strong> reservó ${input.quantity} lugar${input.quantity > 1 ? "es" : ""} y va a pagar <strong>por transferencia</strong> (${formatPrice(input.amount)}).</p>
+    <p>${input.event.title} · ${formatLong(input.event.date)}</p>
+    <p>Email: ${input.email}<br>Tel: ${input.phone ?? "-"}</p>
+    ${input.notes ? `<p><em>Nos avisa:</em> ${input.notes}</p>` : ""}
+    <p>Cuando te llegue el comprobante, marcala como pagada en el panel: ahí le sale el mail con la dirección.</p>
+    <p><a href="${siteUrl()}/admin" style="color:#c9a96e">Ver panel</a></p>`
+    : transfer
     ? `
     <p><strong>${input.transferredFrom}</strong> le pasó su reserva a <strong>${input.name}</strong> (${input.quantity} lugar${input.quantity > 1 ? "es" : ""}).</p>
     <p>${input.event.title} · ${formatLong(input.event.date)}</p>
@@ -170,10 +180,14 @@ export async function sendAdminNewReservation(input: {
     ${input.notes ? `<p><em>Nos avisa:</em> ${input.notes}</p>` : ""}
     ${mailLine}
     <p><a href="${siteUrl()}/admin" style="color:#c9a96e">Ver panel</a></p>`;
-  const html = layout(transfer ? "Cambio de nombre en una reserva" : "Nueva reserva", body);
+  const html = layout(input.pendingTransfer ? "Reserva a confirmar" : transfer ? "Cambio de nombre en una reserva" : "Nueva reserva", body);
   const { error } = await sendMail({
     to: adminEmail,
-    subject: transfer ? `Reserva pasada a ${input.name}` : `Nueva reserva: ${input.name} (${input.quantity})`,
+    subject: input.pendingTransfer
+      ? `Reserva a confirmar (transferencia): ${input.name} (${input.quantity})`
+      : transfer
+        ? `Reserva pasada a ${input.name}`
+        : `Nueva reserva: ${input.name} (${input.quantity})`,
     html,
     text: toText(html),
   });

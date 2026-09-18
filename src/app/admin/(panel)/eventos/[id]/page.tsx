@@ -179,24 +179,26 @@ export default async function AdminEventPage({
                           </span>
                         )}
                         {r.status === "PENDING" && !expired && (
-                          <span className="text-accent">Pendiente hasta {formatShort(r.expiresAt).slice(-5)}</span>
+                          <span className="text-accent">
+                            {r.mpInitPoint ? "Pagando en MP" : "Espera transferencia"} · hasta {formatShort(r.expiresAt)}
+                          </span>
                         )}
-                        {expired && <span className="text-muted">Vencida</span>}
+                        {expired && <span className="text-muted">{r.mpInitPoint ? "Vencida" : "Sin comprobante (vencida)"}</span>}
                         {r.status === "CANCELLED" && <span className="text-muted">Cancelada</span>}
                       </td>
                       <td className="py-2 pr-3">{formatPrice(r.amount)}</td>
                       <td className="py-2 text-right whitespace-nowrap">
                         <div className="inline-flex gap-2">
-                          {r.status === "PENDING" && !expired && (
+                          {r.status === "PENDING" && (!expired || !r.mpInitPoint) && (
                             <form action={markPaidAction}>
                               <input type="hidden" name="id" value={r.id} />
-                              <input type="hidden" name="via" value="efectivo" />
-                              <button className="btn btn-ghost btn-sm" type="submit">
+                              <input type="hidden" name="via" value={r.mpInitPoint ? "efectivo" : "transferencia"} />
+                              <button className="btn btn-primary btn-sm" type="submit">
                                 Marcar pagado
                               </button>
                             </form>
                           )}
-                          {(r.status === "PAID" || (r.status === "PENDING" && !expired)) && (
+                          {(r.status === "PAID" || r.status === "PENDING") && (
                             <form action={cancelReservationAction}>
                               <input type="hidden" name="id" value={r.id} />
                               <ConfirmButton

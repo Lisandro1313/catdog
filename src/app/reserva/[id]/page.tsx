@@ -6,6 +6,8 @@ import { isMercadoPagoConfigured } from "@/lib/mp";
 import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, siteUrl, whatsappUrl } from "@/lib/config";
 import { formatDayNumber, formatLong, formatTime, formatWeekday, nowMs } from "@/lib/dates";
 import { googleCalendarUrl } from "@/lib/calendar";
+import { getPaymentConfig } from "@/lib/payment";
+import { formatLong as formatLongDate } from "@/lib/dates";
 import { SeatChooser } from "@/components/SeatChooser";
 import { TransferForm } from "@/components/TransferForm";
 
@@ -43,6 +45,11 @@ export default async function ReservationPage({ params, searchParams }: Props) {
     await prisma.reservation.update({ where: { id }, data: { confirmedAt: new Date() } });
     reservation = (await prisma.reservation.findUnique({ where: { id }, include })) ?? reservation;
   }
+
+  const payment = await getPaymentConfig();
+  // Reserva hecha para pagar por transferencia: no tiene link de Mercado Pago.
+  const byTransfer = reservation.status === "PENDING" && !reservation.mpInitPoint;
+  const transferMsg = `Hola! Soy ${reservation.name}. Reservé ${reservation.quantity === 1 ? "1 lugar" : `${reservation.quantity} lugares`} para ${reservation.event.title} (${formatLongDate(reservation.event.date)}) y les mando el comprobante de la transferencia de ${formatPrice(reservation.amount)}.`;
 
   const mine = reservation.seats.map((s) => s.number);
   const expired = reservation.status === "PENDING" && reservation.expiresAt.getTime() < nowMs();
@@ -130,7 +137,63 @@ export default async function ReservationPage({ params, searchParams }: Props) {
             </>
           )}
 
-          {reservation.status === "PENDING" && !expired && (
+          {byTransfer && !expired && (
+            <>
+              <h1 className="font-display mt-3 text-3xl">Tu lugar está guardado</h1>
+              <p className="mt-3 text-muted">
+                {reservation.quantity === 1 ? "1 lugar" : `${reservation.quantity} lugares`} para <strong className="text-ink">{reservation.event.title}</strong>,{" "}
+                {formatLong(reservation.event.date)}, a nombre de {reservation.name}. Te lo guardamos hasta el{" "}
+                <strong className="text-ink">
+                  {formatLong(reservation.expiresAt).toLowerCase()} a las {formatTime(reservation.expiresAt)} hs
+                </strong>
+                .
+              </p>
+              <div className="mt-6 rounded-xl bg-surface-2 p-5 text-left">
+                <p className="eyebrow">Para confirmarlo, transferí</p>
+                <p className="mt-1 font-display text-3xl">{formatPrice(reservation.amount)}</p>
+                <dl className="mt-3 grid gap-1 text-sm">
+                  {payment.alias && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted">Alias / CBU</dt>
+                      <dd className="select-all text-right font-mono">{payment.alias}</dd>
+                    </div>
+                  )}
+                  {payment.holder && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted">Titular</dt>
+                      <dd className="text-right">{payment.holder}</dd>
+                    </div>
+                  )}
+                  {payment.bank && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted">Banco</dt>
+                      <dd className="text-right">{payment.bank}</dd>
+                    </div>
+                  )}
+                </dl>
+                {!payment.alias && <p className="mt-2 text-sm text-danger">Todavía no cargamos los datos de la cuenta: escribinos por WhatsApp y te los pasamos.</p>}
+              </div>
+              <p className="mt-5 text-sm text-muted">Después mandanos el comprobante por WhatsApp. Cuando lo veamos, te llega el mail de confirmación con la dirección exacta y elegís tu silla.</p>
+              {CONTACT_PHONES.length > 0 && (
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {CONTACT_PHONES.map((p, i) => (
+                    <a
+                      key={p}
+                      className={`btn ${i === 0 ? "btn-primary" : "btn-ghost"}`}
+                      href={whatsappUrl(p, transferMsg)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Mandar comprobante · {formatPhone(p)}
+                    </a>
+                  ))}
+                </div>
+              )}
+              <p className="mt-6 text-xs text-muted">Guardá este link: acá vas a ver tu reserva confirmada y elegir tu lugar.</p>
+            </>
+          )}
+
+          {reservation.status === "PENDING" && !expired && !byTransfer && (
             <>
               <h1 className="font-display mt-3 text-3xl">Todavía no recibimos el pago</h1>
               <p className="mt-4 text-muted">
@@ -155,7 +218,9 @@ export default async function ReservationPage({ params, searchParams }: Props) {
               </h1>
               <p className="mt-4 text-muted">
                 {expired
-                  ? "Pasaron los 30 minutos sin pago y el cupo volvió a quedar libre."
+                  ? byTransfer
+                    ? "Pasó el tiempo que guardábamos el lugar y no vimos la transferencia. Si la hiciste, mandanos el comprobante por WhatsApp y lo confirmamos igual, si queda lugar."
+                    : "Pasaron los 30 minutos sin pago y el cupo volvió a quedar libre."
                   : "Si pagaste y esto es un error, escribinos."}
               </p>
               <Link href="/" className="btn btn-ghost mt-8">

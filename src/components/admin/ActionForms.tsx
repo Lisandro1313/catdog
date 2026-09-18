@@ -8,6 +8,7 @@ import {
   requestReviewsAction,
   sendRemindersNowAction,
   sendTestMailAction,
+  setPaymentAction,
 } from "@/app/admin/actions";
 
 export function NotifyForm({ eventId, subscribers, notifiedAt }: { eventId: string; subscribers: number; notifiedAt: string | null }) {
@@ -140,6 +141,52 @@ export function RemindersNowForm({ eventId, pending: pendingCount }: { eventId: 
       </button>
       <span className="text-xs text-muted">Sale solo el día anterior a las 11. Esto es por si querés adelantarlo o la tarea no corrió.</span>
       {state?.message && <p className={`text-sm basis-full ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
+    </form>
+  );
+}
+
+export function PaymentForm({ current }: { current: { mode: string; alias: string; holder: string; bank: string; holdHours: number } }) {
+  const [state, action, pending] = useActionState(setPaymentAction, null);
+  return (
+    <form action={action} className="mt-4 grid gap-4">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${current.mode === "transferencia" ? "border-accent/60" : "border-line"}`}>
+          <input type="radio" name="mode" value="transferencia" defaultChecked={current.mode === "transferencia"} className="mt-1" />
+          <span>
+            <span className="block font-medium">Transferencia</span>
+            <span className="block text-xs text-muted">La persona reserva en la página, ve el alias, manda el comprobante por WhatsApp y ustedes la marcan pagada. El lugar se guarda unas horas.</span>
+          </span>
+        </label>
+        <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${current.mode === "mercadopago" ? "border-accent/60" : "border-line"}`}>
+          <input type="radio" name="mode" value="mercadopago" defaultChecked={current.mode === "mercadopago"} className="mt-1" />
+          <span>
+            <span className="block font-medium">Mercado Pago</span>
+            <span className="block text-xs text-muted">Paga con tarjeta o dinero en cuenta y la reserva se confirma sola. Ojo con los plazos de liberación de la cuenta.</span>
+          </span>
+        </label>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1 text-xs text-muted">
+          Alias o CBU
+          <input className="input" name="alias" defaultValue={current.alias} placeholder="mi.alias.mp" />
+        </label>
+        <label className="grid gap-1 text-xs text-muted">
+          Titular
+          <input className="input" name="holder" defaultValue={current.holder} placeholder="Nombre y apellido" />
+        </label>
+        <label className="grid gap-1 text-xs text-muted">
+          Banco o billetera (opcional)
+          <input className="input" name="bank" defaultValue={current.bank} placeholder="Mercado Pago, Galicia…" />
+        </label>
+        <label className="grid gap-1 text-xs text-muted">
+          Horas que se guarda el lugar esperando la transferencia
+          <input className="input" name="holdHours" type="number" min={1} max={168} defaultValue={current.holdHours} />
+        </label>
+      </div>
+      {state?.message && <p className={`text-sm ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
+      <button className="btn btn-primary btn-sm justify-self-start" type="submit" disabled={pending}>
+        {pending ? "Guardando…" : "Guardar"}
+      </button>
     </form>
   );
 }

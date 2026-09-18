@@ -23,9 +23,12 @@ type Props = {
   /** Con qué fecha arranca (la primera con lugar). */
   defaultEventId?: string;
   maxSeats: number;
+  /** Modo transferencia: no va a Mercado Pago, va a la página de la reserva con los datos para transferir. */
+  byTransfer?: boolean;
+  holdHours?: number;
 };
 
-export function ReserveForm({ events, defaultEventId, maxSeats }: Props) {
+export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = false, holdHours = 24 }: Props) {
   const firstOpen = events.find((e) => e.free > 0);
   const [eventId, setEventId] = useState(defaultEventId ?? firstOpen?.id ?? events[0]?.id ?? "");
   const event = events.find((e) => e.id === eventId) ?? events[0];
@@ -216,14 +219,24 @@ export function ReserveForm({ events, defaultEventId, maxSeats }: Props) {
       )}
 
       <button className="btn btn-primary" type="submit" disabled={busy || soldOut}>
-        {redirecting ? "Te llevamos a Mercado Pago…" : pending ? "Guardando tu lugar…" : `Reservar y pagar ${formatPrice(total)}`}
+        {redirecting
+          ? byTransfer
+            ? "Guardando tu lugar…"
+            : "Te llevamos a Mercado Pago…"
+          : pending
+            ? "Guardando tu lugar…"
+            : byTransfer
+              ? `Reservar · ${formatPrice(total)}`
+              : `Reservar y pagar ${formatPrice(total)}`}
       </button>
       <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <rect x="4" y="11" width="16" height="10" rx="2" />
           <path d="M8 11V7a4 4 0 0 1 8 0v4" />
         </svg>
-        Pago seguro por Mercado Pago. Tu cupo queda guardado 30 minutos mientras pagás.
+        {byTransfer
+          ? `Se paga por transferencia: al reservar te mostramos el alias. Tu lugar queda guardado ${holdHours} horas.`
+          : "Pago seguro por Mercado Pago. Tu cupo queda guardado 30 minutos mientras pagás."}
       </p>
       <p className="text-center text-xs text-muted">
         Al reservar aceptás las{" "}

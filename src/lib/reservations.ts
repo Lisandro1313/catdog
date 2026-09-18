@@ -2,16 +2,20 @@ import { prisma } from "./prisma";
 import { HOLD_MINUTES, MAX_SEATS_PER_RESERVATION, siteUrl } from "./config";
 import { createPreference, getPayment, isMercadoPagoConfigured } from "./mp";
 import { sendAdminNewReservation, sendReservationConfirmed } from "./email";
+import { getPaymentConfig } from "./payment";
 import type { Prisma } from "@/generated/prisma/client";
 
 export class ReservationError extends Error {}
 
 const FAR_FUTURE = new Date("2100-01-01T00:00:00Z");
 
-/** Borra las reservas pendientes vencidas de un evento (libera sus cupos). */
+/**
+ * Borra las reservas pendientes vencidas de Mercado Pago (el cupo ya se liberó solo; la fila no sirve).
+ * Las de transferencia vencidas se conservan: el panel las muestra como vencidas y se pueden marcar pagas igual.
+ */
 export async function purgeExpiredHolds(eventId: string) {
   await prisma.reservation.deleteMany({
-    where: { eventId, status: "PENDING", expiresAt: { lt: new Date() } },
+    where: { eventId, status: "PENDING", expiresAt: { lt: new Date() }, mpPreferenceId: { not: null } },
   });
 }
 
@@ -97,7 +101,9 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
   if (input.quantity < 1 || input.quantity > MAX_SEATS_PER_RESERVATION) {
     throw new ReservationError(`Podés reservar entre 1 y ${MAX_SEATS_PER_RESERVATION} lugares.`);
   }
-  if (!isMercadoPagoConfigured()) {
+  const payment = await getPaymentConfig();
+  const byTransfer = payment.mode === "transferencia";
+  if (!byTransfer && !isMercadoPagoConfigured()) {
     throw new ReservationError("Los pagos todavía no están habilitados. Probá en un rato.");
   }
 
@@ -110,6 +116,7 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
     orderBy: { createdAt: "desc" },
   });
   if (existing?.mpInitPoint) return { reservationId: existing.id, checkoutUrl: existing.mpInitPoint };
+  if (existing && byTransfer) return { reservationId: existing.id, checkoutUrl: `${siteUrl()}/reserva/${existing.id}` };
 
   if (input.ipHash) {
     const holds = await prisma.reservation.count({
@@ -120,7 +127,11 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
     }
   }
 
-  const expiresAt = new Date(Date.now() + HOLD_MINUTES * 60 * 1000);
+  // Con transferencia el lugar se guarda más tiempo (horas, configurable) porque la persona tiene que ir al banco,
+  // pero nunca más allá de media hora antes de la cena.
+  const holdMs = (byTransfer ? payment.holdHours * 60 : HOLD_MINUTES) * 60 * 1000;
+  const latest = event.date.getTime() - 30 * 60 * 1000;
+  const expiresAt = new Date(Math.max(Date.now() + 10 * 60 * 1000, Math.min(Date.now() + holdMs, latest)));
   const amount = event.price * input.quantity;
 
   // Lock por evento para que dos personas no tomen los últimos cupos a la vez.
@@ -147,6 +158,22 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
       },
     });
   });
+
+  if (byTransfer) {
+    // Sin Mercado Pago: la página de la reserva muestra los datos para transferir. Avisamos al admin para que la espere.
+    sendAdminNewReservation({
+      name: reservation.name,
+      email: reservation.email,
+      phone: reservation.phone,
+      notes: reservation.notes,
+      event,
+      quantity: reservation.quantity,
+      amount,
+      via: "transferencia (pendiente de comprobante)",
+      pendingTransfer: true,
+    }).catch((err) => console.error("[email] aviso admin falló", err));
+    return { reservationId: reservation.id, checkoutUrl: `${siteUrl()}/reserva/${reservation.id}` };
+  }
 
   try {
     const pref = await createPreference({

@@ -12,17 +12,19 @@ import { FixedExpensesPanel } from "@/components/admin/FixedExpensesPanel";
 import { getFixedExpenses } from "@/lib/fixed-expenses";
 import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos } from "@/lib/photos";
 import { AboutPanel, InstagramPanel, PhotosPanel } from "@/components/admin/HomeContentPanel";
-import { TestMailForm } from "@/components/admin/ActionForms";
+import { PaymentForm, TestMailForm } from "@/components/admin/ActionForms";
+import { getPaymentConfig } from "@/lib/payment";
 import { logoutAction } from "../../actions";
 
 export default async function AjustesPage() {
-  const [session, users, fixed, photos, about, instagram] = await Promise.all([
+  const [session, users, fixed, photos, about, instagram, payment] = await Promise.all([
     getSession(),
     prisma.user.findMany({ select: { name: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     getFixedExpenses(),
     getPhotos(),
     getAbout(),
     getInstagram(),
+    getPaymentConfig(),
   ]);
   const me = session?.role === "user" ? session.name : null;
   const missing = PARTNERS.filter((p) => !users.some((u) => u.name === p));
@@ -70,7 +72,7 @@ export default async function AjustesPage() {
       <section className="card p-5 sm:p-6">
         <h2 className="font-display text-2xl">Fotos del lugar</h2>
         <p className="mt-1 text-sm text-muted">
-          Van al home, en la sección "Un anticipo" (sirven fotos de los cócteles, los platos, la mesa o la casa); la portada queda de fondo del afiche (muy oscurecida). Sacalas con el celular con luz natural o con las velas prendidas: la fachada, la mesa
+          Van al home, en la sección “Un anticipo” (sirven fotos de los cócteles, los platos, la mesa o la casa); la portada queda de fondo del afiche (muy oscurecida). Sacalas con el celular con luz natural o con las velas prendidas: la fachada, la mesa
           puesta, un plato, la barra. Se achican solas antes de subir.
         </p>
         <PhotosPanel photos={photos} />
@@ -81,6 +83,14 @@ export default async function AjustesPage() {
         <p className="mt-1 text-sm text-muted">El texto que cuenta quiénes son y qué es la noche. Lo lee la gente antes de decidir reservar.</p>
         <AboutPanel current={about} isDefault={about === DEFAULT_ABOUT} />
         <InstagramPanel current={instagram} />
+      </section>
+
+      <section className="card card-gold p-5 sm:p-6">
+        <h2 className="font-display text-2xl">Cómo se cobra</h2>
+        <p className="mt-1 text-sm text-muted">
+          Hoy: <strong className="text-ink">{payment.mode === "transferencia" ? `transferencia (alias ${payment.alias || "sin cargar"})` : "Mercado Pago"}</strong>. El cambio se ve en el sitio al instante.
+        </p>
+        <PaymentForm current={payment} />
       </section>
 
       <section className="card p-5 sm:p-6">

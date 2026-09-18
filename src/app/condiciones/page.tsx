@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HOLD_MINUTES, MAX_SEATS_PER_RESERVATION, SITE_NAME } from "@/lib/config";
+import { getPaymentConfig } from "@/lib/payment";
 
 export const metadata: Metadata = {
   title: `Condiciones y privacidad · ${SITE_NAME}`,
   description: "Cómo funcionan las reservas, los cambios y qué hacemos con tus datos.",
 };
 
-export default function CondicionesPage() {
+export default async function CondicionesPage() {
+  const payment = await getPaymentConfig();
+  const byTransfer = payment.mode === "transferencia";
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-14 sm:py-20">
       <p className="ap-eyebrow">{SITE_NAME}</p>
@@ -16,12 +19,25 @@ export default function CondicionesPage() {
 
       <div className="mt-10 space-y-8 leading-relaxed text-ink/90">
         <Block title="La reserva">
-          <p>
-            Se reserva por persona, hasta {MAX_SEATS_PER_RESERVATION} lugares por reserva, y se paga por Mercado Pago al momento de reservar.
-            Mientras pagás, tu cupo queda guardado {HOLD_MINUTES} minutos; si el pago no se completa en ese tiempo, el cupo vuelve a quedar
-            libre.
-          </p>
-          <p>La reserva queda confirmada cuando Mercado Pago aprueba el pago. Ahí te llegan por mail la dirección exacta y el link para elegir tu silla.</p>
+          {byTransfer ? (
+            <>
+              <p>
+                Se reserva por persona, hasta {MAX_SEATS_PER_RESERVATION} lugares por reserva, y se paga <strong>por transferencia</strong>: al reservar
+                te mostramos el alias y el monto, y nos mandás el comprobante por WhatsApp. Tu lugar queda guardado {payment.holdHours} horas; si
+                en ese tiempo no vemos la transferencia, vuelve a quedar libre.
+              </p>
+              <p>La reserva queda confirmada cuando vemos el comprobante. Ahí te llega por mail la dirección exacta y el link para elegir tu silla.</p>
+            </>
+          ) : (
+            <>
+              <p>
+                Se reserva por persona, hasta {MAX_SEATS_PER_RESERVATION} lugares por reserva, y se paga por Mercado Pago al momento de reservar.
+                Mientras pagás, tu cupo queda guardado {HOLD_MINUTES} minutos; si el pago no se completa en ese tiempo, el cupo vuelve a quedar
+                libre.
+              </p>
+              <p>La reserva queda confirmada cuando Mercado Pago aprueba el pago. Ahí te llegan por mail la dirección exacta y el link para elegir tu silla.</p>
+            </>
+          )}
         </Block>
 
         <Block title="Cambios y cancelaciones">
@@ -51,7 +67,10 @@ export default function CondicionesPage() {
         <Block title="Tus datos">
           <p>
             Pedimos nombre, mail y WhatsApp solo para gestionar tu reserva y avisarte cosas de la cena. No los compartimos con nadie ni los
-            usamos para publicidad de terceros. El pago lo procesa Mercado Pago: nosotros no vemos ni guardamos datos de tu tarjeta.
+            usamos para publicidad de terceros.{" "}
+            {byTransfer
+              ? "El pago es una transferencia entre cuentas: no manejamos datos de tarjetas."
+              : "El pago lo procesa Mercado Pago: nosotros no vemos ni guardamos datos de tu tarjeta."}
           </p>
           <p>
             Si te anotaste para enterarte de nuevas fechas, cada mail trae un link para darte de baja. Podés pedirnos ver, corregir o borrar tus
