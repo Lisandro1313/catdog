@@ -32,7 +32,7 @@ export default async function Image() {
   const menu = event?.title ?? "";
   const soldOut = Boolean(event) && event.free <= 0;
 
-  const text = `${SITE_NAME}${headline}${when}${sub}${menu}Cena a puertas cerradas · La PlataCinco pasos, cada plato con su cóctel de autorAgotado · abrimos la próxima fecha0123456789`;
+  const text = `${SITE_NAME}${headline}${when}${sub}${menu}Cena a puertas cerradas · La PlataCada plato con su cóctel de autorAgotado · abrimos la próxima fecha0123456789`;
   const playfair = await loadFont("Playfair Display", text);
 
   return new ImageResponse(
@@ -62,7 +62,7 @@ export default async function Image() {
           {soldOut ? "Agotado · abrimos la próxima fecha" : sub}
         </div>
         <div style={{ display: "flex", fontSize: 24, marginTop: 40, color: "#c9a96e", letterSpacing: 4 }}>
-          Cinco pasos, cada plato con su cóctel de autor
+          Cada plato con su cóctel de autor
         </div>
       </div>
     ),

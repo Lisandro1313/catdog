@@ -41,8 +41,8 @@ export async function generateMetadata(): Promise<Metadata> {
     ? `${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)} · Cena a puertas cerradas en La Plata`
     : `Cena a puertas cerradas en La Plata`;
   const description = event
-    ? `Una cena en una casa de La Plata. Cinco pasos, cada plato con su cóctel de autor. ${formatPrice(event.price)} por persona, pocos lugares.`
-    : "Una cena en una casa de La Plata. Cinco pasos, cada plato con su cóctel de autor.";
+    ? `Una cena en una casa de La Plata. Varios pasos, cada plato con su cóctel de autor. ${formatPrice(event.price)} por persona, pocos lugares.`
+    : "Una cena en una casa de La Plata. Varios pasos, cada plato con su cóctel de autor.";
   // La imagen se genera en /opengraph-image; el sufijo cambia con la fecha para que WhatsApp no muestre una vieja.
   const image = { url: `/opengraph-image?v=${event ? event.date.getTime() : 0}`, width: 1200, height: 630, alt: "Cena a puertas cerradas en La Plata" };
   return {
@@ -94,7 +94,7 @@ export default async function HomePage() {
   const faqs = [
     {
       q: "¿Qué incluye el precio?",
-      a: "El cóctel sin alcohol de recepción, los cinco pasos de la cena con el cóctel de autor que acompaña a cada uno, y agua en la mesa. Lo que quieras tomar además, de la barra, va aparte.",
+      a: "El cóctel sin alcohol de recepción, los pasos de la cena con el cóctel de autor que acompaña a cada uno, y agua en la mesa. Lo que quieras tomar además, de la barra, va aparte.",
     },
     {
       q: "¿Puedo ir solo o sola?",
@@ -145,7 +145,7 @@ export default async function HomePage() {
       {event && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(foodEventJsonLd(event, photos.map((p) => p.url))) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(foodEventJsonLd(event, photos.map((p) => (p.url.startsWith("/") ? `${siteUrl()}${p.url}` : p.url)))) }}
         />
       )}
 
@@ -458,7 +458,7 @@ export default async function HomePage() {
               <p className="text-sm text-muted">¿Conocés a alguien que tiene que venir?</p>
               <ShareButton
                 className="btn btn-ghost btn-sm mt-3"
-                text={`Mirá esto: cena a puertas cerradas en La Plata, ${dateLong(event.date)}. Cinco pasos, cada plato con su cóctel de autor. ${siteUrl()}`}
+                text={`Mirá esto: cena a puertas cerradas en La Plata, ${dateLong(event.date)}. Cada plato con su cóctel de autor. ${siteUrl()}`}
               />
             </div>
           </section>
