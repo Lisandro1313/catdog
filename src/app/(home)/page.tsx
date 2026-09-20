@@ -508,9 +508,15 @@ export default async function HomePage() {
             <InstagramIcon /> @{instagram}
           </a>
         )}
-        <p className="mt-3">
+        <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
           <Link href="/fechas" className="hover:text-ink">
             Ver todas las fechas
+          </Link>
+          <Link href="/hoy/jugar" className="hover:text-ink">
+            Juegos de la mesa
+          </Link>
+          <Link href="/hoy/demo" className="hover:text-ink">
+            Puertas adentro
           </Link>
         </p>
         {contactEmail() && (

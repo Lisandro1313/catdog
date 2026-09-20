@@ -892,3 +892,59 @@ export async function deleteRecordAction(formData: FormData) {
   await prisma.gameScore.updateMany({ where: { id }, data: { name: null } });
   revalidatePath("/admin/premios");
 }
+
+// ---------------------------------------------------------------------------
+// La barra de la noche
+// ---------------------------------------------------------------------------
+
+const barSaleSchema = z.object({
+  eventId: z.string().min(1),
+  table: z.number().int().min(0).max(30),
+  item: z.string().trim().min(1).max(80),
+  price: z.number().int().min(0),
+  delta: z.union([z.literal(1), z.literal(-1)]),
+});
+
+export type BarSaleResult = { ok: true; rows: { table: number; item: string; price: number; qty: number }[] } | { ok: false; error: string };
+
+/** +1 / −1 de un trago en una mesita. */
+export async function barSaleAction(input: unknown): Promise<BarSaleResult> {
+  await requireAdmin();
+  const parsed = barSaleSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Dato inválido." };
+  const { eventId, table, item, price, delta } = parsed.data;
+  const current = await prisma.barSale.findUnique({ where: { eventId_table_item: { eventId, table, item } } });
+  if (current?.settledAt) return { ok: false, error: "La barra de esta cena ya se cerró." };
+  const qty = Math.max(0, (current?.qty ?? 0) + delta);
+  await prisma.barSale.upsert({
+    where: { eventId_table_item: { eventId, table, item } },
+    update: { qty, price },
+    create: { eventId, table, item, price, qty },
+  });
+  const rows = await prisma.barSale.findMany({ where: { eventId }, select: { table: true, item: true, price: true, qty: true } });
+  return { ok: true, rows };
+}
+
+/** Cierra la barra: suma todo y lo carga en la caja de la cena como ingreso "Barra". */
+export async function closeBarAction(input: unknown): Promise<{ ok: true; message?: string } | { ok: false; error: string }> {
+  await requireAdmin();
+  const me = await whoAmI();
+  const parsed = z.object({ eventId: z.string().min(1) }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Dato inválido." };
+  const { eventId } = parsed.data;
+  const open = await prisma.barSale.findMany({ where: { eventId, settledAt: null, qty: { gt: 0 } } });
+  const total = open.reduce((n, s) => n + s.qty * s.price, 0);
+  if (total === 0) return { ok: false, error: "No hay nada que cerrar." };
+  const byItem = new Map<string, number>();
+  for (const s of open) byItem.set(s.item, (byItem.get(s.item) ?? 0) + s.qty);
+  const description = `Barra de la noche: ${[...byItem].map(([item, q]) => `${q} ${item}`).join(", ")}`;
+  await prisma.$transaction([
+    prisma.ledgerEntry.create({
+      data: { eventId, kind: "INCOME", category: "barra", description: description.slice(0, 200), amount: total, day: argentinaDay(), by: me.name, fromPocket: false, createdBy: me.name },
+    }),
+    prisma.barSale.updateMany({ where: { eventId, settledAt: null }, data: { settledAt: new Date() } }),
+  ]);
+  revalidatePath(`/admin/eventos/${eventId}`);
+  revalidatePath("/admin/gastos");
+  return { ok: true, message: `Cargado en la caja: ${formatPrice(total)}.` };
+}

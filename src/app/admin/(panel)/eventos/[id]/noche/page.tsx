@@ -40,7 +40,12 @@ export default async function NochePage({ params }: { params: Promise<{ id: stri
         <Link href={`/admin/eventos/${event.id}`} className="hover:text-ink">
           ← {event.title}
         </Link>
-        <OfflineBadge />
+        <div className="flex items-center gap-3">
+          <Link href={`/admin/eventos/${event.id}/barra`} className="hover:text-ink">
+            La barra
+          </Link>
+          <OfflineBadge />
+        </div>
       </div>
 
       <section className="card p-5">

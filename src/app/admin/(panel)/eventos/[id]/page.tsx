@@ -181,9 +181,14 @@ export default async function AdminEventPage({
       <section id="reservas" className="card scroll-mt-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl">Reservas</h2>
-          <Link href={`/admin/eventos/${event.id}/noche`} className="btn btn-ghost btn-sm">
-            Vista para la noche
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/admin/eventos/${event.id}/noche`} className="btn btn-ghost btn-sm">
+              La puerta
+            </Link>
+            <Link href={`/admin/eventos/${event.id}/barra`} className="btn btn-ghost btn-sm">
+              La barra
+            </Link>
+          </div>
           <NotifyForm
             eventId={event.id}
             subscribers={subscribers}

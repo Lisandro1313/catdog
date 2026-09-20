@@ -44,6 +44,7 @@ model Event {
   steps        EventStep[]
   guesses      Guess[]
   waitlist Waitlist[]
+  barSales BarSale[]
 }
 
 /// "Lo que no dice la carta": un secreto por acto del juego de las mesitas. index 0 = recepción, 1..n = pasos del menú.
@@ -301,4 +302,22 @@ model Waitlist {
   notifiedAt DateTime?
 
   @@unique([eventId, email])
+}
+
+/// Consumo de barra por mesita durante la noche (se cuenta con +/- desde el celu; al cierre pasa a la caja).
+model BarSale {
+  id        String    @id @default(cuid())
+  eventId   String
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// 0 = sin mesita (barra suelta).
+  table     Int
+  item      String
+  /// Precio unitario al momento de cargarlo, en pesos.
+  price     Int
+  qty       Int       @default(0)
+  updatedAt DateTime  @updatedAt
+  /// Cuándo se pasó a la caja (null = noche abierta).
+  settledAt DateTime?
+
+  @@unique([eventId, table, item])
 }
