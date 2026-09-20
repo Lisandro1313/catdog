@@ -52,15 +52,3 @@ export const MIMICA_BASE = [
   "Chuparse los dedos",
   "Una gallina poniendo un huevo",
 ];
-
-/** Lo que hay que lograr en cada juego para el premio. Difícil a propósito. */
-export const METAS = {
-  /** Memotest de 8 pares en 20 movimientos o menos. */
-  memoriaMovimientos: 20,
-  /** Atrapá al chef: puntos en 30 segundos. */
-  chefPuntos: 30,
-  /** Trivia: 8 de 8. */
-  triviaAciertos: 8,
-  /** Mímica: 6 acertadas en 60 segundos. */
-  mimicaAciertos: 6,
-} as const;

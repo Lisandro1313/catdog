@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { METAS } from "@/lib/jugar";
+import { useEffect, useRef, useState } from "react";
+import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, shuffle } from "./Shell";
+import { Fin } from "./Fin";
 
 const PAIRS = 8;
 const FALLBACK = ["🍸", "🍹", "🥂", "🍷", "🧄", "🌶️", "🦐", "🍓", "🍋", "🫒", "🧀", "🍞"];
@@ -18,7 +19,9 @@ function deal(photos: string[]): Card[] {
 }
 
 /** Memotest: 8 pares con fotos de la casa (o emojis si faltan fotos). Cuenta movimientos, no tiempo. */
-export function Memoria({ photos, onDone, onBack }: { photos: string[]; onDone: (moves: number) => void; onBack: () => void }) {
+type Props = { photos: string[]; onDone: (moves: number) => void; onBack: () => void; marcas: Marcas; records: Records };
+
+export function Memoria({ photos, onDone, onBack, marcas, records }: Props) {
   const [cards, setCards] = useState<Card[] | null>(null);
   const [open, setOpen] = useState<number[]>([]);
   const [found, setFound] = useState<Set<string>>(new Set());
@@ -67,14 +70,16 @@ export function Memoria({ photos, onDone, onBack }: { photos: string[]; onDone: 
     reported.current = false;
   }
 
-  const meta = useMemo(() => moves <= METAS.memoriaMovimientos, [moves]);
-
   return (
     <Shell title="Memotest" onBack={onBack} right={<>{moves} mov.</>}>
-      <p className="mt-4 text-xs text-muted">
-        Encontrá los {PAIRS} pares. Para la marca: {METAS.memoriaMovimientos} movimientos o menos.
-      </p>
-      {cards ? (
+      {!done && (
+        <p className="mt-4 text-xs text-muted">
+          {found.size} de {PAIRS} pares · para la marca: {METAS.memoria} movimientos o menos.
+        </p>
+      )}
+      {done ? (
+        <Fin game="memoria" value={moves} label={`${moves} movimientos`} marcas={marcas} records={records} again={again} onBack={onBack} bien="Memoria de elefante." />
+      ) : cards ? (
         <div className="jg-grid mt-4">
           {cards.map((c, i) => {
             const up = open.includes(i) || found.has(c.key);
@@ -102,21 +107,6 @@ export function Memoria({ photos, onDone, onBack }: { photos: string[]; onDone: 
           {Array.from({ length: PAIRS * 2 }, (_, i) => (
             <span key={i} className="jg-flip" />
           ))}
-        </div>
-      )}
-      {done && (
-        <div className="jg-result">
-          <p className="ap-eyebrow">{meta ? "Marca lograda" : "Completo"}</p>
-          <p className="ap-display mt-2 text-3xl">{moves} movimientos</p>
-          {!meta && <p className="mt-2 text-xs text-muted">Para el trago hacen falta {METAS.memoriaMovimientos} o menos. ¿Otra?</p>}
-          <div className="mt-4 flex justify-center gap-3">
-            <button className="btn btn-ghost btn-sm" type="button" onClick={again}>
-              Otra vez
-            </button>
-            <button className="btn btn-primary btn-sm" type="button" onClick={onBack}>
-              Volver a los juegos
-            </button>
-          </div>
         </div>
       )}
     </Shell>

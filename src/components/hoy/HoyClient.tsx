@@ -278,8 +278,8 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
             </section>
           )}
           <Link href="/hoy/jugar" className="jg-link mt-8">
-            <span className="jg-link-title">Para la espera: cuatro juegos</span>
-            <span className="jg-link-sub">Memotest, atrapá al chef, mímica y trivia. Si lográs los cuatro, hay un trago.</span>
+            <span className="jg-link-title">Para la espera: seis juegos</span>
+            <span className="jg-link-sub">Memotest, atrapá al chef, llená la copa, Simón, mímica y trivia. Si lográs los seis, hay un trago.</span>
           </Link>
           {demo && <p className="mt-10 text-center text-[11px] uppercase tracking-[0.2em] text-muted/70">Modo ejemplo</p>}
         </div>

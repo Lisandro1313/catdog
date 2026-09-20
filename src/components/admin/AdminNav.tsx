@@ -7,6 +7,7 @@ const ITEMS = [
   { href: "/admin/gastos", label: "Gastos", icon: "🧾" },
   { href: "/admin", label: "Cenas", icon: "🍽️" },
   { href: "/admin/contactos", label: "Contactos", icon: "👥" },
+  { href: "/admin/premios", label: "Premios", icon: "🏆" },
   { href: "/admin/ajustes", label: "Ajustes", icon: "⚙️" },
 ];
 

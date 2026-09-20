@@ -827,3 +827,24 @@ export async function toggleHoyAction(formData: FormData) {
   await prisma.setting.upsert({ where: { key: "hoy:off" }, update: { value: off ? "1" : "0" }, create: { key: "hoy:off", value: off ? "1" : "0" } });
   revalidatePath("/admin/ajustes");
 }
+
+// ---------------------------------------------------------------------------
+// Premios y récords de los juegos
+// ---------------------------------------------------------------------------
+
+/** Marca un trago ganado como canjeado (quién lo canjeó = la sesión del panel). */
+export async function redeemPrizeAction(formData: FormData) {
+  await requireAdmin();
+  const me = await whoAmI();
+  const id = String(formData.get("id") ?? "");
+  await prisma.prize.updateMany({ where: { id, redeemedAt: null }, data: { redeemedAt: new Date(), redeemedBy: me.role === "user" ? me.name : "maestra" } });
+  revalidatePath("/admin/premios");
+}
+
+/** Saca el nombre de un récord (la marca queda, anónima). */
+export async function deleteRecordAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  await prisma.gameScore.updateMany({ where: { id }, data: { name: null } });
+  revalidatePath("/admin/premios");
+}

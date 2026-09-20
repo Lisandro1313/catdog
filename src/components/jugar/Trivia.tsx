@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { METAS, TRIVIA, type TriviaItem } from "@/lib/jugar";
+import { TRIVIA, type TriviaItem } from "@/lib/jugar";
+import type { Marcas, Records } from "@/lib/juegos";
 import { Shell, shuffle } from "./Shell";
+import { Fin } from "./Fin";
 
 const ROUND = 8;
 
 /** Verdadero o falso de barra y cocina: 8 al azar, con la explicación después de cada una. */
-export function Trivia({ onDone, onBack }: { onDone: (hits: number) => void; onBack: () => void }) {
+type Props = { onDone: (hits: number) => void; onBack: () => void; marcas: Marcas; records: Records };
+
+export function Trivia({ onDone, onBack, marcas, records }: Props) {
   const [items, setItems] = useState<TriviaItem[] | null>(null);
   const [i, setI] = useState(0);
   const [hits, setHits] = useState(0);
@@ -38,24 +42,9 @@ export function Trivia({ onDone, onBack }: { onDone: (hits: number) => void; onB
   if (!items) return <Shell title="Verdadero o falso" onBack={onBack} />;
 
   if (done) {
-    const meta = hits >= METAS.triviaAciertos;
     return (
       <Shell title="Verdadero o falso" onBack={onBack}>
-        <div className="jg-center">
-          <p className="ap-eyebrow">{meta ? "Marca lograda" : "Terminó"}</p>
-          <p className="ap-display mt-2 text-4xl">
-            {hits} de {ROUND}
-          </p>
-          <p className="mt-2 text-xs text-muted">{meta ? "Sabés de barra." : "Para el trago hay que hacer las ocho. Las preguntas cambian."}</p>
-          <div className="mt-6 flex justify-center gap-3">
-            <button className="btn btn-ghost btn-sm" type="button" onClick={again}>
-              Otra ronda
-            </button>
-            <button className="btn btn-primary btn-sm" type="button" onClick={onBack}>
-              Volver
-            </button>
-          </div>
-        </div>
+        <Fin game="trivia" value={hits} label={`${hits} de ${ROUND}`} marcas={marcas} records={records} again={again} onBack={onBack} bien="Sabés de barra." mal="Para el trago hay que hacer las ocho. Las preguntas cambian." />
       </Shell>
     );
   }
@@ -65,7 +54,12 @@ export function Trivia({ onDone, onBack }: { onDone: (hits: number) => void; onB
 
   return (
     <Shell title="Verdadero o falso" onBack={onBack} right={<>{i + 1}/{ROUND}</>}>
-      <div className="jg-mimica-card mt-6">
+      <div className="mt-4 flex justify-center gap-1.5" aria-hidden="true">
+        {items.map((_, k) => (
+          <span key={k} className={`jg-dotline ${k < i ? "is-on" : ""} ${k === i ? "is-current" : ""}`} />
+        ))}
+      </div>
+      <div className="jg-mimica-card mt-4">
         <p className="ap-eyebrow">¿Verdadero o falso?</p>
         <p className="mt-4 font-display text-2xl leading-snug">{q.text}</p>
         {answer != null && (

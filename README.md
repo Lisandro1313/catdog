@@ -217,13 +217,21 @@ está ahí "vago", nadie lo anuncia ni hay momentos en conjunto.
 
 ## Entretenimiento (`/hoy/jugar`)
 
-Cuatro juegos sueltos para la espera, linkeados desde el mazo de "Puertas adentro": **memotest** con las fotos de la
-casa (8 pares), **atrapá al chef** (la cara de Agustín, `public/chef.png`, aparece y se escapa; 30 segundos; si
-está rojo, resta), **mímica** para la mesa (consignas de cocina y barra más los platos y tragos de la noche; un
-minuto por turno) y **verdadero o falso** de barra (16 preguntas en `src/lib/jugar.ts`, 8 por ronda). Si el
-teléfono llega a la marca en los cuatro (`METAS` en `src/lib/jugar.ts`: 20 movimientos, 30 puntos, 6 aciertos,
-8 de 8) aparece "Te ganaste un trago" con un código para mostrar en la barra. Las marcas viven en el teléfono
-(`localStorage`, `catdog:jugar:v1`): no hay servidor ni base en estos juegos.
+Seis juegos sueltos para la espera, linkeados desde el mazo de "Puertas adentro": **memotest** con las fotos de la
+casa (8 pares), **atrapá al chef** (la cara de Agustín, `public/chef.png`, se desliza por la cocina cada vez más
+chica y rápida; 30 segundos; tres seguidos dan bonus; si está rojo, resta), **llená la copa** (mantener apretado
+para servir y soltar en la línea; cinco copas), **Simón de la barra** (repetir la secuencia de ingredientes),
+**mímica** para la mesa (consignas de cocina y barra más los platos y tragos de la noche; un minuto) y
+**verdadero o falso** de barra (16 preguntas en `src/lib/jugar.ts`, 8 por ronda).
+
+- Las **marcas** se guardan en el servidor por teléfono (`GameScore`, cookie anónima `catdog_hoy_device`), y el
+  jugador puede anotarse con un nombre: sale en la **tabla de récords** (top 5 por juego, dentro de cada juego y en
+  "Récords ›" del hub). Los nombres se moderan en **Panel → Premios** ("Borrar nombre": la marca queda anónima).
+- El **premio** (un trago) lo emite el servidor cuando el teléfono logró las metas de los seis juegos (`METAS` en
+  `src/lib/juegos.ts`): un código por teléfono y por noche (`Prize`), que se canjea desde **Panel → Premios**
+  ("Canjear", queda quién lo canjeó). El código se ve en "Ver mi trago".
+- Los valores imposibles se descartan (`plausible`); igual las marcas las manda el teléfono, así que el premio es
+  "difícil de conseguir" más que "imposible de trucar": para una mesa de amigos alcanza.
 
 ## Desarrollo local
 

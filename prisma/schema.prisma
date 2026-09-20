@@ -250,3 +250,29 @@ model Review {
 
   @@index([approved, createdAt])
 }
+
+/// Mejor marca de un teléfono en cada juego de /hoy/jugar (memoria = movimientos, el resto = puntos).
+model GameScore {
+  id        String   @id @default(cuid())
+  deviceKey String
+  game      String
+  best      Int
+  /// Nombre para la tabla de récords (lo elige el jugador; opcional).
+  name      String?
+  updatedAt DateTime @updatedAt
+
+  @@unique([deviceKey, game])
+}
+
+/// Un trago ganado: el código lo emite el servidor, uno por teléfono y por día, y se canjea desde el panel.
+model Prize {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  deviceKey  String
+  day        String
+  createdAt  DateTime  @default(now())
+  redeemedAt DateTime?
+  redeemedBy String?
+
+  @@unique([deviceKey, day])
+}

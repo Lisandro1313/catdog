@@ -1,7 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
-import { randomUUID } from "node:crypto";
+import { ensureDeviceKey } from "@/lib/device";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/admin-auth";
@@ -21,19 +20,8 @@ export type GuessResult =
   | { ok: true; secret: string; choice: string; stake: 1 | 3; correct: boolean; why: string | null; hitRate: number | null; lean: { choice: string; pct: number } | null; saved: boolean }
   | { ok: false; error: string };
 
-const DEVICE_COOKIE = "catdog_hoy_device";
 /** Tope de apuestas guardadas por acto: evita que alguien infle la base con claves inventadas. */
 const MAX_GUESSES_PER_STEP = 300;
-
-/** Identificador del teléfono, emitido por el servidor en una cookie httpOnly (el cliente no lo elige). */
-async function deviceKey(): Promise<string> {
-  const store = await cookies();
-  const existing = store.get(DEVICE_COOKIE)?.value;
-  if (existing && /^[a-f0-9-]{36}$/.test(existing)) return existing;
-  const key = randomUUID();
-  store.set(DEVICE_COOKIE, key, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/hoy", maxAge: 60 * 60 * 24 * 90 });
-  return key;
-}
 
 /**
  * Sella la apuesta y destapa el secreto de un acto. El secreto vive en el servidor hasta acá.
@@ -62,7 +50,7 @@ export async function guessAction(input: unknown): Promise<GuessResult> {
   let finalStake: 1 | 3 = stake;
   let saved = false;
   if (live) {
-    const key = await deviceKey();
+    const key = await ensureDeviceKey();
     const existing = await prisma.guess.findUnique({ where: { eventId_stepIndex_deviceKey: { eventId, stepIndex, deviceKey: key } } });
     if (existing) {
       finalChoice = existing.choice;
