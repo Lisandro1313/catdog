@@ -213,7 +213,6 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
           <Link href="/hoy/jugar" className="mt-5 block text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
             O ir directo a los juegos
           </Link>
-          {exampleSecrets && <p className="mt-6 text-[11px] uppercase tracking-[0.2em] text-muted/70">Modo ejemplo · secretos de muestra</p>}
         </div>
       </Stage>
     );
@@ -350,7 +349,6 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
             <span className="jg-link-title">Para la espera: nueve juegos</span>
             <span className="jg-link-sub">Maridaje, servicio, el gato, memotest, atrapá al chef, llená la copa, Simón, mímica y trivia. Si lográs siete, hay un trago.</span>
           </Link>
-          {demo && <p className="mt-10 text-center text-[11px] uppercase tracking-[0.2em] text-muted/70">Modo ejemplo</p>}
         </div>
       </Stage>
     );
