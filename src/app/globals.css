@@ -1951,3 +1951,15 @@ details.faq > summary::-webkit-details-marker {
     print-color-adjust: exact;
   }
 }
+
+/* Maridaje: la ficha equivocada */
+.hoy-chip.is-wrong {
+  border-color: var(--danger);
+  color: var(--danger);
+  animation: none;
+}
+
+/* Maridaje: los nombres de los cócteles con su mayúscula */
+.hoy-chip.is-normal {
+  text-transform: none;
+}

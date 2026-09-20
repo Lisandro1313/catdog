@@ -30,11 +30,15 @@ export default async function JugarPage() {
   const dishes = steps.map((s) => s.dish);
   const drinks = event ? [...steps.map((s) => s.drink).filter((d): d is string => Boolean(d)), ...parseBar(event.bar).map((b) => b.name)] : [];
   const mimica = [...MIMICA_BASE, ...dishes.map((d) => `Comer: ${d}`), ...drinks.map((d) => `Preparar: ${d}`)];
+  // Maridaje: platos con su cóctel (nombre antes del guion largo), más la barra y clásicos como señuelos.
+  const shortDrink = (d: string) => d.split(/\s+[—–-]\s+/)[0].trim();
+  const pairs = steps.filter((s) => s.drink).map((s) => ({ dish: s.dish, drink: shortDrink(s.drink!) }));
+  const extraDrinks = [...(event ? parseBar(event.bar).map((b) => b.name) : []), "Negroni", "Gin tonic", "Aperol Spritz", "Mojito", "Whisky sour", "Vermut con soda"];
 
   return (
     <>
       <TrackVisit path="/hoy/jugar" />
-      <JugarHub photos={photos.map((p) => p.url)} mimica={mimica} initialMarcas={marcas} initialRecords={records} />
+      <JugarHub photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} />
     </>
   );
 }

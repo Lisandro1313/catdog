@@ -3,6 +3,7 @@
 import { METAS, type GameId } from "@/lib/juegos";
 
 export const GAME_INFO: Record<GameId, { title: string; blurb: string; meta: string; icon: string; unit: string }> = {
+  maridaje: { title: "Maridaje", blurb: "Cada plato de la noche con su cóctel. ¿Cuál va con cuál?", meta: "Todos bien", icon: "🍷", unit: "%" },
   memoria: { title: "Memotest de la casa", blurb: "Ocho pares, fotos nuestras. Dalas vuelta y acordate.", meta: `${METAS.memoria} movimientos o menos`, icon: "🃏", unit: "mov." },
   chef: { title: "Atrapá al chef", blurb: "Se escapó de la cocina y no se queda quieto. Tocalo.", meta: `${METAS.chef} puntos en 30 segundos`, icon: "👨‍🍳", unit: "pts" },
   copa: { title: "Llená la copa", blurb: "Mantené apretado para servir y soltá justo en la línea. Cinco copas.", meta: `${METAS.copa} de 500 puntos`, icon: "🍷", unit: "pts" },
