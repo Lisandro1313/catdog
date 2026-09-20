@@ -122,6 +122,7 @@ export default async function AjustesPage() {
         <p className="mt-1 text-sm text-muted">Así los ve la gente (con la próxima cena y datos de ejemplo). Se abren en otra pestaña.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           {[
+            ["lugar-guardado", "Lugar guardado (transferencia)"],
             ["confirmacion", "Reserva confirmada"],
             ["recordatorio", "Recordatorio del día anterior"],
             ["opinion", "¿Cómo la pasaste?"],

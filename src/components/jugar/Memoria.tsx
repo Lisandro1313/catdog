@@ -19,9 +19,9 @@ function deal(photos: string[]): Card[] {
 }
 
 /** Memotest: 8 pares con fotos de la casa (o emojis si faltan fotos). Cuenta movimientos, no tiempo. */
-type Props = { photos: string[]; onDone: (moves: number) => void; onBack: () => void; marcas: Marcas; records: Records };
+type Props = { photos: string[]; onDone: (moves: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
-export function Memoria({ photos, onDone, onBack, marcas, records }: Props) {
+export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Props) {
   const [cards, setCards] = useState<Card[] | null>(null);
   const [open, setOpen] = useState<number[]>([]);
   const [found, setFound] = useState<Set<string>>(new Set());
@@ -78,7 +78,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records }: Props) {
         </p>
       )}
       {done ? (
-        <Fin game="memoria" value={moves} label={`${moves} movimientos`} marcas={marcas} records={records} again={again} onBack={onBack} bien="Memoria de elefante." />
+        <Fin nueva={nueva} game="memoria" value={moves} label={`${moves} movimientos`} marcas={marcas} records={records} again={again} onBack={onBack} bien="Memoria de elefante." />
       ) : cards ? (
         <div className="jg-grid mt-4">
           {cards.map((c, i) => {

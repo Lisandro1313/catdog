@@ -1,3 +1,4 @@
+import { CopyButton } from "@/components/CopyButton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +50,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
   const payment = await getPaymentConfig();
   // Reserva hecha para pagar por transferencia: no tiene link de Mercado Pago.
   const byTransfer = reservation.status === "PENDING" && !reservation.mpInitPoint;
-  const transferMsg = `Hola! Soy ${reservation.name}. Reservé ${reservation.quantity === 1 ? "1 lugar" : `${reservation.quantity} lugares`} para ${reservation.event.title} (${formatLongDate(reservation.event.date)}) y les mando el comprobante de la transferencia de ${formatPrice(reservation.amount)}.`;
+  const transferMsg = `Hola! Soy ${reservation.name}. Reservé ${reservation.quantity === 1 ? "1 lugar" : `${reservation.quantity} lugares`} para ${reservation.event.title} (${formatLongDate(reservation.event.date)}) y les mando el comprobante de la transferencia de ${formatPrice(reservation.amount)}. Mi reserva: ${siteUrl()}/reserva/${reservation.id}`;
 
   const mine = reservation.seats.map((s) => s.number);
   const expired = reservation.status === "PENDING" && reservation.expiresAt.getTime() < nowMs();
@@ -150,12 +151,18 @@ export default async function ReservationPage({ params, searchParams }: Props) {
               </p>
               <div className="mt-6 rounded-xl bg-surface-2 p-5 text-left">
                 <p className="eyebrow">Para confirmarlo, transferí</p>
-                <p className="mt-1 font-display text-3xl">{formatPrice(reservation.amount)}</p>
+                <p className="mt-1 flex items-center gap-3 font-display text-3xl">
+                  {formatPrice(reservation.amount)}
+                  <CopyButton text={String(reservation.amount)} label="Copiar monto" />
+                </p>
                 <dl className="mt-3 grid gap-1 text-sm">
                   {payment.alias && (
                     <div className="flex justify-between gap-4">
                       <dt className="text-muted">Alias / CBU</dt>
-                      <dd className="select-all text-right font-mono">{payment.alias}</dd>
+                      <dd className="flex items-center justify-end gap-2 text-right font-mono">
+                        {payment.alias}
+                        <CopyButton text={payment.alias} label="Copiar alias" />
+                      </dd>
                     </div>
                   )}
                   {payment.holder && (
@@ -173,7 +180,10 @@ export default async function ReservationPage({ params, searchParams }: Props) {
                 </dl>
                 {!payment.alias && <p className="mt-2 text-sm text-danger">Todavía no cargamos los datos de la cuenta: escribinos por WhatsApp y te los pasamos.</p>}
               </div>
-              <p className="mt-5 text-sm text-muted">Después mandanos el comprobante por WhatsApp. Cuando lo veamos, te llega el mail de confirmación con la dirección exacta y elegís tu silla.</p>
+              <p className="mt-5 text-sm text-muted">
+                Después mandanos el comprobante por WhatsApp. Lo confirmamos en el día: te llega el mail con la dirección exacta y elegís tu silla. Te mandamos estos datos también por
+                mail.
+              </p>
               {CONTACT_PHONES.length > 0 && (
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                   {CONTACT_PHONES.map((p, i) => (

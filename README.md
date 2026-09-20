@@ -1,15 +1,15 @@
 # CatDog · Cena a puertas cerradas
 
-Sitio de reservas para una cena de 15 lugares. La gente entra, ve la semana de la
-próxima cena, elige su silla en la mesa, deja nombre y mail, paga con Mercado Pago
-y recibe la confirmación. Vos administrás todo desde `/admin`.
+Sitio de reservas para una cena de 15 lugares. La gente entra, ve la próxima cena y su carta,
+deja nombre y mail, paga (por transferencia con comprobante por WhatsApp, o con Mercado Pago cuando
+esté activo), recibe la confirmación con la dirección y elige su silla. Vos administrás todo desde `/admin`.
 
 ## Stack
 
 - Next.js 16 (App Router, Server Actions) + Tailwind 4, deploy en Vercel.
 - Postgres en Neon (integración de Vercel Marketplace) con Prisma 7.
-- Mercado Pago Checkout Pro (redirección + webhook).
-- Resend para mails (confirmación al que reserva, aviso a vos, aviso de nueva fecha a suscriptores).
+- Cobro por transferencia (alias + comprobante por WhatsApp, se confirma desde el panel) o Mercado Pago Checkout Pro (redirección + webhook), a elección desde Ajustes.
+- Mails por Gmail (nodemailer) o Resend: lugar guardado, confirmación, recordatorio, opinión, nueva fecha, lista de espera.
 
 ## Pantallas públicas
 

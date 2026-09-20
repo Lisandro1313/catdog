@@ -15,13 +15,15 @@ type Props = {
   /** Frase para cuando se logra la meta / cuando no. */
   bien?: string;
   mal?: string;
+  /** Si este resultado acaba de mejorar la marca (lo dice el servidor). */
+  nueva?: boolean;
 };
 
 /** Pantalla final común: resultado, si es marca, la meta, y el top 5 de la casa. */
-export function Fin({ game, value, label, marcas, records, again, onBack, bien, mal }: Props) {
+export function Fin({ game, value, label, marcas, records, again, onBack, bien, mal, nueva = false }: Props) {
   const meta = logrado(game, value);
   const best = marcas[game];
-  const esMejor = best != null && best === value;
+  const esMejor = nueva && best != null && best === value;
   return (
     <div className="jg-center">
       <p className={`ap-eyebrow ${meta ? "jg-glow" : ""}`}>{meta ? "Marca lograda" : "Terminó"}</p>

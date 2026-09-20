@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import { getNextEvent } from "@/lib/reservations";
-import { renderNewEvent, renderReminder, renderReservationConfirmed, renderReviewRequest } from "@/lib/email";
+import { renderHoldPending, renderNewEvent, renderReminder, renderReservationConfirmed, renderReviewRequest } from "@/lib/email";
+import { getPaymentConfig } from "@/lib/payment";
 
 /** Vista previa de los mails que salen, con la próxima cena como ejemplo. Solo con sesión del panel. */
 export async function GET(_req: Request, { params }: { params: Promise<{ tipo: string }> }) {
@@ -21,7 +22,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ tipo: s
           ? renderReviewRequest(event, { id: "ejemplo", name: sample.name })
           : tipo === "nueva-fecha"
             ? renderNewEvent(event, "ejemplo@correo.com")
-            : null;
+            : tipo === "lugar-guardado"
+              ? renderHoldPending({ ...sample, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), payment: await getPaymentConfig() })
+              : null;
   if (!mail) return new NextResponse("Tipo desconocido", { status: 404 });
 
   const banner = `<div style="position:sticky;top:0;background:#c9a96e;color:#141210;font:14px system-ui;padding:10px 16px">Vista previa · asunto: <strong>${mail.subject}</strong> · datos de ejemplo</div>`;

@@ -4,6 +4,7 @@ import { formatShort } from "@/lib/dates";
 import { GAMES, LOWER_IS_BETTER, dayKey } from "@/lib/premios";
 import { GAME_INFO } from "@/components/jugar/info";
 import { deleteRecordAction, redeemPrizeAction } from "../../actions";
+import { ConfirmButton } from "@/components/admin/ConfirmButton";
 
 export const dynamic = "force-dynamic";
 
@@ -83,9 +84,9 @@ export default async function PremiosPage() {
                         </span>
                         <form action={deleteRecordAction}>
                           <input type="hidden" name="id" value={s.id} />
-                          <button className="text-xs text-muted hover:text-danger" type="submit">
+                          <ConfirmButton className="text-xs text-muted hover:text-danger" message={`¿Sacar el nombre “${s.name}” de los récords? La marca queda, anónima.`}>
                             Borrar nombre
-                          </button>
+                          </ConfirmButton>
                         </form>
                       </li>
                     ))}
@@ -119,9 +120,9 @@ function PrizeRow({ p }: { p: { id: string; code: string; createdAt: Date; redee
       {!p.redeemedAt && (
         <form action={redeemPrizeAction}>
           <input type="hidden" name="id" value={p.id} />
-          <button className="btn btn-primary btn-sm" type="submit">
+          <ConfirmButton className="btn btn-primary btn-sm" message={`¿Canjear el código ${p.code}? Queda marcado como usado.`}>
             Canjear
-          </button>
+          </ConfirmButton>
         </form>
       )}
     </li>

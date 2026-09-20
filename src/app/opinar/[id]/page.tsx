@@ -13,6 +13,7 @@ export default async function OpinarPage({ params }: { params: Promise<{ id: str
   const reservation = await prisma.reservation.findUnique({ where: { id }, include: { event: true, review: true } });
   if (!reservation) notFound();
   const open = canReview(reservation, nowMs());
+  const next = open ? await prisma.event.findFirst({ where: { published: true, date: { gt: new Date() } }, orderBy: { date: "asc" }, select: { id: true, date: true } }) : null;
 
   return (
     <div className="flex flex-1 flex-col items-center px-5 py-12 sm:py-16">
@@ -25,6 +26,7 @@ export default async function OpinarPage({ params }: { params: Promise<{ id: str
         {open ? (
           <div className="mt-8">
             <ReviewForm
+              next={next ? { id: next.id, label: formatLong(next.date) } : null}
               reservationId={reservation.id}
               defaultName={reservation.review?.name ?? displayName(reservation.name)}
               existing={reservation.review ? { rating: reservation.review.rating, text: reservation.review.text } : null}

@@ -71,7 +71,7 @@ export const DEMO_BANK: { secret: string; decoys: string[]; why: string }[] = [
   { secret: "ajo negro", decoys: ["miso", "humo de romero", "anchoa"], why: "Un cóctel seco y burbujeante limpia la fritura y deja la boca lista para el segundo bocado." },
   { secret: "pimentón ahumado", decoys: ["curry", "comino", "nuez moscada"], why: "El amargo del cóctel corta la grasa y el humo del plato se cruza con el del vaso." },
   { secret: "cerveza negra", decoys: ["vino tinto", "café", "chocolate amargo"], why: "Un trago con cuerpo para un plato largo: acompaña, no compite." },
-  { secret: "pimienta negra", decoys: ["aceto", "vainilla", "cardamomo"], why: "Frutal y fresco para cerrar: el postre pide algo que no empalague." },
+  { secret: "pimienta negra", decoys: ["aceto", "vainilla", "canela"], why: "Frutal y fresco para cerrar: el postre pide algo que no empalague." },
 ];
 
 export function labelForStep(i: number, dish: string, total: number): string {
@@ -99,7 +99,7 @@ export function buildActs(
     let decoys = (st?.decoys ?? "").split(",").map((d) => d.trim()).filter(Boolean);
     let why = st?.why?.trim() || null;
     if (demo && (!secret || decoys.length < 3)) {
-      // El último ejemplo del banco es el del postre; los demás rotan.
+      // El último ejemplo del banco es el del postre; los demás se reparten sin repetir mientras alcancen.
       const ex = label === "El postre" ? DEMO_BANK[DEMO_BANK.length - 1] : DEMO_BANK[index % (DEMO_BANK.length - 1)];
       secret = ex.secret;
       decoys = ex.decoys;

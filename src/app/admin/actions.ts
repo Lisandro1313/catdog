@@ -25,6 +25,8 @@ import { isEmailConfigured, sendMail } from "@/lib/mailer";
 import { icsFor } from "@/lib/calendar";
 import { duplicateWeekLater } from "@/lib/events";
 import { setPaymentConfig } from "@/lib/payment";
+import { notifyWaitlist } from "@/lib/waitlist";
+import { allowRequest } from "@/lib/rate-limit";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
 
@@ -44,11 +46,18 @@ async function whoAmI(): Promise<{ name: string; role: "master" | "user" }> {
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const password = String(formData.get("password") ?? "");
   const user = String(formData.get("user") ?? "").trim();
+  // Diez intentos cada 15 minutos por IP, y medio segundo de espera tras cada fallo.
+  if (!(await allowRequest("login", 10))) return { ok: false, message: "Demasiados intentos. Esperá unos minutos." };
+  const fail = async () => {
+    await new Promise((r) => setTimeout(r, 500));
+    console.warn("[admin] login fallido", user || "(maestra)");
+    return { ok: false as const, message: "Contraseña incorrecta." };
+  };
   if (user) {
-    if (!(await verifyUser(user, password))) return { ok: false, message: "Contraseña incorrecta." };
+    if (!(await verifyUser(user, password))) return fail();
     await setSession({ name: user, role: "user" });
   } else {
-    if (!checkMaster(password)) return { ok: false, message: "Contraseña incorrecta." };
+    if (!checkMaster(password)) return fail();
     await setSession({ name: "Admin", role: "master" });
   }
   const next = String(formData.get("next") ?? "");
@@ -182,9 +191,15 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   const d = parsed.data;
 
-  const taken = await prisma.seat.aggregate({ where: { eventId: id }, _max: { number: true } });
+  const [taken, paid] = await Promise.all([
+    prisma.seat.aggregate({ where: { eventId: id }, _max: { number: true } }),
+    prisma.reservation.aggregate({ where: { eventId: id, status: "PAID" }, _sum: { quantity: true } }),
+  ]);
   if (taken._max.number && taken._max.number > d.capacity) {
     return { ok: false, message: `Hay un lugar ${taken._max.number} reservado; no podés bajar la capacidad a ${d.capacity}.` };
+  }
+  if ((paid._sum.quantity ?? 0) > d.capacity) {
+    return { ok: false, message: `Ya hay ${paid._sum.quantity} lugares pagos; no podés bajar la capacidad a ${d.capacity}.` };
   }
 
   await prisma.event.update({
@@ -248,15 +263,23 @@ export async function notifySubscribersAction(_prev: ActionState, formData: Form
   };
 }
 
-export async function markPaidAction(formData: FormData) {
+export async function markPaidAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
   const via = String(formData.get("via") ?? "efectivo");
-  const r = await prisma.reservation.findUnique({ where: { id }, select: { eventId: true, status: true } });
-  if (!r || r.status === "PAID") return;
-  await markPaid(id, via);
+  const r = await prisma.reservation.findUnique({ where: { id }, select: { eventId: true, status: true, name: true } });
+  if (!r) return { ok: false, message: "Reserva inexistente." };
+  if (r.status === "PAID") return { ok: true, message: "Ya estaba paga." };
+  try {
+    await markPaid(id, via);
+  } catch (err) {
+    if (err instanceof ReservationError) return { ok: false, message: err.message };
+    throw err;
+  }
   revalidatePath("/");
+  revalidatePath("/admin");
   revalidatePath(`/admin/eventos/${r.eventId}`);
+  return { ok: true, message: `${r.name}: pagado. Le sale el mail con la dirección.` };
 }
 
 export async function cancelReservationAction(formData: FormData) {
@@ -269,6 +292,7 @@ export async function cancelReservationAction(formData: FormData) {
   if (r.status === "PAID") {
     await sendReservationCancelled({ to: r.email, name: r.name, event: r.event, quantity: r.quantity, amount: r.amount }).catch(() => {});
   }
+  notifyWaitlist(r.eventId).catch((err) => console.error("[waitlist] aviso falló", err));
   revalidatePath("/");
   revalidatePath(`/admin/eventos/${r.eventId}`);
 }
@@ -352,6 +376,7 @@ export async function deleteReservationAction(formData: FormData) {
   const r = await prisma.reservation.findUnique({ where: { id }, select: { eventId: true } });
   if (!r) return;
   await prisma.reservation.delete({ where: { id } });
+  notifyWaitlist(r.eventId).catch((err) => console.error("[waitlist] aviso falló", err));
   revalidatePath("/");
   revalidatePath(`/admin/eventos/${r.eventId}`);
 }
@@ -676,9 +701,11 @@ export async function requestReviewsAction(_prev: ActionState, formData: FormDat
   if (!event) return { ok: false, message: "Cena inexistente." };
   if (event.date.getTime() > Date.now()) return { ok: false, message: "La cena todavía no pasó." };
   if (!isEmailConfigured()) return { ok: false, message: "Los mails no están configurados (ver Ajustes → Estado de los servicios)." };
+  const next = await prisma.event.findFirst({ where: { published: true, date: { gt: new Date() } }, orderBy: { date: "asc" }, select: { id: true, title: true, date: true } });
   const { sent, failed } = await sendReviewRequests({
     event,
     people: event.reservations.map((r) => ({ id: r.id, name: r.name, email: r.email })),
+    next,
   });
   await prisma.event.update({ where: { id }, data: { reviewsRequestedAt: new Date() } });
   revalidatePath(`/admin/eventos/${id}`);

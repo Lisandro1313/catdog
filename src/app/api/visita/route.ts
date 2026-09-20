@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { argentinaDay } from "@/lib/dates";
 
-/** Cuenta una visita al home. Sin cookies ni datos personales: solo día + ruta. */
+/** Rutas que se cuentan (las que llevan TrackVisit o el embudo de la reserva). Cualquier otra se ignora. */
+const KNOWN = new Set(["/", "/fechas", "/hoy", "/hoy/jugar", "/reservar"]);
+
+/** Cuenta una visita. Sin cookies ni datos personales: solo día + ruta. */
 export async function POST(req: NextRequest) {
   let path = "/";
   try {
     const body = (await req.json()) as { path?: string };
-    if (typeof body.path === "string" && body.path.startsWith("/") && body.path.length < 100) path = body.path;
+    if (typeof body.path === "string" && KNOWN.has(body.path)) path = body.path;
+    else if (typeof body.path === "string") return NextResponse.json({ ok: true });
   } catch {
     // sin body: cuenta como home
   }

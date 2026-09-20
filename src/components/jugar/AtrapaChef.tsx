@@ -10,13 +10,13 @@ const FRASES = ["¡Eh!", "Ni cerca", "Casi", "Se fue a la cocina", "Ja", "Qué m
 const ATRAPADO = ["¡Ay!", "¡Auch!", "¡Soltame!", "¡Se quema!", "¡Tengo bondiola al fuego!", "¡Ok, ok!", "¡Mi gorro!"];
 
 type Pos = { x: number; y: number; size: number; angry: boolean; ms: number };
-type Props = { onDone: (points: number) => void; onBack: () => void; marcas: Marcas; records: Records };
+type Props = { onDone: (points: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
 /**
  * Atrapá al chef: la cara de Agustín se desliza de un lado a otro de la cocina, cada vez más chica
  * y más rápida. Tocarlo suma; tres seguidos suman bonus; si aparece rojo (enojado) resta.
  */
-export function AtrapaChef({ onDone, onBack, marcas, records }: Props) {
+export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [left, setLeft] = useState(DURATION);
   const [score, setScore] = useState(0);
@@ -139,8 +139,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records }: Props) {
   return (
     <Shell title="Atrapá al chef" onBack={onBack} right={phase === "play" ? <span className={left <= 5 ? "text-danger" : ""}>{left}s</span> : null}>
       {phase === "end" ? (
-        <Fin
-          game="chef"
+        <Fin nueva={nueva}           game="chef"
           value={score}
           label={`${score} puntos`}
           marcas={marcas}

@@ -8,9 +8,9 @@ import { Fin } from "./Fin";
 const DURATION = 60;
 
 /** Mímica para la mesa: uno actúa la consigna sin hablar, los demás adivinan. Un minuto por turno. */
-type Props = { cards: string[]; onDone: (hits: number) => void; onBack: () => void; marcas: Marcas; records: Records };
+type Props = { cards: string[]; onDone: (hits: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
-export function Mimica({ cards, onDone, onBack, marcas, records }: Props) {
+export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [deck, setDeck] = useState<string[]>([]);
   const [i, setI] = useState(0);
@@ -110,7 +110,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records }: Props) {
         </>
       )}
       {phase === "end" && (
-        <Fin game="mimica" value={hits} label={`${hits} aciertos`} marcas={marcas} records={records} again={start} onBack={onBack} bien="Qué mesa." mal={`Para el trago hacen falta ${METAS.mimica} en un minuto. Le toca a otro.`} />
+        <Fin nueva={nueva} game="mimica" value={hits} label={`${hits} aciertos`} marcas={marcas} records={records} again={start} onBack={onBack} bien="Qué mesa." mal={`Para el trago hacen falta ${METAS.mimica} en un minuto. Le toca a otro.`} />
       )}
     </Shell>
   );

@@ -168,7 +168,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
             Cada plato de esta noche esconde un ingrediente. Cuando lo tengas adelante, probalo, apostá y destapalo. Sin apuro: es tuyo, a tu ritmo.
           </p>
           {!ready && !exampleSecrets && <p className="mt-4 text-xs text-muted">Esta noche el juego descansa: igual podés ver la carta por dentro.</p>}
-          <button className="btn btn-primary mt-10 px-10" type="button" onClick={start} disabled={!hydrated || !introIn}>
+          <button className={`btn btn-primary mt-10 px-10 ${!hydrated || !introIn ? "hoy-abrir-espera" : ""}`} type="button" onClick={start} disabled={!hydrated || !introIn}>
             Abrir
           </button>
           <Link href="/hoy/jugar" className="mt-5 block text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
@@ -242,7 +242,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
                     className={`hoy-deckcard ${r ? "is-open" : isNext ? "is-next" : ""}`}
                   >
                     <span className="hoy-deckcard-roman">{a.roman}</span>
-                    <span className="hoy-deckcard-dish">{r ? a.dish : a.dish}</span>
+                    <span className="hoy-deckcard-dish">{a.dish}</span>
                     {a.drink && <span className="hoy-deckcard-drink">con {a.drink}</span>}
                     <span className="hoy-deckcard-foot">
                       {r ? (

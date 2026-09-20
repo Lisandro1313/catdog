@@ -1,7 +1,8 @@
 import Link from "next/link";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_CAPACITY, DEFAULT_PRICE, formatPrice, siteUrl } from "@/lib/config";
+import { DEFAULT_CAPACITY, DEFAULT_PRICE, formatPrice, siteUrl, whatsappUrl } from "@/lib/config";
+import { MarkPaidForm } from "@/components/admin/ActionForms";
 import { formatDay, formatLong, formatShort, formatTime, nowMs, toDatetimeLocal } from "@/lib/dates";
 import { mercadoPagoMode } from "@/lib/mp";
 import { emailReachesEveryone, mailModeLabel } from "@/lib/mailer";
@@ -15,7 +16,7 @@ import { createEventAction } from "../actions";
 export default async function AdminHome() {
   const [photos, about, instagram, payment] = await Promise.all([getPhotos(), getAbout(), getInstagram(), getPaymentConfig()]);
   const byTransfer = payment.mode === "transferencia";
-  const [events, subscribers, nextEvent, visits, money] = await Promise.all([
+  const [events, subscribers, nextEvent, visits, money, toConfirm] = await Promise.all([
     prisma.event.findMany({
       orderBy: { date: "desc" },
       include: {
@@ -27,6 +28,13 @@ export default async function AdminHome() {
     getNextEvent(),
     getVisitStats(),
     getFinancials(),
+    // Transferencias esperando comprobante (o vencidas hace poco) de cenas que todavía no pasaron.
+    prisma.reservation.findMany({
+      where: { status: "PENDING", mpInitPoint: null, event: { date: { gt: new Date() } } },
+      orderBy: { createdAt: "desc" },
+      include: { event: { select: { id: true, title: true, date: true } } },
+      take: 30,
+    }),
   ]);
 
   const url = siteUrl();
@@ -57,6 +65,46 @@ export default async function AdminHome() {
 
   return (
     <>
+      {toConfirm.length > 0 && (
+        <section className="card card-gold p-5 sm:p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-display text-2xl">Por confirmar</h2>
+            <p className="text-sm text-muted">Reservaron y pagan por transferencia. Cuando llega el comprobante, “Marcar pagado”.</p>
+          </div>
+          <ul className="mt-4 divide-y divide-line">
+            {toConfirm.map((r) => {
+              const vencida = r.expiresAt.getTime() < now;
+              const msg = `Hola ${r.name.split(" ")[0]}! Somos de la cena. ¿Pudiste transferir los ${formatPrice(r.amount)} por ${r.quantity === 1 ? "tu lugar" : `tus ${r.quantity} lugares`} del ${formatLong(r.event.date)}? Te lo guardamos hasta el ${formatShort(r.expiresAt)}.`;
+              return (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      {r.name} <span className="text-muted">· {r.quantity === 1 ? "1 lugar" : `${r.quantity} lugares`} · {formatPrice(r.amount)}</span>
+                    </p>
+                    <p className="text-xs text-muted">
+                      <Link href={`/admin/eventos/${r.event.id}`} className="hover:text-ink">
+                        {r.event.title} · {formatShort(r.event.date)}
+                      </Link>
+                      {" · "}
+                      {vencida ? <span className="text-danger">venció {formatShort(r.expiresAt)}</span> : `vence ${formatShort(r.expiresAt)}`}
+                      {r.notes && <span className="block text-accent">“{r.notes}”</span>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {r.phone && (
+                      <a className="btn btn-ghost btn-sm" href={whatsappUrl(r.phone, msg)} target="_blank" rel="noopener noreferrer">
+                        WhatsApp
+                      </a>
+                    )}
+                    <MarkPaidForm id={r.id} name={r.name} amount={formatPrice(r.amount)} via="transferencia" compact />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       {/* Próxima cena en el home */}
       <section className="card p-6 border-accent/40">
         <p className="eyebrow">Lo que ve la gente ahora en el home</p>

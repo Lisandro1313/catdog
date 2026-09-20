@@ -41,6 +41,7 @@ model Event {
   reviews      Review[]
   steps        EventStep[]
   guesses      Guess[]
+  waitlist Waitlist[]
 }
 
 /// "Lo que no dice la carta": un secreto por acto del juego de las mesitas. index 0 = recepción, 1..n = pasos del menú.
@@ -275,4 +276,18 @@ model Prize {
   redeemedBy String?
 
   @@unique([deviceKey, day])
+}
+
+/// Lista de espera de una fecha agotada: se avisa por mail cuando se libera un lugar (una vez por persona).
+model Waitlist {
+  id         String    @id @default(cuid())
+  eventId    String
+  event      Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  email      String
+  name       String?
+  quantity   Int       @default(1)
+  createdAt  DateTime  @default(now())
+  notifiedAt DateTime?
+
+  @@unique([eventId, email])
 }

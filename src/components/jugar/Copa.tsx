@@ -11,13 +11,13 @@ const TARGETS = [0.62, 0.48, 0.75, 0.55, 0.68];
 const NOMBRES = ["Vermut de la casa", "Negroni", "Copa de Malbec", "Spritz", "Gin tonic"];
 const COLORES = ["#b4453a", "#c2502f", "#6d1f2e", "#e0742d", "#bcd5d0"];
 
-type Props = { onDone: (points: number) => void; onBack: () => void; marcas: Marcas; records: Records };
+type Props = { onDone: (points: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
 /**
  * Llená la copa: mantenés apretado y el líquido sube (cada vez más rápido); soltás justo en la línea.
  * Cinco copas distintas, cada una con su línea. Puntos por precisión.
  */
-export function Copa({ onDone, onBack, marcas, records }: Props) {
+export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [i, setI] = useState(0);
   const [level, setLevel] = useState(0);
@@ -104,7 +104,7 @@ export function Copa({ onDone, onBack, marcas, records }: Props) {
   if (phase === "end") {
     return (
       <Shell title="Llená la copa" onBack={onBack}>
-        <Fin game="copa" value={total} label={`${total} de 500`} marcas={marcas} records={records} again={start} onBack={onBack} bien="Mano de bartender." />
+        <Fin nueva={nueva} game="copa" value={total} label={`${total} de 500`} marcas={marcas} records={records} again={start} onBack={onBack} bien="Mano de bartender." />
       </Shell>
     );
   }

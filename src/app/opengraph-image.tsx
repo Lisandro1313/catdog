@@ -7,7 +7,7 @@ import { getUpcomingEvents } from "@/lib/reservations";
 export const alt = "Cena a puertas cerradas en La Plata";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 async function loadFont(family: string, text: string): Promise<ArrayBuffer | null> {
   try {

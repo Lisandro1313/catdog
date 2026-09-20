@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/config";
+import { formatPrice, whatsappUrl } from "@/lib/config";
 import { formatShort, nowMs, toDatetimeLocal, todayIso } from "@/lib/dates";
 import { categoryLabel, getFinancials, toRow } from "@/lib/admin-stats";
 import { getSession } from "@/lib/admin-auth";
 import { EventForm } from "@/components/admin/EventForm";
 import { StepsForm } from "@/components/admin/StepsForm";
 import { buildActs, gameReady } from "@/lib/hoy";
-import { AssignSeatsForm, ManualReservationForm, NotifyForm, RemindersNowForm, RequestReviewsForm } from "@/components/admin/ActionForms";
+import { AssignSeatsForm, ManualReservationForm, MarkPaidForm, NotifyForm, RemindersNowForm, RequestReviewsForm } from "@/components/admin/ActionForms";
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
@@ -19,7 +19,6 @@ import {
   deleteReservationAction,
   deleteReviewAction,
   duplicateEventAction,
-  markPaidAction,
   toggleClosedAction,
   updateEventAction,
 } from "../../../actions";
@@ -60,6 +59,7 @@ export default async function AdminEventPage({
   );
   const paidSeats = active.filter((r) => r.status === "PAID").reduce((n, r) => n + r.quantity, 0);
   const paidPeople = event.reservations.filter((r) => r.status === "PAID").length;
+  const pendingTransfers = active.filter((r) => r.status === "PENDING" && !r.mpInitPoint).length;
   const past = event.date.getTime() < now;
   const acts = buildActs(event);
   const byIndex = new Map(event.steps.map((st) => [st.index, st]));
@@ -159,12 +159,7 @@ export default async function AdminEventPage({
                         {r.phone && (
                           <>
                             <br />
-                            <a
-                              className="hover:text-ink"
-                              href={`https://wa.me/549${r.phone.replace(/\D/g, "").replace(/^549?/, "")}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
+                            <a className="hover:text-ink" href={whatsappUrl(r.phone)} target="_blank" rel="noopener noreferrer">
                               {r.phone}
                             </a>
                           </>
@@ -195,13 +190,7 @@ export default async function AdminEventPage({
                       <td className="py-2 text-right whitespace-nowrap">
                         <div className="inline-flex gap-2">
                           {r.status === "PENDING" && (!expired || !r.mpInitPoint) && (
-                            <form action={markPaidAction}>
-                              <input type="hidden" name="id" value={r.id} />
-                              <input type="hidden" name="via" value={r.mpInitPoint ? "efectivo" : "transferencia"} />
-                              <button className="btn btn-primary btn-sm" type="submit">
-                                Marcar pagado
-                              </button>
-                            </form>
+                            <MarkPaidForm id={r.id} name={r.name} amount={formatPrice(r.amount)} via={r.mpInitPoint ? "efectivo" : "transferencia"} compact />
                           )}
                           {(r.status === "PAID" || r.status === "PENDING") && (
                             <form action={cancelReservationAction}>
@@ -406,7 +395,9 @@ export default async function AdminEventPage({
             message={
               paidSeats > 0
                 ? "Esta cena tiene pagos: se va a ocultar del home, no se borra. ¿Seguir?"
-                : "¿Borrar esta cena definitivamente? Se borran también sus reservas y su caja."
+                : pendingTransfers > 0
+                  ? `¿Borrar esta cena definitivamente? Hay ${pendingTransfers} reserva${pendingTransfers === 1 ? "" : "s"} esperando transferencia que se borra${pendingTransfers === 1 ? "" : "n"} también, junto con la caja.`
+                  : "¿Borrar esta cena definitivamente? Se borran también sus reservas y su caja."
             }
           >
             {paidSeats > 0 ? "Despublicar cena" : "Borrar cena"}

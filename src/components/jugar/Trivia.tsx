@@ -9,9 +9,9 @@ import { Fin } from "./Fin";
 const ROUND = 8;
 
 /** Verdadero o falso de barra y cocina: 8 al azar, con la explicación después de cada una. */
-type Props = { onDone: (hits: number) => void; onBack: () => void; marcas: Marcas; records: Records };
+type Props = { onDone: (hits: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
-export function Trivia({ onDone, onBack, marcas, records }: Props) {
+export function Trivia({ onDone, onBack, marcas, records, nueva }: Props) {
   const [items, setItems] = useState<TriviaItem[] | null>(null);
   const [i, setI] = useState(0);
   const [hits, setHits] = useState(0);
@@ -44,7 +44,7 @@ export function Trivia({ onDone, onBack, marcas, records }: Props) {
   if (done) {
     return (
       <Shell title="Verdadero o falso" onBack={onBack}>
-        <Fin game="trivia" value={hits} label={`${hits} de ${ROUND}`} marcas={marcas} records={records} again={again} onBack={onBack} bien="Sabés de barra." mal="Para el trago hay que hacer las ocho. Las preguntas cambian." />
+        <Fin nueva={nueva} game="trivia" value={hits} label={`${hits} de ${ROUND}`} marcas={marcas} records={records} again={again} onBack={onBack} bien="Sabés de barra." mal="Para el trago hay que hacer las ocho. Las preguntas cambian." />
       </Shell>
     );
   }

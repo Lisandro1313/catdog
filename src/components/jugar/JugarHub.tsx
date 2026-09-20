@@ -29,6 +29,7 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
   const [askName, setAskName] = useState<GameId | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [justWon, setJustWon] = useState(false);
+  const [nueva, setNueva] = useState(false);
 
   // El nombre también queda en el teléfono para proponerlo si el servidor no lo tiene.
   useEffect(() => {
@@ -53,6 +54,7 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
   /** Cada juego reporta su resultado al terminar; el servidor decide si es marca y si hay premio. */
   async function reportar(game: GameId, value: number) {
     const res = await reportScoreAction({ game, value, name: name || undefined });
+    setNueva(res.nuevaMarca);
     apply(res);
     if (res.nuevaMarca && !name) setAskName(game);
   }
@@ -74,9 +76,9 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
 
           <div className="jg-modal" role="dialog" aria-labelledby="jg-name-title">
             <div className="jg-modal-card">
-              <p className="ap-eyebrow">Nueva marca</p>
+              <p className="ap-eyebrow">{name ? "Tu nombre" : "Nueva marca"}</p>
               <h2 id="jg-name-title" className="ap-display mt-2 text-2xl">
-                ¿Cómo te anotamos?
+                {name ? "¿Cómo querés aparecer?" : "¿Cómo te anotamos?"}
               </h2>
               <p className="mt-2 text-xs text-muted">Para la tabla de récords de la casa. Nombre o apodo, corto.</p>
               <input
@@ -101,7 +103,7 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
   ) : null;
 
   const completos = GAMES.filter((g) => logrado(g, marcas[g])).length;
-  const common = { records, marcas, onBack: () => setView("hub") };
+  const common = { records, marcas, nueva, onBack: () => setView("hub") };
 
   const game =
     view === "memoria" ? <Memoria photos={photos} onDone={(v) => reportar("memoria", v)} {...common} /> :

@@ -1,3 +1,4 @@
+import { whatsappUrl } from "@/lib/config";
 import Link from "next/link";
 import { getContacts } from "@/lib/admin-stats";
 import { formatPrice } from "@/lib/config";
@@ -53,7 +54,7 @@ export default async function ContactsPage() {
                     </td>
                     <td className="py-2 pr-3 text-muted">
                       {c.phone ? (
-                        <a className="hover:text-ink" href={`https://wa.me/549${c.phone.replace(/\D/g, "").replace(/^549?/, "")}`} target="_blank" rel="noopener noreferrer">
+                        <a className="hover:text-ink" href={whatsappUrl(c.phone)} target="_blank" rel="noopener noreferrer">
                           {c.phone}
                         </a>
                       ) : (

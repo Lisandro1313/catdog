@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { BarList } from "@/components/BarList";
 import { ReserveForm, type ReservableEvent } from "@/components/ReserveForm";
 import { SubscribeForm } from "@/components/SubscribeForm";
+import { WaitlistForm } from "@/components/WaitlistForm";
 import { TrackVisit } from "@/components/TrackVisit";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { StickyCta } from "@/components/StickyCta";
@@ -58,7 +59,7 @@ export default async function HomePage() {
     getUpcomingEvents(),
     getAbout(),
     getPhotos(),
-    prisma.event.count(),
+    prisma.event.count({ where: { published: true } }),
     getApprovedReviews(),
     getAverageRating(),
     getInstagram(),
@@ -444,8 +445,18 @@ export default async function HomePage() {
               ) : (
                 <div className="text-center">
                   <p className="font-display text-2xl">Se agotó</p>
-                  <p className="mt-2 text-sm text-muted">Dejá tu mail: te avisamos si se libera un lugar y cuando abramos la próxima fecha.</p>
-                  <div className="mt-5 text-left">
+                  {event && !event.closedAt ? (
+                    <>
+                      <p className="mt-2 text-sm text-muted">A veces alguien no puede venir. Anotate y, si se libera un lugar, te avisamos por mail: el que llega primero, reserva.</p>
+                      <div className="mt-2 text-left">
+                        <WaitlistForm eventId={event.id} dateLabel={dateShort(event.date)} />
+                      </div>
+                      <p className="mt-8 text-sm text-muted">Y para enterarte de las próximas fechas:</p>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted">Dejá tu mail: te avisamos cuando abramos la próxima fecha.</p>
+                  )}
+                  <div className="mt-2 text-left">
                     <SubscribeForm />
                   </div>
                 </div>

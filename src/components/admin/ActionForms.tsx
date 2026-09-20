@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import {
   assignSeatsAction,
+  markPaidAction,
   manualReservationAction,
   notifySubscribersAction,
   requestReviewsAction,
@@ -187,6 +188,28 @@ export function PaymentForm({ current }: { current: { mode: string; alias: strin
       <button className="btn btn-primary btn-sm justify-self-start" type="submit" disabled={pending}>
         {pending ? "Guardando…" : "Guardar"}
       </button>
+    </form>
+  );
+}
+
+/** "Marcar pagado" con confirmación y con el error a la vista (cupo vencido, reserva cancelada…). */
+export function MarkPaidForm({ id, name, amount, via, compact = false }: { id: string; name: string; amount: string; via: string; compact?: boolean }) {
+  const [state, action, pending] = useActionState(markPaidAction, null);
+  return (
+    <form action={action} className={compact ? "inline-flex flex-col items-end gap-1" : "flex flex-col items-start gap-1"}>
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="via" value={via} />
+      <button
+        className="btn btn-primary btn-sm"
+        type="submit"
+        disabled={pending}
+        onClick={(e) => {
+          if (!window.confirm(`¿Confirmás que ${name} pagó ${amount}? Le sale el mail con la dirección.`)) e.preventDefault();
+        }}
+      >
+        {pending ? "Guardando…" : "Marcar pagado"}
+      </button>
+      {state?.message && <span className={`text-xs ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</span>}
     </form>
   );
 }

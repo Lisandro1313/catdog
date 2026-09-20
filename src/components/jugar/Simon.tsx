@@ -17,13 +17,13 @@ function randomIngredient(): number {
   return Math.floor(Math.random() * ING.length);
 }
 
-type Props = { onDone: (round: number) => void; onBack: () => void; marcas: Marcas; records: Records };
+type Props = { onDone: (round: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
 /**
  * Simón de la barra: el bartender muestra una secuencia de ingredientes (cada ronda uno más);
  * hay que repetirla tocando en orden. El puntaje es la ronda alcanzada.
  */
-export function Simon({ onDone, onBack, marcas, records }: Props) {
+export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "show" | "input" | "end">("idle");
   const [seq, setSeq] = useState<number[]>([]);
   const [pos, setPos] = useState(0);
@@ -102,8 +102,7 @@ export function Simon({ onDone, onBack, marcas, records }: Props) {
   if (phase === "end") {
     return (
       <Shell title="Simón de la barra" onBack={onBack}>
-        <Fin
-          game="simon"
+        <Fin nueva={nueva}           game="simon"
           value={round}
           label={round === 1 ? "1 ronda" : `${round} rondas`}
           marcas={marcas}

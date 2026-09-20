@@ -1,6 +1,8 @@
 "use server";
 
 import { z } from "zod";
+import { joinWaitlist } from "@/lib/waitlist";
+import { allowRequest } from "@/lib/rate-limit";
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -72,11 +74,45 @@ export type SubscribeResult = { ok: true } | { ok: false; error: string };
 export async function subscribeAction(_prev: SubscribeResult | null, formData: FormData): Promise<SubscribeResult> {
   const email = z.email().safeParse(String(formData.get("email") ?? "").trim().toLowerCase());
   if (!email.success) return { ok: false, error: "Ese email no parece válido." };
-  await prisma.subscriber.upsert({
-    where: { email: email.data },
-    update: {},
-    create: { email: email.data },
+  if (!(await allowRequest("subscribe", 5))) return { ok: false, error: "Demasiados intentos. Probá en un rato." };
+  try {
+    await prisma.subscriber.upsert({
+      where: { email: email.data },
+      update: {},
+      create: { email: email.data },
+    });
+  } catch (err) {
+    console.error("[subscribe]", err);
+    return { ok: false, error: "No pudimos anotarte ahora. Probá de nuevo en un momento." };
+  }
+  return { ok: true };
+}
+
+const waitlistSchema = z.object({
+  eventId: z.string().min(1),
+  email: z.email(),
+  name: z.string().trim().max(60).optional(),
+  quantity: z.coerce.number().int().min(1).max(4),
+});
+
+/** Lista de espera de una fecha agotada: avisamos por mail cuando se libera un lugar. */
+export async function waitlistAction(_prev: SubscribeResult | null, formData: FormData): Promise<SubscribeResult> {
+  const parsed = waitlistSchema.safeParse({
+    eventId: formData.get("eventId"),
+    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    name: formData.get("name") || undefined,
+    quantity: formData.get("quantity") ?? 1,
   });
+  if (!parsed.success) return { ok: false, error: "Revisá el email." };
+  if (!(await allowRequest("waitlist", 5))) return { ok: false, error: "Demasiados intentos. Probá en un rato." };
+  const event = await prisma.event.findUnique({ where: { id: parsed.data.eventId }, select: { published: true, date: true } });
+  if (!event || !event.published || event.date.getTime() < Date.now()) return { ok: false, error: "Esa fecha ya no está disponible." };
+  try {
+    await joinWaitlist(parsed.data.eventId, parsed.data.email, parsed.data.name ?? null, parsed.data.quantity);
+  } catch (err) {
+    console.error("[waitlist]", err);
+    return { ok: false, error: "No pudimos anotarte ahora. Probá de nuevo en un momento." };
+  }
   return { ok: true };
 }
 

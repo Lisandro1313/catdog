@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { sendReminder, sendReviewRequests } from "./email";
+import { notifyWaitlist } from "./waitlist";
 import { isEmailConfigured } from "./mailer";
 import { ensureFixedEntries } from "./fixed-expenses";
 import { ensureNextDraft } from "./events";
@@ -14,7 +15,7 @@ const H = 60 * 60 * 1000;
  * - un borrador de la cena de la semana siguiente si la última ya pasó y no hay ninguna cargada.
  */
 export async function runDailyTasks(now = new Date()) {
-  const out = { reminders: 0, remindersFailed: 0, reviewRequests: 0, fixed: 0, draft: null as string | null };
+  const out = { reminders: 0, remindersFailed: 0, reviewRequests: 0, fixed: 0, waitlistNotified: 0, draft: null as string | null };
 
   out.fixed = await ensureFixedEntries();
   out.draft = await ensureNextDraft(now);
@@ -53,13 +54,27 @@ export async function runDailyTasks(now = new Date()) {
     },
     include: { reservations: { where: { status: "PAID" } } },
   });
+  const next = past.length
+    ? await prisma.event.findFirst({ where: { published: true, date: { gt: now } }, orderBy: { date: "asc" }, select: { id: true, title: true, date: true } })
+    : null;
   for (const e of past) {
-    const { sent } = await sendReviewRequests({
+    const people = e.reservations.filter((r) => !r.email.endsWith("@local"));
+    const { sent, failed } = await sendReviewRequests({
       event: e,
-      people: e.reservations.map((r) => ({ id: r.id, name: r.name, email: r.email })),
+      people: people.map((r) => ({ id: r.id, name: r.name, email: r.email })),
+      next,
     });
-    await prisma.event.update({ where: { id: e.id }, data: { reviewsRequestedAt: now } });
+    // Si no salió ninguno (mail caído), queda pendiente y se reintenta mañana.
+    if (people.length === 0 || sent > 0 || failed === 0) {
+      await prisma.event.update({ where: { id: e.id }, data: { reviewsRequestedAt: now } });
+    }
     out.reviewRequests += sent;
+  }
+
+  // Lugares que se liberaron (holds de transferencia vencidos, cancelaciones): avisar a la lista de espera.
+  const upcomingIds = await prisma.event.findMany({ where: { published: true, date: { gt: now } }, select: { id: true } });
+  for (const e of upcomingIds) {
+    out.waitlistNotified += await notifyWaitlist(e.id).catch(() => 0);
   }
 
   return out;

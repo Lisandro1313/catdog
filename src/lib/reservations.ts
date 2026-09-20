@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import { HOLD_MINUTES, MAX_SEATS_PER_RESERVATION, siteUrl } from "./config";
 import { createPreference, getPayment, isMercadoPagoConfigured } from "./mp";
-import { sendAdminNewReservation, sendReservationConfirmed } from "./email";
+import { sendHoldPending, sendAdminNewReservation, sendReservationConfirmed } from "./email";
 import { getPaymentConfig } from "./payment";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -43,9 +43,17 @@ export async function getUpcomingEvents(limit = 4): Promise<NonNullable<Upcoming
     orderBy: { date: "asc" },
     take: limit,
   });
-  const free = await Promise.all(events.map((e) => getFreeCount(e.id, e.capacity)));
+  const rows = await prisma.reservation.groupBy({
+    by: ["eventId"],
+    where: {
+      eventId: { in: events.map((e) => e.id) },
+      OR: [{ status: "PAID" }, { status: "PENDING", expiresAt: { gt: new Date() } }],
+    },
+    _sum: { quantity: true },
+  });
+  const taken = new Map(rows.map((r) => [r.eventId, r._sum.quantity ?? 0]));
   // Con las reservas cerradas a mano, para el público no quedan lugares.
-  return events.map((e, i) => ({ ...e, free: e.closedAt ? 0 : free[i] }));
+  return events.map((e) => ({ ...e, free: e.closedAt ? 0 : Math.max(0, e.capacity - (taken.get(e.id) ?? 0)) }));
 }
 
 /** Cupos ocupados: pagados + en proceso de pago (hold vigente). */
@@ -115,6 +123,11 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
     where: { eventId: event.id, email: input.email, status: "PENDING", expiresAt: { gt: new Date() } },
     orderBy: { createdAt: "desc" },
   });
+  if (existing && existing.quantity !== input.quantity) {
+    throw new ReservationError(
+      `Ya tenés una reserva en proceso por ${existing.quantity === 1 ? "1 lugar" : `${existing.quantity} lugares`} para esa fecha. Terminala desde el link que te mandamos o escribinos para cambiarla.`,
+    );
+  }
   if (existing?.mpInitPoint) return { reservationId: existing.id, checkoutUrl: existing.mpInitPoint };
   if (existing && byTransfer) return { reservationId: existing.id, checkoutUrl: `${siteUrl()}/reserva/${existing.id}` };
 
@@ -160,8 +173,20 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
   });
 
   if (byTransfer) {
-    // Sin Mercado Pago: la página de la reserva muestra los datos para transferir. Avisamos al admin para que la espere.
+    // Sin Mercado Pago: la página de la reserva muestra los datos para transferir. A la persona le mandamos lo mismo por
+    // mail (por si cierra la pestaña) y avisamos al admin para que la espere.
+    sendHoldPending({
+      to: reservation.email,
+      name: reservation.name,
+      event,
+      quantity: reservation.quantity,
+      amount,
+      reservationId: reservation.id,
+      expiresAt,
+      payment: { alias: payment.alias, holder: payment.holder, bank: payment.bank },
+    }).catch((err) => console.error("[email] lugar guardado falló", err));
     sendAdminNewReservation({
+      eventId: event.id,
       name: reservation.name,
       email: reservation.email,
       phone: reservation.phone,
@@ -279,11 +304,29 @@ export async function markPaid(reservationId: string, via: string, mpPaymentId?:
   };
   if (mpPaymentId) data.mpPaymentId = mpPaymentId;
 
-  const updated = await prisma.reservation.update({
-    where: { id: reservationId },
-    data,
-    include: { event: true, seats: true },
+  // Con lock por cena: si el hold venció y otro tomó el lugar, no se puede confirmar (evita sobrevender la mesa).
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext((SELECT "eventId" FROM "Reservation" WHERE id = ${reservationId})))`;
+    const current = await tx.reservation.findUnique({ where: { id: reservationId }, include: { event: true } });
+    if (!current) throw new ReservationError("Reserva inexistente.");
+    if (current.status === "CANCELLED") throw new ReservationError("Esa reserva está cancelada: hacé una nueva desde “Reserva manual”.");
+    if (current.status === "PAID") return tx.reservation.findUniqueOrThrow({ where: { id: reservationId }, include: { event: true, seats: true } });
+    if (current.expiresAt.getTime() < Date.now()) {
+      const { paid, holding } = await getOccupancy(current.eventId, tx);
+      const free = current.event.capacity - paid - holding;
+      if (free < current.quantity) {
+        throw new ReservationError(
+          free <= 0 ? "El lugar venció y la cena ya está completa: no se puede confirmar." : `El lugar venció y quedan ${free}, no ${current.quantity}.`,
+        );
+      }
+    }
+    return tx.reservation.update({ where: { id: reservationId }, data, include: { event: true, seats: true } });
   });
+
+  // Quien viene, se entera de las próximas fechas (cada mail trae su baja).
+  if (!updated.email.endsWith("@local")) {
+    prisma.subscriber.upsert({ where: { email: updated.email }, update: {}, create: { email: updated.email } }).catch(() => {});
+  }
 
   const seats = updated.seats.map((s) => s.number).sort((a, b) => a - b);
   // Los mails no deben tumbar la confirmación si fallan. Primero el de la persona; el aviso al admin cuenta cómo salió.
@@ -297,6 +340,7 @@ export async function markPaid(reservationId: string, via: string, mpPaymentId?:
     reservationId: updated.id,
   }).then((r) => (r.skipped ? ("omitido" as const) : r.error ? ("fallo" as const) : ("ok" as const)), () => "fallo" as const);
   await sendAdminNewReservation({
+    eventId: updated.eventId,
     name: updated.name,
     email: updated.email,
     phone: updated.phone,
@@ -397,7 +441,7 @@ export async function createManualReservation(input: {
         data: {
           eventId: event.id,
           name: input.name,
-          email: input.email || "sin-email@local",
+          email: input.email.trim().toLowerCase() || "sin-email@local",
           phone: input.phone,
           quantity,
           amount: input.via === "invitado" ? 0 : event.price * quantity,

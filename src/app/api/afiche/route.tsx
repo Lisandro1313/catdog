@@ -39,7 +39,7 @@ export async function GET(req: Request) {
   const host = siteUrl().replace(/^https?:\/\//, "");
   const day = `${cap(formatWeekday(event.date))} ${formatDayNumber(event.date)}`;
   const when = `de ${formatMonth(event.date)} · ${formatTime(event.date)} hs`;
-  const count = await prisma.event.count();
+  const count = await prisma.event.count({ where: { published: true } });
   const title = count <= 1 ? "Apertura" : "Próxima cena";
 
   const text = [SITE_NAME, title, day, when, event.title, ...steps.map((s) => s.dish), formatPrice(event.price), host, "Cena a puertas cerradas · La Plata", "por persona · pocos lugares", "Reservá en", "0123456789"].join("");
