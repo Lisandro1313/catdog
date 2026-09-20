@@ -37,7 +37,7 @@ export const METAS: Record<GameId, number> = {
 /** En memoria gana el número más bajo; en el resto, el más alto. */
 export const LOWER_IS_BETTER: Record<GameId, boolean> = { maridaje: false, servicio: false, gato: false, ritmo: false, memoria: true, chef: false, lisandro: false, copa: false, simon: false, mimica: false, trivia: false };
 
-export type Marcas = Partial<Record<GameId, number>> & { premio?: string | null; name?: string | null };
+export type Marcas = Partial<Record<GameId, number>> & { premio?: string | null; premioAt?: string | null; name?: string | null };
 export type RecordRow = { name: string; best: number };
 export type Records = Record<GameId, RecordRow[]>;
 

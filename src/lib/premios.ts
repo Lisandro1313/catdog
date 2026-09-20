@@ -1,13 +1,13 @@
 import { prisma } from "./prisma";
 import { GAMES, LOWER_IS_BETTER, PREMIO_MINIMO, dayKey, logrosParaPremio, mejora, type GameId, type Marcas, type Records } from "./juegos";
-import { getTonightEvent } from "./hoy";
 
-export { GAMES, METAS, PREMIO_MINIMO, LOWER_IS_BETTER, logrado, mejora, plausible, cleanName, dayKey, type GameId, type Marcas, type Records, type RecordRow } from "./juegos";
+export { GAMES, METAS, PREMIO_MINIMO, LOWER_IS_BETTER, logrado, logrosParaPremio, retoDelDia, mejora, plausible, cleanName, dayKey, type GameId, type Marcas, type Records, type RecordRow } from "./juegos";
 
 /**
  * Marcas, récords y premio de los juegos de /hoy/jugar. Todo se cuenta por teléfono (cookie anónima
- * emitida por el servidor). Las marcas son por noche (día argentino): el premio se gana esa noche, con
- * cena en vivo, logrando la meta en todos los juegos menos uno; los récords miran todas las noches.
+ * emitida por el servidor). Las marcas son por día (argentino): el premio se gana ese día logrando la meta
+ * en PREMIO_MINIMO juegos (el reto del día cuenta doble); se canjea una sola vez desde el panel. Los récords
+ * miran todos los días.
  */
 
 export async function getMarcas(deviceKey: string): Promise<Marcas> {
@@ -17,7 +17,7 @@ export async function getMarcas(deviceKey: string): Promise<Marcas> {
     prisma.prize.findFirst({ where: { deviceKey, day } }),
     prisma.gameScore.findFirst({ where: { deviceKey, name: { not: null } }, select: { name: true } }),
   ]);
-  const m: Marcas = { premio: prize?.code ?? null, name: named?.name ?? null };
+  const m: Marcas = { premio: prize?.code ?? null, premioAt: prize?.createdAt.toISOString() ?? null, name: named?.name ?? null };
   for (const s of scores) if ((GAMES as readonly string[]).includes(s.game)) m[s.game as GameId] = s.best;
   return m;
 }
@@ -74,7 +74,6 @@ export async function issuePrizeIfEarned(deviceKey: string): Promise<string | nu
   const m = await getMarcas(deviceKey);
   if (m.premio) return m.premio;
   if (logrosParaPremio(m) < PREMIO_MINIMO) return null;
-  if (!(await getTonightEvent())) return null;
   const day = dayKey();
   for (let attempt = 0; attempt < 5; attempt++) {
     try {

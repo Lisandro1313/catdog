@@ -7,6 +7,17 @@ import { GAMES, PREMIO_MINIMO, ganaDuelo, logrado, logrosParaPremio, retoDelDia,
 import { GAME_INFO, Tabla } from "./info";
 import { withTransition } from "./Shell";
 import { Confetti } from "./Confetti";
+import { ShareButton } from "@/components/ShareButton";
+
+function fmtPremioAt(iso: string): string {
+  const d = new Date(iso);
+  return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Argentina/Buenos_Aires" }).format(d).replace(",", " ·");
+}
+
+/** El mensaje que llega a la casa: quién, cuándo y el código (único por teléfono y por día). */
+function premioMsg(m: Marcas, name: string): string {
+  return `¡Logré ${PREMIO_MINIMO} de ${GAMES.length} en los juegos de CatDog! ${name ? `Soy ${name}. ` : ""}Código: ${m.premio}${m.premioAt ? ` · ganado el ${fmtPremioAt(m.premioAt)}` : ""}. Me gané un trago 🍸`;
+}
 import { Memoria } from "./Memoria";
 import { Maridaje, type Pair } from "./Maridaje";
 import { Servicio } from "./Servicio";
@@ -24,9 +35,9 @@ type Duelo = { game: GameId; names: [string, string]; scores: [number | null, nu
 
 const NAME_KEY = "catdog:jugar:nombre";
 
-type Props = { photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records };
+type Props = { photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records; whatsapp: string | null };
 
-export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords }: Props) {
+export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, whatsapp }: Props) {
   const [view, setViewRaw] = useState<View>("hub");
   const pushed = useRef(0);
   /** Entrar a un juego deja una entrada en el historial: "atrás" vuelve al hub en vez de salir. */
@@ -181,10 +192,25 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
           <p className="ap-ornament">✦</p>
           <p className="ap-eyebrow mt-3">Lograste {PREMIO_MINIMO} de {GAMES.length}</p>
           <h1 className="ap-display mt-3 text-4xl">Te ganaste un trago</h1>
-          <p className="mt-4 text-sm text-muted">Mostrá esta pantalla en la barra y elegí uno de la carta de la noche. Uno por persona.</p>
+          <p className="mt-4 text-sm text-muted">Mandanos el código por WhatsApp o mostrá esta pantalla en la barra: elegís uno de la carta. Uno por persona, se canjea una sola vez.</p>
           <p className="jg-codigo">{marcas.premio}</p>
-          <p className="text-xs text-muted">código de esta noche · lo verifica la barra</p>
-          <button className="btn btn-ghost btn-sm mt-8" type="button" onClick={() => setView("hub")}>
+          <p className="text-xs text-muted">
+            {marcas.premioAt ? `ganado el ${fmtPremioAt(marcas.premioAt)}` : "código único"} · lo verifica la casa
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            {whatsapp && (
+              <a
+                className="btn btn-primary btn-sm"
+                href={`https://wa.me/549${whatsapp}?text=${encodeURIComponent(premioMsg(marcas, name))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Mandar por WhatsApp
+              </a>
+            )}
+            <ShareButton className="btn btn-ghost btn-sm" text={premioMsg(marcas, name)} />
+          </div>
+          <button className="btn btn-ghost btn-sm mt-6" type="button" onClick={() => setView("hub")}>
             Volver
           </button>
         </div>

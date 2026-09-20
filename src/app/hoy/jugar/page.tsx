@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { SITE_NAME } from "@/lib/config";
+import { CONTACT_PHONES, SITE_NAME } from "@/lib/config";
 import { getPhotos } from "@/lib/photos";
 import { getDemoEvent, getTonightEvent } from "@/lib/hoy";
 import { parseBar, parseMenu } from "@/lib/menu";
 import { MIMICA_BASE } from "@/lib/jugar";
 import { readDeviceKey } from "@/lib/device";
-import { getMarcas, getRecords, type Marcas } from "@/lib/premios";
+import { PREMIO_MINIMO, getMarcas, getRecords, issuePrizeIfEarned, logrosParaPremio, type Marcas } from "@/lib/premios";
 import { JugarHub } from "@/components/jugar/JugarHub";
 import { TrackVisit } from "@/components/TrackVisit";
 
@@ -20,12 +20,18 @@ export const metadata: Metadata = {
 /** Los juegos sueltos de las mesitas. Las marcas y el premio viven en el servidor, atados a la cookie del teléfono. */
 export default async function JugarPage() {
   const deviceKey = await readDeviceKey();
-  const [photos, event, marcas, records] = await Promise.all([
+  const [photos, event, marcasIniciales, records] = await Promise.all([
     getPhotos(),
     getTonightEvent().then((t) => t ?? getDemoEvent()),
     deviceKey ? getMarcas(deviceKey) : Promise.resolve<Marcas>({}),
     getRecords(),
   ]);
+  // Si ya tenía los logros de hoy y todavía no tiene código (por ejemplo, los hizo antes de este cambio), se emite ahora.
+  let marcas = marcasIniciales;
+  if (deviceKey && !marcas.premio && logrosParaPremio(marcas) >= PREMIO_MINIMO) {
+    await issuePrizeIfEarned(deviceKey);
+    marcas = await getMarcas(deviceKey);
+  }
   const steps = event ? parseMenu(event.menu) : [];
   const dishes = steps.map((s) => s.dish);
   const drinks = event ? [...steps.map((s) => s.drink).filter((d): d is string => Boolean(d)), ...parseBar(event.bar).map((b) => b.name)] : [];
@@ -38,7 +44,7 @@ export default async function JugarPage() {
   return (
     <>
       <TrackVisit path="/hoy/jugar" />
-      <JugarHub photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} />
+      <JugarHub photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} />
     </>
   );
 }

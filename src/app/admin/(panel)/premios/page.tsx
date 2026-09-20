@@ -30,8 +30,8 @@ export default async function PremiosPage() {
           <div>
             <h1 className="font-display text-2xl">Tragos ganados esta noche</h1>
             <p className="mt-1 text-sm text-muted">
-              Cuando alguien muestra el código en la barra, buscalo acá y tocá “Canjear”. Un código por teléfono y por noche; el servidor lo emite solo la noche de una cena, si logró la meta en {PREMIO_MINIMO} de los{" "}
-              {GAMES.length} juegos.
+              Cuando alguien manda o muestra el código, buscalo acá y tocá “Canjear” (una sola vez). Un código por teléfono y por día; el servidor lo emite si logró la meta en{" "}
+              {PREMIO_MINIMO} de los {GAMES.length} juegos (el reto del día cuenta doble). Si el código que te mandan no está acá o ya está canjeado, no vale.
             </p>
           </div>
           <Link href="/hoy/jugar" target="_blank" className="btn btn-ghost btn-sm">
