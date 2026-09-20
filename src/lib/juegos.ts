@@ -3,9 +3,9 @@
  */
 
 /** Cuántos juegos hay que lograr para el trago (todos menos dos: la mímica necesita mesa, y uno de yapa). */
-export const PREMIO_MINIMO = 8;
+export const PREMIO_MINIMO = 9;
 
-export const GAMES = ["maridaje", "servicio", "gato", "memoria", "chef", "lisandro", "copa", "simon", "mimica", "trivia"] as const;
+export const GAMES = ["maridaje", "servicio", "gato", "ritmo", "memoria", "chef", "lisandro", "copa", "simon", "mimica", "trivia"] as const;
 export type GameId = (typeof GAMES)[number];
 
 /** Lo que hay que lograr en cada juego para el premio. Difícil a propósito. */
@@ -16,12 +16,14 @@ export const METAS: Record<GameId, number> = {
   servicio: 10,
   /** El gato de la casa (snake): ingredientes comidos. */
   gato: 15,
+  /** Ritmo de la casa: puntos (notas + bonus de racha) en una canción. */
+  ritmo: 40,
   /** Memotest de 8 pares en 20 movimientos o menos. */
   memoria: 20,
   /** Atrapá al chef: puntos en 30 segundos. */
   chef: 30,
-  /** ¿Dónde está Lisandro?: puntos en 30 segundos (topo). */
-  lisandro: 20,
+  /** Los de la casa: puntos en 30 segundos (topo con toda la familia). */
+  lisandro: 30,
   /** Llená la copa: puntos sobre 500 (cinco copas). */
   copa: 360,
   /** Simón de la barra: ronda alcanzada. */
@@ -33,7 +35,7 @@ export const METAS: Record<GameId, number> = {
 };
 
 /** En memoria gana el número más bajo; en el resto, el más alto. */
-export const LOWER_IS_BETTER: Record<GameId, boolean> = { maridaje: false, servicio: false, gato: false, memoria: true, chef: false, lisandro: false, copa: false, simon: false, mimica: false, trivia: false };
+export const LOWER_IS_BETTER: Record<GameId, boolean> = { maridaje: false, servicio: false, gato: false, ritmo: false, memoria: true, chef: false, lisandro: false, copa: false, simon: false, mimica: false, trivia: false };
 
 export type Marcas = Partial<Record<GameId, number>> & { premio?: string | null; name?: string | null };
 export type RecordRow = { name: string; best: number };
@@ -57,7 +59,7 @@ export function mejora(game: GameId, value: number, current: number | undefined 
 /** Valores imposibles se descartan sin guardar (un memotest de 8 pares no baja de 8 movimientos, etc.). */
 export function plausible(game: GameId, value: number): boolean {
   if (!Number.isInteger(value) || value < 0) return false;
-  const max: Record<GameId, number> = { maridaje: 80, servicio: 200, gato: 400, memoria: 200, chef: 90, lisandro: 90, copa: 500, simon: 30, mimica: 40, trivia: 80 };
+  const max: Record<GameId, number> = { maridaje: 80, servicio: 200, gato: 400, ritmo: 400, memoria: 200, chef: 90, lisandro: 200, copa: 500, simon: 30, mimica: 40, trivia: 80 };
   if (game === "memoria" && value < 8) return false;
   return value <= max[game];
 }

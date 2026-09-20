@@ -346,8 +346,8 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
             </section>
           )}
           <Link href="/hoy/jugar" className="jg-link mt-8">
-            <span className="jg-link-title">Para la espera: diez juegos</span>
-            <span className="jg-link-sub">Maridaje, servicio, el gato, memotest, atrapá al chef, ¿dónde está Lisandro?, llená la copa, Simón, mímica y trivia. Si lográs ocho, hay un trago.</span>
+            <span className="jg-link-title">Para la espera: once juegos</span>
+            <span className="jg-link-sub">Maridaje, servicio, el gato, ritmo, memotest, atrapá al chef, los de la casa, llená la copa, Simón, mímica y trivia. Si lográs nueve, hay un trago.</span>
           </Link>
         </div>
       </Stage>

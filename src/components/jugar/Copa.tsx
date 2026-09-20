@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
-import { Shell, keepAwake } from "./Shell";
+import { Shell, beep, buzz, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
 
 const COPAS = 5;
@@ -26,6 +26,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
   const [flash, setFlash] = useState<{ pts: number; text: string } | null>(null);
   const raf = useRef<number | null>(null);
   const last = useRef(0);
+  const lastTone = useRef(0);
   const reported = useRef(false);
   const levelRef = useRef(0);
   /** Si el dedo está apoyado (ref, para que el chorro y el soltar no lean estado viejo). */
@@ -52,6 +53,11 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
       last.current = t;
       levelRef.current = Math.min(1.08, levelRef.current + speed * dt);
       setLevel(levelRef.current);
+      // El "glu glu" del chorro: un tono que sube con el nivel, cada ~90 ms.
+      if (t - lastTone.current > 90) {
+        lastTone.current = t;
+        beep(180 + levelRef.current * 520, 70, "sine", 0.08);
+      }
       if (levelRef.current >= 1.08) {
         release();
         return;
@@ -76,6 +82,12 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
     const pts = over ? 0 : Math.max(0, Math.round(100 - Math.abs(diff) * (diff < 0 ? 380 : 520)));
     const text = over ? "¡Rebalsó!" : pts >= 95 ? "Perfecto" : pts >= 80 ? "Casi al ras" : pts >= 50 ? "Le faltó mano" : diff < 0 ? "Muy corto" : "Se pasó";
     setFlash({ pts, text });
+    if (over) buzz();
+    else if (pts >= 95) {
+      beep(880, 120);
+      setTimeout(() => beep(1320, 220), 110);
+    } else if (pts >= 80) beep(760, 160);
+    else beep(320, 200, "triangle");
     try {
       navigator.vibrate?.(pts >= 95 ? [20, 30, 20] : 15);
     } catch {

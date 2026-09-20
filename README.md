@@ -226,10 +226,9 @@ está ahí "vago", nadie lo anuncia ni hay momentos en conjunto.
 
 ## Entretenimiento (`/hoy/jugar`)
 
-Diez juegos sueltos para la espera, linkeados desde el mazo de "Puertas adentro": **maridaje** (cada plato de la
-noche con su cóctel, con la carta real; racha hasta el primer error, con reloj), **servicio** (llegan clientes y
-armás el pedido tocando ingredientes; niveles con menos paciencia y receta escondida), **el gato de la casa**
-(snake con la cara del gato real, `public/gato.png`, y los dos perros, `public/perro*.png`, como obstáculo; deslizar o flechas), **¿dónde está Lisandro?** (topo con `public/lisandro.png`; el chef asoma de señuelo y resta), **memotest** con las fotos de la
+Once juegos sueltos para la espera, linkeados desde el mazo de "Puertas adentro": **maridaje** (cada plato de la
+noche con su cóctel, con la carta real; racha hasta el primer error, con reloj), **servicio** (llegan clientes, hasta dos a la vez desde el nivel 2, con carácter apurado/tranquilo; armás el pedido tocando ingredientes; propinas por rapidez; receta escondida desde el nivel 3), **el gato de la casa**
+(snake con la cara del gato real, `public/gato.png`, y los dos perros, `public/perro*.png`, como obstáculo; deslizar o flechas), **los de la casa** (topo: asoman Lisandro, el gato, los perros e ingredientes dorados; el chef y el fuego restan; varios a la vez y racha con bonus), **ritmo de la casa** (guitar hero de 4 carriles con melodías de dominio público — La cumparsita, El choclo, Arroz con leche, Feliz cumpleaños, Para Elisa, Can-can — sintetizadas con Web Audio; la nota suena solo si la pegás), **memotest** con las fotos de la
 casa (8 pares), **atrapá al chef** (la cara de Agustín, `public/chef.png`, se desliza por la cocina cada vez más
 chica y rápida; 30 segundos; tres seguidos dan bonus; si está rojo, resta), **llená la copa** (mantener apretado
 para servir y soltar en la línea; cinco copas), **Simón de la barra** (repetir la secuencia de ingredientes),
@@ -242,7 +241,7 @@ tiene techo: los récords no empatan en 100 %.
   jugador puede anotarse con un nombre: sale en la **tabla de récords** (top 5 por juego, dentro de cada juego y en
   "Récords ›" del hub). Los nombres se moderan en **Panel → Premios** ("Borrar nombre": la marca queda anónima).
 - El **premio** (un trago) lo emite el servidor solo la noche de una cena (cena "en vivo"), cuando el teléfono logró
-  esa noche las metas de **8 de los 10** juegos (`METAS` y `PREMIO_MINIMO` en `src/lib/juegos.ts`; la mímica necesita
+  esa noche las metas de **9 de los 11** juegos (`METAS` y `PREMIO_MINIMO` en `src/lib/juegos.ts`; la mímica necesita
   mesa, por eso no es obligatoria): un código por teléfono y por noche (`Prize`), que se canjea desde **Panel →
   Premios** ("Canjear", queda quién lo canjeó). Las marcas son por noche (`GameScore.day`); los récords miran todas.
 - Los valores imposibles se descartan (`plausible`); igual las marcas las manda el teléfono, así que el premio es

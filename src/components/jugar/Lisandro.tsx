@@ -7,90 +7,118 @@ import { Fin } from "./Fin";
 
 const DURATION = 30;
 const HOLES = 9;
-const FRASES = ["¡Acá estoy!", "¡Ja!", "¡Me viste!", "¡Auch!", "¡Ok, ok!", "¡Lo tengo!", "¡Buen ojo!"];
 
-type Pop = { hole: number; who: "lisandro" | "chef"; id: number } | null;
+type Kind = "lisandro" | "gato" | "perro" | "perro2" | "ingrediente" | "chef" | "fuego";
+type Who = { kind: Kind; img?: string; emoji?: string; points: number; stay: number; label: string; say: string[] };
+
+/** Quiénes asoman, cuánto valen y cuánto se quedan (ms, antes de acelerar). */
+const CAST: Record<Kind, Who> = {
+  lisandro: { kind: "lisandro", img: "/lisandro.png", points: 1, stay: 1100, label: "Lisandro", say: ["¡Acá estoy!", "¡Me viste!", "¡Ja!", "¡Ok, ok!"] },
+  gato: { kind: "gato", img: "/gato.png", points: 2, stay: 700, label: "El gato", say: ["Miau", "+2, el gato", "¡Lo agarraste!"] },
+  perro: { kind: "perro", img: "/perro.png", points: 2, stay: 900, label: "El perro con la bondiola", say: ["¡Soltá la bondiola!", "+2", "¡Fuera!"] },
+  perro2: { kind: "perro2", img: "/perro2.png", points: 2, stay: 900, label: "El otro perro", say: ["¡Ese pan no!", "+2", "¡Guau!"] },
+  ingrediente: { kind: "ingrediente", emoji: "🍤", points: 3, stay: 600, label: "Ingrediente dorado", say: ["+3 ✦", "¡Al plato!"] },
+  chef: { kind: "chef", img: "/chef.png", points: -2, stay: 1000, label: "El chef, ocupado", say: ["¡Estoy cocinando! −2"] },
+  fuego: { kind: "fuego", emoji: "🔥", points: -3, stay: 800, label: "Flambeado", say: ["¡Te quemaste! −3"] },
+};
+const INGREDIENTES = ["🍤", "🧄", "🌿", "🍋", "🍓", "🧀", "🫒", "🌶️"];
+
+type Pop = { hole: number; who: Who; emoji?: string; id: number; until: number };
 type Props = { onDone: (points: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
-/** Helpers fuera del componente: son eventos, no render (así el compilador de React no los marca). */
-function pickHole(last: number): number {
-  let hole = Math.floor(Math.random() * HOLES);
-  if (hole === last) hole = (hole + 1 + Math.floor(Math.random() * (HOLES - 1))) % HOLES;
-  return hole;
-}
-function pickWho(elapsed: number): "lisandro" | "chef" {
-  return elapsed > 4 && Math.random() < 0.22 ? "chef" : "lisandro";
-}
-function jitter(): number {
-  return 120 + Math.random() * 250;
-}
-function frase(): string {
-  return FRASES[Math.floor(Math.random() * FRASES.length)];
-}
 function now(): number {
   return Date.now();
 }
+function rnd(n: number): number {
+  return Math.floor(Math.random() * n);
+}
+/** Quién asoma según el momento: al principio casi siempre Lisandro; después se llena de gente. */
+function pickWho(elapsed: number): Who {
+  const r = Math.random();
+  if (elapsed < 3) return CAST.lisandro;
+  if (r < 0.42) return CAST.lisandro;
+  if (r < 0.55) return CAST.gato;
+  if (r < 0.65) return Math.random() < 0.5 ? CAST.perro : CAST.perro2;
+  if (r < 0.75) return CAST.ingrediente;
+  if (r < 0.9) return CAST.chef;
+  return CAST.fuego;
+}
+function pickHole(taken: number[]): number {
+  for (let k = 0; k < 30; k++) {
+    const h = rnd(HOLES);
+    if (!taken.includes(h)) return h;
+  }
+  return rnd(HOLES);
+}
 
 /**
- * ¿Dónde está Lisandro? El socio aparece en uno de nueve agujeros por un instante (cada vez más corto) y hay
- * que tocarlo. A veces asoma el chef, que está ocupado: tocarlo resta.
+ * Los de la casa: por los agujeros asoman Lisandro, el gato, los perros con la bondiola, ingredientes
+ * dorados… y el chef (ocupado) y el flambeado, que restan. Con el tiempo asoman varios a la vez.
+ * Racha de cinco sin errar: bonus. Tocar un agujero vacío corta la racha.
  */
 export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [left, setLeft] = useState(DURATION);
   const [score, setScore] = useState(0);
-  const [pop, setPop] = useState<Pop>(null);
-  const [hit, setHit] = useState<{ hole: number; text: string; id: number } | null>(null);
+  const [streak, setStreak] = useState(0);
+  const [pops, setPops] = useState<Pop[]>([]);
+  const [hit, setHit] = useState<{ hole: number; text: string; id: number; bad: boolean } | null>(null);
   const startAt = useRef(0);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reported = useRef(false);
-  const lastHole = useRef(-1);
+  const popsRef = useRef<Pop[]>([]);
+  const streakRef = useRef(0);
 
-  function next(elapsed: number) {
-    const hole = pickHole(lastHole.current);
-    lastHole.current = hole;
-    setPop({ hole, who: pickWho(elapsed), id: now() });
-    if (timer.current) clearTimeout(timer.current);
-    const stay = Math.max(420, 1100 - elapsed * 22);
-    timer.current = setTimeout(() => {
-      setPop(null);
-      timer.current = setTimeout(() => next((now() - startAt.current) / 1000), jitter());
-    }, stay);
+  function setPopsBoth(next: Pop[]) {
+    popsRef.current = next;
+    setPops(next);
   }
 
   function start() {
     keepAwake();
     reported.current = false;
     setScore(0);
-    setLeft(DURATION);
+    setStreak(0);
+    streakRef.current = 0;
     setHit(null);
+    setPopsBoth([]);
     startAt.current = now();
     setPhase("play");
-    next(0);
   }
 
+  // El director de escena: cada 100 ms saca a los que ya se fueron y hace asomar a alguien si hay lugar.
   useEffect(() => {
     if (phase !== "play") return;
+    let nextSpawn = 0;
     const id = setInterval(() => {
-      const elapsed = (now() - startAt.current) / 1000;
+      const t = now();
+      const elapsed = (t - startAt.current) / 1000;
       const remaining = Math.max(0, Math.ceil(DURATION - elapsed));
       setLeft(remaining);
       if (remaining <= 0) {
         clearInterval(id);
-        if (timer.current) clearTimeout(timer.current);
-        setPop(null);
+        setPopsBoth([]);
         setPhase("end");
+        return;
       }
-    }, 200);
+      let cur = popsRef.current.filter((p) => p.until > t);
+      const maxPops = elapsed < 8 ? 1 : elapsed < 18 ? 2 : 3;
+      if (cur.length < maxPops && t >= nextSpawn) {
+        const who = pickWho(elapsed);
+        const speed = Math.max(0.45, 1 - elapsed * 0.018);
+        const pop: Pop = {
+          hole: pickHole(cur.map((p) => p.hole)),
+          who,
+          emoji: who.kind === "ingrediente" ? INGREDIENTES[rnd(INGREDIENTES.length)] : who.emoji,
+          id: t + Math.random(),
+          until: t + who.stay * speed,
+        };
+        cur = [...cur, pop];
+        nextSpawn = t + 150 + Math.random() * 350;
+      }
+      if (cur.length !== popsRef.current.length || cur.some((p, i) => p !== popsRef.current[i])) setPopsBoth(cur);
+    }, 100);
     return () => clearInterval(id);
   }, [phase]);
-
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
 
   useEffect(() => {
     if (phase === "end" && !reported.current) {
@@ -100,24 +128,43 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
   }, [phase, score, onDone]);
 
   function tap(hole: number) {
-    if (phase !== "play" || !pop || pop.hole !== hole) return;
-    if (pop.who === "chef") {
-      buzz();
-      setScore((s) => Math.max(0, s - 2));
-      setHit({ hole, text: "¡Ese es el chef! −2", id: now() });
-    } else {
-      beep(700 + score * 10, 90);
-      setScore((s) => s + 1);
-      setHit({ hole, text: frase(), id: now() });
+    if (phase !== "play") return;
+    const pop = popsRef.current.find((p) => p.hole === hole);
+    if (!pop) {
+      // Agujero vacío: se corta la racha.
+      if (streakRef.current > 0) {
+        streakRef.current = 0;
+        setStreak(0);
+        setHit({ hole, text: "Nada ahí", id: now(), bad: true });
+      }
+      return;
     }
-    setPop(null);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => next((now() - startAt.current) / 1000), 200);
+    setPopsBoth(popsRef.current.filter((p) => p !== pop));
+    const w = pop.who;
+    if (w.points < 0) {
+      buzz();
+      streakRef.current = 0;
+      setStreak(0);
+      setScore((s) => Math.max(0, s + w.points));
+      setHit({ hole, text: w.say[0], id: now(), bad: true });
+      try {
+        navigator.vibrate?.([40, 30, 40]);
+      } catch {
+        // sin vibración
+      }
+      return;
+    }
+    streakRef.current += 1;
+    setStreak(streakRef.current);
+    const bonus = streakRef.current % 5 === 0 ? 3 : 0;
+    beep(600 + w.points * 80 + streakRef.current * 8, 90);
+    setScore((s) => s + w.points + bonus);
+    setHit({ hole, text: bonus ? `¡Racha ×${streakRef.current}! +${w.points + bonus}` : w.say[rnd(w.say.length)], id: now(), bad: false });
   }
 
   if (phase === "end") {
     return (
-      <Shell title="¿Dónde está Lisandro?" onBack={onBack}>
+      <Shell title="Los de la casa" onBack={onBack}>
         <Fin
           nueva={nueva}
           game="lisandro"
@@ -127,49 +174,69 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
           records={records}
           again={start}
           onBack={onBack}
-          bien="Lisandro pide un descanso."
-          mal={`Para el trago: ${METAS.lisandro} puntos. El chef resta: no lo toques.`}
+          bien="La casa pide un descanso."
+          mal={`Para el trago: ${METAS.lisandro} puntos. El gato y los perros valen 2, el ingrediente dorado 3; el chef y el fuego restan.`}
         />
       </Shell>
     );
   }
 
   return (
-    <Shell title="¿Dónde está Lisandro?" onBack={onBack} right={phase === "play" ? <span className={left <= 5 ? "text-danger" : ""}>{left}s</span> : null}>
+    <Shell title="Los de la casa" onBack={onBack} right={phase === "play" ? <span className={left <= 5 ? "text-danger" : ""}>{left}s</span> : null}>
       {phase === "idle" ? (
         <div className="jg-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/lisandro.png" alt="Lisandro" width={96} height={96} className="jg-chef-still mx-auto" />
+          <div className="flex items-center justify-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/lisandro.png" alt="Lisandro" width={64} height={64} className="rounded-full" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/gato.png" alt="El gato" width={64} height={64} className="rounded-full" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/perro.png" alt="El perro" width={64} height={64} className="rounded-full" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/chef.png" alt="El chef" width={64} height={64} className="rounded-full opacity-60" />
+          </div>
           <p className="mt-4 text-sm leading-relaxed text-muted">
-            El otro socio se esconde por la casa y asoma un instante: tocalo antes de que se vuelva a meter. A veces asoma el chef, que está cocinando: si lo
-            tocás, resta. {DURATION} segundos. Para la marca: {METAS.lisandro} puntos.
+            Por los agujeros asoman los de la casa: Lisandro (+1), el gato (+2, se va rápido), los perros con la bondiola (+2) y algún ingrediente dorado (+3, un
+            instante). El chef está cocinando (−2) y el flambeado quema (−3): a esos no. Cinco seguidos sin errar dan bonus; tocar un agujero vacío corta la
+            racha. {DURATION} segundos. Para la marca: {METAS.lisandro} puntos.
           </p>
           <button className="btn btn-primary mt-6" type="button" onClick={start}>
-            ¡Que se esconde!
+            ¡Que asomen!
           </button>
         </div>
       ) : (
         <>
-          <div className="mt-3 flex items-baseline justify-between">
-            <p className="text-xs text-muted">Tocá a Lisandro. Al chef, no.</p>
-            <p key={score} className="ap-display text-3xl tabular-nums jg-pop">
-              {score}
-            </p>
+          <div className="mt-3 flex items-baseline justify-between gap-3">
+            <p className="text-xs text-muted">Tocá a los de la casa. Al chef y al fuego, no.</p>
+            <div className="shrink-0 text-right">
+              <p key={score} className="ap-display text-3xl tabular-nums jg-pop">
+                {score}
+              </p>
+              {streak >= 2 && <p className="text-[10px] uppercase tracking-[0.2em] text-accent">racha {streak}</p>}
+            </div>
           </div>
           <div className="jg-holes mt-4">
-            {Array.from({ length: HOLES }, (_, h) => (
-              <button key={h} type="button" className="jg-hole" onPointerDown={() => tap(h)} aria-label={pop?.hole === h ? (pop.who === "chef" ? "El chef" : "Lisandro") : "Agujero vacío"}>
-                {pop?.hole === h && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={pop.id} src={pop.who === "chef" ? "/chef.png" : "/lisandro.png"} alt="" draggable={false} className={`jg-hole-face ${pop.who === "chef" ? "is-chef" : ""}`} />
-                )}
-                {hit?.hole === h && (
-                  <span key={hit.id} className="jg-bubble is-gold" style={{ left: 4, top: -8 }}>
-                    {hit.text}
-                  </span>
-                )}
-              </button>
-            ))}
+            {Array.from({ length: HOLES }, (_, h) => {
+              const pop = pops.find((p) => p.hole === h);
+              return (
+                <button key={h} type="button" className="jg-hole" onPointerDown={() => tap(h)} aria-label={pop ? pop.who.label : "Agujero vacío"}>
+                  {pop &&
+                    (pop.who.img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={pop.id} src={pop.who.img} alt="" draggable={false} className={`jg-hole-face ${pop.who.points < 0 ? "is-chef" : ""} ${pop.who.kind === "gato" ? "is-fast" : ""}`} />
+                    ) : (
+                      <span key={pop.id} className={`jg-hole-emoji ${pop.who.points < 0 ? "is-bad" : ""}`} aria-hidden="true">
+                        {pop.emoji}
+                      </span>
+                    ))}
+                  {hit?.hole === h && (
+                    <span key={hit.id} className={`jg-bubble ${hit.bad ? "" : "is-gold"}`} style={{ left: 4, top: -8 }}>
+                      {hit.text}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </>
       )}

@@ -2394,3 +2394,102 @@ details.faq > summary::-webkit-details-marker {
   color: var(--accent-strong);
   background: rgba(201, 169, 110, 0.12);
 }
+
+/* --- Los de la casa: emojis en los agujeros --- */
+.jg-hole-emoji {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14%;
+  font-size: 2.4rem;
+  line-height: 1;
+  animation: jg-popup 0.18s cubic-bezier(0.3, 1.5, 0.5, 1);
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px rgba(224, 194, 131, 0.7));
+}
+.jg-hole-emoji.is-bad {
+  filter: drop-shadow(0 0 10px rgba(181, 83, 60, 0.9));
+}
+.jg-hole-face.is-fast {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px rgba(224, 194, 131, 0.35);
+}
+
+/* --- Servicio: dos clientes, activo/inactivo, sacudida --- */
+.jg-cliente.is-off {
+  opacity: 0.55;
+}
+.jg-cliente.is-on {
+  border-color: var(--accent);
+}
+.jg-cliente.is-shake {
+  animation: jg-tremble 0.3s ease-in-out 2;
+}
+.jg-cliente-img {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: none;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  object-fit: cover;
+}
+.jg-servicio-flash {
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 169, 110, 0.5);
+  background: rgba(201, 169, 110, 0.12);
+  font-size: 0.8rem;
+  text-align: center;
+  animation: hoy-flash 0.4s ease;
+}
+.jg-ing-btn:disabled {
+  opacity: 0.4;
+}
+@media (max-width: 400px) {
+  .jg-cliente {
+    padding: 0.6rem 0.6rem;
+    gap: 0.5rem;
+  }
+  .jg-cliente-face {
+    font-size: 1.8rem;
+  }
+}
+
+/* --- Ritmo de la casa --- */
+.jg-ritmo {
+  aspect-ratio: 360 / 380;
+}
+.jg-lanes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  max-width: 22.5rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.jg-lane {
+  position: relative;
+  height: 3.6rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--c) 22%, var(--surface));
+  touch-action: manipulation;
+  transition: transform 0.08s;
+}
+.jg-lane:active {
+  transform: scale(0.96);
+}
+.jg-lane span {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+}
+.jg-lane.is-hit span {
+  background: var(--c);
+  animation: hoy-flash 0.25s ease;
+}
+.jg-lane.is-miss span {
+  background: rgba(181, 83, 60, 0.5);
+  animation: hoy-flash 0.25s ease;
+}
