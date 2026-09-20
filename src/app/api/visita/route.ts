@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   let path = "/";
   try {
     const body = (await req.json()) as { path?: string };
-    if (typeof body.path === "string" && KNOWN.has(body.path)) path = body.path;
+    if (typeof body.path === "string" && (KNOWN.has(body.path) || /^\/\?de=[a-z0-9-]{1,16}$/.test(body.path))) path = body.path;
     else if (typeof body.path === "string") return NextResponse.json({ ok: true });
   } catch {
     // sin body: cuenta como home

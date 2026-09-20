@@ -71,7 +71,7 @@ export default async function AdminEventPage({
 
   // Texto listo para WhatsApp / estados: fecha, qué incluye, precio y el link directo a esta fecha.
   const menuSteps = parseMenu(event.menu);
-  const publicLink = event.unlisted ? `${siteUrl()}/privada/${event.id}` : `${siteUrl()}/?fecha=${event.id}#reservar`;
+  const publicLink = event.unlisted ? `${siteUrl()}/privada/${event.id}` : `${siteUrl()}/?fecha=${event.id}&de=wa#reservar`;
   const dateLong = `${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}, ${formatTime(event.date)} hs`;
   const difusion = [
     `🍽️ ${event.title} · ${dateLong}`,

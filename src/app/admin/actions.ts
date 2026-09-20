@@ -667,6 +667,19 @@ export async function setAboutAction(_prev: ActionState, formData: FormData): Pr
   return { ok: true, message: text ? "Texto guardado." : "Texto vacío: se muestra el de fábrica." };
 }
 
+/** Video de la casa para el home: link de YouTube (o un .mp4). */
+export async function setVideoAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const url = String(formData.get("video") ?? "").trim();
+  if (url && !/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\/|\.(mp4|webm)(\?|$)/i.test(url)) {
+    return { ok: false, message: "Pegá un link de YouTube (o un .mp4 directo)." };
+  }
+  await prisma.setting.upsert({ where: { key: "video" }, update: { value: url }, create: { key: "video", value: url } });
+  revalidatePath("/");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: url ? "Video guardado." : "Video quitado." };
+}
+
 export async function setInstagramAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
   const raw = String(formData.get("instagram") ?? "").trim();

@@ -172,49 +172,53 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
         </div>
       )}
 
-      <input
-        className="input"
-        placeholder="Nombre y apellido"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        required
-        minLength={2}
-        autoComplete="name"
-        disabled={soldOut}
-      />
-      <div className="grid gap-3 sm:grid-cols-2">
+      <label className="field">
+        <span className="field-label">Nombre y apellido</span>
         <input
           className="input"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Como figura en tu reserva"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           required
-          autoComplete="email"
-          inputMode="email"
+          minLength={2}
+          autoComplete="name"
           disabled={soldOut}
         />
-        <input
-          className="input"
-          type="tel"
-          placeholder="WhatsApp (opcional)"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          autoComplete="tel"
-          inputMode="tel"
-          disabled={soldOut}
-        />
+      </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="field">
+          <span className="field-label">Email</span>
+          <input
+            className="input"
+            type="email"
+            placeholder="Para mandarte la confirmación"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            inputMode="email"
+            disabled={soldOut}
+          />
+        </label>
+        <label className="field">
+          <span className="field-label">WhatsApp (opcional)</span>
+          <input
+            className="input"
+            type="tel"
+            placeholder="221 …"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            autoComplete="tel"
+            inputMode="tel"
+            disabled={soldOut}
+          />
+        </label>
       </div>
 
-      <textarea
-        className="input"
-        placeholder="Alergias, vegetariano, festejo… (opcional)"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        rows={2}
-        maxLength={300}
-        disabled={soldOut}
-      />
+      <label className="field">
+        <span className="field-label">Alergias, vegetariano, festejo… (opcional)</span>
+        <textarea className="input" placeholder="Lo tenemos en cuenta antes de cocinar" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={300} disabled={soldOut} />
+      </label>
 
       <label className="flex items-center gap-2 text-sm text-muted">
         <input type="checkbox" checked={gift} onChange={(e) => setGift(e.target.checked)} disabled={soldOut} />
@@ -232,11 +236,9 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
         </div>
       )}
 
-      {error && (
-        <p className="text-sm text-danger" role="alert">
-          {error}
-        </p>
-      )}
+      <p className="text-sm text-danger" role="alert" aria-live="assertive">
+        {error}
+      </p>
 
       <button className="btn btn-primary" type="submit" disabled={busy || soldOut}>
         {redirecting

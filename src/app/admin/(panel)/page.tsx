@@ -38,7 +38,7 @@ export default async function AdminHome() {
   ]);
 
   const url = siteUrl();
-  const qr = await QRCode.toString(url, { type: "svg", margin: 1, color: { dark: "#1a150d", light: "#f3ede4" } });
+  const qr = await QRCode.toString(`${url}/?de=qr`, { type: "svg", margin: 1, color: { dark: "#1a150d", light: "#f3ede4" } });
 
   const nextFriday = new Date();
   nextFriday.setDate(nextFriday.getDate() + ((5 - nextFriday.getDay() + 7) % 7 || 7));
@@ -253,9 +253,25 @@ export default async function AdminHome() {
             </p>
           ) : null;
         })()}
+        {(() => {
+          const LABEL: Record<string, string> = { wa: "WhatsApp", ig: "Instagram", afiche: "Afiche", qr: "QR impreso", mail: "Mail" };
+          const origins = visits.byPath.filter((p) => p.path.startsWith("/?de=")).map((p) => ({ key: p.path.slice(5), count: p.count }));
+          return origins.length > 0 ? (
+            <p className="mt-3 text-sm text-muted">
+              De dónde llegan (30 días):{" "}
+              {origins.map((o, i) => (
+                <span key={o.key}>
+                  {i > 0 && " · "}
+                  {LABEL[o.key] ?? o.key} <strong className="text-ink">{o.count}</strong>
+                </span>
+              ))}
+              . <span className="text-xs">Agregá <code>?de=ig</code> al link en Instagram, <code>?de=wa</code> en WhatsApp (el mensaje ya lo trae).</span>
+            </p>
+          ) : null;
+        })()}
         {visits.byPath.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-2 text-xs">
-            {visits.byPath.map((p) => (
+            {visits.byPath.filter((p) => !p.path.startsWith("/?de=")).map((p) => (
               <li key={p.path} className="rounded-full border border-line px-3 py-1 text-muted">
                 {p.path === "/reservar" ? (
                   <span>intentos de reserva</span>

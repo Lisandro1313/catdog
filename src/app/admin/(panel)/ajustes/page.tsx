@@ -11,15 +11,15 @@ import { UsersPanel } from "@/components/admin/UsersPanel";
 import { InstallApp } from "@/components/admin/InstallApp";
 import { FixedExpensesPanel } from "@/components/admin/FixedExpensesPanel";
 import { getFixedExpenses } from "@/lib/fixed-expenses";
-import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos } from "@/lib/photos";
-import { AboutPanel, InstagramPanel, PhotosPanel } from "@/components/admin/HomeContentPanel";
+import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos, getVideo } from "@/lib/photos";
+import { AboutPanel, InstagramPanel, PhotosPanel, VideoPanel } from "@/components/admin/HomeContentPanel";
 import { PaymentForm, TestMailForm } from "@/components/admin/ActionForms";
 import { getPaymentConfig } from "@/lib/payment";
 import { logoutAction, toggleHoyAction } from "../../actions";
 import { isHoyOff } from "@/lib/hoy";
 
 export default async function AjustesPage() {
-  const [session, users, fixed, photos, about, instagram, payment, hoyOff] = await Promise.all([
+  const [session, users, fixed, photos, about, instagram, payment, hoyOff, video] = await Promise.all([
     getSession(),
     prisma.user.findMany({ select: { name: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     getFixedExpenses(),
@@ -28,6 +28,7 @@ export default async function AjustesPage() {
     getInstagram(),
     getPaymentConfig(),
     isHoyOff(),
+    getVideo(),
   ]);
   const me = session?.role === "user" ? session.name : null;
   const missing = PARTNERS.filter((p) => !users.some((u) => u.name === p));
@@ -86,6 +87,7 @@ export default async function AjustesPage() {
         <p className="mt-1 text-sm text-muted">El texto que cuenta quiénes son y qué es la noche. Lo lee la gente antes de decidir reservar.</p>
         <AboutPanel current={about} isDefault={about === DEFAULT_ABOUT} />
         <InstagramPanel current={instagram} />
+        <VideoPanel current={video} />
       </section>
 
       <section className="card card-gold p-5 sm:p-6">

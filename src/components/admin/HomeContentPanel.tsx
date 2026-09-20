@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { addPhotoAction, movePhotoAction, removePhotoAction, setAboutAction, setInstagramAction } from "@/app/admin/actions";
+import { setVideoAction, addPhotoAction, movePhotoAction, removePhotoAction, setAboutAction, setInstagramAction } from "@/app/admin/actions";
 import { compressImage, replaceInputFile } from "@/lib/client-image";
 import type { PhotoRow } from "@/lib/photos";
 
@@ -115,6 +115,23 @@ function PhotoCard({ photo, index, total }: { photo: PhotoRow; index: number; to
         )}
       </div>
     </li>
+  );
+}
+
+export function VideoPanel({ current }: { current: string }) {
+  const [state, action, pending] = useActionState(setVideoAction, null);
+  return (
+    <form action={action} className="mt-4 flex flex-wrap items-end gap-3">
+      <label className="grid flex-1 gap-1 text-xs text-muted">
+        Link del video (YouTube)
+        <input className="input" name="video" defaultValue={current} placeholder="https://youtu.be/…" maxLength={300} />
+      </label>
+      <button className="btn btn-primary btn-sm" type="submit" disabled={pending}>
+        {pending ? "Guardando…" : "Guardar"}
+      </button>
+      <p className="basis-full text-xs text-muted">Un video corto de la casa o de una noche. Aparece debajo de las fotos del home; carga recién cuando lo tocan. Vacío = no se muestra.</p>
+      {state?.message && <p className={`basis-full text-sm ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
+    </form>
   );
 }
 

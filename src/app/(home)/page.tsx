@@ -5,7 +5,8 @@ import { MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config"
 import { formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
 import { getUpcomingEvents } from "@/lib/reservations";
 import { parseBar, parseMenu } from "@/lib/menu";
-import { getAbout, getInstagram, getPhotos } from "@/lib/photos";
+import { getAbout, getInstagram, getPhotos, getVideo } from "@/lib/photos";
+import { VideoEmbed } from "@/components/VideoEmbed";
 import { prisma } from "@/lib/prisma";
 import { BarList } from "@/components/BarList";
 import { ReserveForm, type ReservableEvent } from "@/components/ReserveForm";
@@ -55,7 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [upcoming, about, photos, eventCount, reviews, rating, instagram, payment] = await Promise.all([
+  const [upcoming, about, photos, eventCount, reviews, rating, instagram, payment, video] = await Promise.all([
     getUpcomingEvents(),
     getAbout(),
     getPhotos(),
@@ -64,6 +65,7 @@ export default async function HomePage() {
     getAverageRating(),
     getInstagram(),
     getPaymentConfig(),
+    getVideo(),
   ]);
   const byTransfer = payment.mode === "transferencia";
   // El afiche muestra la fecha más cercana; si se llenó, la reserva pasa a la siguiente con lugar.
@@ -316,6 +318,11 @@ export default async function HomePage() {
               <div className="mt-6">
                 <PhotoStrip photos={photos} />
               </div>
+              {video && (
+                <div className="mx-auto mt-8 max-w-2xl px-6">
+                  <VideoEmbed url={video} />
+                </div>
+              )}
             </section>
           )}
 

@@ -258,6 +258,24 @@ para servir y soltar en la línea; cinco copas), **Simón de la barra** (repetir
   mensaje para WhatsApp** (fecha, carta, precio y link directo).
 - Caja: por cena, cobrado/gastado/queda **por cubierto** y margen; **Descargar CSV** por cena o completa (`/admin/exportar`).
 
+## La noche, en el panel
+
+- **La puerta** (`/admin/eventos/[id]/noche`): quién viene, silla, avisos, "Llegó", "Faltan N", los que no pagaron.
+- **La barra** (`/admin/eventos/[id]/barra`): consumo por mesita con +/− (usa los tragos y el precio de la cena);
+  "Cerrar la barra" carga el total en la caja como ingreso *Barra* con el detalle.
+- **Plano (imprimir)** (`/admin/eventos/[id]/plano`): la mesa silla por silla en A4, con avisos y regalos.
+- El cron manda **"Falta esto para el viernes"** (carta, dirección, secretos, aviso a suscriptores) una vez por cena,
+  cinco días antes.
+- **Premios → Cómo se juega**: cuántos terminaron cada juego (hoy / total) y la marca promedio.
+
+## Home: fotos, video y canales
+
+- Las fotos se agrandan al tocarlas (lightbox con deslizar). En Ajustes se puede cargar un **video** (YouTube o
+  .mp4) que aparece debajo de las fotos y carga recién al tocarlo.
+- **De dónde llegan**: cualquier link con `?de=wa|ig|afiche|qr` se cuenta aparte en el inicio del panel (el mensaje
+  de WhatsApp y el QR del panel ya lo traen). Sin cookies.
+- El panel tiene **modo claro** (☀ arriba) para usarlo a la luz del día; el sitio público sigue oscuro.
+
 ## Tests
 
 `npm test` corre vitest sobre lo que no puede fallar sin base de datos: reglas y metas de los juegos, actos y apuesta

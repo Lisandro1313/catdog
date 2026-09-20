@@ -1,3 +1,4 @@
+import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -36,6 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="hidden sm:contents">
               <AdminNav variant="top" />
             </span>
+            <ThemeToggle />
             <Link href="/" className="text-muted hover:text-ink" target="_blank">
               Ver sitio ↗
             </Link>

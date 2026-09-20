@@ -80,3 +80,9 @@ export async function getAbout(): Promise<string> {
   const s = await prisma.setting.findUnique({ where: { key: "about" } });
   return s?.value?.trim() || DEFAULT_ABOUT;
 }
+
+/** Link del video de la casa (YouTube o .mp4), cargado desde Ajustes. Vacío = no se muestra. */
+export async function getVideo(): Promise<string> {
+  const s = await prisma.setting.findUnique({ where: { key: "video" } });
+  return s?.value ?? "";
+}

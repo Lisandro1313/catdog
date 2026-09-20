@@ -1,3 +1,4 @@
+import { nowMs } from "@/lib/dates";
 import { whatsappUrl } from "@/lib/config";
 import Link from "next/link";
 import { getContacts } from "@/lib/admin-stats";
@@ -6,6 +7,12 @@ import { formatShort } from "@/lib/dates";
 
 export default async function ContactsPage() {
   const contacts = await getContacts();
+  const habitues = contacts.filter((c) => c.dinners >= 2);
+  const DAY = 24 * 60 * 60 * 1000;
+  const since = (d: Date) => {
+    const days = Math.floor((nowMs() - d.getTime()) / DAY);
+    return days <= 0 ? "hoy" : days === 1 ? "ayer" : days < 30 ? `hace ${days} días` : days < 365 ? `hace ${Math.round(days / 30)} meses` : "hace más de un año";
+  };
   return (
     <>
       <div className="flex items-center gap-3 text-sm text-muted">
@@ -20,6 +27,12 @@ export default async function ContactsPage() {
             <h2 className="font-display text-2xl">Contactos</h2>
             <p className="mt-1 text-sm text-muted">
               {contacts.length} persona{contacts.length === 1 ? "" : "s"} que pagaron al menos una vez. Una fila por email.
+              {habitues.length > 0 && (
+                <>
+                  {" "}
+                  <strong className="text-ink">{habitues.length}</strong> vinieron dos veces o más.
+                </>
+              )}
             </p>
           </div>
           <a className="btn btn-ghost btn-sm" href="/admin/contactos/csv">
@@ -64,7 +77,10 @@ export default async function ContactsPage() {
                     <td className="py-2 pr-3 text-right">{c.dinners}</td>
                     <td className="py-2 pr-3 text-right">{c.seats}</td>
                     <td className="py-2 pr-3 text-right">{formatPrice(c.spent)}</td>
-                    <td className="py-2 text-muted">{formatShort(c.lastDate).slice(0, 10)}</td>
+                    <td className="py-2 text-muted">
+                      {formatShort(c.lastDate).slice(0, 10)} <span className="text-xs">({since(c.lastDate)})</span>
+                      {c.dinners >= 2 && <span className="ml-2 rounded-full border border-accent/50 px-2 text-[10px] uppercase tracking-[0.15em] text-accent">habitué</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

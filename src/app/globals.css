@@ -2085,3 +2085,137 @@ details.faq > summary::-webkit-details-marker {
     print-color-adjust: exact;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Lightbox de fotos y video de la casa
+--------------------------------------------------------------------------- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: rgba(20, 18, 16, 0.96);
+  animation: hoy-rise 0.2s ease;
+}
+.lightbox-close {
+  position: absolute;
+  top: calc(0.5rem + env(safe-area-inset-top));
+  right: 0.75rem;
+  z-index: 2;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.lightbox-track {
+  display: flex;
+  flex: 1;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.lightbox-slide {
+  flex: none;
+  width: 100vw;
+  height: 100%;
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3.5rem 0.75rem 1rem;
+  box-sizing: border-box;
+}
+.lightbox-slide > div {
+  min-height: 0;
+  flex: 1;
+}
+.lightbox-hint {
+  padding: 0.5rem 0 calc(0.75rem + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: #000;
+}
+.video iframe,
+.video-poster,
+.video-poster img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.video-poster img {
+  object-fit: cover;
+  opacity: 0.85;
+}
+.video-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4rem;
+  height: 4rem;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: #1a150d;
+  font-size: 1.4rem;
+  padding-left: 0.2rem;
+  box-shadow: 0 10px 30px -10px rgba(201, 169, 110, 0.8);
+}
+
+/* Campos con etiqueta visible (accesibilidad): la etiqueta va arriba, chiquita y en mayúsculas. */
+.field {
+  display: grid;
+  gap: 0.3rem;
+}
+.field-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.field:focus-within .field-label {
+  color: var(--accent);
+}
+
+/* Modo claro del panel (para la luz del día): mismos tokens, otros valores. Se activa con data-theme="light" en <html>. */
+:root[data-theme="light"] {
+  --bg: #f4efe6;
+  --surface: #fffdf9;
+  --surface-2: #f1eadf;
+  --border: #dccfbb;
+  --text: #1a150d;
+  --muted: #6b6259;
+  --accent: #8a6d3b;
+  --accent-strong: #6f5527;
+  --danger: #a5402c;
+  --ok: #3f7a3a;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="light"] body::before,
+:root[data-theme="light"] body::after,
+:root[data-theme="light"] .grain {
+  display: none;
+}
+:root[data-theme="light"] .btn-primary {
+  color: #fff;
+}
