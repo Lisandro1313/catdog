@@ -32,6 +32,8 @@ model Event {
   closedAt    DateTime?
   /// Cena privada / a pedido: no aparece en el home ni en /fechas; se reserva solo con su link (/privada/[id]).
   unlisted    Boolean  @default(false)
+  /// Cuándo se mandó el mail "falta esto para el viernes" (una vez por cena).
+  missingNotifiedAt DateTime?
   createdAt   DateTime @default(now())
 
   /// Cóctel de recepción (sin alcohol): "nombre | una frase". Es el Acto I del juego de las mesitas.

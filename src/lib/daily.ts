@@ -1,5 +1,7 @@
 import { prisma } from "./prisma";
-import { sendReminder, sendReviewRequests } from "./email";
+import { sendAdminMissing, sendReminder, sendReviewRequests } from "./email";
+import { parseMenu } from "./menu";
+import { buildActs, gameReady } from "./hoy";
 import { notifyWaitlist } from "./waitlist";
 import { isEmailConfigured } from "./mailer";
 import { ensureFixedEntries } from "./fixed-expenses";
@@ -15,7 +17,7 @@ const H = 60 * 60 * 1000;
  * - un borrador de la cena de la semana siguiente si la última ya pasó y no hay ninguna cargada.
  */
 export async function runDailyTasks(now = new Date()) {
-  const out = { reminders: 0, remindersFailed: 0, reviewRequests: 0, fixed: 0, waitlistNotified: 0, draft: null as string | null };
+  const out = { reminders: 0, remindersFailed: 0, reviewRequests: 0, fixed: 0, waitlistNotified: 0, missingNotices: 0, draft: null as string | null };
 
   out.fixed = await ensureFixedEntries();
   out.draft = await ensureNextDraft(now);
@@ -69,6 +71,25 @@ export async function runDailyTasks(now = new Date()) {
       await prisma.event.update({ where: { id: e.id }, data: { reviewsRequestedAt: now } });
     }
     out.reviewRequests += sent;
+  }
+
+  // "Falta esto para el viernes": cenas publicadas dentro de los próximos 5 días, una vez por cena.
+  const upcomingSoon = await prisma.event.findMany({
+    where: { published: true, missingNotifiedAt: null, date: { gt: now, lt: new Date(now.getTime() + 5 * 24 * H) } },
+    include: { steps: true },
+  });
+  const subscribers = await prisma.subscriber.count();
+  for (const e of upcomingSoon) {
+    const missing: string[] = [];
+    if (parseMenu(e.menu).length === 0) missing.push("La carta (el home muestra la de la última cena mientras tanto).");
+    if (!e.address) missing.push("La dirección (sin eso el mail de confirmación sale sin “Dónde”).");
+    if (!gameReady(buildActs(e))) missing.push("Los secretos del juego de las mesitas (se juega con ejemplos si faltan).");
+    if (!e.notifiedAt && subscribers > 0 && !e.unlisted) missing.push(`Avisar a los ${subscribers} suscriptores (botón “Avisar” en la cena).`);
+    if (missing.length) {
+      await sendAdminMissing({ event: e, missing }).catch(() => {});
+      out.missingNotices += 1;
+    }
+    await prisma.event.update({ where: { id: e.id }, data: { missingNotifiedAt: now } });
   }
 
   // Lugares que se liberaron (holds de transferencia vencidos, cancelaciones): avisar a la lista de espera.

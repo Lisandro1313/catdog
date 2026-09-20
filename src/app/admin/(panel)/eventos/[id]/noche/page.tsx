@@ -44,6 +44,9 @@ export default async function NochePage({ params }: { params: Promise<{ id: stri
           <Link href={`/admin/eventos/${event.id}/barra`} className="hover:text-ink">
             La barra
           </Link>
+          <Link href={`/admin/eventos/${event.id}/plano`} className="hover:text-ink">
+            Plano (imprimir)
+          </Link>
           <OfflineBadge />
         </div>
       </div>

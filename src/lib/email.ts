@@ -419,3 +419,18 @@ export async function sendGiftCard(input: GiftInput & { to: string }) {
   if (error) console.error("[email] tarjeta de regalo falló", error);
   return { skipped: false as const, error };
 }
+
+/** Al admin, unos días antes: lo que le falta a la próxima cena (carta, dirección, secretos del juego, aviso). */
+export async function sendAdminMissing(input: { event: EventLike & { id: string }; missing: string[] }) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!isEmailConfigured() || !adminEmail || input.missing.length === 0) return;
+  const html = layout(
+    `Falta esto para el ${formatLong(input.event.date).toLowerCase()}`,
+    `<p><strong>${input.event.title}</strong> · ${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs.</p>
+     <ul>${input.missing.map((m) => `<li>${m}</li>`).join("")}</ul>
+     <p><a href="${siteUrl()}/admin/eventos/${input.event.id}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#c9a96e;color:#141210;text-decoration:none;font-weight:bold">Completar en el panel</a></p>`,
+    "Este aviso sale una vez por cena, unos días antes.",
+  );
+  const { error } = await sendMail({ to: adminEmail, subject: `Falta esto para ${input.event.title}: ${input.missing.length} cosa${input.missing.length === 1 ? "" : "s"}`, html, text: toText(html) });
+  if (error) console.error("[email] aviso de faltantes falló", error);
+}

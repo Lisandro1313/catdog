@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { formatShort } from "@/lib/dates";
+import { formatShort, nowMs } from "@/lib/dates";
 import { GAMES, LOWER_IS_BETTER, PREMIO_MINIMO, dayKey } from "@/lib/premios";
 import { GAME_INFO } from "@/components/jugar/info";
 import { deleteRecordAction, redeemPrizeAction } from "../../actions";
@@ -11,10 +11,15 @@ export const dynamic = "force-dynamic";
 /** Tragos ganados en los juegos (para canjear en la barra) y récords con nombre (para moderar). */
 export default async function PremiosPage() {
   const today = dayKey();
-  const [prizes, scores] = await Promise.all([
+  const [prizes, scores, played, guesses] = await Promise.all([
     prisma.prize.findMany({ orderBy: { createdAt: "desc" }, take: 60 }),
     prisma.gameScore.findMany({ where: { name: { not: null } }, orderBy: { updatedAt: "desc" }, take: 200 }),
+    prisma.gameScore.groupBy({ by: ["game"], _count: { _all: true }, _avg: { best: true } }),
+    prisma.guess.groupBy({ by: ["stepIndex"], where: { event: { date: { gt: new Date(nowMs() - 30 * 24 * 60 * 60 * 1000) } } }, _count: { _all: true } }),
   ]);
+  const playedTonight = await prisma.gameScore.groupBy({ by: ["game"], where: { day: today }, _count: { _all: true } });
+  const tonightCount = new Map(playedTonight.map((p) => [p.game, p._count._all]));
+  const allCount = new Map(played.map((p) => [p.game, { n: p._count._all, avg: p._avg.best ?? 0 }]));
   const tonight = prizes.filter((p) => p.day === today);
   const older = prizes.filter((p) => p.day !== today);
 
@@ -54,6 +59,31 @@ export default async function PremiosPage() {
           </ul>
         </section>
       )}
+
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">Cómo se juega</h2>
+        <p className="mt-1 text-sm text-muted">Teléfonos que terminaron cada juego (esta noche / desde siempre) y la marca promedio. Sirve para ajustar las metas y ver qué gusta.</p>
+        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+          {GAMES.map((g) => {
+            const all = allCount.get(g);
+            return (
+              <li key={g} className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 text-sm">
+                <span>
+                  {GAME_INFO[g].icon} {GAME_INFO[g].title}
+                </span>
+                <span className="tabular-nums text-muted">
+                  {tonightCount.get(g) ?? 0} hoy · {all?.n ?? 0} total{all && all.n > 0 ? ` · prom. ${Math.round(all.avg)} ${GAME_INFO[g].unit}` : ""}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        {guesses.length > 0 && (
+          <p className="mt-4 text-xs text-muted">
+            Puertas adentro (último mes): {guesses.reduce((n, g) => n + g._count._all, 0)} apuestas en {guesses.length} actos.
+          </p>
+        )}
+      </section>
 
       <section className="card p-5 sm:p-6">
         <h2 className="font-display text-2xl">Récords con nombre</h2>

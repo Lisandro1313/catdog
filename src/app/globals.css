@@ -1963,3 +1963,125 @@ details.faq > summary::-webkit-details-marker {
 .hoy-chip.is-normal {
   text-transform: none;
 }
+
+/* ---------------------------------------------------------------------------
+   Plano de la mesa (/admin/eventos/[id]/plano): A4 claro para la cocina y la puerta.
+--------------------------------------------------------------------------- */
+.plano {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 12mm;
+  background: #f3ede4;
+  color: #1a150d;
+  border: 1px solid rgba(201, 169, 110, 0.5);
+}
+.plano-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(138, 109, 59, 0.4);
+  padding-bottom: 0.6rem;
+}
+.plano-head h2 {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.4rem;
+  line-height: 1.1;
+}
+.plano-eyebrow {
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8a6d3b;
+}
+.plano-count {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.1rem;
+}
+.plano-table {
+  display: grid;
+  grid-template-columns: 1fr 2.2rem 1fr;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.plano-side {
+  display: grid;
+  gap: 0.4rem;
+}
+.plano-board {
+  writing-mode: vertical-rl;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(138, 109, 59, 0.15);
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8a6d3b;
+}
+.plano-seat {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: 0 0.5rem;
+  align-items: start;
+  padding: 0.4rem 0.5rem;
+  border: 1px dashed rgba(138, 109, 59, 0.4);
+  border-radius: 0.5rem;
+  min-height: 2.6rem;
+  font-size: 0.8rem;
+}
+.plano-seat.is-taken {
+  border-style: solid;
+  background: #fff;
+}
+.plano-n {
+  grid-row: 1 / 4;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.1rem;
+  color: #8a6d3b;
+}
+.plano-name {
+  font-weight: 600;
+}
+.plano-sub {
+  font-size: 0.7rem;
+  color: #5c534a;
+}
+.plano-note {
+  font-size: 0.72rem;
+  color: #8a3b2b;
+}
+.plano-block {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+}
+.plano-block h3 {
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8a6d3b;
+  margin-bottom: 0.3rem;
+}
+.plano-block li {
+  padding: 0.15rem 0;
+}
+@media print {
+  main:has(.plano) {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  body:has(.plano) nav,
+  body:has(.plano) .grain,
+  body:has(.plano)::before,
+  body:has(.plano)::after {
+    display: none !important;
+  }
+  body:has(.plano) {
+    background: #fff;
+  }
+  .plano {
+    border: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
