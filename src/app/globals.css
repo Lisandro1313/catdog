@@ -637,3 +637,437 @@ details.faq > summary::-webkit-details-marker {
     transition: none;
   }
 }
+
+
+/* ---------------------------------------------------------------------------
+   "Puertas adentro" (/hoy): el juego de las mesitas. Una pantalla por vez,
+   pensado para un teléfono en la mano: telón, mazo, carta que se da vuelta,
+   fichas para apostar y un sello que se rompe al destapar.
+--------------------------------------------------------------------------- */
+
+.hoy-stage {
+  --ap-gold: var(--accent);
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 1.25rem 1rem calc(2rem + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+/* --- telón --- */
+.hoy-curtains {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.hoy-curtain {
+  position: absolute;
+  top: -4%;
+  bottom: -4%;
+  width: 54%;
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.28) 0 6px, transparent 6px 22px),
+    linear-gradient(180deg, #5a1d1d, #3d1212 70%, #2a0c0c);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+  animation: hoy-curtain-open 1.6s cubic-bezier(0.7, 0, 0.3, 1) 0.4s forwards;
+}
+.hoy-curtain.left {
+  left: 0;
+  border-right: 2px solid rgba(201, 169, 110, 0.45);
+  transform-origin: left center;
+}
+.hoy-curtain.right {
+  right: 0;
+  border-left: 2px solid rgba(201, 169, 110, 0.45);
+  transform-origin: right center;
+  --dir: 1;
+}
+@keyframes hoy-curtain-open {
+  to {
+    transform: translateX(calc(var(--dir, -1) * 96%)) scaleX(0.35);
+    opacity: 0.85;
+  }
+}
+.hoy-intro {
+  position: relative;
+  z-index: 1;
+  margin: auto 0;
+  text-align: center;
+  opacity: 0;
+  animation: hoy-rise 0.9s ease 1.2s forwards;
+}
+@keyframes hoy-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- puntos de progreso --- */
+.hoy-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 169, 110, 0.5);
+  transition: background 0.3s, transform 0.3s;
+}
+.hoy-dot.is-done {
+  background: var(--accent);
+}
+.hoy-dot.is-current {
+  transform: scale(1.5);
+  border-color: var(--accent-strong);
+}
+
+/* --- el mazo --- */
+.hoy-mazo {
+  animation: hoy-rise 0.5s ease forwards;
+}
+.hoy-deckcard {
+  display: grid;
+  width: 100%;
+  gap: 0.15rem;
+  padding: 1rem 1.1rem;
+  text-align: left;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.hoy-deckcard:active {
+  transform: scale(0.985);
+}
+.hoy-deckcard.is-next {
+  border-color: rgba(201, 169, 110, 0.7);
+  box-shadow: 0 12px 30px -18px rgba(201, 169, 110, 0.6);
+  animation: hoy-breathe 2.6s ease-in-out infinite;
+}
+.hoy-deckcard.is-open {
+  border-color: rgba(201, 169, 110, 0.25);
+  background: var(--surface);
+}
+@keyframes hoy-breathe {
+  0%,
+  100% {
+    box-shadow: 0 12px 30px -18px rgba(201, 169, 110, 0.4);
+  }
+  50% {
+    box-shadow: 0 12px 34px -14px rgba(201, 169, 110, 0.85);
+  }
+}
+.hoy-deckcard-roman {
+  font-size: 0.62rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.hoy-deckcard-dish {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 1.15;
+}
+.hoy-deckcard-drink {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--muted);
+}
+.hoy-deckcard-foot {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* --- la carta que se da vuelta --- */
+.hoy-actview {
+  animation: hoy-rise 0.4s ease forwards;
+}
+.hoy-card {
+  position: relative;
+  margin-top: 1.25rem;
+  min-height: 27rem;
+  perspective: 1400px;
+}
+.hoy-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.6rem 1.4rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201, 169, 110, 0.12), transparent 70%),
+    linear-gradient(170deg, var(--surface-2), var(--surface));
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.hoy-face::before {
+  content: "";
+  position: absolute;
+  inset: 0.5rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(201, 169, 110, 0.18);
+  pointer-events: none;
+}
+.hoy-front {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transform: rotateY(0deg);
+}
+.hoy-back {
+  transform: rotateY(180deg);
+  overflow: hidden;
+}
+.hoy-back-eyebrow {
+  padding-right: 3rem;
+}
+.hoy-card.is-flipped .hoy-front {
+  transform: rotateY(-180deg);
+}
+.hoy-card.is-flipped .hoy-back {
+  transform: rotateY(0deg);
+}
+.hoy-tap {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+.hoy-hint {
+  position: absolute;
+  bottom: 1.4rem;
+  left: 0;
+  right: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: hoy-pulse 2.2s ease-in-out infinite;
+}
+@keyframes hoy-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* --- fichas y apuesta --- */
+.hoy-chip {
+  min-height: 2.9rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 0.9rem;
+  line-height: 1.15;
+  text-transform: lowercase;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.hoy-chip:active {
+  transform: scale(0.97);
+}
+.hoy-chip.is-on {
+  border-color: var(--accent-strong);
+  background: rgba(201, 169, 110, 0.16);
+  color: var(--accent-strong);
+}
+.hoy-stake {
+  min-height: 2.2rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.hoy-stake.is-on {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+/* --- el sello --- */
+.hoy-seal {
+  position: absolute;
+  right: 1.1rem;
+  top: 1rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 169, 110, 0.5);
+  color: var(--accent);
+  font-size: 0.8rem;
+  background: rgba(201, 169, 110, 0.08);
+}
+.hoy-seal.is-breaking {
+  animation: hoy-seal-break 0.7s ease forwards;
+}
+@keyframes hoy-seal-break {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  40% {
+    transform: scale(1.35) rotate(-12deg);
+    box-shadow: 0 0 0 6px rgba(201, 169, 110, 0.25);
+  }
+  100% {
+    transform: scale(0) rotate(30deg);
+    opacity: 0;
+  }
+}
+
+/* --- destape --- */
+.hoy-reveal {
+  animation: hoy-flash 1s ease forwards;
+  text-align: center;
+  margin: auto 0;
+}
+@keyframes hoy-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: brightness(2.2);
+  }
+  30% {
+    filter: brightness(1.6);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* --- fin --- */
+.hoy-fin {
+  margin: auto 0;
+  text-align: center;
+  animation: hoy-rise 0.6s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hoy-curtain {
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+  .hoy-intro,
+  .hoy-mazo,
+  .hoy-actview,
+  .hoy-fin,
+  .hoy-reveal {
+    animation: none;
+    opacity: 1;
+  }
+  .hoy-face {
+    transition: none;
+  }
+  .hoy-deckcard.is-next,
+  .hoy-hint {
+    animation: none;
+  }
+}
+
+
+/* Tarjetas A6 con el QR de cada mesita (/admin/mesitas). En pantalla, grilla; al imprimir, una por hoja. */
+.mesitas-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+.mesita {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 1.6rem 1.2rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(201, 169, 110, 0.5);
+  background: #f3ede4;
+  color: #1a150d;
+  text-align: center;
+  break-inside: avoid;
+  page: mesita;
+}
+.mesita-brand {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.mesita-eyebrow,
+.mesita-n {
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8a6d3b;
+}
+.mesita-qr {
+  width: 9.5rem;
+  margin: 0.9rem 0 0.6rem;
+}
+.mesita-qr svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.mesita-cta {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+.mesita-sub {
+  max-width: 13rem;
+  font-size: 0.72rem;
+  color: #5c534a;
+}
+.mesita-n {
+  margin-top: 0.8rem;
+}
+/* Página con nombre: solo las tarjetas salen en A6; el resto del panel imprime normal. */
+@page mesita {
+  size: A6;
+  margin: 0;
+}
+@media print {
+  main:has(.mesitas-grid) {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  main:has(.mesitas-grid) ~ *,
+  body:has(.mesitas-grid) nav,
+  body:has(.mesitas-grid) .grain,
+  body:has(.mesitas-grid)::before,
+  body:has(.mesitas-grid)::after {
+    display: none !important;
+  }
+  body:has(.mesitas-grid) {
+    background: #fff;
+  }
+  .mesitas-grid {
+    display: block;
+  }
+  .mesita {
+    width: 105mm;
+    height: 148mm;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    align-content: center;
+    page-break-after: always;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

@@ -34,7 +34,7 @@ export function nextRoman(roman: string): string {
 
 /** Copia una cena a la misma hora de la semana siguiente, sin publicar, con el número siguiente en el título. */
 export async function duplicateWeekLater(sourceId: string) {
-  const source = await prisma.event.findUnique({ where: { id: sourceId } });
+  const source = await prisma.event.findUnique({ where: { id: sourceId }, include: { steps: true } });
   if (!source) return null;
   const date = new Date(source.date.getTime() + WEEK_MS);
   const n = source.title.match(/^Cena\s+([IVXLC]+)\s*·\s*(.+)$/i);
@@ -50,6 +50,9 @@ export async function duplicateWeekLater(sourceId: string) {
       bar: source.bar,
       barPrice: source.barPrice,
       address: source.address,
+      welcomeDrink: source.welcomeDrink,
+      // Los secretos del juego viajan con la carta: si la carta se repite, el juego también.
+      steps: { create: source.steps.map(({ index, secret, decoys, why }) => ({ index, secret, decoys, why })) },
       published: false,
     },
   });

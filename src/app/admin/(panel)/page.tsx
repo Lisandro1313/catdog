@@ -82,6 +82,9 @@ export default async function AdminHome() {
               <Link href={`/admin/eventos/${nextEvent.id}`} className="btn btn-ghost btn-sm">
                 Reservas y carta
               </Link>
+              <Link href="/admin/mesitas" className="btn btn-ghost btn-sm">
+                QR de las mesitas
+              </Link>
             </div>
           </div>
         ) : (

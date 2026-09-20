@@ -32,10 +32,48 @@ model Event {
   closedAt    DateTime?
   createdAt   DateTime @default(now())
 
+  /// Cóctel de recepción (sin alcohol): "nombre | una frase". Es el Acto I del juego de las mesitas.
+  welcomeDrink String?
+
   reservations Reservation[]
   seats        Seat[]
   ledger       LedgerEntry[]
   reviews      Review[]
+  steps        EventStep[]
+  guesses      Guess[]
+}
+
+/// "Lo que no dice la carta": un secreto por acto del juego de las mesitas. index 0 = recepción, 1..n = pasos del menú.
+model EventStep {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  index   Int
+  /// El ingrediente que hay que adivinar.
+  secret  String?
+  /// Tres señuelos separados por coma.
+  decoys  String?
+  /// Por qué ese cóctel con ese plato (una o dos líneas).
+  why     String?
+
+  @@unique([eventId, index])
+}
+
+/// Una apuesta por teléfono y por acto. deviceKey es un id al azar guardado en el teléfono: sin datos personales.
+model Guess {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  stepIndex Int
+  deviceKey String
+  choice    String
+  stake     Int      @default(1)
+  correct   Boolean
+  table     Int?
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, stepIndex, deviceKey])
+  @@index([eventId, stepIndex])
 }
 
 enum ReservationStatus {

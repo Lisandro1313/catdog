@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/admin-auth";
 import { PARTNERS } from "@/lib/ledger-categories";
@@ -14,10 +15,11 @@ import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos } from "@/lib/photos";
 import { AboutPanel, InstagramPanel, PhotosPanel } from "@/components/admin/HomeContentPanel";
 import { PaymentForm, TestMailForm } from "@/components/admin/ActionForms";
 import { getPaymentConfig } from "@/lib/payment";
-import { logoutAction } from "../../actions";
+import { logoutAction, toggleHoyAction } from "../../actions";
+import { isHoyOff } from "@/lib/hoy";
 
 export default async function AjustesPage() {
-  const [session, users, fixed, photos, about, instagram, payment] = await Promise.all([
+  const [session, users, fixed, photos, about, instagram, payment, hoyOff] = await Promise.all([
     getSession(),
     prisma.user.findMany({ select: { name: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     getFixedExpenses(),
@@ -25,6 +27,7 @@ export default async function AjustesPage() {
     getAbout(),
     getInstagram(),
     getPaymentConfig(),
+    isHoyOff(),
   ]);
   const me = session?.role === "user" ? session.name : null;
   const missing = PARTNERS.filter((p) => !users.some((u) => u.name === p));
@@ -91,6 +94,27 @@ export default async function AjustesPage() {
           Hoy: <strong className="text-ink">{payment.mode === "transferencia" ? `transferencia (alias ${payment.alias || "sin cargar"})` : "Mercado Pago"}</strong>. El cambio se ve en el sitio al instante.
         </p>
         <PaymentForm current={payment} />
+      </section>
+
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">El juego de las mesitas</h2>
+        <p className="mt-1 text-sm text-muted">
+          Lo que abre el QR de cada mesita. Hoy: <strong className="text-ink">{hoyOff ? "apagado (el QR muestra solo la carta)" : "prendido"}</strong>.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <form action={toggleHoyAction}>
+            <input type="hidden" name="off" value={hoyOff ? "0" : "1"} />
+            <button className={`btn btn-sm ${hoyOff ? "btn-primary" : "btn-ghost"}`} type="submit">
+              {hoyOff ? "Prender el juego" : "Apagar por hoy"}
+            </button>
+          </form>
+          <Link href="/admin/mesitas" className="btn btn-ghost btn-sm">
+            QR de las mesitas
+          </Link>
+          <Link href="/hoy/demo" target="_blank" className="btn btn-ghost btn-sm">
+            Probar ↗
+          </Link>
+        </div>
       </section>
 
       <section className="card p-5 sm:p-6">

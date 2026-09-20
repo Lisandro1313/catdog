@@ -771,3 +771,59 @@ export async function setPaymentAction(_prev: ActionState, formData: FormData): 
   revalidatePath("/admin/ajustes");
   return { ok: true, message: mode === "transferencia" ? `Listo: se cobra por transferencia (alias ${alias}).` : "Listo: se cobra por Mercado Pago." };
 }
+
+// ---------------------------------------------------------------------------
+// "Puertas adentro": el juego de las mesitas
+// ---------------------------------------------------------------------------
+
+/**
+ * Guarda el cóctel de recepción y, por cada acto, el ingrediente escondido, los tres señuelos
+ * y por qué va ese trago. Los campos vacíos se borran (el acto queda sin secreto).
+ */
+export async function saveStepsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const event = await prisma.event.findUnique({ where: { id }, select: { id: true } });
+  if (!event) return { ok: false, message: "Esa cena no existe." };
+
+  const welcomeDrink = String(formData.get("welcomeDrink") ?? "").trim().slice(0, 160) || null;
+  const count = Math.min(Number(formData.get("count") ?? 0) || 0, 20);
+  const rows: { index: number; secret: string | null; decoys: string | null; why: string | null }[] = [];
+  for (let i = 0; i <= count; i++) {
+    const secret = String(formData.get(`secret_${i}`) ?? "").trim().slice(0, 60) || null;
+    const decoys = String(formData.get(`decoys_${i}`) ?? "")
+      .split(/[,\n]/)
+      .map((d) => d.trim())
+      .filter(Boolean);
+    const why = String(formData.get(`why_${i}`) ?? "").trim().slice(0, 400) || null;
+    if (decoys.length > 3) return { ok: false, message: `En el acto ${i + 1} hay más de tres señuelos.` };
+    if (new Set(decoys.map((d) => d.toLowerCase())).size !== decoys.length) return { ok: false, message: `En el acto ${i + 1} hay un señuelo repetido.` };
+    if (secret && decoys.some((d) => d.toLowerCase() === secret.toLowerCase())) {
+      return { ok: false, message: `En el acto ${i + 1} un señuelo repite el ingrediente escondido.` };
+    }
+    rows.push({ index: i, secret, decoys: decoys.length ? decoys.join(", ") : null, why });
+  }
+
+  await prisma.$transaction([
+    prisma.event.update({ where: { id }, data: { welcomeDrink } }),
+    prisma.eventStep.deleteMany({ where: { eventId: id, index: { gt: count } } }),
+    ...rows.map((r) =>
+      prisma.eventStep.upsert({
+        where: { eventId_index: { eventId: id, index: r.index } },
+        update: { secret: r.secret, decoys: r.decoys, why: r.why },
+        create: { eventId: id, ...r },
+      }),
+    ),
+  ]);
+  revalidatePath(`/admin/eventos/${id}`);
+  const complete = rows.every((r) => r.secret && r.decoys && r.decoys.split(",").length === 3);
+  return { ok: true, message: complete ? "Guardado. El juego está listo para esa noche." : "Guardado. Faltan secretos o señuelos en algún acto: esa noche ese acto se lee pero no se juega." };
+}
+
+/** Prende o apaga el juego de las mesitas en todo el sitio (el QR muestra solo la carta). */
+export async function toggleHoyAction(formData: FormData) {
+  await requireAdmin();
+  const off = formData.get("off") === "1";
+  await prisma.setting.upsert({ where: { key: "hoy:off" }, update: { value: off ? "1" : "0" }, create: { key: "hoy:off", value: off ? "1" : "0" } });
+  revalidatePath("/admin/ajustes");
+}

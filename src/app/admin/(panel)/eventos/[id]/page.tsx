@@ -6,6 +6,8 @@ import { formatShort, nowMs, toDatetimeLocal, todayIso } from "@/lib/dates";
 import { categoryLabel, getFinancials, toRow } from "@/lib/admin-stats";
 import { getSession } from "@/lib/admin-auth";
 import { EventForm } from "@/components/admin/EventForm";
+import { StepsForm } from "@/components/admin/StepsForm";
+import { buildActs, gameReady } from "@/lib/hoy";
 import { AssignSeatsForm, ManualReservationForm, NotifyForm, RemindersNowForm, RequestReviewsForm } from "@/components/admin/ActionForms";
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
@@ -41,6 +43,7 @@ export default async function AdminEventPage({
         },
         ledger: { where: { deletedAt: null }, orderBy: { createdAt: "desc" }, include: { event: { select: { title: true } } } },
         reviews: { orderBy: { createdAt: "desc" } },
+        steps: { orderBy: { index: "asc" } },
       },
     }),
     prisma.subscriber.count(),
@@ -58,6 +61,8 @@ export default async function AdminEventPage({
   const paidSeats = active.filter((r) => r.status === "PAID").reduce((n, r) => n + r.quantity, 0);
   const paidPeople = event.reservations.filter((r) => r.status === "PAID").length;
   const past = event.date.getTime() < now;
+  const acts = buildActs(event);
+  const byIndex = new Map(event.steps.map((st) => [st.index, st]));
   const holdSeats = active.filter((r) => r.status === "PENDING").reduce((n, r) => n + r.quantity, 0);
 
   return (
@@ -311,6 +316,48 @@ export default async function AdminEventPage({
           <div className="mt-5">
             <MovementList rows={event.ledger.map(toRow)} today={today} sessionName={sessionName} />
           </div>
+        )}
+      </section>
+
+      <section className="card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl">Lo que la carta no dice</h2>
+            <p className="mt-1 text-sm text-muted">
+              El juego del QR de las mesitas. Por cada acto, un ingrediente escondido y tres señuelos: el invitado apuesta cuando tiene el plato adelante.{" "}
+              {gameReady(acts) ? (
+                <strong className="text-ok">Listo para esa noche.</strong>
+              ) : (
+                <strong className="text-accent">Incompleto: los actos sin secreto esa noche se leen pero no se juegan.</strong>
+              )}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/hoy/demo?e=${event.id}`} target="_blank" className="btn btn-ghost btn-sm">
+              Ver como invitado ↗
+            </Link>
+            <Link href="/admin/mesitas" className="btn btn-ghost btn-sm">
+              QR de las mesitas
+            </Link>
+          </div>
+        </div>
+        {acts.length <= 1 ? (
+          <p className="mt-4 text-sm text-muted">Cargá la carta (abajo, en “Editar cena”) y después los secretos de cada paso.</p>
+        ) : (
+          <StepsForm
+            eventId={event.id}
+            welcomeDrink={event.welcomeDrink ?? ""}
+            steps={acts.map((a) => ({
+              index: a.index,
+              roman: a.roman,
+              label: a.label,
+              dish: a.dish,
+              drink: a.drink,
+              secret: byIndex.get(a.index)?.secret ?? "",
+              decoys: byIndex.get(a.index)?.decoys ?? "",
+              why: byIndex.get(a.index)?.why ?? "",
+            }))}
+          />
         )}
       </section>
 

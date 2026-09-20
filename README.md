@@ -195,6 +195,26 @@ a partir de `scripts/carta-tragos.json` (secciones, tragos, descripciones y prec
 `fotos/qr-mp.png` (el QR de cobro bajado de la app de Mercado Pago), va ese QR; si no, un QR que muestra el alias.
 Usa el Chrome instalado para imprimir a PDF.
 
+## El juego de las mesitas (`/hoy`) — "Puertas adentro"
+
+Un QR por mesita (se imprimen en `/admin/mesitas`, tarjetas A6) abre `/hoy/N`. No lleva a la carta: muestra
+la cena de esa noche como una función en actos (el cóctel de recepción y cada paso). Cada acto es una carta
+que se da vuelta: por qué va ese trago con ese plato, y un ingrediente escondido para adivinar entre cuatro
+fichas. Se apuesta 1 o 3 ✦, se "sella y destapa" y recién ahí el servidor devuelve el secreto. Al final,
+"Fin de la función" con el puntaje y la lista de secretos. Todo es opcional, individual y a su ritmo: el QR
+está ahí "vago", nadie lo anuncia ni hay momentos en conjunto.
+
+- Los secretos se cargan por cena, en **Reservas y carta → "Lo que la carta no dice"** (cóctel de recepción,
+  ingrediente escondido + 3 señuelos + una línea de por qué). Si falta algo, el juego se muestra igual con
+  ejemplos ("modo ejemplo").
+- `/hoy/demo` sirve para probarlo cualquier día con la próxima cena. Fuera de la noche real un invitado nunca ve
+  secretos de verdad de una cena futura (solo el admin, con `?e=<id>` y sesión).
+- La cena está "en vivo" desde 3 horas antes de su hora hasta 10 después; antes de eso el QR juega con ejemplos.
+- Las apuestas (`Guess`) se guardan solo la noche de la cena, por teléfono (cookie anónima `catdog_hoy_device`), y
+  sirven para el "el 40 % de la casa acertó" (solo porcentajes y con 3 apuestas o más; nunca cantidades).
+- **Ajustes → El juego de las mesitas** lo apaga por hoy (`hoy:off`): el QR muestra solo la carta y la barra.
+- Sin cena esa noche, el QR muestra la próxima con ejemplos; sin ninguna cena con carta, "Hoy no hay función".
+
 ## Desarrollo local
 
 ```bash
@@ -220,3 +240,5 @@ Migraciones: `npm run db:migrate` (crea y aplica). En Vercel el build corre `pri
 - `User`: usuarios del panel (nombre y contraseña con hash scrypt). La sesión es una cookie firmada con `APP_SECRET` (o `ADMIN_PASSWORD`).
 - Los comprobantes viven en el store privado de Vercel Blob `catdog-comprobantes` (variable `BLOB_READ_WRITE_TOKEN`, ya cargada) y se sirven solo con sesión desde `/admin/comprobante/[id]`.
 - `PageView`: visitas al home agregadas por día.
+- `EventStep`: por cena y acto (0 = cóctel de recepción), el ingrediente escondido, los señuelos y el por qué del trago. `Event.welcomeDrink` es el cóctel de recepción ("nombre | frase").
+- `Guess`: una apuesta por teléfono y acto en la cena en vivo (ficha elegida, 1 o 3 ✦, acierto, mesita).
