@@ -364,6 +364,17 @@ export default async function AdminEventPage({
           <Stat label="Resultado" value={formatPrice(money.result)} tone={money.result >= 0 ? "ok" : "danger"} />
         </div>
 
+        {paidSeats > 0 && (
+          <p className="mt-3 text-sm text-muted">
+            Por cubierto: cobrado <strong className="text-ink">{formatPrice(Math.round((money.reservations + money.otherIncome) / paidSeats))}</strong>, gastado{" "}
+            <strong className="text-ink">{formatPrice(Math.round(money.expenses / paidSeats))}</strong>, queda{" "}
+            <strong className={money.result >= 0 ? "text-ok" : "text-danger"}>{formatPrice(Math.round(money.result / paidSeats))}</strong>
+            {money.reservations + money.otherIncome > 0 && <> ({Math.round((money.result / (money.reservations + money.otherIncome)) * 100)}% de margen)</>}.
+          </p>
+        )}
+        <a href={`/admin/exportar?evento=${event.id}`} className="mt-3 inline-block text-xs text-accent hover:underline">
+          Descargar la caja de esta cena en CSV (Excel)
+        </a>
         {money.byCategory.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-2 text-xs">
             {money.byCategory.map((c) => (

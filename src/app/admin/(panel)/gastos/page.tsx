@@ -32,7 +32,12 @@ export default async function GastosPage() {
     <>
       {/* 1. Carga rápida */}
       <section className="card p-5 sm:p-6">
-        <h2 className="font-display text-2xl">Cargar</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-2xl">Cargar</h2>
+          <a href="/admin/exportar" className="btn btn-ghost btn-sm">
+            Descargar toda la caja (CSV)
+          </a>
+        </div>
         <p className="mt-1 text-sm text-muted">Monto, rubro, guardar. Lo demás es opcional.</p>
         <div className="mt-5">
           <LedgerForm today={today} sessionName={sessionName} />
