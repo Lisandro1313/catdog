@@ -24,7 +24,7 @@ export default async function FechasPage() {
       <div className="text-center">
         <p className="ap-eyebrow">{SITE_NAME}</p>
         <h1 className="ap-display mt-3 text-4xl sm:text-5xl">Próximas fechas</h1>
-        <p className="mx-auto mt-4 max-w-md text-muted">Los viernes, en una casa de La Plata. Cada plato con su cóctel de autor.</p>
+        <p className="mx-auto mt-4 max-w-md text-muted">Una casa en La Plata, unas pocas noches al mes. Cada plato con su cóctel de autor.</p>
       </div>
 
       {events.length === 0 ? (

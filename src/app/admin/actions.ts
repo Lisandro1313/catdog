@@ -725,6 +725,19 @@ export async function toggleArrivedAction(formData: FormData) {
 }
 
 /** Cerrar / reabrir las reservas de una cena (el público ve "reservas cerradas" y pasa a la fecha siguiente). */
+/** Publicar o sacar del home una cena, sin pasar por el formulario. */
+export async function togglePublishedAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const e = await prisma.event.findUnique({ where: { id }, select: { published: true } });
+  if (!e) return;
+  await prisma.event.update({ where: { id }, data: { published: !e.published } });
+  revalidatePath("/");
+  revalidatePath("/fechas");
+  revalidatePath("/admin");
+  revalidatePath(`/admin/eventos/${id}`);
+}
+
 export async function toggleClosedAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");

@@ -133,11 +133,11 @@ export default async function HomePage() {
     },
     {
       q: "¿Y si la fecha ya se llenó?",
-      a: "Son pocos lugares y se llenan rápido. Cuando una fecha se agota, abrimos la reserva para el viernes siguiente: la elegís ahí mismo en el formulario.",
+      a: "Son pocos lugares y se llenan rápido. Cuando una fecha se agota, podés anotarte en la lista de espera (si se libera un lugar te avisamos por mail) o reservar para la fecha siguiente, ahí mismo en el formulario.",
     },
     {
       q: "¿Y si no puedo ir?",
-      a: "Avisanos con tiempo por el WhatsApp que te llega con la confirmación. Podés pasarle tu lugar a otra persona (nos decís el nombre y listo) o, si hay lugar, cambiar a otra fecha.",
+      a: "Podés pasarle tu lugar a otra persona vos mismo, desde el link de tu reserva: cambiás el nombre y le llega la confirmación. Si preferís cambiar de fecha, avisanos con tiempo por WhatsApp y lo vemos.",
     },
     ...(contactEmail()
       ? [
@@ -468,7 +468,7 @@ export default async function HomePage() {
                 label="Cuándo"
                 value={
                   upcoming.length > 1
-                    ? `Los viernes, ${formatTime(event.date)} hs. Próximas: ${upcoming.map((e) => dateShort(e.date)).join(", ")}.`
+                    ? `${formatTime(event.date)} hs. Próximas: ${upcoming.map((e) => dateShort(e.date)).join(", ")}.`
                     : `${dateLong(event.date)}.`
                 }
               />

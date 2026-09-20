@@ -267,7 +267,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
               </li>
               <li>
                 <span className="text-ink">¿Alergias o algo que tengamos que saber?</span>{" "}
-                {reservation.notes ? `Ya lo tenemos anotado: “${reservation.notes}”.` : "Avisanos por WhatsApp antes del jueves."}
+                {reservation.notes ? `Ya lo tenemos anotado: “${reservation.notes}”.` : `Avisanos por WhatsApp antes del ${formatWeekday(new Date(reservation.event.date.getTime() - 24 * 60 * 60 * 1000))}.`}
               </li>
             </ul>
           </div>

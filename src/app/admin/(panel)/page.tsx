@@ -153,6 +153,9 @@ export default async function AdminHome() {
           { ok: about !== DEFAULT_ABOUT, label: "Texto “Quiénes somos” escrito por ustedes", href: "/admin/ajustes" },
           { ok: Boolean(instagram), label: "Instagram cargado (opcional)", href: "/admin/ajustes" },
           { ok: upcomingPublished >= 2, label: "La fecha siguiente ya publicada (para cuando se llene)", href: nextEvent ? `/admin/eventos/${nextEvent.id}` : "/admin" },
+          ...(nextEvent && subscribers > 0
+            ? [{ ok: Boolean(nextEvent.notifiedAt), label: `Próxima cena avisada a los ${subscribers} suscriptores`, href: `/admin/eventos/${nextEvent.id}#reservas` }]
+            : []),
         ];
         const pending = items.filter((i) => !i.ok);
         return pending.length > 0 ? (

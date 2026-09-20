@@ -8,6 +8,7 @@ import { getSession } from "@/lib/admin-auth";
 import { EventForm } from "@/components/admin/EventForm";
 import { StepsForm } from "@/components/admin/StepsForm";
 import { buildActs, gameReady } from "@/lib/hoy";
+import { parseMenu } from "@/lib/menu";
 import { AssignSeatsForm, ManualReservationForm, MarkPaidForm, NotifyForm, RemindersNowForm, RequestReviewsForm } from "@/components/admin/ActionForms";
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
@@ -20,6 +21,7 @@ import {
   deleteReviewAction,
   duplicateEventAction,
   toggleClosedAction,
+  togglePublishedAction,
   updateEventAction,
 } from "../../../actions";
 
@@ -100,7 +102,51 @@ export default async function AdminEventPage({
         </p>
       )}
 
-      <section className="card p-6">
+      {!past &&
+        (() => {
+          const items = [
+            { ok: parseMenu(event.menu).length > 0, label: "Carta cargada", href: "#editar" },
+            { ok: Boolean(event.address), label: "Dirección cargada (va en el mail de confirmación)", href: "#editar" },
+            { ok: event.price > 0, label: `Precio (${formatPrice(event.price)})`, href: "#editar" },
+            { ok: gameReady(acts), label: "Secretos del juego de las mesitas", href: "#juego" },
+            { ok: event.published, label: "Publicada en el home", href: "#editar" },
+            { ok: Boolean(event.notifiedAt) || subscribers === 0, label: `Avisada a los ${subscribers} suscriptores`, href: "#reservas" },
+          ];
+          const done = items.filter((i) => i.ok).length;
+          return (
+            <section className="card p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-display text-2xl">¿Está lista esta cena?</h2>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-muted">
+                    {done} de {items.length}
+                  </p>
+                  <form action={togglePublishedAction}>
+                    <input type="hidden" name="id" value={event.id} />
+                    <button className={`btn btn-sm ${event.published ? "btn-ghost" : "btn-primary"}`} type="submit">
+                      {event.published ? "Sacar del home" : "Publicar"}
+                    </button>
+                  </form>
+                </div>
+              </div>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {items.map((i) => (
+                  <li key={i.label} className="flex items-start gap-2 text-sm">
+                    <span className={i.ok ? "text-ok" : "text-accent"} aria-hidden="true">
+                      {i.ok ? "✓" : "○"}
+                    </span>
+                    {i.ok ? <span className="text-muted">{i.label}</span> : <a href={i.href} className="hover:text-accent">{i.label}</a>}
+                  </li>
+                ))}
+              </ul>
+              {event.published && parseMenu(event.menu).length === 0 && (
+                <p className="mt-3 text-xs text-accent">Está publicada sin carta: el home muestra la de la última cena, aclarándolo, hasta que la cargues.</p>
+              )}
+            </section>
+          );
+        })()}
+
+      <section id="reservas" className="card scroll-mt-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl">Reservas</h2>
           <Link href={`/admin/eventos/${event.id}/noche`} className="btn btn-ghost btn-sm">
@@ -308,7 +354,7 @@ export default async function AdminEventPage({
         )}
       </section>
 
-      <section className="card p-6">
+      <section id="juego" className="card scroll-mt-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-2xl">Lo que la carta no dice</h2>
@@ -350,7 +396,7 @@ export default async function AdminEventPage({
         )}
       </section>
 
-      <section className="card p-6">
+      <section id="editar" className="card scroll-mt-6 p-6">
         <h2 className="font-display text-2xl">Editar cena</h2>
         <div className="mt-4">
           <EventForm

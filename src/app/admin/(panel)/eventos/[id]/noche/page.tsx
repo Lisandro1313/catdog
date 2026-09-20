@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatLong, formatTime } from "@/lib/dates";
-import { formatPhone, whatsappUrl } from "@/lib/config";
+import { formatPhone, formatPrice, whatsappUrl } from "@/lib/config";
+import { MarkPaidForm } from "@/components/admin/ActionForms";
 import { toggleArrivedAction } from "../../../../actions";
 import { OfflineBadge } from "@/components/admin/OfflineBadge";
 
@@ -17,12 +18,13 @@ export default async function NochePage({ params }: { params: Promise<{ id: stri
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
-      reservations: { where: { status: "PAID" }, include: { seats: { orderBy: { number: "asc" } } } },
+      reservations: { where: { status: { in: ["PAID", "PENDING"] } }, include: { seats: { orderBy: { number: "asc" } } } },
     },
   });
   if (!event) notFound();
 
-  const rows = [...event.reservations].sort((a, b) => {
+  const pending = event.reservations.filter((r) => r.status === "PENDING" && !r.mpInitPoint);
+  const rows = event.reservations.filter((r) => r.status === "PAID").sort((a, b) => {
     const sa = a.seats[0]?.number ?? 999;
     const sb = b.seats[0]?.number ?? 999;
     return sa - sb || a.name.localeCompare(b.name);
@@ -46,12 +48,38 @@ export default async function NochePage({ params }: { params: Promise<{ id: stri
         <h1 className="font-display mt-1 text-2xl">
           {formatLong(event.date)} · {formatTime(event.date)} hs
         </h1>
-        <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+        <div className="mt-4 grid grid-cols-4 gap-2 text-center">
           <Big label="Vienen" value={String(people)} />
           <Big label="Confirmaron" value={String(confirmed)} />
           <Big label="Llegaron" value={String(arrived)} tone={arrived === people && people > 0 ? "ok" : undefined} />
+          <Big label="Faltan" value={String(Math.max(0, people - arrived))} tone={people - arrived <= 0 && people > 0 ? "ok" : undefined} />
         </div>
+        <p className="mt-3 text-xs text-muted print:hidden">“Llegó” necesita señal: sin internet el toque no se guarda.</p>
       </section>
+
+      {pending.length > 0 && (
+        <section className="card border-danger/40 p-5 print:hidden">
+          <p className="eyebrow">Todavía no pagaron</p>
+          <p className="mt-1 text-xs text-muted">Reservaron por transferencia y no marcamos el comprobante. Si llegan con el pago, “Marcar pagado” y listo.</p>
+          <ul className="mt-3 space-y-3">
+            {pending.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                <div>
+                  <p>
+                    <strong>{r.name}</strong> · {r.quantity === 1 ? "1 lugar" : `${r.quantity} lugares`} · {formatPrice(r.amount)}
+                  </p>
+                  {r.phone && (
+                    <a className="text-xs text-accent" href={whatsappUrl(r.phone)} target="_blank" rel="noopener noreferrer">
+                      {formatPhone(r.phone)}
+                    </a>
+                  )}
+                </div>
+                <MarkPaidForm id={r.id} name={r.name} amount={formatPrice(r.amount)} via="transferencia" compact />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {withNotes.length > 0 && (
         <section className="card border-accent/40 p-5">
