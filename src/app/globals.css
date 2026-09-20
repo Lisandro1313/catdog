@@ -2219,3 +2219,119 @@ details.faq > summary::-webkit-details-marker {
 :root[data-theme="light"] .btn-primary {
   color: #fff;
 }
+
+/* Barra de tiempo de las preguntas (maridaje, trivia) */
+.jg-timebar {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.jg-timebar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+.jg-timebar span.is-low {
+  background: var(--danger);
+}
+
+/* --- El gato de la casa (snake) --- */
+.jg-board {
+  display: block;
+  width: 100%;
+  max-width: 22.5rem;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  border-radius: 1rem;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.jg-dpad {
+  display: grid;
+  grid-template-areas: ". u ." "l . r" ". d .";
+  grid-template-columns: repeat(3, 3.2rem);
+  grid-template-rows: repeat(3, 3.2rem);
+  gap: 0.3rem;
+  justify-content: center;
+}
+.jg-dpad button {
+  border-radius: 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--accent);
+  font-size: 1rem;
+  touch-action: manipulation;
+}
+.jg-dpad button:active {
+  background: rgba(201, 169, 110, 0.2);
+}
+
+/* --- Servicio --- */
+.jg-cliente {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  background: linear-gradient(170deg, var(--surface-2), var(--surface));
+  min-height: 6.5rem;
+}
+.jg-cliente.is-flash {
+  border-color: var(--accent);
+  animation: hoy-flash 0.5s ease;
+}
+.jg-cliente-face {
+  font-size: 2.6rem;
+  line-height: 1;
+  animation: jg-wobble 1.4s ease-in-out infinite;
+}
+.jg-ing {
+  display: inline-grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+}
+.jg-ing.is-got {
+  border-color: var(--ok);
+  background: rgba(126, 166, 122, 0.25);
+}
+.jg-ing.is-hidden {
+  color: var(--muted);
+}
+.jg-ingredientes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+.jg-ing-btn {
+  display: grid;
+  place-items: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.2rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.62rem;
+  color: var(--muted);
+  touch-action: manipulation;
+}
+.jg-ing-btn span:first-child {
+  font-size: 1.4rem;
+  line-height: 1.1;
+}
+.jg-ing-btn.is-got {
+  border-color: var(--ok);
+  opacity: 0.55;
+}
+.jg-ing-btn:active {
+  transform: scale(0.95);
+}

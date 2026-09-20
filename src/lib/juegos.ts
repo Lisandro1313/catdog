@@ -2,16 +2,20 @@
  * Metas, tipos y reglas puras de los juegos de /hoy/jugar. Sin base de datos: lo importan los componentes cliente.
  */
 
-/** Cuántos juegos hay que lograr para el trago (todos menos uno: la mímica necesita mesa). */
-export const PREMIO_MINIMO = 6;
+/** Cuántos juegos hay que lograr para el trago (todos menos dos: la mímica necesita mesa, y uno de yapa). */
+export const PREMIO_MINIMO = 7;
 
-export const GAMES = ["maridaje", "memoria", "chef", "copa", "simon", "mimica", "trivia"] as const;
+export const GAMES = ["maridaje", "servicio", "gato", "memoria", "chef", "copa", "simon", "mimica", "trivia"] as const;
 export type GameId = (typeof GAMES)[number];
 
 /** Lo que hay que lograr en cada juego para el premio. Difícil a propósito. */
 export const METAS: Record<GameId, number> = {
-  /** Maridaje: porcentaje de aciertos (todos los platos de la noche con su cóctel). */
-  maridaje: 100,
+  /** Maridaje: racha de aciertos seguidos (los platos vuelven con otros señuelos; el reloj se acelera). */
+  maridaje: 8,
+  /** Servicio: pedidos entregados antes de que se vayan tres clientes. */
+  servicio: 10,
+  /** El gato de la casa (snake): ingredientes comidos. */
+  gato: 15,
   /** Memotest de 8 pares en 20 movimientos o menos. */
   memoria: 20,
   /** Atrapá al chef: puntos en 30 segundos. */
@@ -22,12 +26,12 @@ export const METAS: Record<GameId, number> = {
   simon: 8,
   /** Mímica: acertadas en 60 segundos. */
   mimica: 6,
-  /** Trivia: 8 de 8. */
-  trivia: 8,
+  /** Trivia: racha de aciertos seguidos (con reloj). */
+  trivia: 10,
 };
 
 /** En memoria gana el número más bajo; en el resto, el más alto. */
-export const LOWER_IS_BETTER: Record<GameId, boolean> = { maridaje: false, memoria: true, chef: false, copa: false, simon: false, mimica: false, trivia: false };
+export const LOWER_IS_BETTER: Record<GameId, boolean> = { maridaje: false, servicio: false, gato: false, memoria: true, chef: false, copa: false, simon: false, mimica: false, trivia: false };
 
 export type Marcas = Partial<Record<GameId, number>> & { premio?: string | null; name?: string | null };
 export type RecordRow = { name: string; best: number };
@@ -51,7 +55,7 @@ export function mejora(game: GameId, value: number, current: number | undefined 
 /** Valores imposibles se descartan sin guardar (un memotest de 8 pares no baja de 8 movimientos, etc.). */
 export function plausible(game: GameId, value: number): boolean {
   if (!Number.isInteger(value) || value < 0) return false;
-  const max: Record<GameId, number> = { maridaje: 100, memoria: 200, chef: 90, copa: 500, simon: 30, mimica: 40, trivia: 8 };
+  const max: Record<GameId, number> = { maridaje: 80, servicio: 200, gato: 400, memoria: 200, chef: 90, copa: 500, simon: 30, mimica: 40, trivia: 80 };
   if (game === "memoria" && value < 8) return false;
   return value <= max[game];
 }

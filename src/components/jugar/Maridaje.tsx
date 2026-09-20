@@ -1,56 +1,100 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Marcas, Records } from "@/lib/juegos";
-import { Shell, shuffle } from "./Shell";
+import { METAS, type Marcas, type Records } from "@/lib/juegos";
+import { Shell, beep, buzz, shuffle } from "./Shell";
 import { Fin } from "./Fin";
+
+/** Milisegundos ahora (helper: el compilador de React no lo cuenta como impureza del render). */
+function now(): number {
+  return Date.now();
+}
 
 export type Pair = { dish: string; drink: string };
 
 type Round = { dish: string; answer: string; options: string[] };
 
-type Props = { pairs: Pair[]; extraDrinks: string[]; onDone: (pct: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
+type Props = { pairs: Pair[]; extraDrinks: string[]; onDone: (streak: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
-/** Arma las rondas: cada plato de la noche con su cóctel y tres señuelos (otros cócteles de la casa o de la barra). */
-function deal(pairs: Pair[], extra: string[]): Round[] {
+/** Una ronda al azar: un plato de la noche con su cóctel y tres señuelos distintos cada vez. */
+function nextRound(pairs: Pair[], extra: string[], avoid: string | null): Round {
   const pool = Array.from(new Set([...pairs.map((p) => p.drink), ...extra]));
-  return shuffle(pairs).map((p) => {
-    const decoys = shuffle(pool.filter((d) => d !== p.drink)).slice(0, 3);
-    return { dish: p.dish, answer: p.drink, options: shuffle([p.drink, ...decoys]) };
-  });
+  const candidates = pairs.length > 1 ? pairs.filter((p) => p.dish !== avoid) : pairs;
+  const p = candidates[Math.floor(Math.random() * candidates.length)];
+  const decoys = shuffle(pool.filter((d) => d !== p.drink)).slice(0, 3);
+  return { dish: p.dish, answer: p.drink, options: shuffle([p.drink, ...decoys]) };
 }
 
 /**
- * Maridaje: ¿qué cóctel va con este plato? Usa la carta real de la noche (o de la última cena),
- * así el que juega llega a la mesa sabiendo qué va a tomar. Puntaje: porcentaje de aciertos.
+ * Maridaje: ¿qué cóctel va con este plato? Seguís hasta el primer error; el reloj por pregunta se acorta.
+ * El puntaje es la racha: no tiene techo, y sirve de repaso de la carta antes de sentarse.
  */
 export function Maridaje({ pairs, extraDrinks, onDone, onBack, marcas, records, nueva }: Props) {
-  const [rounds, setRounds] = useState<Round[] | null>(null);
-  const [i, setI] = useState(0);
-  const [hits, setHits] = useState(0);
+  const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
+  const [round, setRound] = useState<Round | null>(null);
+  const [streak, setStreak] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
+  const [left, setLeft] = useState(100);
+  const deadline = useRef(0);
   const reported = useRef(false);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    const id = setTimeout(() => setRounds(deal(pairs, extraDrinks)), 0);
-    return () => clearTimeout(id);
-  }, [pairs, extraDrinks]);
+  /** Segundos por pregunta: 9 al principio, hasta 3.5 en la racha 12+. */
+  const secondsFor = (s: number) => Math.max(3.5, 9 - s * 0.45);
 
-  const done = rounds != null && i >= rounds.length;
-  const pct = rounds && rounds.length ? Math.round((hits / rounds.length) * 100) : 0;
-  useEffect(() => {
-    if (done && !reported.current) {
-      reported.current = true;
-      onDone(pct);
-    }
-  }, [done, pct, onDone]);
-
-  function again() {
-    setRounds(deal(pairs, extraDrinks));
-    setI(0);
-    setHits(0);
+  function serve(s: number, avoid: string | null) {
+    const r = nextRound(pairs, extraDrinks, avoid);
+    setRound(r);
     setPicked(null);
+    deadline.current = now() + secondsFor(s) * 1000;
+    setLeft(100);
+  }
+
+  function start() {
     reported.current = false;
+    setStreak(0);
+    setPhase("play");
+    serve(0, null);
+  }
+
+  // El reloj de la pregunta.
+  useEffect(() => {
+    if (phase !== "play" || picked != null) return;
+    const total = secondsFor(streak) * 1000;
+    timer.current = setInterval(() => {
+      const ms = deadline.current - now();
+      setLeft(Math.max(0, (ms / total) * 100));
+      if (ms <= 0) {
+        if (timer.current) clearInterval(timer.current);
+        buzz();
+        setPicked("⏱");
+        setTimeout(() => setPhase("end"), 900);
+      }
+    }, 100);
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+    };
+  }, [phase, picked, streak]);
+
+  useEffect(() => {
+    if (phase === "end" && !reported.current) {
+      reported.current = true;
+      onDone(streak);
+    }
+  }, [phase, streak, onDone]);
+
+  function pick(o: string) {
+    if (!round || picked != null) return;
+    setPicked(o);
+    if (o === round.answer) {
+      beep(660 + streak * 20, 120);
+      const s = streak + 1;
+      setStreak(s);
+      setTimeout(() => serve(s, round.dish), 550);
+    } else {
+      buzz();
+      setTimeout(() => setPhase("end"), 1100);
+    }
   }
 
   if (pairs.length < 2) {
@@ -65,77 +109,78 @@ export function Maridaje({ pairs, extraDrinks, onDone, onBack, marcas, records, 
       </Shell>
     );
   }
-  if (!rounds) return <Shell title="Maridaje" onBack={onBack} />;
 
-  if (done) {
+  if (phase === "end") {
     return (
       <Shell title="Maridaje" onBack={onBack}>
         <Fin
           nueva={nueva}
           game="maridaje"
-          value={pct}
-          label={`${pct}%`}
+          value={streak}
+          label={streak === 1 ? "1 seguido" : `${streak} seguidos`}
           marcas={marcas}
           records={records}
-          again={again}
+          again={start}
           onBack={onBack}
           bien="Ya sabés qué vas a tomar."
-          mal={`${hits} de ${rounds.length}. Para el trago hay que acertar todos: la carta está en la mesa, mirala con cariño.`}
+          mal={`Para el trago: ${METAS.maridaje} seguidos. La carta está en la mesa, mirala con cariño.`}
         />
       </Shell>
     );
   }
 
-  const r = rounds[i];
-  const correct = picked != null && picked === r.answer;
+  if (phase === "idle" || !round) {
+    return (
+      <Shell title="Maridaje" onBack={onBack}>
+        <div className="jg-center">
+          <p className="text-4xl" aria-hidden="true">
+            🍷
+          </p>
+          <p className="mt-4 text-sm leading-relaxed text-muted">
+            Te muestro un plato de la noche y cuatro cócteles: tocá el que va con ese plato. Seguís hasta el primer error, y el reloj se achica. Para la marca:{" "}
+            {METAS.maridaje} seguidos.
+          </p>
+          <button className="btn btn-primary mt-6" type="button" onClick={start}>
+            Empezar
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
+  const timedOut = picked === "⏱";
+  const correct = picked != null && picked === round.answer;
 
   return (
-    <Shell title="Maridaje" onBack={onBack} right={<>{i + 1}/{rounds.length}</>}>
-      <div className="mt-4 flex justify-center gap-1.5" aria-hidden="true">
-        {rounds.map((_, k) => (
-          <span key={k} className={`jg-dotline ${k < i ? "is-on" : ""} ${k === i ? "is-current" : ""}`} />
-        ))}
+    <Shell title="Maridaje" onBack={onBack} right={<>racha {streak}</>}>
+      <div className="jg-timebar mt-4" aria-hidden="true">
+        <span style={{ width: `${left}%` }} className={left < 30 ? "is-low" : ""} />
       </div>
       <div className="jg-mimica-card mt-4">
         <p className="ap-eyebrow">¿Con qué cóctel va?</p>
-        <p className="mt-4 font-display text-2xl leading-snug">{r.dish}</p>
+        <p className="mt-4 font-display text-2xl leading-snug">{round.dish}</p>
         {picked != null && (
           <div className="mt-5 border-t border-accent/20 pt-4">
-            <p className={`ap-eyebrow ${correct ? "text-ok" : "text-danger"}`}>{correct ? "Ese mismo" : "No"}</p>
+            <p className={`ap-eyebrow ${correct ? "text-ok" : "text-danger"}`}>{correct ? "Ese mismo" : timedOut ? "Se pasó el tiempo" : "No"}</p>
             <p className="mt-2 text-sm text-muted">
-              Va con <span className="text-accent">{r.answer}</span>.
+              Va con <span className="text-accent">{round.answer}</span>.
             </p>
           </div>
         )}
       </div>
       <div className="mt-4 grid gap-2">
-        {r.options.map((o) => (
+        {round.options.map((o) => (
           <button
             key={o}
             type="button"
-            className={`hoy-chip is-normal text-left ${picked === o ? (o === r.answer ? "is-on" : "is-wrong") : ""} ${picked != null && o === r.answer ? "is-on" : ""}`}
+            className={`hoy-chip is-normal text-left ${picked === o ? (o === round.answer ? "is-on" : "is-wrong") : ""} ${picked != null && o === round.answer ? "is-on" : ""}`}
             disabled={picked != null}
-            onClick={() => {
-              setPicked(o);
-              if (o === r.answer) setHits((h) => h + 1);
-            }}
+            onClick={() => pick(o)}
           >
             {o}
           </button>
         ))}
       </div>
-      {picked != null && (
-        <button
-          className="btn btn-primary mt-4 w-full"
-          type="button"
-          onClick={() => {
-            setPicked(null);
-            setI((k) => k + 1);
-          }}
-        >
-          {i + 1 < rounds.length ? "Siguiente ›" : "Ver resultado"}
-        </button>
-      )}
     </Shell>
   );
 }

@@ -3,13 +3,15 @@
 import { METAS, type GameId } from "@/lib/juegos";
 
 export const GAME_INFO: Record<GameId, { title: string; blurb: string; meta: string; icon: string; unit: string }> = {
-  maridaje: { title: "Maridaje", blurb: "Cada plato de la noche con su cóctel. ¿Cuál va con cuál?", meta: "Todos bien", icon: "🍷", unit: "%" },
+  maridaje: { title: "Maridaje", blurb: "¿Con qué cóctel va cada plato? Seguís hasta el primer error y el reloj corre.", meta: `Racha de ${METAS.maridaje}`, icon: "🍷", unit: "seguidos" },
+  servicio: { title: "Servicio", blurb: "Llegan clientes, piden, y vos armás el pedido tocando los ingredientes. Rápido.", meta: `${METAS.servicio} pedidos`, icon: "🧑‍🍳", unit: "pedidos" },
+  gato: { title: "El gato de la casa", blurb: "El gato come ingredientes y crece. Ojo con el perro y con tu propia cola.", meta: `${METAS.gato} ingredientes`, icon: "🐈", unit: "ingr." },
   memoria: { title: "Memotest de la casa", blurb: "Ocho pares, fotos nuestras. Dalas vuelta y acordate.", meta: `${METAS.memoria} movimientos o menos`, icon: "🃏", unit: "mov." },
   chef: { title: "Atrapá al chef", blurb: "Se escapó de la cocina y no se queda quieto. Tocalo.", meta: `${METAS.chef} puntos en 30 segundos`, icon: "👨‍🍳", unit: "pts" },
   copa: { title: "Llená la copa", blurb: "Mantené apretado para servir y soltá justo en la línea. Cinco copas.", meta: `${METAS.copa} de 500 puntos`, icon: "🍷", unit: "pts" },
   simon: { title: "Simón de la barra", blurb: "El bartender arma un trago: repetí los ingredientes en orden.", meta: `Llegar a la ronda ${METAS.simon}`, icon: "🧉", unit: "rondas" },
   mimica: { title: "Mímica", blurb: "Para la mesa: uno actúa, los demás adivinan.", meta: `${METAS.mimica} aciertos en un minuto`, icon: "🎭", unit: "aciertos" },
-  trivia: { title: "Verdadero o falso", blurb: "Barra y cocina. Ocho preguntas, sin googlear.", meta: `${METAS.trivia} de ${METAS.trivia}`, icon: "🍸", unit: "de 8" },
+  trivia: { title: "Verdadero o falso", blurb: "Barra y cocina. Seguís hasta el primer error, con reloj.", meta: `Racha de ${METAS.trivia}`, icon: "🍸", unit: "seguidos" },
 };
 
 /** Tabla de récords de un juego, con la fila propia resaltada si aparece. */
@@ -21,8 +23,8 @@ export function Tabla({ rows, unit, mine, myName }: { rows: { name: string; best
         const me = myName && r.name === myName && r.best === mine;
         return (
           <li key={i} className={`flex items-baseline justify-between gap-3 py-1.5 ${me ? "text-accent" : ""}`}>
-            <span>
-              <span className="mr-2 text-xs text-muted">{i + 1}.</span>
+            <span className="truncate">
+              <span className="mr-2 inline-block w-5 text-xs text-muted">{["🥇", "🥈", "🥉"][i] ?? `${i + 1}.`}</span>
               {r.name}
             </span>
             <span className="tabular-nums">

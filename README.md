@@ -226,19 +226,23 @@ está ahí "vago", nadie lo anuncia ni hay momentos en conjunto.
 
 ## Entretenimiento (`/hoy/jugar`)
 
-Siete juegos sueltos para la espera, linkeados desde el mazo de "Puertas adentro": **maridaje** (cada plato de la
-noche con su cóctel, con la carta real), **memotest** con las fotos de la
+Nueve juegos sueltos para la espera, linkeados desde el mazo de "Puertas adentro": **maridaje** (cada plato de la
+noche con su cóctel, con la carta real; racha hasta el primer error, con reloj), **servicio** (llegan clientes y
+armás el pedido tocando ingredientes; niveles con menos paciencia y receta escondida), **el gato de la casa**
+(snake: el gato come ingredientes, el perro es obstáculo; deslizar o flechas), **memotest** con las fotos de la
 casa (8 pares), **atrapá al chef** (la cara de Agustín, `public/chef.png`, se desliza por la cocina cada vez más
 chica y rápida; 30 segundos; tres seguidos dan bonus; si está rojo, resta), **llená la copa** (mantener apretado
 para servir y soltar en la línea; cinco copas), **Simón de la barra** (repetir la secuencia de ingredientes),
 **mímica** para la mesa (consignas de cocina y barra más los platos y tragos de la noche; un minuto) y
-**verdadero o falso** de barra (16 preguntas en `src/lib/jugar.ts`, 8 por ronda).
+**verdadero o falso** de barra (50 preguntas en `src/lib/jugar.ts`; racha hasta el primer error, con reloj).
+Simón suena (Web Audio, una nota por ingrediente) y toma 4 ingredientes al azar de 12 por partida. Ningún puntaje
+tiene techo: los récords no empatan en 100 %.
 
 - Las **marcas** se guardan en el servidor por teléfono (`GameScore`, cookie anónima `catdog_hoy_device`), y el
   jugador puede anotarse con un nombre: sale en la **tabla de récords** (top 5 por juego, dentro de cada juego y en
   "Récords ›" del hub). Los nombres se moderan en **Panel → Premios** ("Borrar nombre": la marca queda anónima).
 - El **premio** (un trago) lo emite el servidor solo la noche de una cena (cena "en vivo"), cuando el teléfono logró
-  esa noche las metas de **6 de los 7** juegos (`METAS` y `PREMIO_MINIMO` en `src/lib/juegos.ts`; la mímica necesita
+  esa noche las metas de **7 de los 9** juegos (`METAS` y `PREMIO_MINIMO` en `src/lib/juegos.ts`; la mímica necesita
   mesa, por eso no es obligatoria): un código por teléfono y por noche (`Prize`), que se canjea desde **Panel →
   Premios** ("Canjear", queda quién lo canjeó). Las marcas son por noche (`GameScore.day`); los récords miran todas.
 - Los valores imposibles se descartan (`plausible`); igual las marcas las manda el teléfono, así que el premio es

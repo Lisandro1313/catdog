@@ -9,6 +9,8 @@ import { withTransition } from "./Shell";
 import { Confetti } from "./Confetti";
 import { Memoria } from "./Memoria";
 import { Maridaje, type Pair } from "./Maridaje";
+import { Servicio } from "./Servicio";
+import { Gato } from "./Gato";
 import { AtrapaChef } from "./AtrapaChef";
 import { Copa } from "./Copa";
 import { Simon } from "./Simon";
@@ -130,6 +132,8 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
 
   const game =
     view === "maridaje" ? <Maridaje pairs={pairs} extraDrinks={drinks} onDone={(v) => reportar("maridaje", v)} {...common} /> :
+    view === "servicio" ? <Servicio onDone={(v) => reportar("servicio", v)} {...common} /> :
+    view === "gato" ? <Gato onDone={(v) => reportar("gato", v)} {...common} /> :
     view === "memoria" ? <Memoria photos={photos} onDone={(v) => reportar("memoria", v)} {...common} /> :
     view === "chef" ? <AtrapaChef onDone={(v) => reportar("chef", v)} {...common} /> :
     view === "copa" ? <Copa onDone={(v) => reportar("copa", v)} {...common} /> :
@@ -209,7 +213,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
       </div>
       <h1 className="ap-display mt-6 text-4xl">Para la espera</h1>
       <p className="mt-3 text-sm leading-relaxed text-muted">
-        Siete juegos, ninguno obligatorio. Si la noche de la cena llegás a la marca en {PREMIO_MINIMO} de los {GAMES.length}, la casa te invita un trago. Es difícil a propósito.
+        Nueve juegos, ninguno obligatorio. Si la noche de la cena llegás a la marca en {PREMIO_MINIMO} de los {GAMES.length}, la casa te invita un trago. Es difícil a propósito.
       </p>
 
       <div className="mt-6 flex items-center justify-between gap-3">

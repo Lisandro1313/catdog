@@ -7,8 +7,10 @@ describe("reglas de los juegos", () => {
     expect(logrado("memoria", METAS.memoria + 1)).toBe(false);
     expect(logrado("chef", METAS.chef)).toBe(true);
     expect(logrado("chef", METAS.chef - 1)).toBe(false);
-    expect(logrado("maridaje", 100)).toBe(true);
-    expect(logrado("maridaje", 80)).toBe(false);
+    expect(logrado("maridaje", METAS.maridaje)).toBe(true);
+    expect(logrado("maridaje", METAS.maridaje - 1)).toBe(false);
+    expect(logrado("gato", METAS.gato)).toBe(true);
+    expect(logrado("servicio", METAS.servicio - 1)).toBe(false);
     expect(logrado("trivia", undefined)).toBe(false);
   });
 
@@ -23,14 +25,15 @@ describe("reglas de los juegos", () => {
   it("descarta valores imposibles", () => {
     expect(plausible("memoria", 7)).toBe(false);
     expect(plausible("memoria", 8)).toBe(true);
-    expect(plausible("trivia", 9)).toBe(false);
-    expect(plausible("maridaje", 101)).toBe(false);
+    expect(plausible("trivia", 81)).toBe(false);
+    expect(plausible("maridaje", 81)).toBe(false);
+    expect(plausible("gato", 401)).toBe(false);
     expect(plausible("chef", -1)).toBe(false);
     expect(plausible("chef", 12.5)).toBe(false);
   });
 
-  it("el premio exige todos los juegos menos uno", () => {
-    expect(PREMIO_MINIMO).toBe(GAMES.length - 1);
+  it("el premio exige todos los juegos menos dos", () => {
+    expect(PREMIO_MINIMO).toBe(GAMES.length - 2);
   });
 
   it("limpia el nombre de los récords", () => {

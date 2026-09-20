@@ -38,7 +38,42 @@ export function withTransition(update: () => void) {
     update();
     return;
   }
-  doc.startViewTransition(() => {
+  if (document.visibilityState !== "visible") {
+    update();
+    return;
+  }
+  const t = doc.startViewTransition(() => {
     flushSync(update);
-  });
+  }) as { finished?: Promise<void>; skipTransition?: () => void } | undefined;
+  // Fusible: si la animación no termina (pestaña de fondo, navegador lento), se saltea y la pantalla queda usable.
+  const timer = setTimeout(() => t?.skipTransition?.(), 500);
+  t?.finished?.then(() => clearTimeout(timer)).catch(() => clearTimeout(timer));
+}
+
+let audio: AudioContext | null = null;
+
+/** Tono corto con Web Audio (sin archivos). Se crea el contexto en el primer toque; si el navegador no deja, silencio. */
+export function beep(freq: number, ms = 160, type: OscillatorType = "sine", volume = 0.18) {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    audio ??= new Ctx();
+    if (audio.state === "suspended") void audio.resume();
+    const o = audio.createOscillator();
+    const g = audio.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.value = volume;
+    g.gain.setValueAtTime(volume, audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + ms / 1000);
+    o.connect(g).connect(audio.destination);
+    o.start();
+    o.stop(audio.currentTime + ms / 1000);
+  } catch {
+    // sin audio
+  }
+}
+
+export function buzz() {
+  beep(110, 320, "sawtooth", 0.12);
 }

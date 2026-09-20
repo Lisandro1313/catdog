@@ -1,30 +1,40 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Marcas, Records } from "@/lib/juegos";
-import { Shell } from "./Shell";
+import { METAS, type Marcas, type Records } from "@/lib/juegos";
+import { Shell, beep, buzz, shuffle } from "./Shell";
 import { Fin } from "./Fin";
 
-const ING = [
-  { id: 0, label: "Gin", emoji: "🍸", color: "#bcd5d0" },
-  { id: 1, label: "Lima", emoji: "🍋", color: "#a8c44e" },
-  { id: 2, label: "Bitter", emoji: "🍷", color: "#b4453a" },
-  { id: 3, label: "Hierbas", emoji: "🌿", color: "#5f8a5c" },
+/** La alacena del bartender: cada partida toma cuatro al azar, cada uno con su nota. */
+const ALACENA = [
+  { label: "Gin", emoji: "🍸", color: "#bcd5d0", note: 392 },
+  { label: "Lima", emoji: "🍋", color: "#a8c44e", note: 440 },
+  { label: "Bitter", emoji: "🍷", color: "#b4453a", note: 494 },
+  { label: "Hierbas", emoji: "🌿", color: "#5f8a5c", note: 523 },
+  { label: "Vermut", emoji: "🥃", color: "#a0522d", note: 587 },
+  { label: "Tónica", emoji: "🫧", color: "#9ccbe0", note: 659 },
+  { label: "Pomelo", emoji: "🍊", color: "#e0742d", note: 698 },
+  { label: "Pepino", emoji: "🥒", color: "#6fa86a", note: 784 },
+  { label: "Frutilla", emoji: "🍓", color: "#c92a3a", note: 880 },
+  { label: "Hielo", emoji: "🧊", color: "#cfe8f5", note: 330 },
+  { label: "Azúcar", emoji: "🍬", color: "#e8d3b0", note: 349 },
+  { label: "Café", emoji: "☕", color: "#6b4a2b", note: 294 },
 ];
 
-/** Un ingrediente al azar (fuera del componente: es un evento, no render). */
-function randomIngredient(): number {
-  return Math.floor(Math.random() * ING.length);
-}
-
+type Ing = (typeof ALACENA)[number];
 type Props = { onDone: (round: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
+function randomIndex(): number {
+  return Math.floor(Math.random() * 4);
+}
+
 /**
- * Simón de la barra: el bartender muestra una secuencia de ingredientes (cada ronda uno más);
- * hay que repetirla tocando en orden. El puntaje es la ronda alcanzada.
+ * Simón de la barra: el bartender arma el trago ingrediente por ingrediente (cada uno con su sonido);
+ * hay que repetirlo en orden. Cada ronda suma uno y va más rápido. Los ingredientes cambian por partida.
  */
 export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "show" | "input" | "end">("idle");
+  const [ings, setIngs] = useState<Ing[]>(ALACENA.slice(0, 4));
   const [seq, setSeq] = useState<number[]>([]);
   const [pos, setPos] = useState(0);
   const [lit, setLit] = useState<number | null>(null);
@@ -39,14 +49,18 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
   }
   useEffect(() => clearTimers, []);
 
-  function show(sequence: number[]) {
+  function show(sequence: number[], set: Ing[]) {
     setPhase("show");
     setLit(null);
     clearTimers();
-    // Cada ronda un poco más rápido, sin bajar de 260 ms por ingrediente.
     const step = Math.max(260, 620 - sequence.length * 35);
     sequence.forEach((id, k) => {
-      timers.current.push(setTimeout(() => setLit(id), step * k + 400));
+      timers.current.push(
+        setTimeout(() => {
+          setLit(id);
+          beep(set[id].note, step * 0.55);
+        }, step * k + 400),
+      );
       timers.current.push(setTimeout(() => setLit(null), step * k + 400 + step * 0.6));
     });
     timers.current.push(
@@ -61,17 +75,21 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
     reported.current = false;
     setWrong(null);
     setRound(0);
-    const first = [randomIngredient()];
+    const set = shuffle(ALACENA).slice(0, 4);
+    setIngs(set);
+    const first = [randomIndex()];
     setSeq(first);
-    show(first);
+    show(first, set);
   }
 
   function press(id: number) {
     if (phase !== "input") return;
     setLit(id);
+    beep(ings[id].note, 140);
     timers.current.push(setTimeout(() => setLit(null), 160));
     if (seq[pos] !== id) {
       setWrong(id);
+      buzz();
       try {
         navigator.vibrate?.([60, 40, 60]);
       } catch {
@@ -83,9 +101,9 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
     if (pos + 1 === seq.length) {
       const r = seq.length;
       setRound(r);
-      const next = [...seq, randomIngredient()];
+      const next = [...seq, randomIndex()];
       setSeq(next);
-      timers.current.push(setTimeout(() => show(next), 650));
+      timers.current.push(setTimeout(() => show(next, ings), 650));
       setPhase("show");
       return;
     }
@@ -102,7 +120,9 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
   if (phase === "end") {
     return (
       <Shell title="Simón de la barra" onBack={onBack}>
-        <Fin nueva={nueva}           game="simon"
+        <Fin
+          nueva={nueva}
+          game="simon"
           value={round}
           label={round === 1 ? "1 ronda" : `${round} rondas`}
           marcas={marcas}
@@ -110,7 +130,7 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
           again={start}
           onBack={onBack}
           bien="Memoria de bartender."
-          mal={wrong != null ? `Iba ${ING[seq[pos]].label}, no ${ING[wrong].label}. Para el trago hay que llegar a la ronda 8.` : undefined}
+          mal={wrong != null ? `Iba ${ings[seq[pos]].label}, no ${ings[wrong].label}. Para el trago hay que llegar a la ronda ${METAS.simon}.` : undefined}
         />
       </Shell>
     );
@@ -124,11 +144,13 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
             🧉
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
-            El bartender arma el trago ingrediente por ingrediente. Miralo y repetilo en el mismo orden. Cada ronda suma uno y va más rápido.
+            El bartender arma el trago ingrediente por ingrediente, cada uno con su sonido. Miralo, escuchalo y repetilo en el mismo orden. Cada ronda suma uno
+            y va más rápido. Los ingredientes cambian cada vez.
           </p>
           <button className="btn btn-primary mt-6" type="button" onClick={start}>
             Mirar al bartender
           </button>
+          <p className="mt-3 text-xs text-muted">Subí el volumen: se juega mejor con sonido.</p>
         </div>
       ) : (
         <>
@@ -145,13 +167,13 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
             )}
           </p>
           <div className="jg-simon mt-4">
-            {ING.map((ing) => (
+            {ings.map((ing, id) => (
               <button
-                key={ing.id}
+                key={ing.label}
                 type="button"
-                className={`jg-simon-btn ${lit === ing.id ? "is-lit" : ""}`}
+                className={`jg-simon-btn ${lit === id ? "is-lit" : ""}`}
                 style={{ "--c": ing.color } as React.CSSProperties}
-                onPointerDown={() => press(ing.id)}
+                onPointerDown={() => press(id)}
                 disabled={phase !== "input"}
                 aria-label={ing.label}
               >
