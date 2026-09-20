@@ -39,8 +39,11 @@ const Simon = dynamic(() => import("./Simon").then((m) => m.Simon), { ssr: false
 const Mimica = dynamic(() => import("./Mimica").then((m) => m.Mimica), { ssr: false, loading: cargando });
 const Trivia = dynamic(() => import("./Trivia").then((m) => m.Trivia), { ssr: false, loading: cargando });
 
-type View = "hub" | GameId | "premio" | "records" | "duelo";
-type Duelo = { game: GameId; names: [string, string]; scores: [number | null, number | null]; wins: [number, number]; turn: 0 | 1; stage: "setup" | "play" | "between" | "done" };
+type View = "hub" | GameId | "premio" | "records" | "duelo" | "torneo";
+type Duelo = { game: GameId; names: [string, string]; scores: [number | null, number | null]; wins: [number, number]; turn: 0 | 1; stage: "setup" | "play" | "between" | "done"; torneo?: Torneo };
+/** Torneo de mesa: cuatro nombres, dos semis y una final. Cada cruce es un duelo a una partida. */
+type Torneo = { players: [string, string, string, string]; match: 0 | 1 | 2; winners: string[] };
+const ROUND = ["Semifinal 1", "Semifinal 2", "Final"];
 
 const NAME_KEY = "catdog:jugar:nombre";
 
@@ -80,6 +83,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
   const [recordGame, setRecordGame] = useState<GameId>(GAMES[0]);
   const [duelo, setDuelo] = useState<Duelo | null>(null);
   const [duelosGanados, setDuelosGanados] = useState(0);
+  const [torneoSetup, setTorneoSetup] = useState<{ game: GameId; names: [string, string, string, string] }>({ game: "chef", names: ["", "", "", ""] });
   const reto = retoDelDia();
   const [nueva, setNueva] = useState(false);
 
@@ -200,7 +204,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
       <>
         {duelo && duelo.stage === "play" && view === duelo.game && (
           <p className="jg-duelo-bar">
-            Duelo · turno de <strong>{duelo.names[duelo.turn]}</strong>
+            {duelo.torneo ? ROUND[duelo.torneo.match] : "Duelo"} · turno de <strong>{duelo.names[duelo.turn]}</strong>
             {duelo.turn === 1 && duelo.scores[0] != null && <> · {duelo.names[0]} hizo {duelo.scores[0]}</>}
           </p>
         )}
@@ -251,13 +255,15 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
     const partidas = duelo.wins[0] + duelo.wins[1];
     // Mejor de 3: el primero que llega a 2 se lleva la serie.
     const serie = duelo.wins[0] >= 2 ? 0 : duelo.wins[1] >= 2 ? 1 : null;
+    const tor = duelo.torneo;
+    const campeon = tor && tor.match === 2 && w != null ? duelo.names[w] : null;
     return (
       <div className="jg-stage">
         <div className="flex items-center justify-between text-xs text-muted">
           <button type="button" className="hover:text-ink" onClick={() => { setDuelo(null); setView("hub"); }}>
             ← Juegos
           </button>
-          <span className="tracking-[0.2em] uppercase">Duelo</span>
+          <span className="tracking-[0.2em] uppercase">{tor ? `Torneo · ${ROUND[tor.match]}` : "Duelo"}</span>
         </div>
         {duelo.stage === "setup" && (
           <div className="jg-center">
@@ -310,10 +316,10 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
         )}
         {duelo.stage === "done" && (
           <div className="jg-center">
-            <Confetti count={serie != null ? 60 : w == null ? 0 : 30} />
+            <Confetti count={campeon ? 90 : serie != null ? 60 : w == null ? 0 : 30} />
             <p className="ap-eyebrow">{info.icon} {info.title}</p>
-            <h2 className="ap-display mt-3 text-4xl">{serie != null ? `${duelo.names[serie]} se lleva la serie` : w == null ? "Empate" : `Ganó ${duelo.names[w]}`}</h2>
-            {partidas > 0 && (
+            <h2 className="ap-display mt-3 text-4xl">{campeon ? `🏆 ${campeon}, campeón de la mesa` : serie != null ? `${duelo.names[serie]} se lleva la serie` : w == null ? "Empate" : `Ganó ${duelo.names[w]}`}</h2>
+            {!tor && partidas > 0 && (
               <p className="mt-2 text-sm text-muted">
                 Serie: {duelo.names[0]} {duelo.wins[0]} · {duelo.names[1]} {duelo.wins[1]}
                 {serie == null && <> · al mejor de 3</>}
@@ -332,6 +338,38 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
                 </li>
               ))}
             </ul>
+            {tor ? (
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                {w == null ? (
+                  <button className="btn btn-primary btn-sm" type="button" onClick={() => { setDuelo({ ...duelo, scores: [null, null], wins: [0, 0], turn: 0, stage: "play" }); setView(duelo.game); }}>
+                    Desempate
+                  </button>
+                ) : campeon ? (
+                  <>
+                    <ShareButton className="btn btn-primary btn-sm" text={`🏆 ${campeon} es el campeón de la mesa en ${info.title}, en los juegos de CatDog. Finalistas: ${duelo.names[0]} y ${duelo.names[1]}.`} />
+                    <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setDuelo(null); setView("torneo"); }}>
+                      Otro torneo
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    type="button"
+                    onClick={() => {
+                      const winners = [...tor.winners, duelo.names[w]];
+                      const next: [string, string] = tor.match === 0 ? [tor.players[2], tor.players[3]] : [winners[0], winners[1]];
+                      setDuelo({ game: duelo.game, names: next, scores: [null, null], wins: [0, 0], turn: 0, stage: "play", torneo: { ...tor, match: (tor.match + 1) as 1 | 2, winners } });
+                      setView(duelo.game);
+                    }}
+                  >
+                    {tor.match === 0 ? `Semifinal 2: ${tor.players[2]} vs ${tor.players[3]}` : `Final: ${tor.winners[0]} vs ${duelo.names[w]}`}
+                  </button>
+                )}
+                <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setDuelo(null); setView("hub"); }}>
+                  Salir
+                </button>
+              </div>
+            ) : (
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <button
                 className="btn btn-primary btn-sm"
@@ -351,8 +389,66 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
                 Salir
               </button>
             </div>
+            )}
           </div>
         )}
+        {modal}
+      </div>
+    );
+  }
+
+  if (view === "torneo") {
+    const ok = torneoSetup.names.every((n) => n.trim());
+    return (
+      <div className="jg-stage">
+        <div className="flex items-center justify-between text-xs text-muted">
+          <button type="button" className="hover:text-ink" onClick={() => setView("hub")}>
+            ← Juegos
+          </button>
+          <span className="tracking-[0.2em] uppercase">Torneo de mesa</span>
+        </div>
+        <div className="jg-center">
+          <p className="text-4xl" aria-hidden="true">
+            🏆
+          </p>
+          <p className="mt-3 text-sm text-muted">Cuatro personas, un celular. Dos semifinales y una final, a una partida cada cruce. Elegí el juego y pongan los nombres.</p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {GAMES.filter((g) => g !== "mimica").map((g) => (
+              <button key={g} type="button" className={`jg-tab ${torneoSetup.game === g ? "is-on" : ""}`} onClick={() => setTorneoSetup({ ...torneoSetup, game: g })}>
+                <span aria-hidden="true">{GAME_INFO[g].icon}</span> {GAME_INFO[g].title}
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {torneoSetup.names.map((n, i) => (
+              <input
+                key={i}
+                className="input"
+                placeholder={`Jugador ${i + 1}`}
+                maxLength={18}
+                value={n}
+                onChange={(e) => {
+                  const names = [...torneoSetup.names] as [string, string, string, string];
+                  names[i] = e.target.value;
+                  setTorneoSetup({ ...torneoSetup, names });
+                }}
+              />
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-muted">Semis: 1 vs 2 y 3 vs 4.</p>
+          <button
+            className="btn btn-primary mt-4"
+            type="button"
+            disabled={!ok}
+            onClick={() => {
+              const players = torneoSetup.names.map((n) => n.trim()) as [string, string, string, string];
+              setDuelo({ game: torneoSetup.game, names: [players[0], players[1]], scores: [null, null], wins: [0, 0], turn: 0, stage: "play", torneo: { players, match: 0, winners: [] } });
+              setView(torneoSetup.game);
+            }}
+          >
+            Arrancar: {torneoSetup.names[0].trim() || "1"} vs {torneoSetup.names[1].trim() || "2"}
+          </button>
+        </div>
         {modal}
       </div>
     );
@@ -499,7 +595,12 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
 
       <button type="button" className="jg-link mt-6 w-full text-left" onClick={() => { setDuelo({ game: "chef", names: ["", ""], scores: [null, null], wins: [0, 0], turn: 0, stage: "setup" }); setView("duelo"); }}>
         <span className="jg-link-title">⚔️ Duelo</span>
-        <span className="jg-link-sub">Dos personas, un celular: juega uno, después el otro, gana el mejor. Sirve para cualquier juego menos la mímica.</span>
+        <span className="jg-link-sub">Dos personas, un celular: juega uno, después el otro, gana el mejor. Al mejor de 3. Sirve para cualquier juego menos la mímica.</span>
+      </button>
+
+      <button type="button" className="jg-link mt-3 w-full text-left" onClick={() => setView("torneo")}>
+        <span className="jg-link-title">🏆 Torneo de mesa</span>
+        <span className="jg-link-sub">Cuatro personas: dos semis y una final, en el juego que elijan. Sale un campeón de la mesa.</span>
       </button>
 
       <a href="https://basas-online.vercel.app/" target="_blank" rel="noopener noreferrer" className="jg-link mt-6">

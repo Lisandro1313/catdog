@@ -2577,3 +2577,8 @@ details.faq > summary::-webkit-details-marker {
   animation: hoy-flash 0.3s ease;
   box-shadow: 0 0 18px rgba(224, 194, 131, 0.9);
 }
+/* Servicio: el capricho del chef */
+.jg-cliente.is-vip {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 1px rgba(224, 194, 131, 0.35), 0 0 22px rgba(224, 194, 131, 0.25);
+}

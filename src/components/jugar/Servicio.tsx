@@ -71,7 +71,7 @@ const CLIENTES: Customer[] = [
 ];
 const LIVES = 3;
 
-type Order = { id: number; c: Customer; recipe: Recipe; got: string[]; deadline: number; total: number; hidden: boolean; shake: number };
+type Order = { id: number; c: Customer; recipe: Recipe; got: string[]; deadline: number; total: number; hidden: boolean; shake: number; vip?: boolean };
 type Props = { onDone: (served: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
 function now(): number {
@@ -83,6 +83,15 @@ function rnd(n: number): number {
 /** Un cliente nuevo con su pedido. La paciencia depende del nivel y del carácter. */
 function newOrder(served: number, avoidName?: string): Order {
   const lvl = Math.floor(served / 3) + 1;
+  // Desde el nivel 2, cada tanto cae el chef con un capricho fuera de carta: vale doble y deja propina grande.
+  if (lvl >= 2 && avoidName !== "Agustín" && Math.random() < 0.14) {
+    const c = CLIENTES.find((x) => x.name === "Agustín")!;
+    const pool = [...ING];
+    const steps: string[] = [];
+    while (steps.length < 5) steps.push(pool.splice(rnd(pool.length), 1)[0].id);
+    const total = Math.max(9000, 19000 - lvl * 1500);
+    return { id: now() + Math.random(), c, recipe: { name: "Capricho del chef", steps }, got: [], deadline: now() + total, total, hidden: false, shake: 0, vip: true };
+  }
   let c = CLIENTES[rnd(CLIENTES.length)];
   if (c.name === avoidName) c = CLIENTES[(CLIENTES.indexOf(c) + 1) % CLIENTES.length];
   const recipe = RECIPES[rnd(RECIPES.length)];
@@ -191,13 +200,18 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
       const got = [...o.got, id];
       beep(500 + got.length * 60, 70);
       if (got.length === o.recipe.steps.length) {
-        servedRef.current += 1;
+        servedRef.current += o.vip ? 2 : 1;
         setServed(servedRef.current);
         const speedy = (o.deadline - now()) / o.total;
-        const tip = speedy > 0.6 ? 500 : speedy > 0.3 ? 200 : 0;
+        const tip = o.vip ? 1000 : speedy > 0.6 ? 500 : speedy > 0.3 ? 200 : 0;
         if (tip) setTips((x) => x + tip);
         beep(900, 160);
-        setFlash(`¡${o.recipe.name} para ${o.c.name}!${tip ? ` +$${tip} de propina` : ""}`);
+        if (o.vip) {
+          setTimeout(() => beep(1200, 120), 150);
+          setTimeout(() => beep(1500, 240), 300);
+          vibrar(30);
+        }
+        setFlash(o.vip ? `¡El chef aprueba! Vale doble, +$${tip}` : `¡${o.recipe.name} para ${o.c.name}!${tip ? ` +$${tip} de propina` : ""}`);
         setTimeout(() => setFlash(null), 800);
         const rest = ordersRef.current.filter((x) => x.id !== o.id);
         setOrdersBoth(rest);
@@ -223,7 +237,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
           again={start}
           onBack={onBack}
           bien={`Te contratamos. Propinas: $${tips}.`}
-          mal={`Para el trago: ${METAS.servicio} pedidos. Propinas: $${tips}. Los apurados se van antes; desde el nivel 3 la receta se esconde.`}
+          mal={`Para el trago: ${METAS.servicio} pedidos. Propinas: $${tips}. Los apurados se van antes; desde el nivel 3 la receta se esconde. Si cae el chef con un capricho, vale doble.`}
         />
       </Shell>
     );
@@ -272,7 +286,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
           const left = Math.max(0, ((o.deadline - now()) / o.total) * 100);
           const on = o.id === active;
           return (
-            <button key={o.id} type="button" onClick={() => setActive(o.id)} className={`jg-cliente ${on ? "is-on" : "is-off"} ${o.shake ? "is-shake" : ""}`} data-shake={o.shake}>
+            <button key={o.id} type="button" onClick={() => setActive(o.id)} className={`jg-cliente ${on ? "is-on" : "is-off"} ${o.shake ? "is-shake" : ""} ${o.vip ? "is-vip" : ""}`} data-shake={o.shake}>
               {o.c.img ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={o.c.img} alt="" className="jg-cliente-img" />
@@ -284,7 +298,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
               <div className="min-w-0 flex-1 text-left">
                 <p className="truncate text-xs text-muted">
                   {o.c.name}
-                  {o.c.temper === "apurado" ? " · apurado" : o.c.temper === "tranquilo" ? " · tranqui" : ""}
+                  {o.vip ? <span className="text-accent"> · fuera de carta, vale doble</span> : o.c.temper === "apurado" ? " · apurado" : o.c.temper === "tranquilo" ? " · tranqui" : ""}
                 </p>
                 <p className="truncate font-display text-lg leading-tight">{o.recipe.name}</p>
                 <p className="mt-1 flex flex-wrap gap-1 text-sm">
