@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { boardAction, guessAction } from "@/app/hoy/actions";
+import { extrasAction, guessAction, liveAction, type ExtrasState, type LiveSnapshot } from "@/app/hoy/actions";
 import type { TableRow } from "@/lib/hoy";
+import { Barra, Huella, Recomendar, Telon, Votacion } from "./Extras";
+import { TarjetaButton } from "./Tarjeta";
 import { ShareButton } from "@/components/ShareButton";
 import { withTransition } from "@/components/jugar/Shell";
 import { formatPrice } from "@/lib/config";
@@ -36,7 +38,11 @@ type Props = {
   /** La próxima cena publicada (para el cierre), si hay. */
   nextDate?: { id: string; label: string } | null;
   siteUrl: string;
+  /** Opciones para votar plato y trago de la noche (salen de la carta). */
+  votos: { plato: string[]; trago: string[] };
 };
+
+const LIVE_EVERY = 15000;
 
 type View = { kind: "intro" } | { kind: "act"; index: number } | { kind: "mazo" } | { kind: "fin" };
 type Stage = "front" | "back" | "sealing" | "revealed";
@@ -50,7 +56,7 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPrice, table, demo, exampleSecrets, nextDate, siteUrl }: Props) {
+export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPrice, table, demo, exampleSecrets, nextDate, siteUrl, votos }: Props) {
   // Separada por modo: lo que se jugó "de ejemplo" antes de la cena no puede aparecer como jugado esa noche.
   const storeKey = `catdog:hoy:${eventId}:${demo ? "demo" : "live"}`;
   const [progress, setProgress] = useState<Progress>({ revealed: {}, opened: false });
@@ -80,15 +86,67 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
     return () => removeEventListener("popstate", onPop);
   }, []);
 
-  // En la noche real, el tablero de mesitas se actualiza al volver al mazo.
+  // En la noche real, el teléfono consulta cada tanto qué acto salió, el tablero y sus pedidos.
+  const [live, setLive] = useState<LiveSnapshot | null>(null);
+  const [extras, setExtras] = useState<ExtrasState>({ votes: {}, huellas: [] });
+  const [telon, setTelon] = useState<number | null>(null);
+  const liveTick = useRef(0);
+  const viewRef = useRef<View["kind"]>("intro");
   useEffect(() => {
-    if (view.kind !== "mazo" || demo) return;
-    let alive = true;
-    boardAction(eventId).then((b) => alive && setBoard(b)).catch(() => {});
+    viewRef.current = view.kind;
+  }, [view.kind]);
+  /** Telón: cuando la cocina marca que salió un acto nuevo, se anuncia una sola vez por teléfono (no en la intro). */
+  const maybeTelon = (step: number | null) => {
+    if (step == null || viewRef.current === "intro" || !acts[step]) return;
+    const key = `${storeKey}:served`;
+    let seen = -1;
+    try {
+      seen = Number(localStorage.getItem(key) ?? -1);
+    } catch {
+      // sin memoria
+    }
+    if (step <= seen) return;
+    try {
+      localStorage.setItem(key, String(step));
+    } catch {
+      // sin memoria
+    }
+    setTelon(step);
+  };
+  const refreshLive = () => {
+    if (demo) return;
+    liveAction(eventId)
+      .then((snap) => {
+        if (!snap) return;
+        setLive(snap);
+        setBoard(snap.board);
+        maybeTelon(snap.servedStep);
+      })
+      .catch(() => {});
+  };
+  const refreshExtras = () => {
+    if (demo) return;
+    extrasAction(eventId).then(setExtras).catch(() => {});
+  };
+  useEffect(() => {
+    if (demo) return;
+    refreshLive();
+    refreshExtras();
+    const id = setInterval(() => {
+      if (document.hidden) return;
+      liveTick.current += 1;
+      refreshLive();
+    }, LIVE_EVERY);
+    const onVis = () => !document.hidden && refreshLive();
+    document.addEventListener("visibilitychange", onVis);
     return () => {
-      alive = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
     };
-  }, [view.kind, demo, eventId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, eventId]);
+
+
   const [stage, setStage] = useState<Stage>("front");
   const [choice, setChoice] = useState<string | null>(null);
   const [stake, setStake] = useState<1 | 3>(1);
@@ -157,6 +215,8 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
     void wakeLock();
     save({ ...progress, opened: true });
     openAct(0);
+    // Si ya salió algún acto, que lo sepa al entrar (el telón no se muestra sobre la intro).
+    setTimeout(refreshLive, 1200);
   }
 
   async function seal(act: PublicAct) {
@@ -218,9 +278,26 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
     );
   }
 
+  const telonNode =
+    telon != null && acts[telon] ? (
+      <Telon
+        roman={acts[telon].roman}
+        label={acts[telon].label}
+        dish={acts[telon].dish}
+        drink={acts[telon].drink}
+        onOpen={() => {
+          const i = telon;
+          setTelon(null);
+          openAct(i);
+        }}
+        onClose={() => setTelon(null)}
+      />
+    ) : null;
+
   if (view.kind === "fin") {
     return (
       <Stage>
+        {telonNode}
         <div className="hoy-fin">
           <p className="ap-ornament">✦</p>
           <p className="ap-eyebrow mt-3">Fin de la función</p>
@@ -253,6 +330,13 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
               className="btn btn-primary btn-sm"
               text={`Le pegué a ${score.hits} de ${playable.length} ingredientes escondidos en “Puertas adentro” de ${title} · ${score.stars} ✦. Una cena a puertas cerradas en La Plata: ${siteUrl}`}
             />
+            <TarjetaButton
+              title={title}
+              dateLabel={dateLabel}
+              lines={acts.slice(1).flatMap((a) => (a.drink ? [a.dish, `con ${a.drink}`] : [a.dish]))}
+              score={playable.length ? { hits: score.hits, total: playable.length, stars: score.stars } : null}
+              siteHost={siteUrl.replace(/^https?:\/\//, "")}
+            />
             <button className="btn btn-ghost btn-sm" type="button" onClick={() => setView({ kind: "mazo" })}>
               Volver al mazo
             </button>
@@ -272,8 +356,10 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
   }
 
   if (view.kind === "mazo") {
+    const served = live?.servedStep ?? null;
     return (
       <Stage>
+        {telonNode}
         <div className="hoy-mazo">
           <p className="ap-eyebrow text-center">✦ {title} ✦</p>
           <p className="mt-1 text-center text-xs tracking-[0.2em] uppercase text-muted">{dateLabel}</p>
@@ -287,9 +373,12 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
                   <button
                     type="button"
                     onClick={() => openAct(a.index)}
-                    className={`hoy-deckcard ${r ? "is-open" : isNext ? "is-next" : ""}`}
+                    className={`hoy-deckcard ${r ? "is-open" : isNext ? "is-next" : ""} ${served === a.index ? "is-served" : ""}`}
                   >
-                    <span className="hoy-deckcard-roman">{a.roman}</span>
+                    <span className="hoy-deckcard-roman">
+                      {a.roman}
+                      {served === a.index && <span className="hoy-deckcard-now">en la mesa</span>}
+                    </span>
                     <span className="hoy-deckcard-dish">{a.dish}</span>
                     {a.drink && <span className="hoy-deckcard-drink">con {a.drink}</span>}
                     <span className="hoy-deckcard-foot">
@@ -332,19 +421,18 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
             </section>
           )}
           {bar.length > 0 && (
-            <section className="mt-10 border-t border-line pt-6">
-              <p className="ap-eyebrow">Si querés algo más</p>
-              <p className="mt-1 text-xs text-muted">La barra de hoy{barPrice ? ` · ${formatPrice(barPrice)} cada uno` : ""}. Pedilo por su nombre.</p>
-              <ul className="mt-4 space-y-3">
-                {bar.map((b) => (
-                  <li key={b.name}>
-                    <p className="font-display text-lg leading-tight">{b.name}</p>
-                    {b.description && <p className="text-xs leading-relaxed text-muted">{b.description}</p>}
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <Barra
+              eventId={eventId}
+              table={demo ? null : table}
+              bar={bar}
+              barPrice={barPrice ? formatPrice(barPrice) : null}
+              pedidos={live?.pedidos ?? []}
+              onChange={refreshLive}
+            />
           )}
+          {!demo && <Votacion eventId={eventId} options={votos} initial={extras.votes} />}
+          {!demo && <Huella eventId={eventId} table={table} initial={extras.huellas} onSaved={refreshExtras} />}
+          <Recomendar eventId={eventId} />
           <Link href="/hoy/jugar" className="jg-link mt-8">
             <span className="jg-link-title">Para la espera: once juegos</span>
             <span className="jg-link-sub">Maridaje, servicio, el gato, ritmo, memotest, atrapá al chef, los de la casa, llená la copa, Simón, mímica y trivia. Si lográs nueve, hay un trago.</span>
@@ -362,6 +450,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
 
   return (
     <Stage>
+      {telonNode}
       <div className="hoy-actview">
         <div className="flex items-center justify-between text-xs text-muted">
           <button type="button" className="hover:text-ink disabled:opacity-40" disabled={stage === "sealing"} onClick={() => setView({ kind: "mazo" })}>

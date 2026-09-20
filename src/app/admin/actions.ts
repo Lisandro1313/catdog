@@ -29,6 +29,7 @@ import { notifyWaitlist } from "@/lib/waitlist";
 import { allowRequest } from "@/lib/rate-limit";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
+import { approveHuella, markSugerenciasSeen, removeHuella, removeSugerencia, setPedidoStatus, setServedStep } from "@/lib/vivo";
 
 export type ActionState = { ok: boolean; message?: string } | null;
 
@@ -143,6 +144,7 @@ const eventSchema = z.object({
   bar: z.string().trim().max(4000).optional(),
   barPrice: z.coerce.number().int().min(0).optional(),
   address: z.string().trim().max(200).optional(),
+  recipeGift: z.string().trim().max(6000).optional(),
   published: z.boolean(),
   unlisted: z.boolean(),
 });
@@ -158,6 +160,7 @@ function readEventForm(formData: FormData) {
     bar: formData.get("bar") || undefined,
     barPrice: formData.get("barPrice") || undefined,
     address: formData.get("address") || undefined,
+    recipeGift: formData.get("recipeGift") || undefined,
     published: formData.get("published") === "on",
     unlisted: formData.get("unlisted") === "on",
   });
@@ -217,6 +220,7 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
       bar: d.bar ?? null,
       barPrice: d.barPrice ?? null,
       address: d.address ?? null,
+      recipeGift: d.recipeGift ?? null,
       published: d.published,
       unlisted: d.unlisted,
     },
@@ -960,4 +964,54 @@ export async function closeBarAction(input: unknown): Promise<{ ok: true; messag
   revalidatePath(`/admin/eventos/${eventId}`);
   revalidatePath("/admin/gastos");
   return { ok: true, message: `Cargado en la caja: ${formatPrice(total)}.` };
+}
+
+// ---------- la noche en vivo: carta, pedidos, huellas, recomendaciones ----------
+
+/** La cocina marca qué acto acaba de salir a la mesa (o vuelve a "todavía nada"). */
+export async function serveStepAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const raw = String(formData.get("step") ?? "");
+  const step = raw === "" ? null : Number(raw);
+  if (step != null && (!Number.isInteger(step) || step < 0 || step > 20)) return;
+  await setServedStep(id, step);
+  revalidatePath(`/admin/eventos/${id}/vivo`);
+}
+
+export async function pedidoStatusAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const eventId = String(formData.get("eventId") ?? "");
+  const status = String(formData.get("status") ?? "");
+  if (status !== "pendiente" && status !== "listo" && status !== "cancelado") return;
+  await setPedidoStatus(id, status);
+  revalidatePath(`/admin/eventos/${eventId}/vivo`);
+}
+
+/** Aprobar saca la huella al home; ocultar la deja guardada sin mostrar; borrar la elimina con su foto. */
+export async function huellaModerateAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const eventId = String(formData.get("eventId") ?? "");
+  const what = String(formData.get("what") ?? "");
+  if (what === "aprobar") await approveHuella(id, true);
+  else if (what === "ocultar") await approveHuella(id, false);
+  else if (what === "borrar") await removeHuella(id);
+  else return;
+  revalidatePath("/");
+  revalidatePath(`/admin/eventos/${eventId}/vivo`);
+  revalidatePath("/admin/huellas");
+}
+
+export async function sugerenciaAdminAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const what = String(formData.get("what") ?? "");
+  if (what === "vista") await markSugerenciasSeen([id]);
+  else if (what === "borrar") await removeSugerencia(id);
+  else return;
+  revalidatePath("/admin/huellas");
+  const eventId = String(formData.get("eventId") ?? "");
+  if (eventId) revalidatePath(`/admin/eventos/${eventId}/vivo`);
 }

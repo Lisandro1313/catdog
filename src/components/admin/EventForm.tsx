@@ -13,6 +13,7 @@ type EventValues = {
   menu: string;
   bar: string;
   barPrice: number | "";
+  recipeGift?: string;
   address: string;
   published: boolean;
   unlisted?: boolean;
@@ -77,6 +78,16 @@ export function EventForm({ action, initial, submitLabel }: Props) {
           <input className="input" type="number" name="barPrice" min={0} step={500} defaultValue={initial.barPrice} placeholder="5000" />
         </label>
       </div>
+      <label className="grid gap-1 text-sm">
+        <span className="text-muted">Receta de regalo (opcional). Al día siguiente de la cena se la mandamos por mail a los que vinieron.</span>
+        <textarea
+          className="input"
+          name="recipeGift"
+          rows={6}
+          defaultValue={initial.recipeGift ?? ""}
+          placeholder={"Manteca de tomate quemado\n\nPara 4: 2 tomates perita, 100 g de manteca pomada, sal gruesa…\n1. Quemá los tomates directo sobre la hornalla…"}
+        />
+      </label>
       <label className="grid gap-1 text-sm">
         <span className="text-muted">Dirección (solo la ve quien ya pagó)</span>
         <input className="input" name="address" defaultValue={initial.address} placeholder="Calle 66 entre 5 y 6, La Plata" />

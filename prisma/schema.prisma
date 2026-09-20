@@ -39,6 +39,13 @@ model Event {
   /// Cóctel de recepción (sin alcohol): "nombre | una frase". Es el Acto I del juego de las mesitas.
   welcomeDrink String?
 
+  /// Carta en vivo: índice del último acto que salió a la mesa (null = todavía nada). Lo marca la cocina desde el panel.
+  servedStep Int?
+  servedAt   DateTime?
+  /// Receta de regalo (texto libre): se manda por mail al día siguiente a los que vinieron.
+  recipeGift   String?
+  recipeSentAt DateTime?
+
   reservations Reservation[]
   seats        Seat[]
   ledger       LedgerEntry[]
@@ -47,6 +54,10 @@ model Event {
   guesses      Guess[]
   waitlist Waitlist[]
   barSales BarSale[]
+  huellas  Huella[]
+  votos    Voto[]
+  pedidos  Pedido[]
+  sugerencias Sugerencia[]
 }
 
 /// "Lo que no dice la carta": un secreto por acto del juego de las mesitas. index 0 = recepción, 1..n = pasos del menú.
@@ -322,4 +333,65 @@ model BarSale {
   settledAt DateTime?
 
   @@unique([eventId, table, item])
+}
+
+/// Huella de un invitado esa noche: nombre, una frase y/o una foto. Sale en el home cuando se aprueba desde el panel.
+model Huella {
+  id         String    @id @default(cuid())
+  eventId    String
+  event      Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  deviceKey  String
+  table      Int?
+  name       String
+  text       String?
+  /// URL del blob privado; se sirve por /huella/[id] solo si está aprobada.
+  photoUrl   String?
+  approvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([eventId])
+}
+
+/// Voto de "plato y trago de la noche": uno por teléfono y por tipo.
+model Voto {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  deviceKey String
+  /// "plato" | "trago"
+  kind      String
+  choice    String
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, deviceKey, kind])
+}
+
+/// Pedido a la barra desde la mesita (el cobro sigue siendo con BarSale, a mano).
+model Pedido {
+  id        String    @id @default(cuid())
+  eventId   String
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  deviceKey String
+  table     Int
+  item      String
+  qty       Int       @default(1)
+  /// "pendiente" | "listo" | "cancelado"
+  status    String    @default("pendiente")
+  createdAt DateTime  @default(now())
+  doneAt    DateTime?
+
+  @@index([eventId, status])
+}
+
+/// Lo que recomiendan los invitados: un tema para la música o una idea para la casa.
+model Sugerencia {
+  id        String    @id @default(cuid())
+  eventId   String?
+  event     Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  deviceKey String
+  /// "tema" | "idea"
+  kind      String
+  text      String
+  createdAt DateTime  @default(now())
+  seenAt    DateTime?
 }

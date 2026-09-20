@@ -7,6 +7,7 @@ import { getUpcomingEvents } from "@/lib/reservations";
 import { isAdmin } from "@/lib/admin-auth";
 import { buildActs, gameReady, getDemoEvent, getTonightEvent, isHoyOff, publicActs } from "@/lib/hoy";
 import { HoyClient } from "@/components/hoy/HoyClient";
+import { voteOptions } from "@/lib/vivo";
 import { TrackVisit } from "@/components/TrackVisit";
 
 export const dynamic = "force-dynamic";
@@ -129,6 +130,7 @@ export default async function HoyPage({ params, searchParams }: Props) {
         exampleSecrets={exampleSecrets || (!live && event.steps.length === 0)}
         nextDate={nextDate ? { id: nextDate.id, label: `${formatWeekday(nextDate.date)} ${formatDayNumber(nextDate.date)}` } : null}
         siteUrl={siteUrl()}
+        votos={voteOptions(event.menu, event.welcomeDrink)}
       />
     </>
   );

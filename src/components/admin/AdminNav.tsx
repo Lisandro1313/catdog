@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/admin", label: "Cenas", icon: "🍽️" },
   { href: "/admin/contactos", label: "Contactos", icon: "👥" },
   { href: "/admin/premios", label: "Premios", icon: "🏆" },
+  { href: "/admin/huellas", label: "Huellas", icon: "✍️" },
   { href: "/admin/ajustes", label: "Ajustes", icon: "⚙️" },
 ];
 
@@ -38,7 +39,7 @@ export function AdminNav({ variant }: { variant: "top" | "bottom" }) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur sm:hidden" aria-label="Secciones del panel">
-      <ul className="grid grid-cols-5" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <ul className="grid grid-cols-6" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {ITEMS.map((it) => {
           const on = isActive(pathname, it.href);
           return (

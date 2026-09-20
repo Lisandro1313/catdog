@@ -185,6 +185,9 @@ export default async function AdminEventPage({
             <Link href={`/admin/eventos/${event.id}/noche`} className="btn btn-ghost btn-sm">
               La puerta
             </Link>
+            <Link href={`/admin/eventos/${event.id}/vivo`} className="btn btn-ghost btn-sm">
+              En vivo
+            </Link>
             <Link href={`/admin/eventos/${event.id}/barra`} className="btn btn-ghost btn-sm">
               La barra
             </Link>
@@ -467,6 +470,7 @@ export default async function AdminEventPage({
               bar: event.bar ?? "",
               barPrice: event.barPrice ?? "",
               address: event.address ?? "",
+              recipeGift: event.recipeGift ?? "",
               published: event.published,
               unlisted: event.unlisted,
             }}

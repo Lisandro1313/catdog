@@ -2582,3 +2582,58 @@ details.faq > summary::-webkit-details-marker {
   border-color: var(--accent-strong);
   box-shadow: 0 0 0 1px rgba(224, 194, 131, 0.35), 0 0 22px rgba(224, 194, 131, 0.25);
 }
+
+/* Carta en vivo: telón y "en la mesa" */
+.hoy-telon {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(14, 11, 9, 0.985);
+  animation: hoy-fade 0.4s ease;
+}
+.hoy-telon .hoy-curtains {
+  position: absolute;
+  inset: 0;
+}
+.hoy-telon-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  animation: hoy-rise 0.9s ease 0.5s both;
+}
+/* Fichas de votación y de recomendar: con el nombre tal cual está en la carta */
+.hoy-chip.hoy-chip-plain {
+  text-transform: none;
+}
+.hoy-deckcard.is-served {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 1px rgba(224, 194, 131, 0.3), 0 0 26px rgba(224, 194, 131, 0.22);
+}
+.hoy-deckcard-now {
+  margin-left: 0.5rem;
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  border: 1px solid rgba(224, 194, 131, 0.6);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  animation: hoy-pulse 1.6s ease-in-out infinite;
+}
+@keyframes hoy-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes hoy-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hoy-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}

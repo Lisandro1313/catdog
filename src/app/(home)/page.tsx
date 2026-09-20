@@ -23,6 +23,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { contactEmail, siteUrl } from "@/lib/config";
 import { foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
+import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
 
 /**
@@ -56,7 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [upcoming, about, photos, eventCount, reviews, rating, instagram, payment, video] = await Promise.all([
+  const [upcoming, about, photos, eventCount, reviews, rating, instagram, payment, video, huellas, winners] = await Promise.all([
     getUpcomingEvents(),
     getAbout(),
     getPhotos(),
@@ -66,6 +67,8 @@ export default async function HomePage() {
     getInstagram(),
     getPaymentConfig(),
     getVideo(),
+    getApprovedHuellas(9),
+    getLastWinners(),
   ]);
   const byTransfer = payment.mode === "transferencia";
   // El afiche muestra la fecha más cercana; si se llenó, la reserva pasa a la siguiente con lugar.
@@ -322,6 +325,41 @@ export default async function HomePage() {
                 <div className="mx-auto mt-8 max-w-2xl px-6">
                   <VideoEmbed url={video} />
                 </div>
+              )}
+            </section>
+          )}
+
+          {/* El libro de visitas */}
+          {(huellas.length > 0 || winners) && (
+            <section id="huellas" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
+              <div className="text-center">
+                <p className="ap-ornament mb-3">✦</p>
+                <p className="ap-eyebrow">Los que pasaron por acá</p>
+                {winners && (
+                  <p className="mt-3 text-sm text-muted">
+                    Lo más votado en {winners.eventTitle}:{winners.plato && <> <span className="text-ink">{winners.plato}</span></>}
+                    {winners.plato && winners.trago && " y"}
+                    {winners.trago && <> <span className="text-ink">{winners.trago}</span></>}.
+                  </p>
+                )}
+              </div>
+              {huellas.length > 0 && (
+                <ul className="mt-8 grid gap-4 sm:grid-cols-3">
+                  {huellas.map((h) => (
+                    <li key={h.id} className="card overflow-hidden">
+                      {h.photo && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={h.photo} alt="" loading="lazy" className="aspect-square w-full object-cover" />
+                      )}
+                      <div className="p-4">
+                        {h.text && <p className="font-display text-lg leading-snug">“{h.text}”</p>}
+                        <p className={`text-xs text-muted ${h.text ? "mt-2" : ""}`}>
+                          {h.name} · {h.eventTitle}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
           )}

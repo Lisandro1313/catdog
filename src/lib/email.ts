@@ -421,6 +421,31 @@ export async function sendGiftCard(input: GiftInput & { to: string }) {
 }
 
 /** Al admin, unos días antes: lo que le falta a la próxima cena (carta, dirección, secretos del juego, aviso). */
+/** La receta de regalo, al día siguiente: texto libre (con saltos de línea) tal como lo cargaron en la cena. */
+export function renderRecipeGift(event: EventLike, name: string, recipe: string): RenderedMail {
+  const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const paras = recipe
+    .split(/\n{2,}/)
+    .map((p) => `<p style="white-space:pre-line">${esc(p.trim())}</p>`)
+    .join("");
+  return withText({
+    subject: `La receta, de regalo · ${event.title}`,
+    html: layout(
+      "Para que la hagas en casa",
+      `<p>Hola ${esc(name.split(" ")[0])}. Gracias por venir el ${formatLong(event.date).toLowerCase()}. Te dejamos una de las recetas de esa noche, tal cual la hacemos nosotros.</p>
+       ${paras}
+       <p style="margin-top:24px">Si la hacés, contanos cómo salió. Y si querés volver, la próxima fecha está en <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl().replace(/^https?:\/\//, "")}</a>.</p>`,
+      "Recibís este mail porque viniste a una de nuestras cenas.",
+    ),
+  });
+}
+
+export async function sendRecipeGifts(input: { event: EventLike; recipe: string; people: { name: string; email: string }[] }): Promise<{ sent: number; failed: number }> {
+  const people = input.people.filter((p) => !p.email.endsWith("@local"));
+  if (!isEmailConfigured() || people.length === 0) return { sent: 0, failed: 0 };
+  return sendMany(people.map((p) => ({ to: p.email, ...renderRecipeGift(input.event, p.name, input.recipe) })));
+}
+
 export async function sendAdminMissing(input: { event: EventLike & { id: string }; missing: string[] }) {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!isEmailConfigured() || !adminEmail || input.missing.length === 0) return;

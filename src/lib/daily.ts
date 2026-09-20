@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { sendAdminMissing, sendReminder, sendReviewRequests } from "./email";
+import { sendAdminMissing, sendRecipeGifts, sendReminder, sendReviewRequests } from "./email";
 import { parseMenu } from "./menu";
 import { buildActs, gameReady } from "./hoy";
 import { notifyWaitlist } from "./waitlist";
@@ -17,7 +17,7 @@ const H = 60 * 60 * 1000;
  * - un borrador de la cena de la semana siguiente si la última ya pasó y no hay ninguna cargada.
  */
 export async function runDailyTasks(now = new Date()) {
-  const out = { reminders: 0, remindersFailed: 0, reviewRequests: 0, fixed: 0, waitlistNotified: 0, missingNotices: 0, draft: null as string | null };
+  const out = { reminders: 0, remindersFailed: 0, reviewRequests: 0, recipes: 0, fixed: 0, waitlistNotified: 0, missingNotices: 0, draft: null as string | null };
 
   out.fixed = await ensureFixedEntries();
   out.draft = await ensureNextDraft(now);
@@ -59,6 +59,23 @@ export async function runDailyTasks(now = new Date()) {
   const next = past.length
     ? await prisma.event.findFirst({ where: { published: true, unlisted: false, date: { gt: now } }, orderBy: { date: "asc" }, select: { id: true, title: true, date: true } })
     : null;
+  // Receta de regalo: cenas que ya pasaron (12 h o más), con receta cargada y todavía sin mandar.
+  const withRecipe = await prisma.event.findMany({
+    where: { recipeSentAt: null, recipeGift: { not: null }, date: { lt: new Date(now.getTime() - 12 * H), gt: new Date(now.getTime() - 7 * 24 * H) } },
+    include: { reservations: { where: { status: "PAID" }, select: { name: true, email: true } } },
+  });
+  for (const e of withRecipe) {
+    const recipe = e.recipeGift?.trim();
+    if (!recipe) continue;
+    const seen = new Set<string>();
+    const people = e.reservations.filter((r) => !r.email.endsWith("@local") && !seen.has(r.email.toLowerCase()) && seen.add(r.email.toLowerCase()));
+    const { sent, failed } = await sendRecipeGifts({ event: e, recipe, people });
+    if (people.length === 0 || sent > 0 || failed === 0) {
+      await prisma.event.update({ where: { id: e.id }, data: { recipeSentAt: now } });
+    }
+    out.recipes += sent;
+  }
+
   for (const e of past) {
     const people = e.reservations.filter((r) => !r.email.endsWith("@local"));
     const { sent, failed } = await sendReviewRequests({
