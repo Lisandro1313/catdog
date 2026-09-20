@@ -2,6 +2,9 @@
  * Metas, tipos y reglas puras de los juegos de /hoy/jugar. Sin base de datos: lo importan los componentes cliente.
  */
 
+/** Cuántos juegos hay que lograr para el trago (todos menos uno: la mímica necesita mesa). */
+export const PREMIO_MINIMO = 5;
+
 export const GAMES = ["memoria", "chef", "copa", "simon", "mimica", "trivia"] as const;
 export type GameId = (typeof GAMES)[number];
 
@@ -12,7 +15,7 @@ export const METAS: Record<GameId, number> = {
   /** Atrapá al chef: puntos en 30 segundos. */
   chef: 30,
   /** Llená la copa: puntos sobre 500 (cinco copas). */
-  copa: 420,
+  copa: 360,
   /** Simón de la barra: ronda alcanzada. */
   simon: 8,
   /** Mímica: acertadas en 60 segundos. */

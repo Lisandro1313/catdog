@@ -61,6 +61,13 @@ Ninguna de las dos muestra cuántos lugares quedan ni la capacidad de la mesa: d
 5. Si no paga en 30 minutos, el cupo vuelve a estar libre solo. Si la misma persona (mismo mail) vuelve a intentar mientras su reserva sigue en proceso, se la lleva al mismo pago en vez de bloquear más lugares; y una misma conexión no puede tener más de dos reservas sin pagar a la vez en una cena (para que nadie bloquee la mesa).
    En esa misma página, quien no puede ir puede **pasarle su lugar a otra persona** (nombre, mail, WhatsApp): las sillas y el pago quedan, la reserva pasa a su nombre, le llega la confirmación con la dirección y a ustedes un aviso. Hasta el inicio de la cena; no si ya se marcó "Llegó".
 6. La dirección exacta solo la ve quien ya pagó (en la página de su reserva y en el mail). Esa página tiene además "qué pasa ahora", botones para agregar la cena a Google Calendar o bajar el `.ics` (`/reserva/[id]/calendario`, solo si está paga) y uno para avisar por WhatsApp a los que vienen. El mail de confirmación es una ficha: cena, cuándo, dónde (con número), lugares y monto, silla o link para elegirla, hora de llegada, pasos de la noche y los WhatsApp de consulta.
+- Con transferencia, al reservar le llega el mail **"Tu lugar está guardado"** (alias, monto, hasta cuándo, botón de
+  WhatsApp) además de verlo en la página; el panel muestra la reserva en **"Por confirmar"** en el inicio y en la cena,
+  con "Marcar pagado" (pide confirmación y no deja sobrevender si el lugar venció y otro lo tomó).
+- Si una fecha se agota, el home ofrece **lista de espera** (`Waitlist`, por fecha): cuando se libera un lugar
+  (cancelación, borrado o hold vencido que limpia el cron) les llega "Se liberó un lugar" con link directo; es por orden
+  de llegada. Quien paga queda anotado para enterarse de las próximas fechas.
+
 
 ## Panel `/admin`
 
@@ -210,6 +217,8 @@ está ahí "vago", nadie lo anuncia ni hay momentos en conjunto.
 - `/hoy/demo` sirve para probarlo cualquier día con la próxima cena. Fuera de la noche real un invitado nunca ve
   secretos de verdad de una cena futura (solo el admin, con `?e=<id>` y sesión).
 - La cena está "en vivo" desde 3 horas antes de su hora hasta 10 después; antes de eso el QR juega con ejemplos.
+- La apuesta tiene riesgo: acertar suma lo apostado (1 o 3 ✦); errar con 3 ✦ resta 1. En la noche real, el mazo muestra
+  "La sala": puntos por mesita (nunca cantidades de gente), para que las mesas compitan sin coordinar nada.
 - Las apuestas (`Guess`) se guardan solo la noche de la cena, por teléfono (cookie anónima `catdog_hoy_device`), y
   sirven para el "el 40 % de la casa acertó" (solo porcentajes y con 3 apuestas o más; nunca cantidades).
 - **Ajustes → El juego de las mesitas** lo apaga por hoy (`hoy:off`): el QR muestra solo la carta y la barra.
@@ -227,9 +236,10 @@ para servir y soltar en la línea; cinco copas), **Simón de la barra** (repetir
 - Las **marcas** se guardan en el servidor por teléfono (`GameScore`, cookie anónima `catdog_hoy_device`), y el
   jugador puede anotarse con un nombre: sale en la **tabla de récords** (top 5 por juego, dentro de cada juego y en
   "Récords ›" del hub). Los nombres se moderan en **Panel → Premios** ("Borrar nombre": la marca queda anónima).
-- El **premio** (un trago) lo emite el servidor cuando el teléfono logró las metas de los seis juegos (`METAS` en
-  `src/lib/juegos.ts`): un código por teléfono y por noche (`Prize`), que se canjea desde **Panel → Premios**
-  ("Canjear", queda quién lo canjeó). El código se ve en "Ver mi trago".
+- El **premio** (un trago) lo emite el servidor solo la noche de una cena (cena "en vivo"), cuando el teléfono logró
+  esa noche las metas de **5 de los 6** juegos (`METAS` y `PREMIO_MINIMO` en `src/lib/juegos.ts`; la mímica necesita
+  mesa, por eso no es obligatoria): un código por teléfono y por noche (`Prize`), que se canjea desde **Panel →
+  Premios** ("Canjear", queda quién lo canjeó). Las marcas son por noche (`GameScore.day`); los récords miran todas.
 - Los valores imposibles se descartan (`plausible`); igual las marcas las manda el teléfono, así que el premio es
   "difícil de conseguir" más que "imposible de trucar": para una mesa de amigos alcanza.
 

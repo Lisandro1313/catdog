@@ -4,7 +4,7 @@ import { ensureDeviceKey } from "@/lib/device";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/admin-auth";
-import { buildActs, getHitRate, getHouseLean, getTonightEvent } from "@/lib/hoy";
+import { buildActs, getHitRate, getHouseLean, getTablesBoard, getTonightEvent, type TableRow } from "@/lib/hoy";
 
 const guessSchema = z.object({
   eventId: z.string().min(1),
@@ -17,7 +17,7 @@ const guessSchema = z.object({
 });
 
 export type GuessResult =
-  | { ok: true; secret: string; choice: string; stake: 1 | 3; correct: boolean; why: string | null; hitRate: number | null; lean: { choice: string; pct: number } | null; saved: boolean }
+  | { ok: true; secret: string; choice: string; stake: 1 | 3; correct: boolean; why: string | null; hitRate: number | null; lean: { choice: string; pct: number } | null; saved: boolean; board: TableRow[] }
   | { ok: false; error: string };
 
 /** Tope de apuestas guardadas por acto: evita que alguien infle la base con claves inventadas. */
@@ -64,6 +64,13 @@ export async function guessAction(input: unknown): Promise<GuessResult> {
     }
   }
   const correct = finalChoice === act.secret;
-  const [hitRate, lean] = live ? await Promise.all([getHitRate(eventId, stepIndex), getHouseLean(eventId, stepIndex)]) : [null, null];
-  return { ok: true, secret: act.secret, choice: finalChoice, stake: finalStake, correct, why: act.why, hitRate, lean, saved };
+  const [hitRate, lean, board] = live ? await Promise.all([getHitRate(eventId, stepIndex), getHouseLean(eventId, stepIndex), getTablesBoard(eventId)]) : [null, null, []];
+  return { ok: true, secret: act.secret, choice: finalChoice, stake: finalStake, correct, why: act.why, hitRate, lean, saved, board };
+}
+
+/** El tablero de mesitas de la cena en vivo (para el mazo). Fuera de la noche real, vacío. */
+export async function boardAction(eventId: string): Promise<TableRow[]> {
+  const tonight = await getTonightEvent();
+  if (!tonight || tonight.id !== eventId) return [];
+  return getTablesBoard(eventId);
 }

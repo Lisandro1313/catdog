@@ -135,11 +135,16 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
             onPointerDown={(e) => {
               e.preventDefault();
               if (flash || active.current) return;
+              // Capturar el puntero: si el dedo se corre un poco, el chorro sigue hasta que se suelta.
+              try {
+                e.currentTarget.setPointerCapture(e.pointerId);
+              } catch {
+                // sin captura: igual funciona mientras el dedo quede adentro
+              }
               active.current = true;
               setPouring(true);
             }}
             onPointerUp={release}
-            onPointerLeave={release}
             onPointerCancel={release}
             role="button"
             tabIndex={0}

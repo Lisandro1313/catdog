@@ -129,6 +129,25 @@ export async function getHouseLean(eventId: string, stepIndex: number): Promise<
   return { choice: top.choice, pct: Math.round((top._count._all / total) * 100) };
 }
 
+/** Puntos de una apuesta: acertar suma lo apostado; errar con 3 ✦ resta 1 (con 1 ✦ no cuesta). */
+export function guessPoints(stake: number, correct: boolean): number {
+  if (correct) return stake;
+  return stake === 3 ? -1 : 0;
+}
+
+export type TableRow = { table: number; points: number };
+
+/** "La sala": puntos por mesita en la cena en vivo (solo mesitas con número; nunca cantidades de gente). */
+export async function getTablesBoard(eventId: string): Promise<TableRow[]> {
+  const rows = await prisma.guess.findMany({ where: { eventId, table: { not: null, gt: 0 } }, select: { table: true, stake: true, correct: true } });
+  const totals = new Map<number, number>();
+  for (const g of rows) totals.set(g.table!, (totals.get(g.table!) ?? 0) + guessPoints(g.stake, g.correct));
+  return [...totals.entries()]
+    .map(([table, points]) => ({ table, points: Math.max(0, points) }))
+    .sort((a, b) => b.points - a.points || a.table - b.table)
+    .slice(0, 8);
+}
+
 /** Porcentaje de aciertos de la sala en un acto (para el "el 25% de la casa acertó"). */
 export async function getHitRate(eventId: string, stepIndex: number): Promise<number | null> {
   const [total, hits] = await Promise.all([

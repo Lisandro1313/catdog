@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { guessAction } from "@/app/hoy/actions";
+import { boardAction, guessAction } from "@/app/hoy/actions";
+import type { TableRow } from "@/lib/hoy";
 import { withTransition } from "@/components/jugar/Shell";
 import { formatPrice } from "@/lib/config";
 import type { BarItem } from "@/lib/menu";
@@ -50,7 +51,40 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
   const storeKey = `catdog:hoy:${eventId}:${demo ? "demo" : "live"}`;
   const [progress, setProgress] = useState<Progress>({ revealed: {}, opened: false });
   const [view, setViewRaw] = useState<View>({ kind: "intro" });
-  const setView = (v: View) => withTransition(() => setViewRaw(v));
+  const [board, setBoard] = useState<TableRow[]>([]);
+  const pushed = useRef(0);
+  /** Cambia de pantalla; entrar a un acto deja una entrada en el historial para que "atrás" vuelva al mazo. */
+  const setView = (v: View) => {
+    if (v.kind === "act") {
+      history.pushState({ hoy: "act" }, "");
+      pushed.current += 1;
+    } else if (v.kind === "mazo" && pushed.current > 0) {
+      pushed.current = 0;
+      history.back();
+      return;
+    }
+    withTransition(() => setViewRaw(v));
+  };
+
+  // Botón "atrás" del teléfono: desde un acto vuelve al mazo en vez de salir de la página.
+  useEffect(() => {
+    const onPop = () => {
+      pushed.current = 0;
+      withTransition(() => setViewRaw((cur) => (cur.kind === "act" ? { kind: "mazo" } : cur)));
+    };
+    addEventListener("popstate", onPop);
+    return () => removeEventListener("popstate", onPop);
+  }, []);
+
+  // En la noche real, el tablero de mesitas se actualiza al volver al mazo.
+  useEffect(() => {
+    if (view.kind !== "mazo" || demo) return;
+    let alive = true;
+    boardAction(eventId).then((b) => alive && setBoard(b)).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [view.kind, demo, eventId]);
   const [stage, setStage] = useState<Stage>("front");
   const [choice, setChoice] = useState<string | null>(null);
   const [stake, setStake] = useState<1 | 3>(1);
@@ -92,7 +126,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
   const done = playable.length > 0 && playable.every((a) => progress.revealed[a.index]);
   const score = useMemo(() => {
     const r = Object.values(progress.revealed);
-    return { hits: r.filter((x) => x.correct).length, stars: r.reduce((n, x) => n + (x.correct ? x.stake : 0), 0) };
+    return { hits: r.filter((x) => x.correct).length, stars: Math.max(0, r.reduce((n, x) => n + (x.correct ? x.stake : x.stake === 3 ? -1 : 0), 0)) };
   }, [progress.revealed]);
 
   function openAct(index: number) {
@@ -138,6 +172,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
     }
     // Si este teléfono ya había apostado en ese acto, vale la apuesta guardada (no la de ahora).
     const revealed: Revealed = { choice: res.choice, stake: res.stake, secret: res.secret, correct: res.correct, hitRate: res.hitRate, lean: res.lean };
+    if (res.board.length) setBoard(res.board);
     setChoice(res.choice);
     setStake(res.stake);
     save({ ...progress, revealed: { ...progress.revealed, [act.index]: revealed } });
@@ -265,6 +300,24 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
               Ver cómo te fue
             </button>
           )}
+          {board.length > 0 && (
+            <section className="mt-8 border-t border-line pt-6">
+              <p className="ap-eyebrow">La sala</p>
+              <p className="mt-1 text-xs text-muted">Puntos por mesita, esta noche. Sin coordinar nada: cada uno juega cuando quiere.</p>
+              <ol className="mt-3 divide-y divide-line text-sm">
+                {board.map((b, i) => (
+                  <li key={b.table} className={`flex items-baseline justify-between py-1.5 ${b.table === table ? "text-accent" : ""}`}>
+                    <span>
+                      <span className="mr-2 text-xs text-muted">{i + 1}.</span>
+                      Mesita {b.table}
+                      {b.table === table && <span className="ml-2 text-[10px] uppercase tracking-[0.2em]">la tuya</span>}
+                    </span>
+                    <span className="tabular-nums">{b.points} ✦</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
           {bar.length > 0 && (
             <section className="mt-10 border-t border-line pt-6">
               <p className="ap-eyebrow">Si querés algo más</p>
@@ -353,6 +406,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
                         <button type="button" className={`hoy-stake ${stake === 3 ? "is-on" : ""}`} disabled={stage === "sealing"} onClick={() => setStake(3)}>
                           3 ✦
                         </button>
+                        <span className="self-center text-[10px] leading-tight text-muted">{stake === 3 ? "si errás, −1" : "sin riesgo"}</span>
                       </div>
                       <button
                         type="button"
@@ -386,7 +440,9 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
                       Sumás <span className="text-accent">{r.stake} ✦</span>.
                     </>
                   ) : (
-                    <>Vos dijiste {r?.choice}.</>
+                    <>
+                      Vos dijiste {r?.choice}.{r?.stake === 3 && <span className="text-danger"> −1 ✦.</span>}
+                    </>
                   )}
                   {r?.hitRate != null && <> El {r.hitRate}% de la casa acertó.</>}
                   {r?.lean && r.lean.choice !== r.secret && <> La casa fue más por {r.lean.choice} ({r.lean.pct}%).</>}

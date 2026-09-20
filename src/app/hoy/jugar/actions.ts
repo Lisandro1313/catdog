@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ensureDeviceKey } from "@/lib/device";
-import { GAMES, cleanName, getMarcas, getRecords, issuePrizeIfEarned, mejora, plausible, type Marcas, type Records } from "@/lib/premios";
+import { GAMES, cleanName, getMarcas, getRecords, issuePrizeIfEarned, plausible, saveScore, type Marcas, type Records } from "@/lib/premios";
 
 const scoreSchema = z.object({ game: z.enum(GAMES), value: z.number().int(), name: z.string().max(40).optional() });
 
@@ -20,15 +20,7 @@ export async function reportScoreAction(input: unknown): Promise<ReportResult> {
   if (parsed.success && plausible(parsed.data.game, parsed.data.value)) {
     const { game, value } = parsed.data;
     const name = cleanName(parsed.data.name);
-    const current = await prisma.gameScore.findUnique({ where: { deviceKey_game: { deviceKey, game } } });
-    if (mejora(game, value, current?.best)) {
-      nuevaMarca = true;
-      await prisma.gameScore.upsert({
-        where: { deviceKey_game: { deviceKey, game } },
-        update: { best: value, ...(name ? { name } : {}) },
-        create: { deviceKey, game, best: value, name },
-      });
-    }
+    nuevaMarca = await saveScore(deviceKey, game, value, name);
     await issuePrizeIfEarned(deviceKey);
   }
   const [marcas, records] = await Promise.all([getMarcas(deviceKey), getRecords()]);

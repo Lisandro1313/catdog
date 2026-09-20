@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { reportScoreAction, setNameAction, type ReportResult } from "@/app/hoy/jugar/actions";
-import { GAMES, logrado, type GameId, type Marcas, type Records } from "@/lib/juegos";
+import { GAMES, PREMIO_MINIMO, logrado, type GameId, type Marcas, type Records } from "@/lib/juegos";
 import { GAME_INFO, Tabla } from "./info";
 import { withTransition } from "./Shell";
 import { Confetti } from "./Confetti";
@@ -22,7 +22,29 @@ type Props = { photos: string[]; mimica: string[]; initialMarcas: Marcas; initia
 
 export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }: Props) {
   const [view, setViewRaw] = useState<View>("hub");
-  const setView = (v: View) => withTransition(() => setViewRaw(v));
+  const pushed = useRef(0);
+  /** Entrar a un juego deja una entrada en el historial: "atrás" vuelve al hub en vez de salir. */
+  const setView = (v: View) => {
+    if (v !== "hub") {
+      if (pushed.current === 0) {
+        history.pushState({ jg: v }, "");
+        pushed.current = 1;
+      }
+    } else if (pushed.current > 0) {
+      pushed.current = 0;
+      history.back();
+      return;
+    }
+    withTransition(() => setViewRaw(v));
+  };
+  useEffect(() => {
+    const onPop = () => {
+      pushed.current = 0;
+      withTransition(() => setViewRaw("hub"));
+    };
+    addEventListener("popstate", onPop);
+    return () => removeEventListener("popstate", onPop);
+  }, []);
   const [marcas, setMarcas] = useState<Marcas>(initialMarcas);
   const [records, setRecords] = useState<Records>(initialRecords);
   const [name, setName] = useState<string>(initialMarcas.name ?? "");
@@ -129,7 +151,7 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
         <Confetti />
         <div className="jg-premio">
           <p className="ap-ornament">✦</p>
-          <p className="ap-eyebrow mt-3">Completaste los {GAMES.length}</p>
+          <p className="ap-eyebrow mt-3">Lograste {PREMIO_MINIMO} de {GAMES.length}</p>
           <h1 className="ap-display mt-3 text-4xl">Te ganaste un trago</h1>
           <p className="mt-4 text-sm text-muted">Mostrá esta pantalla en la barra y elegí uno de la carta de la noche. Uno por persona.</p>
           <p className="jg-codigo">{marcas.premio}</p>
@@ -185,7 +207,7 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
       </div>
       <h1 className="ap-display mt-6 text-4xl">Para la espera</h1>
       <p className="mt-3 text-sm leading-relaxed text-muted">
-        Seis juegos, ninguno obligatorio. Si llegás a la marca en los seis, la casa te invita un trago. Es difícil a propósito.
+        Seis juegos, ninguno obligatorio. Si la noche de la cena llegás a la marca en {PREMIO_MINIMO} de los seis, la casa te invita un trago. Es difícil a propósito.
       </p>
 
       <div className="mt-6 flex items-center justify-between gap-3">
@@ -207,7 +229,7 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
       {justWon && marcas.premio && <Confetti count={24} />}
       {justWon && marcas.premio && (
         <button type="button" className="jg-won mt-5" onClick={() => setView("premio")}>
-          <span className="ap-eyebrow">¡Los {GAMES.length}!</span>
+          <span className="ap-eyebrow">¡{PREMIO_MINIMO} de {GAMES.length}!</span>
           <span className="font-display text-xl">Te ganaste un trago · tocá para verlo</span>
         </button>
       )}
@@ -248,7 +270,7 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
           Ver mi trago
         </button>
       ) : (
-        <p className="mt-8 text-center text-[11px] uppercase tracking-[0.2em] text-muted/70">Las marcas quedan atadas a este teléfono</p>
+        <p className="mt-8 text-center text-[11px] uppercase tracking-[0.2em] text-muted/70">Las marcas son de esta noche y de este teléfono</p>
       )}
       {modal}
     </div>

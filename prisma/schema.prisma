@@ -260,9 +260,12 @@ model GameScore {
   best      Int
   /// Nombre para la tabla de récords (lo elige el jugador; opcional).
   name      String?
+  /// Noche (día argentino "2026-09-25"): el premio se gana con las marcas de esa noche; los récords miran todas.
+  day       String   @default("")
   updatedAt DateTime @updatedAt
 
-  @@unique([deviceKey, game])
+  @@unique([deviceKey, game, day])
+  @@index([game, best])
 }
 
 /// Un trago ganado: el código lo emite el servidor, uno por teléfono y por día, y se canjea desde el panel.

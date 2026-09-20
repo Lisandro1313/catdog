@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatShort } from "@/lib/dates";
-import { GAMES, LOWER_IS_BETTER, dayKey } from "@/lib/premios";
+import { GAMES, LOWER_IS_BETTER, PREMIO_MINIMO, dayKey } from "@/lib/premios";
 import { GAME_INFO } from "@/components/jugar/info";
 import { deleteRecordAction, redeemPrizeAction } from "../../actions";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
@@ -25,7 +25,7 @@ export default async function PremiosPage() {
           <div>
             <h1 className="font-display text-2xl">Tragos ganados esta noche</h1>
             <p className="mt-1 text-sm text-muted">
-              Cuando alguien muestra el código en la barra, buscalo acá y tocá “Canjear”. Un código por teléfono y por noche; el servidor lo emite solo si logró los{" "}
+              Cuando alguien muestra el código en la barra, buscalo acá y tocá “Canjear”. Un código por teléfono y por noche; el servidor lo emite solo la noche de una cena, si logró la meta en {PREMIO_MINIMO} de los{" "}
               {GAMES.length} juegos.
             </p>
           </div>

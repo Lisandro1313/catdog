@@ -793,13 +793,16 @@ details.faq > summary::-webkit-details-marker {
 }
 .hoy-card {
   position: relative;
+  display: grid;
   margin-top: 1.25rem;
   min-height: 27rem;
   perspective: 1400px;
 }
+/* Las dos caras ocupan la misma celda: la carta crece con el contenido más alto (un "por qué" largo no corta el botón). */
 .hoy-face {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  grid-area: 1 / 1;
+  min-height: 27rem;
   display: flex;
   flex-direction: column;
   padding: 1.6rem 1.4rem;
@@ -1245,7 +1248,7 @@ details.faq > summary::-webkit-details-marker {
     radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201, 169, 110, 0.1), transparent 70%),
     linear-gradient(170deg, var(--surface-2), var(--surface));
   overflow: hidden;
-  touch-action: manipulation;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
