@@ -25,6 +25,16 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
   const last = useRef(0);
   const reported = useRef(false);
   const swipe = useRef<P | null>(null);
+  /** Las caras de la casa: el gato, y los dos perros (se turnan). */
+  const faces = useRef<{ gato: HTMLImageElement; perros: HTMLImageElement[] } | null>(null);
+  useEffect(() => {
+    const load = (src: string) => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    };
+    faces.current = { gato: load("/gato.png"), perros: [load("/perro.png"), load("/perro2.png")] };
+  }, []);
 
   function randomFree(): P {
     const s = state.current;
@@ -58,10 +68,14 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(FOOD[s.foodIx], s.food.x * size + size / 2, s.food.y * size + size / 2 + 1);
-    ctx.fillText("🐕", s.dog.x * size + size / 2, s.dog.y * size + size / 2 + 1);
+    const f = faces.current;
+    const dogImg = f?.perros[s.eaten % 2];
+    if (dogImg && dogImg.complete && dogImg.naturalWidth) ctx.drawImage(dogImg, s.dog.x * size - 3, s.dog.y * size - 3, size + 6, size + 6);
+    else ctx.fillText("🐕", s.dog.x * size + size / 2, s.dog.y * size + size / 2 + 1);
     s.snake.forEach((p, i) => {
       if (i === 0) {
-        ctx.fillText("🐈", p.x * size + size / 2, p.y * size + size / 2 + 1);
+        if (f?.gato.complete && f.gato.naturalWidth) ctx.drawImage(f.gato, p.x * size - 4, p.y * size - 4, size + 8, size + 8);
+        else ctx.fillText("🐈", p.x * size + size / 2, p.y * size + size / 2 + 1);
       } else {
         const t = 1 - Math.min(0.6, i / (s.snake.length + 4));
         ctx.fillStyle = `rgba(201,169,110,${0.35 + 0.55 * t})`;
@@ -201,8 +215,8 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
             🐈
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
-            El gato de la casa come lo que encuentra en la cocina y crece. Deslizá el dedo sobre el tablero (o usá las flechas) para guiarlo. Si choca la pared,
-            su cola o al perro, se termina. Cada bocado lo acelera. Para la marca: {METAS.gato} ingredientes.
+            El gato de la casa (sí, ese) come lo que encuentra en la cocina y crece. Deslizá el dedo sobre el tablero (o usá las flechas) para guiarlo. Si choca la pared,
+            su cola o a alguno de los perros, se termina. Cada bocado lo acelera. Para la marca: {METAS.gato} ingredientes.
           </p>
           <button className="btn btn-primary mt-6" type="button" onClick={start}>
             Soltar al gato

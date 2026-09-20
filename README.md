@@ -226,10 +226,10 @@ está ahí "vago", nadie lo anuncia ni hay momentos en conjunto.
 
 ## Entretenimiento (`/hoy/jugar`)
 
-Nueve juegos sueltos para la espera, linkeados desde el mazo de "Puertas adentro": **maridaje** (cada plato de la
+Diez juegos sueltos para la espera, linkeados desde el mazo de "Puertas adentro": **maridaje** (cada plato de la
 noche con su cóctel, con la carta real; racha hasta el primer error, con reloj), **servicio** (llegan clientes y
 armás el pedido tocando ingredientes; niveles con menos paciencia y receta escondida), **el gato de la casa**
-(snake: el gato come ingredientes, el perro es obstáculo; deslizar o flechas), **memotest** con las fotos de la
+(snake con la cara del gato real, `public/gato.png`, y los dos perros, `public/perro*.png`, como obstáculo; deslizar o flechas), **¿dónde está Lisandro?** (topo con `public/lisandro.png`; el chef asoma de señuelo y resta), **memotest** con las fotos de la
 casa (8 pares), **atrapá al chef** (la cara de Agustín, `public/chef.png`, se desliza por la cocina cada vez más
 chica y rápida; 30 segundos; tres seguidos dan bonus; si está rojo, resta), **llená la copa** (mantener apretado
 para servir y soltar en la línea; cinco copas), **Simón de la barra** (repetir la secuencia de ingredientes),
@@ -242,7 +242,7 @@ tiene techo: los récords no empatan en 100 %.
   jugador puede anotarse con un nombre: sale en la **tabla de récords** (top 5 por juego, dentro de cada juego y en
   "Récords ›" del hub). Los nombres se moderan en **Panel → Premios** ("Borrar nombre": la marca queda anónima).
 - El **premio** (un trago) lo emite el servidor solo la noche de una cena (cena "en vivo"), cuando el teléfono logró
-  esa noche las metas de **7 de los 9** juegos (`METAS` y `PREMIO_MINIMO` en `src/lib/juegos.ts`; la mímica necesita
+  esa noche las metas de **8 de los 10** juegos (`METAS` y `PREMIO_MINIMO` en `src/lib/juegos.ts`; la mímica necesita
   mesa, por eso no es obligatoria): un código por teléfono y por noche (`Prize`), que se canjea desde **Panel →
   Premios** ("Canjear", queda quién lo canjeó). Las marcas son por noche (`GameScore.day`); los récords miran todas.
 - Los valores imposibles se descartan (`plausible`); igual las marcas las manda el teléfono, así que el premio es
@@ -279,6 +279,8 @@ tiene techo: los récords no empatan en 100 %.
 - **De dónde llegan**: cualquier link con `?de=wa|ig|afiche|qr` se cuenta aparte en el inicio del panel (el mensaje
   de WhatsApp y el QR del panel ya lo traen). Sin cookies.
 - El panel tiene **modo claro** (☀ arriba) para usarlo a la luz del día; el sitio público sigue oscuro.
+
+El hub también linkea a **Basas online** (https://basas-online.vercel.app/), el juego de cartas de Lisandro; se abre aparte y no cuenta para el trago.
 
 ## Tests
 

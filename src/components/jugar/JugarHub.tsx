@@ -11,6 +11,7 @@ import { Memoria } from "./Memoria";
 import { Maridaje, type Pair } from "./Maridaje";
 import { Servicio } from "./Servicio";
 import { Gato } from "./Gato";
+import { Lisandro } from "./Lisandro";
 import { AtrapaChef } from "./AtrapaChef";
 import { Copa } from "./Copa";
 import { Simon } from "./Simon";
@@ -134,6 +135,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
     view === "maridaje" ? <Maridaje pairs={pairs} extraDrinks={drinks} onDone={(v) => reportar("maridaje", v)} {...common} /> :
     view === "servicio" ? <Servicio onDone={(v) => reportar("servicio", v)} {...common} /> :
     view === "gato" ? <Gato onDone={(v) => reportar("gato", v)} {...common} /> :
+    view === "lisandro" ? <Lisandro onDone={(v) => reportar("lisandro", v)} {...common} /> :
     view === "memoria" ? <Memoria photos={photos} onDone={(v) => reportar("memoria", v)} {...common} /> :
     view === "chef" ? <AtrapaChef onDone={(v) => reportar("chef", v)} {...common} /> :
     view === "copa" ? <Copa onDone={(v) => reportar("copa", v)} {...common} /> :
@@ -213,7 +215,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
       </div>
       <h1 className="ap-display mt-6 text-4xl">Para la espera</h1>
       <p className="mt-3 text-sm leading-relaxed text-muted">
-        Nueve juegos, ninguno obligatorio. Si la noche de la cena llegás a la marca en {PREMIO_MINIMO} de los {GAMES.length}, la casa te invita un trago. Es difícil a propósito.
+        Diez juegos, ninguno obligatorio. Si la noche de la cena llegás a la marca en {PREMIO_MINIMO} de los {GAMES.length}, la casa te invita un trago. Es difícil a propósito.
       </p>
 
       <div className="mt-6 flex items-center justify-between gap-3">
@@ -270,6 +272,11 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
           );
         })}
       </ul>
+
+      <a href="https://basas-online.vercel.app/" target="_blank" rel="noopener noreferrer" className="jg-link mt-6">
+        <span className="jg-link-title">🃏 Basas online</span>
+        <span className="jg-link-sub">El juego de cartas de Lisandro, para jugar entre varios desde el celu. Se abre aparte; no cuenta para el trago.</span>
+      </a>
 
       {marcas.premio && !justWon ? (
         <button className="btn btn-primary mt-8 w-full" type="button" onClick={() => setView("premio")}>

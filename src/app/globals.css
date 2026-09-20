@@ -2335,3 +2335,43 @@ details.faq > summary::-webkit-details-marker {
 .jg-ing-btn:active {
   transform: scale(0.95);
 }
+
+/* --- ¿Dónde está Lisandro? (topo) --- */
+.jg-holes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem;
+}
+.jg-hole {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 1rem;
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 80%, rgba(0, 0, 0, 0.7), transparent 70%),
+    linear-gradient(170deg, var(--surface-2), var(--surface));
+  overflow: visible;
+  touch-action: manipulation;
+}
+.jg-hole-face {
+  position: absolute;
+  left: 12%;
+  bottom: 10%;
+  width: 76%;
+  height: 76%;
+  border-radius: 999px;
+  border: 2px solid var(--accent);
+  object-fit: cover;
+  animation: jg-popup 0.18s cubic-bezier(0.3, 1.5, 0.5, 1);
+  pointer-events: none;
+}
+.jg-hole-face.is-chef {
+  border-color: var(--danger);
+  filter: sepia(0.6) saturate(2) hue-rotate(-20deg);
+}
+@keyframes jg-popup {
+  from {
+    transform: translateY(40%) scale(0.6);
+    opacity: 0;
+  }
+}
