@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { GAMES, LOWER_IS_BETTER, PREMIO_MINIMO, dayKey, logrado, mejora, type GameId, type Marcas, type Records } from "./juegos";
+import { GAMES, LOWER_IS_BETTER, PREMIO_MINIMO, dayKey, logrosParaPremio, mejora, type GameId, type Marcas, type Records } from "./juegos";
 import { getTonightEvent } from "./hoy";
 
 export { GAMES, METAS, PREMIO_MINIMO, LOWER_IS_BETTER, logrado, mejora, plausible, cleanName, dayKey, type GameId, type Marcas, type Records, type RecordRow } from "./juegos";
@@ -73,8 +73,7 @@ function newCode(): string {
 export async function issuePrizeIfEarned(deviceKey: string): Promise<string | null> {
   const m = await getMarcas(deviceKey);
   if (m.premio) return m.premio;
-  const logrados = GAMES.filter((g) => logrado(g, m[g])).length;
-  if (logrados < PREMIO_MINIMO) return null;
+  if (logrosParaPremio(m) < PREMIO_MINIMO) return null;
   if (!(await getTonightEvent())) return null;
   const day = dayKey();
   for (let attempt = 0; attempt < 5; attempt++) {

@@ -75,3 +75,23 @@ export function cleanName(raw: unknown): string | null {
     .slice(0, 18);
   return n.length >= 2 ? n : null;
 }
+
+/** El reto del día: un juego distinto cada noche (fijo por fecha), sin la mímica. Lograrlo cuenta doble para el trago. */
+export function retoDelDia(day = dayKey()): GameId {
+  const pool = GAMES.filter((g) => g !== "mimica");
+  let h = 0;
+  for (let i = 0; i < day.length; i++) h = (h * 31 + day.charCodeAt(i)) >>> 0;
+  return pool[h % pool.length];
+}
+
+/** Cuántos "logros" cuenta un teléfono para el trago: cada juego logrado vale 1, el reto del día vale 2. */
+export function logrosParaPremio(m: Marcas, day = dayKey()): number {
+  const reto = retoDelDia(day);
+  return GAMES.reduce((n, g) => n + (logrado(g, m[g]) ? (g === reto ? 2 : 1) : 0), 0);
+}
+
+/** Con puntajes de dos jugadores, quién gana (0, 1) o empate (null). */
+export function ganaDuelo(game: GameId, a: number, b: number): 0 | 1 | null {
+  if (a === b) return null;
+  return (LOWER_IS_BETTER[game] ? a < b : a > b) ? 0 : 1;
+}

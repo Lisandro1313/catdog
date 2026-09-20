@@ -2493,3 +2493,56 @@ details.faq > summary::-webkit-details-marker {
   background: rgba(181, 83, 60, 0.5);
   animation: hoy-flash 0.25s ease;
 }
+
+/* --- Reto del día y duelo --- */
+.jg-reto {
+  display: grid;
+  width: 100%;
+  gap: 0.15rem;
+  padding: 0.9rem 1.1rem;
+  text-align: left;
+  border-radius: 1rem;
+  border: 1px solid var(--accent);
+  background: linear-gradient(120deg, rgba(201, 169, 110, 0.18), rgba(201, 169, 110, 0.04));
+  animation: hoy-breathe 3s ease-in-out infinite;
+}
+.jg-reto-badge {
+  font-size: 0.62rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+.jg-reto-title {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.2rem;
+}
+.jg-reto-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.jg-card-reto {
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  border: 1px solid rgba(201, 169, 110, 0.6);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+}
+.jg-duelo-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 auto;
+  max-width: 28rem;
+  padding: 0.4rem 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: rgba(20, 18, 16, 0.9);
+  border-bottom: 1px solid rgba(201, 169, 110, 0.35);
+  backdrop-filter: blur(6px);
+}

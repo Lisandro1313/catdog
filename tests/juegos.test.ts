@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GAMES, METAS, PREMIO_MINIMO, cleanName, dayKey, logrado, mejora, plausible } from "@/lib/juegos";
+import { GAMES, METAS, PREMIO_MINIMO, cleanName, dayKey, ganaDuelo, logrado, logrosParaPremio, mejora, plausible, retoDelDia } from "@/lib/juegos";
 
 describe("reglas de los juegos", () => {
   it("la meta se logra según la dirección de cada juego", () => {
@@ -47,5 +47,19 @@ describe("reglas de los juegos", () => {
   it("el día argentino cambia a las 03:00 UTC", () => {
     expect(dayKey(Date.UTC(2026, 8, 26, 2, 30))).toBe("2026-09-25");
     expect(dayKey(Date.UTC(2026, 8, 26, 3, 30))).toBe("2026-09-26");
+  });
+
+  it("el reto del día es fijo por fecha, nunca la mímica, y cuenta doble", () => {
+    expect(retoDelDia("2026-09-25")).toBe(retoDelDia("2026-09-25"));
+    expect(retoDelDia("2026-09-25")).not.toBe("mimica");
+    const reto = retoDelDia("2026-09-25");
+    const m = { [reto]: METAS[reto], chef: METAS.chef } as Parameters<typeof logrosParaPremio>[0];
+    expect(logrosParaPremio(m, "2026-09-25")).toBe(reto === "chef" ? 2 : 3);
+  });
+
+  it("el duelo respeta la dirección del juego", () => {
+    expect(ganaDuelo("chef", 30, 20)).toBe(0);
+    expect(ganaDuelo("memoria", 30, 20)).toBe(1);
+    expect(ganaDuelo("copa", 7, 7)).toBeNull();
   });
 });

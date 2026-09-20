@@ -279,6 +279,10 @@ tiene techo: los récords no empatan en 100 %.
   de WhatsApp y el QR del panel ya lo traen). Sin cookies.
 - El panel tiene **modo claro** (☀ arriba) para usarlo a la luz del día; el sitio público sigue oscuro.
 
+- **Reto del día**: cada noche un juego distinto (fijo por fecha, `retoDelDia`); lograrlo cuenta doble para el trago.
+- **Duelo**: dos personas en un celular, juega uno y después el otro, gana el mejor (con revancha). Los puntajes cuentan
+  como marcas del teléfono.
+
 El hub también linkea a **Basas online** (https://basas-online.vercel.app/), el juego de cartas de Lisandro; se abre aparte y no cuenta para el trago.
 
 ## Tests
