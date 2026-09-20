@@ -1071,3 +1071,311 @@ details.faq > summary::-webkit-details-marker {
     print-color-adjust: exact;
   }
 }
+
+
+/* ---------------------------------------------------------------------------
+   Entretenimiento (/hoy/jugar): memotest, atrapá al chef, mímica, trivia.
+--------------------------------------------------------------------------- */
+
+.jg-stage {
+  --ap-gold: var(--accent);
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 1.25rem 1rem calc(2rem + env(safe-area-inset-bottom));
+  animation: hoy-rise 0.4s ease forwards;
+}
+.jg-progress {
+  display: flex;
+  gap: 0.4rem;
+}
+.jg-progress span {
+  width: 1.6rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.jg-progress span.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* tarjetas del hub */
+.jg-card {
+  display: flex;
+  width: 100%;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 1rem 1.1rem;
+  text-align: left;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+  transition: border-color 0.2s, transform 0.2s;
+}
+.jg-card:active {
+  transform: scale(0.985);
+}
+.jg-card.is-done {
+  border-color: rgba(201, 169, 110, 0.6);
+}
+.jg-card-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  padding-top: 0.15rem;
+}
+.jg-card-body {
+  display: grid;
+  gap: 0.15rem;
+}
+.jg-card-title {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 1.15;
+}
+.jg-card-blurb {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.jg-card-meta {
+  margin-top: 0.3rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* memotest */
+.jg-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+.jg-flip {
+  aspect-ratio: 3 / 4;
+  perspective: 800px;
+  background: transparent;
+  border-radius: 0.7rem;
+}
+.jg-flip-inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.jg-flip.is-up .jg-flip-inner {
+  transform: rotateY(180deg);
+}
+.jg-flip-back,
+.jg-flip-front {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+.jg-flip-back {
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+.jg-flip-front {
+  transform: rotateY(180deg);
+  background: var(--surface);
+}
+.jg-flip-front img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.jg-emoji {
+  font-size: 1.8rem;
+}
+.jg-flip.is-found .jg-flip-front {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.35);
+}
+.jg-flip.is-found {
+  animation: jg-pop 0.35s ease;
+}
+@keyframes jg-pop {
+  50% {
+    transform: scale(1.06);
+  }
+}
+.jg-result,
+.jg-center,
+.jg-premio {
+  margin-top: 1.5rem;
+  text-align: center;
+  animation: hoy-rise 0.4s ease forwards;
+}
+.jg-premio {
+  margin-top: 4rem;
+}
+.jg-codigo {
+  margin: 1.5rem auto 0.4rem;
+  display: inline-block;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 2rem;
+  letter-spacing: 0.25em;
+  color: var(--accent-strong);
+  animation: hoy-flash 1s ease forwards;
+}
+
+/* atrapá al chef */
+.jg-arena {
+  position: relative;
+  height: 60dvh;
+  min-height: 22rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201, 169, 110, 0.1), transparent 70%),
+    linear-gradient(170deg, var(--surface-2), var(--surface));
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.jg-arena-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+}
+.jg-chef-still {
+  border-radius: 999px;
+  animation: jg-wobble 1.6s ease-in-out infinite;
+}
+@keyframes jg-wobble {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+.jg-chef {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  transition: transform 0.18s ease-out, width 0.18s, height 0.18s;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.6));
+  animation: jg-appear 0.18s ease-out;
+}
+.jg-chef img {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+}
+.jg-chef.is-angry img {
+  border-color: var(--danger);
+  filter: sepia(1) saturate(4) hue-rotate(-30deg);
+}
+@keyframes jg-appear {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+.jg-bubble {
+  position: absolute;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: #1a150d;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: jg-bubble 0.9s ease forwards;
+}
+@keyframes jg-bubble {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-28px);
+  }
+}
+
+/* mímica / trivia */
+.jg-mimica-card {
+  margin-top: 1rem;
+  min-height: 14rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.6rem 1.4rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201, 169, 110, 0.12), transparent 70%),
+    linear-gradient(170deg, var(--surface-2), var(--surface));
+  text-align: center;
+  animation: hoy-rise 0.3s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jg-stage,
+  .jg-result,
+  .jg-center,
+  .jg-premio,
+  .jg-mimica-card,
+  .jg-codigo {
+    animation: none;
+    opacity: 1;
+  }
+  .jg-flip-inner {
+    transition: none;
+  }
+  .jg-chef-still,
+  .jg-chef {
+    animation: none;
+  }
+}
+
+/* Acceso a los juegos desde el mazo */
+.jg-link {
+  display: grid;
+  gap: 0.2rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  border: 1px dashed rgba(201, 169, 110, 0.5);
+  transition: border-color 0.2s;
+}
+.jg-link:hover {
+  border-color: var(--accent);
+}
+.jg-link-title {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.1rem;
+}
+.jg-link-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+}

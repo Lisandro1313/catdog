@@ -169,6 +169,9 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
           <button className="btn btn-primary mt-10 px-10" type="button" onClick={start} disabled={!hydrated || !introIn}>
             Abrir
           </button>
+          <Link href="/hoy/jugar" className="mt-5 block text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
+            O ir directo a los juegos
+          </Link>
           {exampleSecrets && <p className="mt-6 text-[11px] uppercase tracking-[0.2em] text-muted/70">Modo ejemplo · secretos de muestra</p>}
         </div>
       </Stage>
@@ -274,6 +277,10 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
               </ul>
             </section>
           )}
+          <Link href="/hoy/jugar" className="jg-link mt-8">
+            <span className="jg-link-title">Para la espera: cuatro juegos</span>
+            <span className="jg-link-sub">Memotest, atrapá al chef, mímica y trivia. Si lográs los cuatro, hay un trago.</span>
+          </Link>
           {demo && <p className="mt-10 text-center text-[11px] uppercase tracking-[0.2em] text-muted/70">Modo ejemplo</p>}
         </div>
       </Stage>

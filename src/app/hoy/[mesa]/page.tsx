@@ -61,6 +61,9 @@ export default async function HoyPage({ params, searchParams }: Props) {
             <Link href="/" className="btn btn-primary mt-8">
               Reservar
             </Link>
+            <Link href="/hoy/jugar" className="mt-4 text-xs text-muted hover:text-ink">
+              Mientras tanto, los juegos
+            </Link>
           </>
         ) : (
           <Link href="/" className="btn btn-ghost mt-8">

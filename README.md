@@ -215,6 +215,16 @@ está ahí "vago", nadie lo anuncia ni hay momentos en conjunto.
 - **Ajustes → El juego de las mesitas** lo apaga por hoy (`hoy:off`): el QR muestra solo la carta y la barra.
 - Sin cena esa noche, el QR muestra la próxima con ejemplos; sin ninguna cena con carta, "Hoy no hay función".
 
+## Entretenimiento (`/hoy/jugar`)
+
+Cuatro juegos sueltos para la espera, linkeados desde el mazo de "Puertas adentro": **memotest** con las fotos de la
+casa (8 pares), **atrapá al chef** (la cara de Agustín, `public/chef.png`, aparece y se escapa; 30 segundos; si
+está rojo, resta), **mímica** para la mesa (consignas de cocina y barra más los platos y tragos de la noche; un
+minuto por turno) y **verdadero o falso** de barra (16 preguntas en `src/lib/jugar.ts`, 8 por ronda). Si el
+teléfono llega a la marca en los cuatro (`METAS` en `src/lib/jugar.ts`: 20 movimientos, 30 puntos, 6 aciertos,
+8 de 8) aparece "Te ganaste un trago" con un código para mostrar en la barra. Las marcas viven en el teléfono
+(`localStorage`, `catdog:jugar:v1`): no hay servidor ni base en estos juegos.
+
 ## Desarrollo local
 
 ```bash
