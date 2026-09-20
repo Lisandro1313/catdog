@@ -156,7 +156,8 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
     const free = event.capacity - paid - holding;
     if (free < input.quantity) {
       throw new ReservationError(
-        free <= 0 ? "Se acaban de agotar los lugares." : `Quedan solo ${free} lugar${free === 1 ? "" : "es"}.`,
+        // Nunca la cantidad exacta: en público no se muestran cupos.
+        free <= 0 ? "Se acaban de agotar los lugares." : "No quedan lugares para esa cantidad. Probá con menos.",
       );
     }
     return tx.reservation.create({

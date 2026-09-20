@@ -313,9 +313,12 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       setScore(Math.round(scoreRef.current));
       setFlash({ lane, ok: true, id: t, perfect });
     } else {
+      // Tocar donde no hay nota resta 1: así no sirve aporrear los cuatro carriles.
       buzz();
       comboRef.current = 0;
       setCombo(0);
+      scoreRef.current = Math.max(0, scoreRef.current - 1);
+      setScore(Math.round(scoreRef.current));
       setFlash({ lane, ok: false, id: t });
     }
   }
@@ -348,7 +351,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
             🎸
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
-            Bajan notas por cuatro carriles: tocá el carril justo cuando la nota llega a la línea y suena. Si la errás, silencio. Clavarla en el momento exacto vale doble (se pone dorada); cada 10 seguidas, +5. Para la
+            Bajan notas por cuatro carriles: tocá el carril justo cuando la nota llega a la línea y suena. Si la errás, silencio y −1. Clavarla en el momento exacto vale doble (se pone dorada); cada 10 seguidas, +5. Para la
             marca: {METAS.ritmo} puntos. Con sonido, obvio.
           </p>
           <p className="mt-5 text-xs uppercase tracking-[0.2em] text-muted">Elegí la canción</p>

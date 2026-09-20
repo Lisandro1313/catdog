@@ -12,7 +12,7 @@ export function SubscribeForm() {
 
   return (
     <form action={action} className="mt-4 flex flex-col sm:flex-row gap-3">
-      <input className="input sm:flex-1" type="email" name="email" placeholder="tu@email.com" required />
+      <input className="input sm:flex-1" type="email" name="email" aria-label="Tu email" placeholder="tu@email.com" required autoComplete="email" />
       <button className="btn btn-ghost" type="submit" disabled={pending}>
         {pending ? "Anotando…" : "Anotarme"}
       </button>

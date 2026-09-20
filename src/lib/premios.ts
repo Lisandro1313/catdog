@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import { GAMES, LOWER_IS_BETTER, PREMIO_MINIMO, dayKey, logrosParaPremio, mejora, type GameId, type Marcas, type Records } from "./juegos";
 
-export { GAMES, METAS, PREMIO_MINIMO, LOWER_IS_BETTER, logrado, logrosParaPremio, retoDelDia, mejora, plausible, cleanName, dayKey, type GameId, type Marcas, type Records, type RecordRow } from "./juegos";
+export { GAMES, METAS, PREMIO_MINIMO, LOWER_IS_BETTER, MIN_MS, clampScore, logrado, logrosParaPremio, retoDelDia, mejora, plausible, cleanName, dayKey, type GameId, type Marcas, type Records, type RecordRow } from "./juegos";
 
 /**
  * Marcas, récords y premio de los juegos de /hoy/jugar. Todo se cuenta por teléfono (cookie anónima

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
+import { HOLD_MINUTES, MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
 import { getUpcomingEvents } from "@/lib/reservations";
 import { parseBar, parseMenu } from "@/lib/menu";
@@ -40,9 +40,10 @@ const MAP_CENTER = "-34.9218,-57.9306";
 
 export async function generateMetadata(): Promise<Metadata> {
   const [event] = await getUpcomingEvents(1);
+  const weekday = event ? formatWeekday(event.date) : "";
   const title = event
-    ? `${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)} · Cena a puertas cerradas en La Plata`
-    : `Cena a puertas cerradas en La Plata`;
+    ? `${SITE_NAME} · ${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)} · Cena a puertas cerradas en La Plata`
+    : `${SITE_NAME} · Cena a puertas cerradas en La Plata`;
   const description = event
     ? `Una cena en una casa de La Plata. Varios pasos, cada plato con su cóctel de autor. ${formatPrice(event.price)} por persona, pocos lugares.`
     : "Una cena en una casa de La Plata. Varios pasos, cada plato con su cóctel de autor.";
@@ -130,7 +131,7 @@ export default async function HomePage() {
       q: "¿Cómo se paga?",
       a: byTransfer
         ? `Por transferencia. Reservás en la página, te mostramos el alias y nos mandás el comprobante por WhatsApp. Tu lugar queda guardado ${payment.holdHours} horas mientras tanto, y con el comprobante te llega la confirmación con la dirección.`
-        : "Por Mercado Pago al reservar: tarjeta, débito o dinero en cuenta. Mientras pagás, tu cupo queda guardado 30 minutos.",
+        : `Por Mercado Pago al reservar: tarjeta, débito o dinero en cuenta. Mientras pagás, tu cupo queda guardado ${HOLD_MINUTES} minutos.`,
     },
     {
       q: "¿Comés distinto? ¿Alergias?",
@@ -163,7 +164,7 @@ export default async function HomePage() {
       {event && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(foodEventJsonLd(event, photos.map((p) => (p.url.startsWith("/") ? `${siteUrl()}${p.url}` : p.url)))) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(foodEventJsonLd(event, photos.map((p) => (p.url.startsWith("/") ? `${siteUrl()}${p.url}` : p.url)))).replace(/</g, "\\u003c") }}
         />
       )}
 
@@ -316,7 +317,7 @@ export default async function HomePage() {
             <section id="fotos" className="reveal scroll-mt-16 py-10">
               <div className="mx-auto max-w-2xl px-6 text-center">
                 <p className="ap-ornament mb-3">✦</p>
-                <p className="ap-eyebrow">Un anticipo</p>
+                <h2 className="ap-eyebrow">Un anticipo</h2>
               </div>
               <div className="mt-6">
                 <PhotoStrip photos={photos} />
@@ -334,7 +335,7 @@ export default async function HomePage() {
             <section id="huellas" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
               <div className="text-center">
                 <p className="ap-ornament mb-3">✦</p>
-                <p className="ap-eyebrow">Los que pasaron por acá</p>
+                <h2 className="ap-eyebrow">Los que pasaron por acá</h2>
                 {winners && (
                   <p className="mt-3 text-sm text-muted">
                     Lo más votado en {winners.eventTitle}:{winners.plato && <> <span className="text-ink">{winners.plato}</span></>}
@@ -348,8 +349,7 @@ export default async function HomePage() {
                   {huellas.map((h) => (
                     <li key={h.id} className="card overflow-hidden">
                       {h.photo && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={h.photo} alt="" loading="lazy" className="aspect-square w-full object-cover" />
+                        <Image src={h.photo} alt={h.text ? "" : `Foto de ${h.name}`} width={480} height={480} sizes="(min-width: 640px) 220px, 90vw" className="aspect-square w-full object-cover" />
                       )}
                       <div className="p-4">
                         {h.text && <p className="font-display text-lg leading-snug">“{h.text}”</p>}
@@ -395,7 +395,7 @@ export default async function HomePage() {
             <section id="opiniones" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
               <div className="text-center">
                 <p className="ap-ornament mb-3">✦</p>
-                <p className="ap-eyebrow">Lo que dicen los que vinieron</p>
+                <h2 className="ap-eyebrow">Lo que dicen los que vinieron</h2>
                 {rating && rating.count >= 3 && (
                   <p className="mt-3 text-sm text-muted">
                     <span className="text-accent">{"★".repeat(Math.round(rating.avg))}</span> {rating.avg} de 5 · {rating.count} opiniones

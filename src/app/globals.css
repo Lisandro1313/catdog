@@ -891,7 +891,7 @@ details.faq > summary::-webkit-details-marker {
   color: var(--accent-strong);
 }
 .hoy-stake {
-  min-height: 2.2rem;
+  min-height: 2.75rem;
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -1161,6 +1161,7 @@ details.faq > summary::-webkit-details-marker {
   gap: 0.5rem;
 }
 .jg-flip {
+  touch-action: manipulation;
   aspect-ratio: 3 / 4;
   perspective: 800px;
   background: transparent;
@@ -1576,6 +1577,7 @@ details.faq > summary::-webkit-details-marker {
   gap: 0.75rem;
 }
 .jg-simon-btn {
+  touch-action: manipulation;
   display: grid;
   place-items: center;
   gap: 0.2rem;
@@ -2629,11 +2631,11 @@ details.faq > summary::-webkit-details-marker {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes hoy-rise {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes hoy-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
+@media (prefers-reduced-motion: reduce) {
+  .hoy-telon,
+  .hoy-telon-body,
+  .hoy-deckcard-now {
+    animation: none;
+    opacity: 1;
+  }
 }

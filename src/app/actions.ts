@@ -141,6 +141,7 @@ export type ReviewResult = { ok: true } | { ok: false; error: string };
 export async function submitReviewAction(input: unknown): Promise<ReviewResult> {
   const parsed = reviewSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  if (!(await allowRequest("opinion", 10))) return { ok: false, error: "Demasiados intentos; probá en un rato." };
   const { reservationId, name, rating, text } = parsed.data;
   const reservation = await prisma.reservation.findUnique({ where: { id: reservationId }, include: { event: true } });
   if (!reservation || !canReview(reservation)) return { ok: false, error: "Esta reserva todavía no puede opinar." };
@@ -181,6 +182,16 @@ export async function transferReservationAction(input: unknown): Promise<Transfe
 }
 
 /** Desde el recordatorio: "no voy a poder". Cancela la reserva paga, libera el lugar y avisa (admin + lista de espera). */
+/** "Confirmo que voy" desde el recordatorio: un botón (POST), no un link, para que el prefetch del cliente de mail no confirme solo. */
+export async function confirmReservationAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const r = await prisma.reservation.findUnique({ where: { id }, select: { status: true, confirmedAt: true } });
+  if (r && r.status === "PAID" && !r.confirmedAt) {
+    await prisma.reservation.update({ where: { id }, data: { confirmedAt: new Date() } });
+  }
+  redirect(`/reserva/${id}?confirmado=1`);
+}
+
 export async function declineReservationAction(_prev: SubscribeResult | null, formData: FormData): Promise<SubscribeResult> {
   const id = String(formData.get("id") ?? "");
   const r = await prisma.reservation.findUnique({ where: { id }, include: { event: true } });

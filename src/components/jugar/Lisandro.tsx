@@ -67,6 +67,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
   const reported = useRef(false);
   const popsRef = useRef<Pop[]>([]);
   const streakRef = useRef(0);
+  const lastHitAt = useRef<Record<number, number>>({});
 
   function setPopsBoth(next: Pop[]) {
     popsRef.current = next;
@@ -131,6 +132,8 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
     if (phase !== "play") return;
     const pop = popsRef.current.find((p) => p.hole === hole);
     if (!pop) {
+      // El segundo toque de un doble tap sobre algo que ya cayó no cuenta como error.
+      if (now() - (lastHitAt.current[hole] ?? 0) < 300) return;
       // Agujero vacío: se corta la racha.
       if (streakRef.current > 0) {
         streakRef.current = 0;
@@ -140,6 +143,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
       return;
     }
     setPopsBoth(popsRef.current.filter((p) => p !== pop));
+    lastHitAt.current[hole] = now();
     const w = pop.who;
     if (w.points < 0) {
       buzz();

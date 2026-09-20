@@ -84,6 +84,7 @@ export function EventForm({ action, initial, submitLabel }: Props) {
           className="input"
           name="recipeGift"
           rows={6}
+          maxLength={6000}
           defaultValue={initial.recipeGift ?? ""}
           placeholder={"Manteca de tomate quemado\n\nPara 4: 2 tomates perita, 100 g de manteca pomada, sal gruesa…\n1. Quemá los tomates directo sobre la hornalla…"}
         />

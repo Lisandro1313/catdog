@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const story = url.searchParams.get("f") !== "cuadrado";
   const id = url.searchParams.get("id");
-  const event = id ? await prisma.event.findUnique({ where: { id } }) : (await getUpcomingEvents(1))[0];
+  const event = id ? await prisma.event.findFirst({ where: { id, published: true } }) : (await getUpcomingEvents(1))[0];
   if (!event) return new Response("Todavía no hay cena", { status: 404 });
 
   const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);

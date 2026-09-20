@@ -12,24 +12,18 @@ const MAX_PHOTO = 6 * 1024 * 1024;
 
 // ---------- carta en vivo ----------
 
-export type LiveState = { servedStep: number | null; servedAt: string | null };
-
-export async function getLiveState(eventId: string): Promise<LiveState> {
-  const e = await prisma.event.findUnique({ where: { id: eventId }, select: { servedStep: true, servedAt: true } });
-  return { servedStep: e?.servedStep ?? null, servedAt: e?.servedAt?.toISOString() ?? null };
-}
-
 /** La cocina marca qué acto acaba de salir (null = volver a "todavía nada"). */
 export async function setServedStep(eventId: string, step: number | null) {
-  await prisma.event.update({ where: { id: eventId }, data: { servedStep: step, servedAt: step == null ? null : new Date() } });
+  await prisma.event.updateMany({ where: { id: eventId }, data: { servedStep: step, servedAt: step == null ? null : new Date() } });
 }
 
 // ---------- huellas ----------
 
 export type HuellaRow = { id: string; name: string; text: string | null; photo: string | null; table: number | null; createdAt: Date; approvedAt: Date | null; eventTitle: string };
 
-function photoPath(id: string, photoUrl: string | null): string | null {
-  return photoUrl ? `/huella/${id}` : null;
+/** La URL lleva la fecha de aprobación: si la ocultan y la vuelven a aprobar, cambia y no sirve la copia cacheada. */
+function photoPath(id: string, photoUrl: string | null, approvedAt: Date | null): string | null {
+  return photoUrl ? `/huella/${id}${approvedAt ? `?v=${approvedAt.getTime()}` : ""}` : null;
 }
 
 export async function addHuella(input: { eventId: string; deviceKey: string; table: number | null; name: string; text: string | null; file: File | null }) {
@@ -43,8 +37,14 @@ export async function addHuella(input: { eventId: string; deviceKey: string; tab
     photoUrl = blob.url;
   }
   if (!input.text && !photoUrl) throw new Error("Dejá una frase o una foto.");
-  const row = await prisma.huella.create({ data: { eventId: input.eventId, deviceKey: input.deviceKey, table: input.table, name: input.name, text: input.text, photoUrl } });
-  return row.id;
+  try {
+    const row = await prisma.huella.create({ data: { eventId: input.eventId, deviceKey: input.deviceKey, table: input.table, name: input.name, text: input.text, photoUrl } });
+    return row.id;
+  } catch (err) {
+    // Que no quede una foto huérfana en el store si la fila no se pudo guardar.
+    if (photoUrl) await del(photoUrl).catch(() => {});
+    throw err;
+  }
 }
 
 /** Las huellas de este teléfono en esta cena (para mostrarle "quedó guardada"). */
@@ -56,21 +56,18 @@ export async function getMyHuellas(eventId: string, deviceKey: string) {
 /** Aprobadas, las más nuevas primero (para el home). */
 export async function getApprovedHuellas(limit = 9): Promise<HuellaRow[]> {
   const rows = await prisma.huella.findMany({ where: { approvedAt: { not: null } }, orderBy: { approvedAt: "desc" }, take: limit, include: { event: { select: { title: true } } } });
-  return rows.map((h) => ({ id: h.id, name: h.name, text: h.text, photo: photoPath(h.id, h.photoUrl), table: h.table, createdAt: h.createdAt, approvedAt: h.approvedAt, eventTitle: h.event.title }));
+  return rows.map((h) => ({ id: h.id, name: h.name, text: h.text, photo: photoPath(h.id, h.photoUrl, h.approvedAt), table: h.table, createdAt: h.createdAt, approvedAt: h.approvedAt, eventTitle: h.event.title }));
 }
 
 /** Todas las de una cena (para moderar). */
 export async function getHuellasOf(eventId: string): Promise<HuellaRow[]> {
   const rows = await prisma.huella.findMany({ where: { eventId }, orderBy: { createdAt: "desc" }, include: { event: { select: { title: true } } } });
-  return rows.map((h) => ({ id: h.id, name: h.name, text: h.text, photo: photoPath(h.id, h.photoUrl), table: h.table, createdAt: h.createdAt, approvedAt: h.approvedAt, eventTitle: h.event.title }));
+  return rows.map((h) => ({ id: h.id, name: h.name, text: h.text, photo: photoPath(h.id, h.photoUrl, h.approvedAt), table: h.table, createdAt: h.createdAt, approvedAt: h.approvedAt, eventTitle: h.event.title }));
 }
 
-export async function countPendingHuellas(): Promise<number> {
-  return prisma.huella.count({ where: { approvedAt: null } });
-}
-
+// Moderación con updateMany/deleteMany: si el otro dueño ya la borró, no explota.
 export async function approveHuella(id: string, approved: boolean) {
-  await prisma.huella.update({ where: { id }, data: { approvedAt: approved ? new Date() : null } });
+  await prisma.huella.updateMany({ where: { id }, data: { approvedAt: approved ? new Date() : null } });
 }
 
 export async function removeHuella(id: string) {
@@ -171,7 +168,7 @@ export async function getPedidosOf(eventId: string): Promise<PedidoRow[]> {
 }
 
 export async function setPedidoStatus(id: string, status: "pendiente" | "listo" | "cancelado") {
-  await prisma.pedido.update({ where: { id }, data: { status, doneAt: status === "pendiente" ? null : new Date() } });
+  await prisma.pedido.updateMany({ where: { id }, data: { status, doneAt: status === "pendiente" ? null : new Date() } });
 }
 
 /** El invitado puede cancelar solo lo suyo y solo si todavía no salió. */
@@ -206,5 +203,5 @@ export async function markSugerenciasSeen(ids: string[]) {
 }
 
 export async function removeSugerencia(id: string) {
-  await prisma.sugerencia.delete({ where: { id } });
+  await prisma.sugerencia.deleteMany({ where: { id } });
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { reserveAction } from "@/app/actions";
-import { formatPrice } from "@/lib/config";
+import { HOLD_MINUTES, formatPrice } from "@/lib/config";
 
 /** Una fecha reservable, ya formateada en el servidor (el componente corre en el navegador). */
 export type ReservableEvent = {
@@ -144,7 +144,7 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
         <div className="flex items-center justify-between rounded-xl border border-line bg-surface-2 px-4 py-3">
           <div>
             <p className="text-sm text-muted">¿Cuántos son?</p>
-            <p className="text-xs text-muted">hasta {max} por reserva</p>
+            <p className="text-xs text-muted">hasta {maxSeats} por reserva</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -230,9 +230,9 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
             Vos pagás; la cena queda a nombre de quien la recibe. Si ponés su mail, cuando confirmemos el pago le llega una tarjeta con la fecha, la dirección y tu
             mensaje.
           </p>
-          <input className="input" placeholder="Para quién (nombre)" value={giftName} onChange={(e) => setGiftName(e.target.value)} maxLength={60} required={gift} />
-          <input className="input" type="email" placeholder="Su mail (opcional)" value={giftEmail} onChange={(e) => setGiftEmail(e.target.value)} maxLength={120} />
-          <textarea className="input" placeholder="Un mensaje para la tarjeta (opcional)" value={giftMessage} onChange={(e) => setGiftMessage(e.target.value)} rows={2} maxLength={300} />
+          <input className="input" aria-label="Para quién (nombre)" placeholder="Para quién (nombre)" value={giftName} onChange={(e) => setGiftName(e.target.value)} maxLength={60} required={gift} />
+          <input className="input" type="email" aria-label="Mail de quien recibe el regalo (opcional)" placeholder="Su mail (opcional)" value={giftEmail} onChange={(e) => setGiftEmail(e.target.value)} maxLength={120} />
+          <textarea className="input" aria-label="Un mensaje para la tarjeta (opcional)" placeholder="Un mensaje para la tarjeta (opcional)" value={giftMessage} onChange={(e) => setGiftMessage(e.target.value)} rows={2} maxLength={300} />
         </div>
       )}
 
@@ -258,7 +258,7 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
         </svg>
         {byTransfer
           ? `Se paga por transferencia: al reservar te mostramos el alias. Tu lugar queda guardado ${holdHours} horas.`
-          : "Pago seguro por Mercado Pago. Tu cupo queda guardado 30 minutos mientras pagás."}
+          : `Pago seguro por Mercado Pago. Tu cupo queda guardado ${HOLD_MINUTES} minutos mientras pagás.`}
       </p>
       <p className="text-center text-xs text-muted">
         Al reservar aceptás las{" "}

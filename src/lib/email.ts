@@ -5,6 +5,11 @@ import { parseMenu } from "./menu";
 import { isEmailConfigured, sendMail, sendMany } from "./mailer";
 import { icsFor } from "./calendar";
 
+/** Texto que cargó el público (nombres, notas, opiniones): nunca va crudo al HTML del mail. */
+function esc(t: string): string {
+  return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function withText(m: { subject: string; html: string }): RenderedMail {
   return { ...m, text: toText(m.html) };
 }
@@ -96,12 +101,12 @@ export function renderReservationConfirmed(input: ConfirmationInput): RenderedMa
       ? `<strong>${input.seats.join(", ")}</strong>`
       : `Todavía no elegiste. <a href="${link}" style="color:#c9a96e">Elegí tu silla acá</a>.`;
   const body = `
-    <p>Hola ${input.name}. Te esperamos.</p>
+    <p>Hola ${esc(input.name)}. Te esperamos.</p>
     <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:20px 0;border-top:1px solid #2c2823;border-bottom:1px solid #2c2823;width:100%">
       ${row("Cena", `<strong>${input.event.title}</strong>`)}
       ${row("Cuándo", `${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs`)}
       ${input.event.address ? row("Dónde", `<strong>${input.event.address}</strong>`) : ""}
-      ${row("Reserva", `${lugares} a nombre de ${input.giftName ? `${input.giftName} (regalo de ${input.name})` : input.name} · ${formatPrice(input.amount)} pagados`)}
+      ${row("Reserva", `${lugares} a nombre de ${input.giftName ? `${esc(input.giftName)} (regalo de ${esc(input.name)})` : esc(input.name)} · ${formatPrice(input.amount)} pagados`)}
       ${row("Tu lugar", seatsText)}
     </table>
     <p style="color:#c9a96e"><strong>Llegá ${formatTime(input.event.date)} hs.</strong> Se recibe de pie con un cóctel sin alcohol de la casa, y a la mesa se pasa un rato después.</p>
@@ -162,25 +167,25 @@ export async function sendAdminNewReservation(input: {
         : "";
   const body = input.pendingTransfer
     ? `
-    <p><strong>${input.name}</strong> reservó ${input.quantity} lugar${input.quantity > 1 ? "es" : ""} y va a pagar <strong>por transferencia</strong> (${formatPrice(input.amount)}).</p>
+    <p><strong>${esc(input.name)}</strong> reservó ${input.quantity} lugar${input.quantity > 1 ? "es" : ""} y va a pagar <strong>por transferencia</strong> (${formatPrice(input.amount)}).</p>
     <p>${input.event.title} · ${formatLong(input.event.date)}</p>
     <p>Email: ${input.email}<br>Tel: ${input.phone ?? "-"}</p>
-    ${input.notes ? `<p><em>Nos avisa:</em> ${input.notes}</p>` : ""}
+    ${input.notes ? `<p><em>Nos avisa:</em> ${esc(input.notes)}</p>` : ""}
     <p>Cuando te llegue el comprobante, marcala como pagada en el panel: ahí le sale el mail con la dirección.</p>
     <p><a href="${siteUrl()}/admin${input.eventId ? `/eventos/${input.eventId}` : ""}" style="color:#c9a96e">Ver la cena en el panel</a></p>`
     : transfer
     ? `
-    <p><strong>${input.transferredFrom}</strong> le pasó su reserva a <strong>${input.name}</strong> (${input.quantity} lugar${input.quantity > 1 ? "es" : ""}).</p>
+    <p><strong>${esc(input.transferredFrom ?? "")}</strong> le pasó su reserva a <strong>${esc(input.name)}</strong> (${input.quantity} lugar${input.quantity > 1 ? "es" : ""}).</p>
     <p>${input.event.title} · ${formatLong(input.event.date)}</p>
     <p>Email: ${input.email}<br>Tel: ${input.phone ?? "-"}</p>
-    ${input.notes ? `<p><em>Nos avisa:</em> ${input.notes}</p>` : ""}
+    ${input.notes ? `<p><em>Nos avisa:</em> ${esc(input.notes)}</p>` : ""}
     ${mailLine}
     <p><a href="${siteUrl()}/admin${input.eventId ? `/eventos/${input.eventId}` : ""}" style="color:#c9a96e">Ver la cena en el panel</a></p>`
     : `
-    <p><strong>${input.name}</strong> reservó ${input.quantity} lugar${input.quantity > 1 ? "es" : ""}.</p>
+    <p><strong>${esc(input.name)}</strong> reservó ${input.quantity} lugar${input.quantity > 1 ? "es" : ""}.</p>
     <p>${input.event.title} · ${formatLong(input.event.date)}</p>
     <p>Email: ${input.email}<br>Tel: ${input.phone ?? "-"}<br>Pagó ${formatPrice(input.amount)} vía ${input.via}.</p>
-    ${input.notes ? `<p><em>Nos avisa:</em> ${input.notes}</p>` : ""}
+    ${input.notes ? `<p><em>Nos avisa:</em> ${esc(input.notes)}</p>` : ""}
     ${mailLine}
     <p><a href="${siteUrl()}/admin${input.eventId ? `/eventos/${input.eventId}` : ""}" style="color:#c9a96e">Ver la cena en el panel</a></p>`;
   const html = layout(input.pendingTransfer ? "Reserva a confirmar" : transfer ? "Cambio de nombre en una reserva" : "Nueva reserva", body);
@@ -205,7 +210,7 @@ export async function sendReservationCancelled(input: { to: string; name: string
     : "";
   const html = layout(
     "Reserva cancelada",
-    `<p>Hola ${input.name.split(" ")[0]}. Cancelamos tu reserva de ${input.quantity === 1 ? "1 lugar" : `${input.quantity} lugares`} para <strong>${input.event.title}</strong>, ${formatLong(input.event.date)}.</p>
+    `<p>Hola ${esc(input.name.split(" ")[0])}. Cancelamos tu reserva de ${input.quantity === 1 ? "1 lugar" : `${input.quantity} lugares`} para <strong>${input.event.title}</strong>, ${formatLong(input.event.date)}.</p>
      <p>Si fue algo que hablamos, la devolución de ${formatPrice(input.amount)} sigue el camino que acordamos por WhatsApp. Si esto te sorprende, escribinos y lo vemos ya.</p>
      <p>${contact}</p>
      <p>Las próximas fechas están siempre en <a href="${siteUrl()}" style="color:#c9a96e">${siteUrl().replace(/^https?:\/\//, "")}</a>. Ojalá te veamos en la próxima.</p>`,
@@ -220,8 +225,8 @@ export async function sendAdminNewReview(input: { name: string; rating: number; 
   if (!isEmailConfigured() || !adminEmail) return;
   const html = layout(
     "Nueva opinión",
-    `<p><strong>${input.name}</strong> dejó ${input.rating} de 5 sobre ${input.event.title} (${formatLong(input.event.date)}):</p>
-     <p style="font-size:18px">“${input.text}”</p>
+    `<p><strong>${esc(input.name)}</strong> dejó ${input.rating} de 5 sobre ${input.event.title} (${formatLong(input.event.date)}):</p>
+     <p style="font-size:18px">“${esc(input.text)}”</p>
      <p>No se publica hasta que la aprueben: <a href="${siteUrl()}/admin/eventos/${input.eventId}" style="color:#c9a96e">ver en el panel</a>.</p>`,
   );
   const { error } = await sendMail({ to: adminEmail, subject: `Nueva opinión: ${input.name} (${"★".repeat(input.rating)})`, html, text: toText(html) });
@@ -262,7 +267,7 @@ export function renderReviewRequest(event: EventLike, p: { id: string; name: str
     subject: `¿Cómo la pasaste? · ${event.title}`,
     html: layout(
       "Gracias por venir",
-      `<p>Hola ${p.name.split(" ")[0]}. Gracias por venir el ${formatLong(event.date).toLowerCase()}.</p>
+      `<p>Hola ${esc(p.name.split(" ")[0])}. Gracias por venir el ${formatLong(event.date).toLowerCase()}.</p>
        <p>¿Nos contás cómo la pasaste? Son dos minutos y nos sirve mucho para las próximas:</p>
        <p><a href="${siteUrl()}/opinar/${p.id}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#c9a96e;color:#141210;text-decoration:none;font-weight:bold">Dejar mi opinión</a></p>
        ${nextLine}`,
@@ -300,7 +305,7 @@ export function renderHoldPending(input: HoldInput): RenderedMail {
   const msg = `Hola! Soy ${input.name}. Reservé ${lugares} para ${input.event.title} (${formatLong(input.event.date)}) y les mando el comprobante de la transferencia de ${formatPrice(input.amount)}. Mi reserva: ${link}`;
   const wa = CONTACT_PHONES[0] ? whatsappUrl(CONTACT_PHONES[0], msg) : null;
   const body = `
-    <p>Hola ${input.name}. Te guardamos ${lugares} para <strong>${input.event.title}</strong>, ${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs.</p>
+    <p>Hola ${esc(input.name)}. Te guardamos ${lugares} para <strong>${input.event.title}</strong>, ${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs.</p>
     <p>Para confirmarlo, transferí <strong style="font-size:20px">${formatPrice(input.amount)}</strong> antes del <strong>${formatLong(input.expiresAt).toLowerCase()} a las ${formatTime(input.expiresAt)} hs</strong>; después el lugar vuelve a liberarse.</p>
     <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:20px 0;border-top:1px solid #2c2823;border-bottom:1px solid #2c2823;width:100%">
       ${input.payment.alias ? row("Alias / CBU", `<strong style="font-family:monospace;font-size:18px">${input.payment.alias}</strong>`) : ""}
@@ -380,7 +385,7 @@ export async function sendAdminDeclined(input: { name: string; email: string; ph
   if (!isEmailConfigured() || !adminEmail) return;
   const html = layout(
     "No viene",
-    `<p><strong>${input.name}</strong> avisó desde el recordatorio que <strong>no va a poder ir</strong> a ${input.event.title} (${formatLong(input.event.date)}).</p>
+    `<p><strong>${esc(input.name)}</strong> avisó desde el recordatorio que <strong>no va a poder ir</strong> a ${input.event.title} (${formatLong(input.event.date)}).</p>
      <p>${input.quantity === 1 ? "Su lugar quedó" : `Sus ${input.quantity} lugares quedaron`} libre${input.quantity === 1 ? "" : "s"} y, si hay lista de espera, ya les avisamos.</p>
      <p>Había pagado ${formatPrice(input.amount)}: lo de la devolución o el cambio de fecha se charla por WhatsApp (${input.phone ?? "sin teléfono"}) o al mail ${input.email}.</p>
      <p><a href="${siteUrl()}/admin/eventos/${input.eventId}" style="color:#c9a96e">Ver la cena en el panel</a></p>`,
@@ -397,7 +402,7 @@ export function renderGiftCard(input: GiftInput): RenderedMail {
   const first = input.giftName.split(" ")[0];
   const body = `
     <p style="font-size:18px">Hola ${first}. <strong>${input.from}</strong> te regaló una cena.</p>
-    ${input.message ? `<blockquote style="margin:16px 0;padding:12px 16px;border-left:2px solid #c9a96e;color:#e6dfd3;font-style:italic">${input.message}</blockquote>` : ""}
+    ${input.message ? `<blockquote style="margin:16px 0;padding:12px 16px;border-left:2px solid #c9a96e;color:#e6dfd3;font-style:italic">${esc(input.message)}</blockquote>` : ""}
     <p><strong>${input.event.title}</strong><br>${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs${
       input.event.address ? `<br>${input.event.address}` : ""
     }<br>${input.quantity === 1 ? "1 lugar" : `${input.quantity} lugares`} a tu nombre. Está todo pago.</p>
@@ -423,7 +428,6 @@ export async function sendGiftCard(input: GiftInput & { to: string }) {
 /** Al admin, unos días antes: lo que le falta a la próxima cena (carta, dirección, secretos del juego, aviso). */
 /** La receta de regalo, al día siguiente: texto libre (con saltos de línea) tal como lo cargaron en la cena. */
 export function renderRecipeGift(event: EventLike, name: string, recipe: string): RenderedMail {
-  const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const paras = recipe
     .split(/\n{2,}/)
     .map((p) => `<p style="white-space:pre-line">${esc(p.trim())}</p>`)

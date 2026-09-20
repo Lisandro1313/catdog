@@ -15,8 +15,8 @@ export function WaitlistForm({ eventId, dateLabel }: { eventId: string; dateLabe
     <form action={action} className="mt-4 grid gap-3">
       <input type="hidden" name="eventId" value={eventId} />
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_6rem]">
-        <input className="input" name="name" placeholder="Tu nombre" maxLength={60} autoComplete="name" />
-        <input className="input" type="email" name="email" placeholder="tu@email.com" required autoComplete="email" />
+        <input className="input" name="name" aria-label="Tu nombre" placeholder="Tu nombre" maxLength={60} autoComplete="name" />
+        <input className="input" type="email" name="email" aria-label="Tu email" placeholder="tu@email.com" required autoComplete="email" />
         <select className="input" name="quantity" defaultValue="1" aria-label="Cuántos lugares">
           {[1, 2, 3, 4].map((n) => (
             <option key={n} value={n}>

@@ -76,6 +76,7 @@ export function ReviewForm({ reservationId, defaultName, existing, next }: Props
 
       <textarea
         className="input"
+        aria-label="Tu opinión"
         placeholder="Qué te gustó, qué te sorprendió, qué le dirías a alguien que duda…"
         value={text}
         onChange={(e) => setText(e.target.value)}

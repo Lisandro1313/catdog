@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { confirmPaymentById, getTakenSeats } from "@/lib/reservations";
 import { isMercadoPagoConfigured } from "@/lib/mp";
-import { CONTACT_PHONES, SITE_NAME, formatPhone, formatPrice, siteUrl, whatsappUrl } from "@/lib/config";
+import { CONTACT_PHONES, HOLD_MINUTES, SITE_NAME, formatPhone, formatPrice, siteUrl, whatsappUrl } from "@/lib/config";
 import { formatDayNumber, formatLong, formatTime, formatWeekday, nowMs } from "@/lib/dates";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { getPaymentConfig } from "@/lib/payment";
@@ -12,6 +12,10 @@ import { formatLong as formatLongDate } from "@/lib/dates";
 import { SeatChooser } from "@/components/SeatChooser";
 import { TransferForm } from "@/components/TransferForm";
 import { DeclineForm } from "@/components/DeclineForm";
+import { ConfirmForm } from "@/components/ConfirmForm";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: `Tu reserva · ${SITE_NAME}`, robots: { index: false, follow: false } };
 
 export const dynamic = "force-dynamic";
 
@@ -44,11 +48,8 @@ export default async function ReservationPage({ params, searchParams }: Props) {
     if (!reservation) notFound();
   }
 
-  // "Confirmo que voy" desde el mail del día anterior: un toque, sin login.
-  if (confirming && reservation.status === "PAID" && !reservation.confirmedAt) {
-    await prisma.reservation.update({ where: { id }, data: { confirmedAt: new Date() } });
-    reservation = (await prisma.reservation.findUnique({ where: { id }, include })) ?? reservation;
-  }
+  // "Confirmo que voy" desde el mail del día anterior: se confirma con un botón (POST), nunca por solo abrir el link.
+  const confirmed = sp.confirmado === "1";
 
   const payment = await getPaymentConfig();
   // Reserva hecha para pagar por transferencia: no tiene link de Mercado Pago.
@@ -63,8 +64,9 @@ export default async function ReservationPage({ params, searchParams }: Props) {
       ? (await getTakenSeats(reservation.eventId)).filter((n) => !mine.includes(n))
       : [];
   const reservationUrl = `${siteUrl()}/reserva/${reservation.id}`;
+  // La dirección solo va en el mensaje si es para los que vienen con esta reserva (ya está paga por ellos).
   const shareText = `Tengo lugar para la cena a puertas cerradas del ${formatLong(reservation.event.date)}, ${formatTime(reservation.event.date)} hs${
-    reservation.event.address ? `, en ${reservation.event.address}` : ""
+    reservation.event.address && reservation.quantity > 1 ? `, en ${reservation.event.address}` : ""
   }. ${reservation.quantity > 1 ? "Venís conmigo 🙂 " : ""}Mirá de qué va: ${siteUrl()}`;
 
   return (
@@ -80,7 +82,8 @@ export default async function ReservationPage({ params, searchParams }: Props) {
                   <DeclineForm reservationId={reservation.id} dateLabel={formatLong(reservation.event.date).toLowerCase()} />
                 </div>
               )}
-              {confirming && reservation.confirmedAt && (
+              {confirming && upcoming && !reservation.confirmedAt && <ConfirmForm reservationId={reservation.id} />}
+              {(confirmed || (confirming && reservation.confirmedAt)) && reservation.confirmedAt && (
                 <p className="mx-auto mb-4 inline-block rounded-full border border-ok/50 bg-ok/10 px-4 py-1.5 text-sm text-ok">
                   ✓ Gracias por confirmar, te esperamos
                 </p>
@@ -238,7 +241,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
                 {expired
                   ? byTransfer
                     ? "Pasó el tiempo que guardábamos el lugar y no vimos la transferencia. Si la hiciste, mandanos el comprobante por WhatsApp y lo confirmamos igual, si queda lugar."
-                    : "Pasaron los 30 minutos sin pago y el cupo volvió a quedar libre."
+                    : `Pasaron los ${HOLD_MINUTES} minutos sin pago y el cupo volvió a quedar libre.`
                   : released || reservation.declinedAt
                     ? "Tu lugar quedó libre para otra persona. Lo del pago lo charlamos por WhatsApp: escribinos cuando puedas. Ojalá la próxima."
                     : "Si pagaste y esto es un error, escribinos."}

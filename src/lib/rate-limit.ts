@@ -15,7 +15,14 @@ export async function clientIpHash(): Promise<string> {
 
 /** true si todavía se puede; false si esa IP ya hizo `max` pedidos de ese tipo en la ventana. */
 export async function allowRequest(kind: string, max: number, windowMs = 15 * 60 * 1000): Promise<boolean> {
-  const key = `${kind}:${await clientIpHash()}`;
+  return allowKey(`${kind}:${await clientIpHash()}`, max, windowMs);
+}
+
+/**
+ * Igual, pero con una clave propia (p. ej. el deviceKey del teléfono). En la cena todos salen con la
+ * misma IP del wifi de la casa, así que ahí el freno por IP no sirve: se frena por teléfono.
+ */
+export function allowKey(key: string, max: number, windowMs = 15 * 60 * 1000): boolean {
   const now = Date.now();
   const b = buckets.get(key);
   if (!b || b.resetAt < now) {

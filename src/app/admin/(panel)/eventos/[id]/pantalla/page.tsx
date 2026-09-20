@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildActs, getTablesBoard } from "@/lib/hoy";
-import { getRecords, GAMES, dayKey } from "@/lib/premios";
+import { getRecords, GAMES, PREMIO_MINIMO, dayKey } from "@/lib/premios";
 import { GAME_INFO } from "@/components/jugar/info";
 import { getHuellasOf, getVoteTally } from "@/lib/vivo";
 import { AutoRefresh } from "@/components/admin/AutoRefresh";
+import { ForceDark } from "@/components/admin/ForceDark";
 import { SITE_NAME } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,7 @@ export default async function PantallaPage({ params }: { params: Promise<{ id: s
   return (
     <div className="ap fixed inset-0 z-50 overflow-y-auto bg-bg px-10 py-10 text-ink">
       <AutoRefresh every={20000} />
+      <ForceDark />
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.2fr_1fr]">
         <div>
           <p className="ap-eyebrow">✦ {SITE_NAME} ✦</p>
@@ -121,7 +123,7 @@ export default async function PantallaPage({ params }: { params: Promise<{ id: s
           <section className="mt-8">
             <p className="ap-eyebrow">Se ganaron el trago</p>
             {ganadores.length === 0 ? (
-              <p className="mt-2 text-muted">Nadie todavía. Nueve juegos logrados y hay un trago.</p>
+              <p className="mt-2 text-muted">Nadie todavía. {PREMIO_MINIMO} juegos logrados y hay un trago.</p>
             ) : (
               <ul className="mt-3 flex flex-wrap gap-2">
                 {ganadores.map((g) => (

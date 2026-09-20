@@ -28,7 +28,7 @@ export default async function HoyPage({ params, searchParams }: Props) {
   const { mesa } = await params;
   const sp = await searchParams;
   const demo = mesa === "demo";
-  const table = /^\d{1,2}$/.test(mesa) ? Number(mesa) : null;
+  const table = /^[1-9]\d?$/.test(mesa) ? Number(mesa) : null;
   const off = await isHoyOff();
 
   const tonight = await getTonightEvent();

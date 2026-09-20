@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GAMES, METAS, PREMIO_MINIMO, cleanName, dayKey, ganaDuelo, logrado, logrosParaPremio, mejora, plausible, retoDelDia } from "@/lib/juegos";
+import { GAMES, METAS, PREMIO_MINIMO, cleanName, dayKey, ganaDuelo, logrado, logrosParaPremio, mejora, plausible, retoDelDia, clampScore, MIN_MS } from "@/lib/juegos";
 
 describe("reglas de los juegos", () => {
   it("la meta se logra según la dirección de cada juego", () => {
@@ -61,5 +61,16 @@ describe("reglas de los juegos", () => {
     expect(ganaDuelo("chef", 30, 20)).toBe(0);
     expect(ganaDuelo("memoria", 30, 20)).toBe(1);
     expect(ganaDuelo("copa", 7, 7)).toBeNull();
+  });
+});
+
+describe("clampScore y MIN_MS", () => {
+  it("recorta las rachas al tope en vez de descartarlas", () => {
+    expect(clampScore("maridaje", 500)).toBe(80);
+    expect(clampScore("trivia", 12)).toBe(12);
+    expect(clampScore("memoria", 300)).toBe(300);
+  });
+  it("todo juego tiene una duración mínima positiva", () => {
+    for (const g of GAMES) expect(MIN_MS[g]).toBeGreaterThan(0);
   });
 });

@@ -40,7 +40,9 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
     const s = state.current;
     for (let k = 0; k < 200; k++) {
       const p = { x: Math.floor(Math.random() * N), y: Math.floor(Math.random() * N) };
-      if (!s.snake.some((q) => q.x === p.x && q.y === p.y) && !(p.x === s.dog.x && p.y === s.dog.y)) return p;
+      const onFood = p.x === s.food.x && p.y === s.food.y;
+      const nearHead = Math.abs(p.x - s.snake[0].x) + Math.abs(p.y - s.snake[0].y) < 3;
+      if (!s.snake.some((q) => q.x === p.x && q.y === p.y) && !(p.x === s.dog.x && p.y === s.dog.y) && !onFood && !nearHead) return p;
     }
     return { x: 0, y: 0 };
   }
@@ -102,7 +104,10 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
     if (s.dir === "L") head.x -= 1;
     if (s.dir === "R") head.x += 1;
     const hitWall = head.x < 0 || head.y < 0 || head.x >= N || head.y >= N;
-    const hitSelf = s.snake.some((p) => p.x === head.x && p.y === head.y);
+    const eating = head.x === s.food.x && head.y === s.food.y;
+    // La cola se corre en este mismo paso (si no come): pisarla no es chocar.
+    const body = eating ? s.snake : s.snake.slice(0, -1);
+    const hitSelf = body.some((p) => p.x === head.x && p.y === head.y);
     const hitDog = head.x === s.dog.x && head.y === s.dog.y;
     if (hitWall || hitSelf || hitDog) {
       s.alive = false;

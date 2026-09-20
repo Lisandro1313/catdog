@@ -14,7 +14,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     headers: {
       "content-type": file.contentType,
       "content-length": String(file.size),
-      "cache-control": file.cacheable ? "public, max-age=31536000, immutable" : "private, no-store",
+      // Aprobada: una hora en el navegador y en el CDN (si la ocultan, deja de servirse a lo sumo una hora después).
+      "cache-control": file.cacheable ? "public, max-age=3600, s-maxage=3600" : "private, no-store",
     },
   });
 }

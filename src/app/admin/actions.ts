@@ -135,16 +135,16 @@ export async function deleteUserAction(_prev: ActionState, formData: FormData): 
 }
 
 const eventSchema = z.object({
-  title: z.string().trim().min(2).max(120),
+  title: z.string().trim().min(2, "Poné un título.").max(120, "El título es muy largo (máximo 120)."),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Fecha inválida"),
-  price: z.coerce.number().int().min(0),
-  capacity: z.coerce.number().int().min(1).max(200),
-  description: z.string().trim().max(2000).optional(),
-  menu: z.string().trim().max(4000).optional(),
-  bar: z.string().trim().max(4000).optional(),
-  barPrice: z.coerce.number().int().min(0).optional(),
-  address: z.string().trim().max(200).optional(),
-  recipeGift: z.string().trim().max(6000).optional(),
+  price: z.coerce.number({ message: "Precio inválido." }).int().min(0, "Precio inválido."),
+  capacity: z.coerce.number({ message: "Capacidad inválida." }).int().min(1, "Capacidad inválida.").max(200, "Capacidad inválida."),
+  description: z.string().trim().max(2000, "La descripción es muy larga (máximo 2000).").optional(),
+  menu: z.string().trim().max(4000, "La carta es muy larga (máximo 4000).").optional(),
+  bar: z.string().trim().max(4000, "La barra es muy larga (máximo 4000).").optional(),
+  barPrice: z.coerce.number({ message: "Precio de barra inválido." }).int().min(0, "Precio de barra inválido.").optional(),
+  address: z.string().trim().max(200, "La dirección es muy larga (máximo 200).").optional(),
+  recipeGift: z.string().trim().max(6000, "La receta es muy larga (máximo 6000 caracteres).").optional(),
   published: z.boolean(),
   unlisted: z.boolean(),
 });
@@ -182,6 +182,7 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
       bar: d.bar ?? null,
       barPrice: d.barPrice ?? null,
       address: d.address ?? null,
+      recipeGift: d.recipeGift ?? null,
       published: d.published,
       unlisted: d.unlisted,
     },

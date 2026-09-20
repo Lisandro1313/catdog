@@ -27,6 +27,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
   const area = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startAt = useRef(0);
+  const angryRef = useRef(false);
   const reported = useRef(false);
   const streakRef = useRef(0);
 
@@ -47,14 +48,18 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
       }
       // Cuánto tarda en llegar (se ve deslizarse) y cuánto se queda antes de irse.
       const ms = Math.max(220, 520 - elapsed * 9);
-      return { x, y, size, angry: elapsed > 5 && Math.random() < 0.18, ms };
+      const angry = elapsed > 5 && Math.random() < 0.18;
+      angryRef.current = angry;
+      return { x, y, size, angry, ms };
     });
     if (timer.current) clearTimeout(timer.current);
     const stay = Math.max(380, 950 - elapsed * 18);
     timer.current = setTimeout(() => {
-      // Se fue sin que lo toquen: se corta la racha.
-      streakRef.current = 0;
-      setStreak(0);
+      // Se fue sin que lo toquen: se corta la racha (salvo que fuera el enojado: esquivarlo es lo correcto).
+      if (!angryRef.current) {
+        streakRef.current = 0;
+        setStreak(0);
+      }
       place((Date.now() - startAt.current) / 1000);
     }, stay);
   }
@@ -106,7 +111,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
 
   function hit(e: React.PointerEvent) {
     e.stopPropagation();
-    if (phase !== "play") return;
+    if (phase !== "play" || !e.isPrimary) return;
     if (pos.angry) {
       streakRef.current = 0;
       setStreak(0);

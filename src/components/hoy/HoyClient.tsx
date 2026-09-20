@@ -66,8 +66,12 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
   /** Cambia de pantalla; entrar a un acto deja una entrada en el historial para que "atrás" vuelva al mazo. */
   const setView = (v: View) => {
     if (v.kind === "act") {
-      history.pushState({ hoy: "act" }, "");
-      pushed.current += 1;
+      // Una sola entrada en el historial aunque encadenes actos: acto → acto la reemplaza.
+      if (pushed.current > 0) history.replaceState({ hoy: "act" }, "");
+      else {
+        history.pushState({ hoy: "act" }, "");
+        pushed.current = 1;
+      }
     } else if (v.kind === "mazo" && pushed.current > 0) {
       pushed.current = 0;
       history.back();
@@ -76,11 +80,11 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
     withTransition(() => setViewRaw(v));
   };
 
-  // Botón "atrás" del teléfono: desde un acto vuelve al mazo en vez de salir de la página.
+  // Botón "atrás" del teléfono: desde un acto (o el cierre) vuelve al mazo en vez de salir de la página.
   useEffect(() => {
     const onPop = () => {
       pushed.current = 0;
-      withTransition(() => setViewRaw((cur) => (cur.kind === "act" ? { kind: "mazo" } : cur)));
+      withTransition(() => setViewRaw((cur) => (cur.kind === "act" || cur.kind === "fin" ? { kind: "mazo" } : cur)));
     };
     addEventListener("popstate", onPop);
     return () => removeEventListener("popstate", onPop);
@@ -90,7 +94,6 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
   const [live, setLive] = useState<LiveSnapshot | null>(null);
   const [extras, setExtras] = useState<ExtrasState>({ votes: {}, huellas: [] });
   const [telon, setTelon] = useState<number | null>(null);
-  const liveTick = useRef(0);
   const viewRef = useRef<View["kind"]>("intro");
   useEffect(() => {
     viewRef.current = view.kind;
@@ -98,6 +101,8 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
   /** Telón: cuando la cocina marca que salió un acto nuevo, se anuncia una sola vez por teléfono (no en la intro). */
   const maybeTelon = (step: number | null) => {
     if (step == null || viewRef.current === "intro" || !acts[step]) return;
+    // Si justo estás en esa carta, no hace falta el telón (y te borraría la ficha elegida).
+    if (viewRef.current === "act" && currentAct.current === step) return;
     const key = `${storeKey}:served`;
     let seen = -1;
     try {
@@ -133,9 +138,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
     refreshLive();
     refreshExtras();
     const id = setInterval(() => {
-      if (document.hidden) return;
-      liveTick.current += 1;
-      refreshLive();
+      if (!document.hidden) refreshLive();
     }, LIVE_EVERY);
     const onVis = () => !document.hidden && refreshLive();
     document.addEventListener("visibilitychange", onVis);
@@ -223,7 +226,12 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
     if (!choice) return;
     setStage("sealing");
     setError(null);
-    const res = await guessAction({ eventId, stepIndex: act.index, choice, stake, table, demo });
+    let res: Awaited<ReturnType<typeof guessAction>>;
+    try {
+      res = await guessAction({ eventId, stepIndex: act.index, choice, stake, table, demo });
+    } catch {
+      res = { ok: false, error: "Sin señal. Probá de nuevo." };
+    }
     if (!res.ok) {
       setStage("back");
       setError(res.error);
@@ -288,7 +296,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
         onOpen={() => {
           const i = telon;
           setTelon(null);
-          openAct(i);
+          if (!(view.kind === "act" && view.index === i)) openAct(i);
         }}
         onClose={() => setTelon(null)}
       />
@@ -492,6 +500,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
                           key={o}
                           type="button"
                           className={`hoy-chip ${choice === o ? "is-on" : ""}`}
+                          aria-pressed={choice === o}
                           onClick={() => setChoice(o)}
                           disabled={stage === "sealing"}
                         >
@@ -501,10 +510,10 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
                     </div>
                     <div className="mt-4 flex items-center justify-between gap-3">
                       <div className="flex gap-2 text-xs">
-                        <button type="button" className={`hoy-stake ${stake === 1 ? "is-on" : ""}`} disabled={stage === "sealing"} onClick={() => setStake(1)}>
+                        <button type="button" className={`hoy-stake ${stake === 1 ? "is-on" : ""}`} aria-pressed={stake === 1} disabled={stage === "sealing"} onClick={() => setStake(1)}>
                           1 ✦
                         </button>
-                        <button type="button" className={`hoy-stake ${stake === 3 ? "is-on" : ""}`} disabled={stage === "sealing"} onClick={() => setStake(3)}>
+                        <button type="button" className={`hoy-stake ${stake === 3 ? "is-on" : ""}`} aria-pressed={stake === 3} disabled={stage === "sealing"} onClick={() => setStake(3)}>
                           3 ✦
                         </button>
                         <span className="self-center text-[10px] leading-tight text-muted">{stake === 3 ? "si errás, −1" : "sin riesgo"}</span>

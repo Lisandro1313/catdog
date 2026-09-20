@@ -108,9 +108,11 @@ export function TarjetaButton(props: Props) {
         await nav.share({ files: [file], title: "CatDog", text: `Estuve en CatDog · ${props.title}` });
       } else {
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
+        a.href = url;
         a.download = "catdog.png";
         a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
         setMsg("Se descargó la tarjeta. Subila a tus historias.");
       }
     } catch {

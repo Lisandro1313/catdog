@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { reportScoreAction, setNameAction, type ReportResult } from "@/app/hoy/jugar/actions";
+import { reportScoreAction, setNameAction, startGameAction, type ReportResult } from "@/app/hoy/jugar/actions";
 import { GAMES, PREMIO_MINIMO, ganaDuelo, logrado, logrosParaPremio, retoDelDia, type GameId, type Marcas, type Records } from "@/lib/juegos";
 import { GAME_INFO, Tabla } from "./info";
 import { withTransition } from "./Shell";
@@ -16,7 +16,7 @@ function fmtPremioAt(iso: string): string {
 
 /** El mensaje que llega a la casa: quién, cuándo y el código (único por teléfono y por día). */
 function premioMsg(m: Marcas, name: string): string {
-  return `¡Logré ${PREMIO_MINIMO} de ${GAMES.length} en los juegos de CatDog! ${name ? `Soy ${name}. ` : ""}Código: ${m.premio}${m.premioAt ? ` · ganado el ${fmtPremioAt(m.premioAt)}` : ""}. Me gané un trago 🍸`;
+  return `¡Logré ${PREMIO_MINIMO} logros en los juegos de CatDog! ${name ? `Soy ${name}. ` : ""}Código: ${m.premio}${m.premioAt ? ` · ganado el ${fmtPremioAt(m.premioAt)}` : ""}. Me gané un trago 🍸`;
 }
 import dynamic from "next/dynamic";
 import type { Pair } from "./Maridaje";
@@ -65,17 +65,18 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
       return;
     }
     withTransition(() => setViewRaw(v));
+    if (v !== "hub" && v !== "premio" && v !== "records" && v !== "duelo" && v !== "torneo") {
+      // Token de partida: el servidor lo firma con la hora; si falla la red, se reintenta una vez.
+      setNueva(false);
+      tokenRef.current = null;
+      const pedir = () => startGameAction(v).then((t) => { tokenRef.current = t; }).catch(() => null);
+      pedir().then((t) => t == null && setTimeout(pedir, 3000));
+    }
   };
-  useEffect(() => {
-    const onPop = () => {
-      pushed.current = 0;
-      withTransition(() => setViewRaw("hub"));
-    };
-    addEventListener("popstate", onPop);
-    return () => removeEventListener("popstate", onPop);
-  }, []);
   const [marcas, setMarcas] = useState<Marcas>(initialMarcas);
   const [records, setRecords] = useState<Records>(initialRecords);
+  const tokenRef = useRef<string | null>(null);
+  const [sinSenal, setSinSenal] = useState(false);
   const [name, setName] = useState<string>(initialMarcas.name ?? "");
   const [askName, setAskName] = useState<GameId | null>(null);
   const [nameDraft, setNameDraft] = useState("");
@@ -83,6 +84,22 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
   const [recordGame, setRecordGame] = useState<GameId>(GAMES[0]);
   const [duelo, setDuelo] = useState<Duelo | null>(null);
   const [duelosGanados, setDuelosGanados] = useState(0);
+  /** Salir de un juego a mitad de un duelo lo cancela: si no, la próxima partida suelta se contaría como turno del duelo. */
+  const salir = () => {
+    setDuelo((d) => (d && d.stage === "play" ? null : d));
+    setView("hub");
+  };
+  // Botón "atrás" del teléfono: vuelve al hub (y cancela un duelo a medias) en vez de salir de la página.
+  useEffect(() => {
+    const onPop = () => {
+      pushed.current = 0;
+      setDuelo((d) => (d && d.stage === "play" ? null : d));
+      withTransition(() => setViewRaw("hub"));
+    };
+    addEventListener("popstate", onPop);
+    return () => removeEventListener("popstate", onPop);
+  }, []);
+
   const [torneoSetup, setTorneoSetup] = useState<{ game: GameId; names: [string, string, string, string] }>({ game: "chef", names: ["", "", "", ""] });
   const reto = retoDelDia();
   const [nueva, setNueva] = useState(false);
@@ -123,11 +140,18 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
       }
       setDuelo({ ...duelo, scores, wins, stage: done ? "done" : "between" });
       withTransition(() => setViewRaw("duelo"));
+      // En duelo o torneo juega otra gente con este teléfono: esos puntajes no son marcas del dueño.
+      return;
     }
-    const res = await reportScoreAction({ game, value, name: name || undefined });
-    setNueva(res.nuevaMarca);
-    apply(res);
-    if (res.nuevaMarca && !name) setAskName(game);
+    setSinSenal(false);
+    try {
+      const res = await reportScoreAction({ game, value, name: name || undefined, token: tokenRef.current ?? undefined });
+      setNueva(res.nuevaMarca);
+      apply(res);
+      if (res.nuevaMarca && !name) setAskName(game);
+    } catch {
+      setSinSenal(true);
+    }
   }
 
   async function guardarNombre() {
@@ -183,7 +207,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
   if (completos >= 5) insignias.push({ icon: "🔥", label: `${completos} juegos logrados hoy` });
   if (duelosGanados > 0) insignias.push({ icon: "⚔️", label: `Duelo${duelosGanados > 1 ? "s" : ""} en la mesa` });
   if (logrado("gato", marcas.gato) && logrado("lisandro", marcas.lisandro)) insignias.push({ icon: "🐾", label: "Amigo de la casa" });
-  const common = { records, marcas, nueva, onBack: () => setView("hub") };
+  const common = { records, marcas, nueva, onBack: salir };
 
   const game =
     view === "maridaje" ? <Maridaje pairs={pairs} extraDrinks={drinks} onDone={(v) => reportar("maridaje", v)} {...common} /> :
@@ -208,6 +232,11 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
             {duelo.turn === 1 && duelo.scores[0] != null && <> · {duelo.names[0]} hizo {duelo.scores[0]}</>}
           </p>
         )}
+        {sinSenal && (
+          <p className="jg-duelo-bar" role="alert">
+            Sin señal: el puntaje no se guardó. Cuando vuelva la conexión, jugá de nuevo.
+          </p>
+        )}
         <div key={duelo ? `${duelo.game}-${duelo.turn}` : view}>{game}</div>
         {modal}
       </>
@@ -220,7 +249,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
         <Confetti />
         <div className="jg-premio">
           <p className="ap-ornament">✦</p>
-          <p className="ap-eyebrow mt-3">Lograste {PREMIO_MINIMO} de {GAMES.length}</p>
+          <p className="ap-eyebrow mt-3">Lograste {PREMIO_MINIMO} logros</p>
           <h1 className="ap-display mt-3 text-4xl">Te ganaste un trago</h1>
           <p className="mt-4 text-sm text-muted">Mandanos el código por WhatsApp o mostrá esta pantalla en la barra: elegís uno de la carta. Uno por persona, se canjea una sola vez.</p>
           <p className="jg-codigo">{marcas.premio}</p>
@@ -545,7 +574,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
 
       {!marcas.premio && completos > 0 && logros < PREMIO_MINIMO && (
         <p className="mt-3 text-xs text-muted">
-          Te faltan {PREMIO_MINIMO - logros}. Podés elegir entre:{" "}
+          Te faltan {PREMIO_MINIMO - logros} (el reto del día vale doble). Podés elegir entre:{" "}
           {GAMES.filter((g) => !logrado(g, marcas[g]))
             .map((g) => GAME_INFO[g].title)
             .join(", ")}

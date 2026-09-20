@@ -81,10 +81,10 @@ function rnd(n: number): number {
   return Math.floor(Math.random() * n);
 }
 /** Un cliente nuevo con su pedido. La paciencia depende del nivel y del carácter. */
-function newOrder(served: number, avoidName?: string): Order {
+function newOrder(served: number, avoid: string[] = []): Order {
   const lvl = Math.floor(served / 3) + 1;
   // Desde el nivel 2, cada tanto cae el chef con un capricho fuera de carta: vale doble y deja propina grande.
-  if (lvl >= 2 && avoidName !== "Agustín" && Math.random() < 0.14) {
+  if (lvl >= 2 && !avoid.includes("Agustín") && Math.random() < 0.14) {
     const c = CLIENTES.find((x) => x.name === "Agustín")!;
     const pool = [...ING];
     const steps: string[] = [];
@@ -93,7 +93,7 @@ function newOrder(served: number, avoidName?: string): Order {
     return { id: now() + Math.random(), c, recipe: { name: "Capricho del chef", steps }, got: [], deadline: now() + total, total, hidden: false, shake: 0, vip: true };
   }
   let c = CLIENTES[rnd(CLIENTES.length)];
-  if (c.name === avoidName) c = CLIENTES[(CLIENTES.indexOf(c) + 1) % CLIENTES.length];
+  for (let k = 0; k < CLIENTES.length && avoid.includes(c.name); k++) c = CLIENTES[(CLIENTES.indexOf(c) + 1) % CLIENTES.length];
   const recipe = RECIPES[rnd(RECIPES.length)];
   const base = Math.max(6500, 17000 - lvl * 1500);
   const total = Math.round(base * (c.temper === "apurado" ? 0.75 : c.temper === "tranquilo" ? 1.25 : 1));
@@ -171,7 +171,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
       }
       const maxSlots = lvl >= 5 ? 3 : lvl >= 2 ? 2 : 1;
       if (cur.length < maxSlots && t >= nextArrival) {
-        const o = newOrder(servedRef.current, cur[0]?.c.name);
+        const o = newOrder(servedRef.current, cur.map((x) => x.c.name));
         cur = [...cur, o];
         nextArrival = t + 900 + Math.random() * 1500;
         beep(1046, 80);

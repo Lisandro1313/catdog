@@ -57,12 +57,36 @@ export function mejora(game: GameId, value: number, current: number | undefined 
 }
 
 /** Valores imposibles se descartan sin guardar (un memotest de 8 pares no baja de 8 movimientos, etc.). */
+const MAX: Record<GameId, number> = { maridaje: 80, servicio: 200, gato: 400, ritmo: 400, memoria: 200, chef: 90, lisandro: 200, copa: 500, simon: 30, mimica: 40, trivia: 80 };
+
 export function plausible(game: GameId, value: number): boolean {
   if (!Number.isInteger(value) || value < 0) return false;
-  const max: Record<GameId, number> = { maridaje: 80, servicio: 200, gato: 400, ritmo: 400, memoria: 200, chef: 90, lisandro: 200, copa: 500, simon: 30, mimica: 40, trivia: 80 };
   if (game === "memoria" && value < 8) return false;
-  return value <= max[game];
+  return value <= MAX[game];
 }
+
+/** Las rachas (maridaje, trivia) no tienen fin: una partida larga legítima se recorta al tope en vez de descartarse. */
+export function clampScore(game: GameId, value: number): number {
+  return LOWER_IS_BETTER[game] ? value : Math.min(value, MAX[game]);
+}
+
+/**
+ * Cuánto tiene que durar, como mínimo, una partida que llega a la meta. Un puntaje "logrado" que se
+ * reporta antes de ese tiempo desde que se abrió el juego no puede venir de jugar: se rechaza.
+ */
+export const MIN_MS: Record<GameId, number> = {
+  maridaje: 8000,
+  servicio: 25000,
+  gato: 15000,
+  ritmo: 20000,
+  memoria: 8000,
+  chef: 20000,
+  lisandro: 20000,
+  copa: 8000,
+  simon: 20000,
+  mimica: 45000,
+  trivia: 10000,
+};
 
 /** Nombre para los récords: corto, sin saltos de línea ni links. */
 export function cleanName(raw: unknown): string | null {

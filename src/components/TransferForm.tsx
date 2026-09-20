@@ -40,10 +40,10 @@ export function TransferForm({ reservationId, currentName }: { reservationId: st
         <p className="text-xs text-muted">
           Las sillas y el pago quedan igual; la reserva pasa a su nombre y le llega la confirmación con la dirección. Vos dejás de tener el lugar.
         </p>
-        <input className="input" placeholder="Nombre y apellido de quien va" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} />
+        <input className="input" aria-label="Nombre y apellido de quien va" placeholder="Nombre y apellido de quien va" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} />
         <div className="grid gap-3 sm:grid-cols-2">
-          <input className="input" type="email" placeholder="Su email" value={email} onChange={(e) => setEmail(e.target.value)} required inputMode="email" />
-          <input className="input" type="tel" placeholder="Su WhatsApp (opcional)" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
+          <input className="input" type="email" aria-label="Email de quien va" placeholder="Su email" value={email} onChange={(e) => setEmail(e.target.value)} required inputMode="email" />
+          <input className="input" type="tel" aria-label="WhatsApp de quien va (opcional)" placeholder="Su WhatsApp (opcional)" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
         </div>
         {error && (
           <p className="text-sm text-danger" role="alert">

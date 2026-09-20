@@ -17,6 +17,7 @@ export function PhotoStrip({ photos }: { photos: PhotoRow[] }) {
     };
     addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
+    (document.querySelector(".lightbox-close") as HTMLElement | null)?.focus();
     return () => {
       removeEventListener("keydown", onKey);
       document.body.style.overflow = "";

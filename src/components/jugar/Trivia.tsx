@@ -18,9 +18,10 @@ type Props = { onDone: (streak: number) => void; onBack: () => void; marcas: Mar
 function fromMenu(pairs: Pair[]): TriviaItem[] {
   if (pairs.length < 2) return [];
   const out: TriviaItem[] = [];
-  pairs.forEach((p, i) => {
-    const other = pairs[(i + 1 + Math.floor(Math.random() * (pairs.length - 1))) % pairs.length];
-    if (Math.random() < 0.5) {
+  pairs.forEach((p) => {
+    const others = pairs.filter((o) => o.drink !== p.drink);
+    const other = others[Math.floor(Math.random() * others.length)];
+    if (!other || Math.random() < 0.5) {
       out.push({ text: `Esta noche, ${p.dish} va con ${p.drink}.`, answer: true, why: "Así está en la carta de la noche." });
     } else {
       out.push({ text: `Esta noche, ${p.dish} va con ${other.drink}.`, answer: false, why: `Va con ${p.drink}. ${other.drink} acompaña otro plato.` });

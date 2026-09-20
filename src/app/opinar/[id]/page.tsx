@@ -5,6 +5,9 @@ import { SITE_NAME } from "@/lib/config";
 import { formatLong, nowMs } from "@/lib/dates";
 import { canReview, displayName } from "@/lib/reviews";
 import { ReviewForm } from "@/components/ReviewForm";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: `Tu opinión · ${SITE_NAME}`, robots: { index: false, follow: false } };
 
 export const dynamic = "force-dynamic";
 
