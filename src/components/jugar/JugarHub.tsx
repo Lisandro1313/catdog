@@ -18,17 +18,26 @@ function fmtPremioAt(iso: string): string {
 function premioMsg(m: Marcas, name: string): string {
   return `¡Logré ${PREMIO_MINIMO} de ${GAMES.length} en los juegos de CatDog! ${name ? `Soy ${name}. ` : ""}Código: ${m.premio}${m.premioAt ? ` · ganado el ${fmtPremioAt(m.premioAt)}` : ""}. Me gané un trago 🍸`;
 }
-import { Memoria } from "./Memoria";
-import { Maridaje, type Pair } from "./Maridaje";
-import { Servicio } from "./Servicio";
-import { Gato } from "./Gato";
-import { Lisandro } from "./Lisandro";
-import { Ritmo } from "./Ritmo";
-import { AtrapaChef } from "./AtrapaChef";
-import { Copa } from "./Copa";
-import { Simon } from "./Simon";
-import { Mimica } from "./Mimica";
-import { Trivia } from "./Trivia";
+import dynamic from "next/dynamic";
+import type { Pair } from "./Maridaje";
+
+/** Cada juego se baja recién cuando se abre: el hub queda liviano en datos móviles. */
+const cargando = () => (
+  <div className="jg-stage">
+    <p className="mt-16 text-center text-xs uppercase tracking-[0.2em] text-muted">Cargando…</p>
+  </div>
+);
+const Memoria = dynamic(() => import("./Memoria").then((m) => m.Memoria), { ssr: false, loading: cargando });
+const Maridaje = dynamic(() => import("./Maridaje").then((m) => m.Maridaje), { ssr: false, loading: cargando });
+const Servicio = dynamic(() => import("./Servicio").then((m) => m.Servicio), { ssr: false, loading: cargando });
+const Gato = dynamic(() => import("./Gato").then((m) => m.Gato), { ssr: false, loading: cargando });
+const Lisandro = dynamic(() => import("./Lisandro").then((m) => m.Lisandro), { ssr: false, loading: cargando });
+const Ritmo = dynamic(() => import("./Ritmo").then((m) => m.Ritmo), { ssr: false, loading: cargando });
+const AtrapaChef = dynamic(() => import("./AtrapaChef").then((m) => m.AtrapaChef), { ssr: false, loading: cargando });
+const Copa = dynamic(() => import("./Copa").then((m) => m.Copa), { ssr: false, loading: cargando });
+const Simon = dynamic(() => import("./Simon").then((m) => m.Simon), { ssr: false, loading: cargando });
+const Mimica = dynamic(() => import("./Mimica").then((m) => m.Mimica), { ssr: false, loading: cargando });
+const Trivia = dynamic(() => import("./Trivia").then((m) => m.Trivia), { ssr: false, loading: cargando });
 
 type View = "hub" | GameId | "premio" | "records" | "duelo";
 type Duelo = { game: GameId; names: [string, string]; scores: [number | null, number | null]; turn: 0 | 1; stage: "setup" | "play" | "between" | "done" };

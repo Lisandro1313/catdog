@@ -125,7 +125,7 @@ function freq(name: string): number {
   return 440 * Math.pow(2, (semis - 69) / 12);
 }
 
-type Note = { t: number; lane: number; f: number; hit?: boolean; missed?: boolean };
+type Note = { t: number; lane: number; f: number; hit?: boolean; missed?: boolean; perfect?: boolean };
 const LEAD = 2000; // ms que tarda una nota en bajar hasta la línea
 const WINDOW = 170; // ms de tolerancia
 const LANE_COLORS = ["#b4453a", "#c9a96e", "#5f8a5c", "#9ccbe0"];
@@ -167,7 +167,8 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [hits, setHits] = useState(0);
-  const [flash, setFlash] = useState<{ lane: number; ok: boolean; id: number } | null>(null);
+  const [flash, setFlash] = useState<{ lane: number; ok: boolean; id: number; perfect?: boolean } | null>(null);
+  const [perfects, setPerfects] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
   const notes = useRef<Note[]>([]);
   const startAt = useRef(0);
@@ -186,6 +187,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
     setScore(0);
     setCombo(0);
     setHits(0);
+    setPerfects(0);
     setPhase("play");
   }
 
@@ -217,7 +219,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       const x = n.lane * laneW + laneW / 2;
       ctx.beginPath();
       ctx.arc(x, y, 14, 0, Math.PI * 2);
-      ctx.fillStyle = n.hit ? "rgba(126,166,122,0.9)" : n.missed ? "rgba(90,80,70,0.6)" : LANE_COLORS[n.lane];
+      ctx.fillStyle = n.hit ? (n.perfect ? "rgba(224,194,131,1)" : "rgba(126,166,122,0.9)") : n.missed ? "rgba(90,80,70,0.6)" : LANE_COLORS[n.lane];
       ctx.fill();
       if (!n.hit && !n.missed) {
         ctx.strokeStyle = "rgba(0,0,0,0.35)";
@@ -273,15 +275,23 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
     const n = notes.current.find((x) => x.lane === lane && !x.hit && !x.missed && Math.abs(x.t - t) <= WINDOW);
     if (n) {
       n.hit = true;
+      const perfect = Math.abs(n.t - t) <= 60;
+      n.perfect = perfect;
       beep(n.f, 260, "triangle", 0.22);
+      try {
+        navigator.vibrate?.(perfect ? 18 : 8);
+      } catch {
+        // sin vibración
+      }
       comboRef.current += 1;
       setCombo(comboRef.current);
       setHits((h) => h + 1);
+      if (perfect) setPerfects((p) => p + 1);
       const bonus = comboRef.current % 10 === 0 ? 5 : 0;
-      // Rápido vale más, lento vale menos: así el récord compara parejo.
-      scoreRef.current += Math.round((1 + bonus) * (tempo === 1.25 ? 1.5 : tempo === 0.8 ? 0.7 : 1) * 10) / 10;
+      // Perfecto vale 2; rápido vale más, lento vale menos: así el récord compara parejo.
+      scoreRef.current += Math.round(((perfect ? 2 : 1) + bonus) * (tempo === 1.25 ? 1.5 : tempo === 0.8 ? 0.7 : 1) * 10) / 10;
       setScore(Math.round(scoreRef.current));
-      setFlash({ lane, ok: true, id: t });
+      setFlash({ lane, ok: true, id: t, perfect });
     } else {
       buzz();
       comboRef.current = 0;
@@ -303,8 +313,8 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
           records={records}
           again={start}
           onBack={onBack}
-          bien={`${hits} de ${total} notas en “${song.title}”. Sacaste la melodía.`}
-          mal={`${hits} de ${total} notas en “${song.title}”. Para el trago: ${METAS.ritmo} puntos (cada 10 seguidas, +5).`}
+          bien={`${hits} de ${total} notas en “${song.title}”, ${perfects} perfectas. Sacaste la melodía.`}
+          mal={`${hits} de ${total} notas en “${song.title}”, ${perfects} perfectas. Para el trago: ${METAS.ritmo} puntos (perfecta vale 2; cada 10 seguidas, +5).`}
         />
       </Shell>
     );
@@ -318,7 +328,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
             🎸
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
-            Bajan notas por cuatro carriles: tocá el carril justo cuando la nota llega a la línea y suena. Si la errás, silencio. Cada 10 seguidas, +5. Para la
+            Bajan notas por cuatro carriles: tocá el carril justo cuando la nota llega a la línea y suena. Si la errás, silencio. Clavarla en el momento exacto vale doble (se pone dorada); cada 10 seguidas, +5. Para la
             marca: {METAS.ritmo} puntos. Con sonido, obvio.
           </p>
           <p className="mt-5 text-xs uppercase tracking-[0.2em] text-muted">Elegí la canción</p>
@@ -360,7 +370,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
               <button
                 key={l}
                 type="button"
-                className={`jg-lane ${flash?.lane === l ? (flash.ok ? "is-hit" : "is-miss") : ""}`}
+                className={`jg-lane ${flash?.lane === l ? (flash.ok ? (flash.perfect ? "is-perfect" : "is-hit") : "is-miss") : ""}`}
                 style={{ "--c": c } as React.CSSProperties}
                 onPointerDown={() => strum(l)}
                 aria-label={`Carril ${l + 1}`}

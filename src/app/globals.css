@@ -2572,3 +2572,8 @@ details.faq > summary::-webkit-details-marker {
 .jg-pico .font-display {
   font-size: 0.85rem;
 }
+.jg-lane.is-perfect span {
+  background: var(--accent-strong);
+  animation: hoy-flash 0.3s ease;
+  box-shadow: 0 0 18px rgba(224, 194, 131, 0.9);
+}

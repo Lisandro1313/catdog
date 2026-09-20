@@ -101,7 +101,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
                 key={c.id}
                 type="button"
                 className={`jg-flip ${up ? "is-up" : ""} ${found.has(c.key) ? "is-found" : ""}`}
-                onClick={() => flip(i)}
+                onPointerDown={() => flip(i)}
                 aria-label={up ? "Carta dada vuelta" : "Carta boca abajo"}
               >
                 <span className="jg-flip-inner">

@@ -144,6 +144,11 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
     if (phase !== "play") return;
     const id = setInterval(() => {
       const t = performance.now();
+      // Con la pantalla bloqueada o en otra app, el gato espera (y al volver no arranca de golpe).
+      if (document.hidden) {
+        last.current = t;
+        return;
+      }
       const speed = Math.max(85, 210 - state.current.eaten * 7);
       if (t - last.current >= speed && state.current.alive) {
         last.current = t;
