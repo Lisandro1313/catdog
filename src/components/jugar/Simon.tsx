@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, shuffle } from "./Shell";
+import { Shell, beep, buzz, shuffle, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
 
 /** La alacena del bartender: cada partida toma cuatro al azar, cada uno con su nota. */
@@ -72,6 +72,7 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   function start() {
+    keepAwake();
     reported.current = false;
     setWrong(null);
     setRound(0);

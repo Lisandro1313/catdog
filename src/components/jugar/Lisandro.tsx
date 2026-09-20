@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz } from "./Shell";
+import { Shell, beep, buzz, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
 
 const DURATION = 30;
@@ -59,6 +59,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   function start() {
+    keepAwake();
     reported.current = false;
     setScore(0);
     setLeft(DURATION);

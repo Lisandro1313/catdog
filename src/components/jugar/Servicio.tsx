@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz } from "./Shell";
+import { Shell, beep, buzz, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
 
 type Ing = { id: string; label: string; emoji: string };
@@ -82,6 +82,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
   const level = Math.floor(served / 3) + 1;
 
   function start() {
+    keepAwake();
     reported.current = false;
     servedRef.current = 0;
     livesRef.current = LIVES;
@@ -136,6 +137,8 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
         setTimeout(() => {
           setFlash(null);
           setOrder(newOrder(servedRef.current));
+          beep(1046, 90);
+          setTimeout(() => beep(1318, 140), 100);
         }, 650);
       } else setOrder({ ...order, got });
     } else {

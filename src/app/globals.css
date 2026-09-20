@@ -1091,10 +1091,14 @@ details.faq > summary::-webkit-details-marker {
 }
 .jg-progress {
   display: flex;
-  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+  gap: 0.3rem;
 }
 .jg-progress span {
-  width: 1.6rem;
+  flex: 1;
+  min-width: 0.4rem;
+  max-width: 1.6rem;
   height: 0.35rem;
   border-radius: 999px;
   background: var(--surface-2);
@@ -2374,4 +2378,19 @@ details.faq > summary::-webkit-details-marker {
     transform: translateY(40%) scale(0.6);
     opacity: 0;
   }
+}
+
+/* Fichas para elegir el juego en los récords */
+.jg-tab {
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: var(--surface);
+}
+.jg-tab.is-on {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  background: rgba(201, 169, 110, 0.12);
 }

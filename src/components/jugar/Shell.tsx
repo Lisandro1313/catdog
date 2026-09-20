@@ -1,21 +1,69 @@
 "use client";
 
 import { flushSync } from "react-dom";
+import { useEffect, useState } from "react";
 
 /** Marco común de cada juego: volver + título arriba, el juego abajo. */
 export function Shell({ title, onBack, children, right }: { title: string; onBack: () => void; children?: React.ReactNode; right?: React.ReactNode }) {
   return (
     <div className="jg-stage">
-      <div className="flex items-center justify-between text-xs text-muted">
+      <div className="flex items-center justify-between gap-2 text-xs text-muted">
         <button type="button" className="hover:text-ink" onClick={onBack}>
           ← Juegos
         </button>
-        <span className="tracking-[0.2em] uppercase">{title}</span>
-        <span className="min-w-[3rem] text-right tabular-nums">{right}</span>
+        <span className="truncate tracking-[0.2em] uppercase">{title}</span>
+        <span className="flex min-w-[3rem] items-center justify-end gap-2 tabular-nums">
+          {right}
+          <MuteButton />
+        </span>
       </div>
       {children}
     </div>
   );
+}
+
+const MUTE_KEY = "catdog:jugar:mudo";
+let muted = false;
+
+/** Silencio para la mesa: se recuerda en el teléfono y lo respetan todos los sonidos de los juegos. */
+export function MuteButton() {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => {
+      try {
+        muted = localStorage.getItem(MUTE_KEY) === "1";
+      } catch {
+        // sin memoria
+      }
+      setOn(muted);
+    }, 0);
+    return () => clearTimeout(id);
+  }, []);
+  function toggle() {
+    muted = !muted;
+    setOn(muted);
+    try {
+      localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
+    } catch {
+      // sin memoria
+    }
+    if (!muted) beep(660, 80);
+  }
+  return (
+    <button type="button" onClick={toggle} className="text-base leading-none" aria-label={on ? "Activar sonido" : "Silenciar"} title={on ? "Con sonido" : "Silencio"}>
+      {on ? "🔇" : "🔊"}
+    </button>
+  );
+}
+
+/** Que la pantalla no se apague en el medio de una partida (Wake Lock; si el navegador no lo tiene, no pasa nada). */
+export function keepAwake() {
+  try {
+    const nav = navigator as Navigator & { wakeLock?: { request: (t: "screen") => Promise<unknown> } };
+    void nav.wakeLock?.request("screen").catch(() => {});
+  } catch {
+    // sin wake lock
+  }
 }
 
 export function shuffle<T>(items: T[]): T[] {
@@ -54,6 +102,7 @@ let audio: AudioContext | null = null;
 
 /** Tono corto con Web Audio (sin archivos). Se crea el contexto en el primer toque; si el navegador no deja, silencio. */
 export function beep(freq: number, ms = 160, type: OscillatorType = "sine", volume = 0.18) {
+  if (muted) return;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;

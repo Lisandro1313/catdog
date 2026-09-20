@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz } from "./Shell";
+import { Shell, beep, buzz, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
 
 const N = 15; // celdas por lado
@@ -168,6 +168,7 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   function start() {
+    keepAwake();
     reported.current = false;
     const s = state.current;
     s.snake = [

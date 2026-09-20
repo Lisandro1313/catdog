@@ -55,6 +55,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
   const [askName, setAskName] = useState<GameId | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [justWon, setJustWon] = useState(false);
+  const [recordGame, setRecordGame] = useState<GameId>(GAMES[0]);
   const [nueva, setNueva] = useState(false);
 
   // El nombre también queda en el teléfono para proponerlo si el servidor no lo tiene.
@@ -182,16 +183,26 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
           </button>
           <span className="tracking-[0.2em] uppercase">Récords de la casa</span>
         </div>
-        <div className="mt-6 grid gap-5">
+        <p className="mt-4 text-xs text-muted">Elegí el juego:</p>
+        <div className="mt-2 flex flex-wrap gap-2">
           {GAMES.map((g) => (
-            <section key={g}>
-              <p className="ap-eyebrow">
-                {GAME_INFO[g].icon} {GAME_INFO[g].title}
-              </p>
-              <Tabla rows={records[g]} unit={GAME_INFO[g].unit} mine={marcas[g]} myName={name} />
-            </section>
+            <button key={g} type="button" className={`jg-tab ${recordGame === g ? "is-on" : ""}`} onClick={() => setRecordGame(g)}>
+              <span aria-hidden="true">{GAME_INFO[g].icon}</span> {GAME_INFO[g].title}
+            </button>
           ))}
         </div>
+        <section className="jg-mimica-card mt-5 text-left">
+          <p className="ap-eyebrow">
+            {GAME_INFO[recordGame].icon} {GAME_INFO[recordGame].title}
+          </p>
+          <p className="mt-1 text-xs text-muted">Meta para el trago: {GAME_INFO[recordGame].meta.toLowerCase()}.</p>
+          <Tabla rows={records[recordGame]} unit={GAME_INFO[recordGame].unit} mine={marcas[recordGame]} myName={name} />
+          {marcas[recordGame] != null && (
+            <p className="mt-3 text-xs text-muted">
+              Tu marca de esta noche: <span className="text-ink">{marcas[recordGame]}</span> {GAME_INFO[recordGame].unit}.
+            </p>
+          )}
+        </section>
         {name && (
           <p className="mt-8 text-center text-xs text-muted">
             Aparecés como <span className="text-ink">{name}</span>.{" "}
@@ -219,17 +230,17 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
       </p>
 
       <div className="mt-6 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="jg-progress" aria-hidden="true">
             {GAMES.map((g) => (
               <span key={g} className={logrado(g, marcas[g]) ? "is-on" : ""} />
             ))}
           </div>
-          <span className="text-xs text-muted">
+          <span className="shrink-0 whitespace-nowrap text-xs text-muted">
             {completos} de {GAMES.length}
           </span>
         </div>
-        <button type="button" className="text-xs text-accent underline-offset-4 hover:underline" onClick={() => setView("records")}>
+        <button type="button" className="shrink-0 whitespace-nowrap text-xs text-accent underline-offset-4 hover:underline" onClick={() => setView("records")}>
           Récords ›
         </button>
       </div>
@@ -256,7 +267,6 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
                 </span>
                 <span className="jg-card-body">
                   <span className="jg-card-title">{info.title}</span>
-                  <span className="jg-card-blurb">{info.blurb}</span>
                   <span className="jg-card-meta">
                     {ok ? "✓ Logrado" : info.meta}
                     {mine != null && <> · tuyo: {mine}</>}

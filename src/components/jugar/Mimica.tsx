@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, shuffle } from "./Shell";
+import { Shell, shuffle, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
 
 const DURATION = 60;
@@ -21,6 +21,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
   const reported = useRef(false);
 
   function start() {
+    keepAwake();
     setDeck(shuffle(cards));
     setI(0);
     setHits(0);

@@ -2,6 +2,7 @@
 
 import { METAS, logrado, type GameId, type Marcas, type Records } from "@/lib/juegos";
 import { GAME_INFO, Tabla } from "./info";
+import { ShareButton } from "@/components/ShareButton";
 import { CountUpLabel } from "./CountUp";
 
 type Props = {
@@ -35,13 +36,17 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
         {esMejor && !meta && " Es tu mejor marca."}
         {best != null && !esMejor && ` Tu mejor: ${best}.`}
       </p>
-      <div className="mt-5 flex justify-center gap-3">
+      <div className="mt-5 flex flex-wrap justify-center gap-3">
         <button className="btn btn-ghost btn-sm" type="button" onClick={again}>
           Otra vez
         </button>
         <button className="btn btn-primary btn-sm" type="button" onClick={onBack}>
           Volver a los juegos
         </button>
+        <ShareButton
+          className="btn btn-ghost btn-sm"
+          text={`Hice ${label} en “${GAME_INFO[game].title}”, los juegos de la mesa de CatDog (cena a puertas cerradas en La Plata). ¿Me ganás? ${typeof location !== "undefined" ? location.origin : ""}/hoy/jugar`}
+        />
       </div>
       <section className="mt-8 text-left">
         <p className="ap-eyebrow">Récords de la casa</p>

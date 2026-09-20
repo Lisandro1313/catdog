@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
-import { Shell } from "./Shell";
+import { Shell, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
 
 const COPAS = 5;
@@ -32,6 +32,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
   const active = useRef(false);
 
   function start() {
+    keepAwake();
     setPhase("play");
     setI(0);
     setScores([]);

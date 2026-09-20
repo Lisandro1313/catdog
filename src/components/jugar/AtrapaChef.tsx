@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell } from "./Shell";
+import { Shell, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
 
 const DURATION = 30;
@@ -60,6 +60,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   function start() {
+    keepAwake();
     setScore(0);
     setStreak(0);
     streakRef.current = 0;
