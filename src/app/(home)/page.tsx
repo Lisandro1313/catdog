@@ -71,8 +71,20 @@ export default async function HomePage() {
   const nextOpen = upcoming.find((e) => e.free > 0) ?? null;
   const soldOut = Boolean(event) && free <= 0;
   const soldOutLabel = event?.closedAt ? "Reservas cerradas" : "Agotado";
-  const steps = parseMenu(event?.menu);
-  const bar = parseBar(event?.bar);
+  // Si la próxima cena todavía no tiene carta, se muestra la de la última cena como anticipo, aclarándolo.
+  const ownSteps = parseMenu(event?.menu);
+  const previous =
+    event && ownSteps.length === 0
+      ? await prisma.event.findFirst({
+          where: { published: true, date: { lt: event.date }, menu: { not: "" } },
+          orderBy: { date: "desc" },
+          select: { title: true, date: true, menu: true, bar: true, barPrice: true, description: true },
+        })
+      : null;
+  const menuSource = ownSteps.length > 0 ? event : previous && parseMenu(previous.menu).length > 0 ? previous : null;
+  const steps = parseMenu(menuSource?.menu);
+  const bar = parseBar(menuSource?.bar);
+  const menuIsPrevious = Boolean(previous) && menuSource === previous;
   const heroTitle = eventCount <= 1 ? "Apertura" : "Próxima cena";
   const dateShort = (d: Date) => `${formatWeekday(d)} ${formatDayNumber(d)}`;
   const dateLong = (d: Date) => `${formatWeekday(d)} ${formatDayNumber(d)} de ${formatMonth(d)}, ${formatTime(d)} hs`;
@@ -203,7 +215,7 @@ export default async function HomePage() {
               <hr className="ap-rule mx-auto mt-8 w-56" />
               <p className="mt-8 font-display text-2xl sm:text-3xl">{event.title}</p>
               <p className="mx-auto mt-3 max-w-md leading-relaxed text-muted">
-                Una casa y {steps.length > 0 ? `${spellOut(steps.length).toLowerCase()} pasos` : "una cena"}, cada plato con un cóctel de autor
+                Una casa y {ownSteps.length > 0 ? `${spellOut(ownSteps.length).toLowerCase()} pasos` : "una cena"}, cada plato con un cóctel de autor
                 pensado para ese plato. Una noche, no un restaurante.
               </p>
               <div className="mt-10 flex flex-col items-center gap-3">
@@ -261,9 +273,15 @@ export default async function HomePage() {
             <section id="carta" className="reveal mx-auto w-full max-w-xl scroll-mt-16 px-4 py-16 sm:px-6 sm:py-24">
               <div className="menu-card">
                 <div className="text-center">
-                  <p className="ap-eyebrow">La carta de esta noche</p>
-                  <h2 className="ap-display mt-3 text-3xl sm:text-4xl">{event.title}</h2>
+                  <p className="ap-eyebrow">{menuIsPrevious ? "La carta de la última cena" : "La carta de esta noche"}</p>
+                  <h2 className="ap-display mt-3 text-3xl sm:text-4xl">{menuSource?.title ?? event.title}</h2>
                   <p className="ap-ornament mt-4">✦</p>
+                  {menuIsPrevious && menuSource && (
+                    <p className="mt-4 text-sm text-accent">
+                      Esto fue el {formatWeekday(menuSource.date)} {formatDayNumber(menuSource.date)}. La carta de la próxima la subimos en estos días; cambia cada
+                      semana, pero la idea es esta.
+                    </p>
+                  )}
                   <p className="mt-4 text-sm text-muted">Cada paso sale de la cocina con un cóctel de autor pensado para ese plato. Si no tomás alcohol, avisanos al reservar y te armamos la versión sin.</p>
                 </div>
                 <ol className="mt-8">
@@ -275,12 +293,12 @@ export default async function HomePage() {
                     </li>
                   ))}
                 </ol>
-                {event.description && (
-                  <p className="mt-8 text-center text-sm leading-relaxed whitespace-pre-line text-muted">{event.description}</p>
+                {menuSource?.description && (
+                  <p className="mt-8 text-center text-sm leading-relaxed whitespace-pre-line text-muted">{menuSource.description}</p>
                 )}
                 {bar.length > 0 && (
                   <div className="mt-10 border-t border-accent/15 pt-8">
-                    <BarList items={bar} price={event.barPrice} />
+                    <BarList items={bar} price={menuSource?.barPrice ?? event.barPrice} />
                   </div>
                 )}
               </div>
@@ -415,7 +433,7 @@ export default async function HomePage() {
                   </p>
                   <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
                     <li>✓ Cóctel de recepción</li>
-                    <li>✓ {steps.length > 0 ? `${steps.length} pasos` : "La cena completa"}</li>
+                    <li>✓ {ownSteps.length > 0 ? `${ownSteps.length} pasos` : "La cena completa"}</li>
                     <li>✓ Un cóctel de autor por paso</li>
                     <li>✓ Agua en la mesa</li>
                   </ul>
