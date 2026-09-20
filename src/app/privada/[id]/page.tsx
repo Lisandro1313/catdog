@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
-import { formatDayNumber, formatMonth, formatTime, formatWeekday } from "@/lib/dates";
+import { formatDayNumber, formatMonth, formatTime, formatWeekday, nowMs } from "@/lib/dates";
 import { parseBar, parseMenu } from "@/lib/menu";
 import { getFreeCount } from "@/lib/reservations";
 import { getPaymentConfig } from "@/lib/payment";
@@ -24,7 +24,7 @@ export default async function PrivadaPage({ params }: { params: Promise<{ id: st
   if (!event || !event.unlisted || !event.published) notFound();
 
   const free = event.closedAt ? 0 : await getFreeCount(event.id, event.capacity);
-  const past = event.date.getTime() < Date.now();
+  const past = event.date.getTime() < nowMs();
   const steps = parseMenu(event.menu);
   const bar = parseBar(event.bar);
   const dateLong = `${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}, ${formatTime(event.date)} hs`;
