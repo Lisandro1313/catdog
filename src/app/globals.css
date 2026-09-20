@@ -2546,3 +2546,29 @@ details.faq > summary::-webkit-details-marker {
   border-bottom: 1px solid rgba(201, 169, 110, 0.35);
   backdrop-filter: blur(6px);
 }
+
+/* Insignias del hub */
+.jg-insignia {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 169, 110, 0.45);
+  background: rgba(201, 169, 110, 0.08);
+  font-size: 0.72rem;
+  color: var(--accent-strong);
+}
+/* Servicio en hora pico: tres clientes más chicos */
+.jg-pico .jg-cliente {
+  padding: 0.5rem 0.4rem;
+  gap: 0.3rem;
+  min-height: 0;
+}
+.jg-pico .jg-cliente-face {
+  font-size: 1.4rem;
+}
+.jg-pico .jg-cliente-img {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+.jg-pico .font-display {
+  font-size: 0.85rem;
+}

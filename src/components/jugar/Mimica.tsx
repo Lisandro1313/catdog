@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, shuffle, keepAwake } from "./Shell";
+import { Shell, beep, buzz, shuffle, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
 
 const DURATION = 60;
@@ -46,6 +46,8 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
       }
       if (remaining <= 0) {
         clearInterval(id);
+        beep(523, 200);
+        setTimeout(() => beep(392, 350), 200);
         setPhase("end");
       }
     }, 250);
@@ -89,6 +91,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
               type="button"
               onClick={() => {
                 setPasses((p) => p + 1);
+                buzz();
                 setI((k) => k + 1);
               }}
             >
@@ -99,6 +102,8 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
               type="button"
               onClick={() => {
                 setHits((h) => h + 1);
+                beep(880, 100);
+                setTimeout(() => beep(1320, 160), 100);
                 setI((k) => k + 1);
               }}
             >

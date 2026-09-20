@@ -112,7 +112,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
   const ordersRef = useRef<Order[]>([]);
 
   const level = Math.floor(served / 3) + 1;
-  const slots = level >= 2 ? 2 : 1;
+  const slots = level >= 5 ? 3 : level >= 2 ? 2 : 1;
 
   function setOrdersBoth(next: Order[]) {
     ordersRef.current = next;
@@ -160,7 +160,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
           return;
         }
       }
-      const maxSlots = lvl >= 2 ? 2 : 1;
+      const maxSlots = lvl >= 5 ? 3 : lvl >= 2 ? 2 : 1;
       if (cur.length < maxSlots && t >= nextArrival) {
         const o = newOrder(servedRef.current, cur[0]?.c.name);
         cur = [...cur, o];
@@ -256,6 +256,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
       <div className="mt-3 flex items-baseline justify-between">
         <p className="text-xs uppercase tracking-[0.2em] text-muted">
           nivel {level}
+          {level >= 5 && <span className="ml-2 text-danger">hora pico</span>}
           {tips > 0 && <span className="ml-2 normal-case tracking-normal text-accent">${tips} de propina</span>}
         </p>
         <p key={served} className="ap-display text-3xl tabular-nums jg-pop">
@@ -265,7 +266,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
 
       {flash && <p className="jg-servicio-flash mt-2">{flash}</p>}
 
-      <div className={`mt-3 grid gap-2 ${slots > 1 ? "grid-cols-2" : ""}`}>
+      <div className={`mt-3 grid gap-2 ${slots === 3 ? "grid-cols-3 jg-pico" : slots === 2 ? "grid-cols-2" : ""}`}>
         {orders.map((o) => {
           const left = Math.max(0, ((o.deadline - now()) / o.total) * 100);
           const on = o.id === active;

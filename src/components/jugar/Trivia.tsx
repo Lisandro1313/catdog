@@ -11,13 +11,29 @@ function now(): number {
   return Date.now();
 }
 
-type Props = { onDone: (streak: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
+type Pair = { dish: string; drink: string };
+type Props = { onDone: (streak: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean; pairs?: Pair[] };
+
+/** Preguntas armadas con la carta de la noche: la mitad verdaderas, la mitad con el cóctel cambiado. */
+function fromMenu(pairs: Pair[]): TriviaItem[] {
+  if (pairs.length < 2) return [];
+  const out: TriviaItem[] = [];
+  pairs.forEach((p, i) => {
+    const other = pairs[(i + 1 + Math.floor(Math.random() * (pairs.length - 1))) % pairs.length];
+    if (Math.random() < 0.5) {
+      out.push({ text: `Esta noche, ${p.dish} va con ${p.drink}.`, answer: true, why: "Así está en la carta de la noche." });
+    } else {
+      out.push({ text: `Esta noche, ${p.dish} va con ${other.drink}.`, answer: false, why: `Va con ${p.drink}. ${other.drink} acompaña otro plato.` });
+    }
+  });
+  return out;
+}
 
 /**
  * Verdadero o falso: preguntas al azar (sin repetir en la partida) hasta el primer error, con reloj.
  * El puntaje es la racha, así que no tiene techo.
  */
-export function Trivia({ onDone, onBack, marcas, records, nueva }: Props) {
+export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [] }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [deck, setDeck] = useState<TriviaItem[]>([]);
   const [i, setI] = useState(0);
@@ -31,7 +47,10 @@ export function Trivia({ onDone, onBack, marcas, records, nueva }: Props) {
 
   function start() {
     reported.current = false;
-    setDeck(shuffle(TRIVIA));
+    // Las de la carta van intercaladas cerca del principio, para que salgan casi siempre.
+    const menu = shuffle(fromMenu(pairs));
+    const base = shuffle(TRIVIA);
+    setDeck(menu.length ? [base[0], ...shuffle([...menu, ...base.slice(1, 6)]), ...base.slice(6)] : base);
     setI(0);
     setStreak(0);
     setAnswer(null);
@@ -113,7 +132,7 @@ export function Trivia({ onDone, onBack, marcas, records, nueva }: Props) {
             🍸
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
-            Barra y cocina, verdadero o falso. Seguís hasta el primer error; el reloj se achica con la racha. Sin googlear. Para la marca: {METAS.trivia} seguidos.
+            Barra, cocina y la carta de esta noche, verdadero o falso. Seguís hasta el primer error; el reloj se achica con la racha. Sin googlear. Para la marca: {METAS.trivia} seguidos.
           </p>
           <button className="btn btn-primary mt-6" type="button" onClick={start}>
             Empezar

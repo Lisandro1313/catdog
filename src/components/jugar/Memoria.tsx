@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, shuffle } from "./Shell";
+import { Shell, beep, shuffle } from "./Shell";
 import { Fin } from "./Fin";
 
 const PAIRS = 8;
@@ -53,13 +53,18 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
     if (!cards || peek || lock.current || open.includes(i) || found.has(cards[i].key)) return;
     const next = [...open, i];
     setOpen(next);
+    beep(440 + i * 9, 50, "triangle", 0.1);
     if (next.length === 2) {
       setMoves((m) => m + 1);
       lock.current = true;
       const [a, b] = next.map((k) => cards[k]);
       setTimeout(
         () => {
-          if (a.key === b.key) setFound((f) => new Set(f).add(a.key));
+          if (a.key === b.key) {
+            setFound((f) => new Set(f).add(a.key));
+            beep(880, 90);
+            setTimeout(() => beep(1175, 140), 90);
+          }
           setOpen([]);
           lock.current = false;
         },

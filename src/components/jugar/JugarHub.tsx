@@ -70,6 +70,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
   const [justWon, setJustWon] = useState(false);
   const [recordGame, setRecordGame] = useState<GameId>(GAMES[0]);
   const [duelo, setDuelo] = useState<Duelo | null>(null);
+  const [duelosGanados, setDuelosGanados] = useState(0);
   const reto = retoDelDia();
   const [nueva, setNueva] = useState(false);
 
@@ -99,6 +100,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
       const scores: [number | null, number | null] = [...duelo.scores] as [number | null, number | null];
       scores[duelo.turn] = value;
       const done = duelo.turn === 1;
+      if (done && scores[0] != null && scores[1] != null && ganaDuelo(duelo.game, scores[0], scores[1]) != null) setDuelosGanados((n) => n + 1);
       setDuelo({ ...duelo, scores, stage: done ? "done" : "between" });
       withTransition(() => setViewRaw("duelo"));
     }
@@ -153,6 +155,14 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
 
   const completos = GAMES.filter((g) => logrado(g, marcas[g])).length;
   const logros = logrosParaPremio(marcas);
+  /** Insignias: se calculan con lo que ya sabemos (marcas de hoy y récords de la casa). */
+  const insignias: { icon: string; label: string }[] = [];
+  const topEn = name ? GAMES.filter((g) => records[g]?.[0]?.name === name) : [];
+  if (topEn.length) insignias.push({ icon: "🥇", label: `Récord de la casa en ${topEn.map((g) => GAME_INFO[g].title).join(", ")}` });
+  if (marcas.premio) insignias.push({ icon: "🍸", label: "Trago ganado" });
+  if (completos >= 5) insignias.push({ icon: "🔥", label: `${completos} juegos logrados hoy` });
+  if (duelosGanados > 0) insignias.push({ icon: "⚔️", label: `Duelo${duelosGanados > 1 ? "s" : ""} en la mesa` });
+  if (logrado("gato", marcas.gato) && logrado("lisandro", marcas.lisandro)) insignias.push({ icon: "🐾", label: "Amigo de la casa" });
   const common = { records, marcas, nueva, onBack: () => setView("hub") };
 
   const game =
@@ -166,7 +176,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
     view === "copa" ? <Copa onDone={(v) => reportar("copa", v)} {...common} /> :
     view === "simon" ? <Simon onDone={(v) => reportar("simon", v)} {...common} /> :
     view === "mimica" ? <Mimica cards={mimica} onDone={(v) => reportar("mimica", v)} {...common} /> :
-    view === "trivia" ? <Trivia onDone={(v) => reportar("trivia", v)} {...common} /> :
+    view === "trivia" ? <Trivia pairs={pairs} onDone={(v) => reportar("trivia", v)} {...common} /> :
     null;
 
   if (game) {
@@ -392,6 +402,16 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
           Récords ›
         </button>
       </div>
+
+      {insignias.length > 0 && (
+        <ul className="mt-4 flex flex-wrap gap-2" aria-label="Insignias">
+          {insignias.map((b) => (
+            <li key={b.label} className="jg-insignia" title={b.label}>
+              <span aria-hidden="true">{b.icon}</span> {b.label}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <button type="button" className="jg-reto mt-4" onClick={() => setView(reto)}>
         <span className="jg-reto-badge">Reto del día</span>
