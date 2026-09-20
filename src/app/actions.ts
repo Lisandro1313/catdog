@@ -22,6 +22,10 @@ const reserveSchema = z.object({
   email: z.email("Email inválido").max(120),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   notes: z.string().trim().max(300).optional().or(z.literal("")),
+  gift: z.boolean().optional(),
+  giftName: z.string().trim().max(60).optional().or(z.literal("")),
+  giftEmail: z.email().max(120).optional().or(z.literal("")),
+  giftMessage: z.string().trim().max(300).optional().or(z.literal("")),
 });
 
 export type ReserveResult =
@@ -33,6 +37,7 @@ export async function reserveAction(input: unknown): Promise<ReserveResult> {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
+  if (parsed.data.gift && !(parsed.data.giftName ?? "").trim()) return { ok: false, error: "Contanos para quién es el regalo." };
   try {
     const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
     const ipHash = ip ? createHash("sha256").update(ip).digest("hex").slice(0, 32) : undefined;
@@ -44,6 +49,9 @@ export async function reserveAction(input: unknown): Promise<ReserveResult> {
       email: parsed.data.email.toLowerCase(),
       phone: parsed.data.phone ? normalizeArPhone(parsed.data.phone) || undefined : undefined,
       notes: parsed.data.notes || undefined,
+      gift: parsed.data.gift
+        ? { name: parsed.data.giftName || "", email: parsed.data.giftEmail ? parsed.data.giftEmail.toLowerCase() : null, message: parsed.data.giftMessage || null }
+        : undefined,
     });
     return { ok: true, checkoutUrl };
   } catch (err) {

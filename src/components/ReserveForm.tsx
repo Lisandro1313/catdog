@@ -38,6 +38,10 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [gift, setGift] = useState(false);
+  const [giftName, setGiftName] = useState("");
+  const [giftEmail, setGiftEmail] = useState("");
+  const [giftMessage, setGiftMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [redirecting, setRedirecting] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -80,7 +84,7 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
       // Sin beacon no pasa nada.
     }
     startTransition(async () => {
-      const result = await reserveAction({ eventId, quantity, name, email, phone, notes });
+      const result = await reserveAction({ eventId, quantity, name, email, phone, notes, gift, giftName, giftEmail, giftMessage });
       if (result.ok) {
         try {
           localStorage.setItem(REMEMBER_KEY, JSON.stringify({ name, email, phone } satisfies Remembered));
@@ -211,6 +215,22 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
         maxLength={300}
         disabled={soldOut}
       />
+
+      <label className="flex items-center gap-2 text-sm text-muted">
+        <input type="checkbox" checked={gift} onChange={(e) => setGift(e.target.checked)} disabled={soldOut} />
+        Es un regalo 🎁
+      </label>
+      {gift && (
+        <div className="grid gap-3 rounded-xl border border-accent/30 bg-accent/5 p-4">
+          <p className="text-xs text-muted">
+            Vos pagás; la cena queda a nombre de quien la recibe. Si ponés su mail, cuando confirmemos el pago le llega una tarjeta con la fecha, la dirección y tu
+            mensaje.
+          </p>
+          <input className="input" placeholder="Para quién (nombre)" value={giftName} onChange={(e) => setGiftName(e.target.value)} maxLength={60} required={gift} />
+          <input className="input" type="email" placeholder="Su mail (opcional)" value={giftEmail} onChange={(e) => setGiftEmail(e.target.value)} maxLength={120} />
+          <textarea className="input" placeholder="Un mensaje para la tarjeta (opcional)" value={giftMessage} onChange={(e) => setGiftMessage(e.target.value)} rows={2} maxLength={300} />
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-danger" role="alert">

@@ -243,6 +243,12 @@ export default async function AdminEventPage({
                           </>
                         )}
                         {r.notes && <p className="mt-1 max-w-[16rem] text-xs text-accent">“{r.notes}”</p>}
+                        {r.giftName && (
+                          <p className="mt-1 text-xs text-accent">
+                            🎁 Regalo para {r.giftName}
+                            {r.giftEmail ? ` (${r.giftEmail})` : ""}
+                          </p>
+                        )}
                       </td>
                       <td className="py-2 pr-3">
                         {r.status === "PAID" && (

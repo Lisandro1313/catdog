@@ -124,6 +124,7 @@ export default async function AjustesPage() {
           {[
             ["lugar-guardado", "Lugar guardado (transferencia)"],
             ["confirmacion", "Reserva confirmada"],
+            ["regalo", "Te regalaron una cena"],
             ["recordatorio", "Recordatorio del día anterior"],
             ["opinion", "¿Cómo la pasaste?"],
             ["nueva-fecha", "Nueva fecha (suscriptores)"],

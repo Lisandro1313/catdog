@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import { HOLD_MINUTES, MAX_SEATS_PER_RESERVATION, siteUrl } from "./config";
 import { createPreference, getPayment, isMercadoPagoConfigured } from "./mp";
-import { sendHoldPending, sendAdminNewReservation, sendReservationConfirmed } from "./email";
+import { sendGiftCard, sendHoldPending, sendAdminNewReservation, sendReservationConfirmed } from "./email";
 import { getPaymentConfig } from "./payment";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -92,6 +92,8 @@ export type CreateHoldInput = {
   notes?: string;
   /** Hash de la IP (no la IP): para que nadie bloquee la mesa con muchas reservas sin pagar. */
   ipHash?: string;
+  /** Es un regalo: quien reserva paga, la cena es para otra persona. */
+  gift?: { name: string; email: string | null; message: string | null };
 };
 
 /** Cuántas reservas en proceso (sin pagar) puede tener a la vez una misma IP en una cena. */
@@ -168,6 +170,9 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
         quantity: input.quantity,
         amount,
         expiresAt,
+        giftName: input.gift?.name || null,
+        giftEmail: input.gift?.email || null,
+        giftMessage: input.gift?.message || null,
       },
     });
   });
@@ -338,7 +343,19 @@ export async function markPaid(reservationId: string, via: string, mpPaymentId?:
     seats,
     amount: updated.amount,
     reservationId: updated.id,
+    giftName: updated.giftName,
   }).then((r) => (r.skipped ? ("omitido" as const) : r.error ? ("fallo" as const) : ("ok" as const)), () => "fallo" as const);
+  if (updated.giftName && updated.giftEmail && updated.giftEmail !== updated.email) {
+    sendGiftCard({
+      to: updated.giftEmail,
+      giftName: updated.giftName,
+      from: updated.name,
+      message: updated.giftMessage,
+      event: updated.event,
+      quantity: updated.quantity,
+      reservationId: updated.id,
+    }).catch((err) => console.error("[email] tarjeta de regalo falló", err));
+  }
   await sendAdminNewReservation({
     eventId: updated.eventId,
     name: updated.name,

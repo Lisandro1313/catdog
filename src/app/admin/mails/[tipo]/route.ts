@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import { getNextEvent } from "@/lib/reservations";
-import { renderHoldPending, renderNewEvent, renderReminder, renderReservationConfirmed, renderReviewRequest } from "@/lib/email";
+import { renderGiftCard, renderHoldPending, renderNewEvent, renderReminder, renderReservationConfirmed, renderReviewRequest } from "@/lib/email";
 import { getPaymentConfig } from "@/lib/payment";
 
 /** Vista previa de los mails que salen, con la próxima cena como ejemplo. Solo con sesión del panel. */
@@ -22,6 +22,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ tipo: s
           ? renderReviewRequest(event, { id: "ejemplo", name: sample.name })
           : tipo === "nueva-fecha"
             ? renderNewEvent(event, "ejemplo@correo.com")
+            : tipo === "regalo"
+              ? renderGiftCard({ giftName: "Juli Pérez", from: sample.name, message: "Feliz cumple. Comé rico y tomá algo por mí.", event, quantity: 2, reservationId: "ejemplo" })
             : tipo === "lugar-guardado"
               ? renderHoldPending({ ...sample, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), payment: await getPaymentConfig() })
               : null;

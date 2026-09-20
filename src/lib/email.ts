@@ -82,6 +82,8 @@ export type ConfirmationInput = {
   seats: number[];
   amount: number;
   reservationId: string;
+  /** Si es un regalo: para quién (aparece en el mail de quien pagó). */
+  giftName?: string | null;
 };
 
 export function renderReservationConfirmed(input: ConfirmationInput): RenderedMail {
@@ -99,7 +101,7 @@ export function renderReservationConfirmed(input: ConfirmationInput): RenderedMa
       ${row("Cena", `<strong>${input.event.title}</strong>`)}
       ${row("Cuándo", `${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs`)}
       ${input.event.address ? row("Dónde", `<strong>${input.event.address}</strong>`) : ""}
-      ${row("Reserva", `${lugares} a nombre de ${input.name} · ${formatPrice(input.amount)} pagados`)}
+      ${row("Reserva", `${lugares} a nombre de ${input.giftName ? `${input.giftName} (regalo de ${input.name})` : input.name} · ${formatPrice(input.amount)} pagados`)}
       ${row("Tu lugar", seatsText)}
     </table>
     <p style="color:#c9a96e"><strong>Llegá ${formatTime(input.event.date)} hs.</strong> Se recibe de pie con un cóctel sin alcohol de la casa, y a la mesa se pasa un rato después.</p>
@@ -385,4 +387,35 @@ export async function sendAdminDeclined(input: { name: string; email: string; ph
   );
   const { error } = await sendMail({ to: adminEmail, subject: `No viene: ${input.name} (${input.quantity}) · ${input.event.title}`, html, text: toText(html) });
   if (error) console.error("[email] aviso no viene falló", error);
+}
+
+/** A quien recibe una cena de regalo, cuando el pago está confirmado: fecha, dirección, mensaje y el link para elegir silla. */
+export type GiftInput = { giftName: string; from: string; message: string | null; event: EventLike; quantity: number; reservationId: string };
+
+export function renderGiftCard(input: GiftInput): RenderedMail {
+  const link = `${siteUrl()}/reserva/${input.reservationId}`;
+  const first = input.giftName.split(" ")[0];
+  const body = `
+    <p style="font-size:18px">Hola ${first}. <strong>${input.from}</strong> te regaló una cena.</p>
+    ${input.message ? `<blockquote style="margin:16px 0;padding:12px 16px;border-left:2px solid #c9a96e;color:#e6dfd3;font-style:italic">${input.message}</blockquote>` : ""}
+    <p><strong>${input.event.title}</strong><br>${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs${
+      input.event.address ? `<br>${input.event.address}` : ""
+    }<br>${input.quantity === 1 ? "1 lugar" : `${input.quantity} lugares`} a tu nombre. Está todo pago.</p>
+    <p style="color:#c9a96e">Llegá ${formatTime(input.event.date)} hs. Se recibe de pie con un cóctel sin alcohol de la casa, y a la mesa se pasa un rato después.</p>
+    ${menuHtml(input.event.menu)}
+    <p><a href="${link}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#c9a96e;color:#141210;text-decoration:none;font-weight:bold">Ver mi reserva y elegir silla</a></p>
+    ${
+      CONTACT_PHONES.length
+        ? `<p style="font-size:14px;color:#9a9187">Si no podés ese día, escribinos por WhatsApp: ${CONTACT_PHONES.map((p) => `<a href="${whatsappUrl(p)}" style="color:#c9a96e">${formatPhone(p)}</a>`).join(" · ")}</p>`
+        : ""
+    }`;
+  const html = layout("Te regalaron una cena", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`);
+  return { subject: `${input.from} te regaló una cena · ${formatLong(input.event.date)}`, html, text: toText(html), ics: icsFor(input.event, link, input.reservationId) };
+}
+
+export async function sendGiftCard(input: GiftInput & { to: string }) {
+  if (!isEmailConfigured() || input.to.endsWith("@local")) return { skipped: true as const };
+  const { error } = await sendMail({ to: input.to, ...renderGiftCard(input) });
+  if (error) console.error("[email] tarjeta de regalo falló", error);
+  return { skipped: false as const, error };
 }
