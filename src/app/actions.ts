@@ -1,7 +1,11 @@
 "use server";
 
 import { z } from "zod";
-import { joinWaitlist } from "@/lib/waitlist";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { joinWaitlist, notifyWaitlist } from "@/lib/waitlist";
+import { cancelReservation } from "@/lib/reservations";
+import { sendAdminDeclined } from "@/lib/email";
 import { allowRequest } from "@/lib/rate-limit";
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
@@ -166,4 +170,20 @@ export async function transferReservationAction(input: unknown): Promise<Transfe
     console.error("[transfer] error inesperado", err);
     return { ok: false, error: "Algo salió mal. Probá de nuevo." };
   }
+}
+
+/** Desde el recordatorio: "no voy a poder". Cancela la reserva paga, libera el lugar y avisa (admin + lista de espera). */
+export async function declineReservationAction(_prev: SubscribeResult | null, formData: FormData): Promise<SubscribeResult> {
+  const id = String(formData.get("id") ?? "");
+  const r = await prisma.reservation.findUnique({ where: { id }, include: { event: true } });
+  if (!r) return { ok: false, error: "Reserva inexistente." };
+  if (r.status !== "PAID") return { ok: false, error: "Esa reserva no está confirmada." };
+  if (r.event.date.getTime() < Date.now()) return { ok: false, error: "Esa cena ya pasó." };
+  if (r.arrivedAt) return { ok: false, error: "Esa reserva ya fue usada." };
+  await cancelReservation(id);
+  await prisma.reservation.update({ where: { id }, data: { declinedAt: new Date() } });
+  sendAdminDeclined({ name: r.name, email: r.email, phone: r.phone, event: r.event, eventId: r.eventId, quantity: r.quantity, amount: r.amount }).catch(() => {});
+  notifyWaitlist(r.eventId).catch((err) => console.error("[waitlist] aviso falló", err));
+  revalidatePath("/");
+  redirect(`/reserva/${id}?liberado=1`);
 }

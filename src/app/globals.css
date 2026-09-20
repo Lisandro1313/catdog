@@ -1807,3 +1807,147 @@ details.faq > summary::-webkit-details-marker {
   opacity: 0.55 !important;
   animation: hoy-pulse 1.2s ease-in-out infinite;
 }
+
+/* ---------------------------------------------------------------------------
+   Carta para la mesa (/admin/eventos/[id]/carta): A5 clara, una por hoja.
+--------------------------------------------------------------------------- */
+.carta {
+  width: 148mm;
+  min-height: 210mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 14mm 12mm;
+  box-sizing: border-box;
+  background: #f3ede4;
+  color: #1a150d;
+  text-align: center;
+  border: 1px solid rgba(201, 169, 110, 0.5);
+  page: carta;
+  display: flex;
+  flex-direction: column;
+}
+.carta-brand {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+}
+.carta-eyebrow {
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8a6d3b;
+  margin-top: 0.3rem;
+}
+.carta-title {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 2rem;
+  line-height: 1;
+  margin-top: 0.9rem;
+}
+.carta-date {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: #5c534a;
+}
+.carta-ornament {
+  margin: 0.9rem 0;
+  color: #8a6d3b;
+  font-size: 0.7rem;
+}
+.carta-steps {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.carta-steps li {
+  display: grid;
+  grid-template-columns: 1.8rem 1fr;
+  gap: 0.1rem 0.7rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid rgba(138, 109, 59, 0.25);
+}
+.carta-n {
+  font-size: 0.7rem;
+  color: #8a6d3b;
+  padding-top: 0.25rem;
+}
+.carta-dish {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+.carta-drink {
+  grid-column: 2;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #8a6d3b;
+}
+.carta-bar {
+  margin-top: 1.1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(138, 109, 59, 0.35);
+  text-align: left;
+}
+.carta-bar ul {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.carta-bar li {
+  padding: 0.15rem 0;
+}
+.carta-bar-name {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 0.9rem;
+}
+.carta-bar-desc {
+  color: #5c534a;
+}
+.carta-foot {
+  margin-top: auto;
+  padding-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  text-align: left;
+  font-size: 0.7rem;
+  color: #5c534a;
+}
+.carta-qr {
+  width: 2.2cm;
+  flex: none;
+}
+.carta-qr svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+@page carta {
+  size: A5;
+  margin: 0;
+}
+@media print {
+  main:has(.carta) {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  body:has(.carta) nav,
+  body:has(.carta) .grain,
+  body:has(.carta)::before,
+  body:has(.carta)::after {
+    display: none !important;
+  }
+  body:has(.carta) {
+    background: #fff;
+  }
+  .carta {
+    border: 0;
+    width: 148mm;
+    height: 210mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

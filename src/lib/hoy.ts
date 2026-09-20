@@ -29,13 +29,13 @@ export async function getDemoEvent(eventId?: string | null) {
     if (e) return e;
   }
   const next = await prisma.event.findFirst({
-    where: { published: true, date: { gte: new Date() }, menu: { not: "" } },
+    where: { published: true, unlisted: false, date: { gte: new Date() }, menu: { not: "" } },
     orderBy: { date: "asc" },
     include: { steps: true },
   });
   if (next && parseMenu(next.menu).length > 0) return next;
   return prisma.event.findFirst({
-    where: { published: true, date: { lt: new Date() }, menu: { not: "" } },
+    where: { published: true, unlisted: false, date: { lt: new Date() }, menu: { not: "" } },
     orderBy: { date: "desc" },
     include: { steps: true },
   });

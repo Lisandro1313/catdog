@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatPrice, whatsappUrl } from "@/lib/config";
+import { formatPrice, siteUrl, whatsappUrl } from "@/lib/config";
+import { formatDayNumber, formatMonth, formatTime, formatWeekday } from "@/lib/dates";
+import { CopyButton } from "@/components/CopyButton";
 import { formatShort, nowMs, toDatetimeLocal, todayIso } from "@/lib/dates";
 import { categoryLabel, getFinancials, toRow } from "@/lib/admin-stats";
 import { getSession } from "@/lib/admin-auth";
@@ -67,6 +69,20 @@ export default async function AdminEventPage({
   const byIndex = new Map(event.steps.map((st) => [st.index, st]));
   const holdSeats = active.filter((r) => r.status === "PENDING").reduce((n, r) => n + r.quantity, 0);
 
+  // Texto listo para WhatsApp / estados: fecha, qué incluye, precio y el link directo a esta fecha.
+  const menuSteps = parseMenu(event.menu);
+  const publicLink = event.unlisted ? `${siteUrl()}/privada/${event.id}` : `${siteUrl()}/?fecha=${event.id}#reservar`;
+  const dateLong = `${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}, ${formatTime(event.date)} hs`;
+  const difusion = [
+    `🍽️ ${event.title} · ${dateLong}`,
+    `Cena a puertas cerradas en una casa de La Plata${menuSteps.length ? `: ${menuSteps.length} pasos, cada uno con su cóctel de autor` : ", cada plato con su cóctel de autor"}. Cóctel de recepción incluido.`,
+    menuSteps.length ? menuSteps.map((st, i) => `${i + 1}. ${st.dish}${st.drink ? ` · ${st.drink}` : ""}`).join("\n") : null,
+    `${formatPrice(event.price)} por persona · pocos lugares.`,
+    `Reservá acá: ${publicLink}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   return (
     <>
       <div className="flex items-center gap-3 text-sm text-muted">
@@ -82,6 +98,22 @@ export default async function AdminEventPage({
           Copiada para la semana que viene. Revisá la carta y la fecha, y marcá <strong>Publicada</strong> para que aparezca en el sitio.
         </p>
       )}
+
+      <section className="flex flex-wrap items-center gap-2">
+        <Link href={`/admin/eventos/${event.id}/carta`} className="btn btn-ghost btn-sm">
+          Carta para la mesa (imprimir)
+        </Link>
+        <Link href={`/api/afiche?id=${event.id}`} target="_blank" className="btn btn-ghost btn-sm">
+          Afiche
+        </Link>
+        <CopyButton text={difusion} label="Copiar mensaje para WhatsApp" />
+        {event.unlisted && (
+          <span className="flex items-center gap-2 text-xs text-muted">
+            Cena privada · link: <code className="text-ink">{publicLink}</code>
+            <CopyButton text={publicLink} label="Copiar link" />
+          </span>
+        )}
+      </section>
 
       <section className="grid gap-4 sm:grid-cols-4">
         <Stat label="Pagos" value={`${paidSeats}/${event.capacity}`} />
@@ -414,6 +446,7 @@ export default async function AdminEventPage({
               barPrice: event.barPrice ?? "",
               address: event.address ?? "",
               published: event.published,
+              unlisted: event.unlisted,
             }}
           />
         </div>

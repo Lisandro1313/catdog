@@ -15,6 +15,7 @@ type EventValues = {
   barPrice: number | "";
   address: string;
   published: boolean;
+  unlisted?: boolean;
 };
 
 type Props = {
@@ -83,6 +84,13 @@ export function EventForm({ action, initial, submitLabel }: Props) {
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="published" defaultChecked={initial.published} />
         Publicado (visible en el home)
+      </label>
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="unlisted" defaultChecked={initial.unlisted ?? false} className="mt-1" />
+        <span>
+          Cena privada / a pedido
+          <span className="block text-xs text-muted">No aparece en el home ni en “Fechas”: se reserva solo con su link (te lo muestra la cena una vez guardada).</span>
+        </span>
       </label>
       {state?.message && (
         <p className={`text-sm ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>

@@ -326,9 +326,7 @@ export type ReminderInput = { name: string; event: EventLike; quantity: number; 
 export function renderReminder(input: ReminderInput): RenderedMail {
   const link = `${siteUrl()}/reserva/${input.reservationId}`;
   const first = input.name.split(" ")[0];
-  const noPuedo = CONTACT_PHONES[0]
-    ? whatsappUrl(CONTACT_PHONES[0], `Hola! Soy ${input.name}. No voy a poder ir a la cena del ${formatLong(input.event.date)}.`)
-    : link;
+  const noPuedo = `${link}?novoy=1`;
   const btn = (href: string, label: string, primary = true) =>
     `<a href="${href}" style="display:inline-block;margin:6px 6px 6px 0;padding:12px 22px;border-radius:999px;${
       primary ? "background:#c9a96e;color:#141210;" : "border:1px solid #6f675f;color:#f3ede4;"
@@ -372,4 +370,19 @@ export function renderSeatFreed(event: { id: string; title: string; date: Date; 
       "Recibís este mail porque te anotaste en la lista de espera de esa fecha.",
     ),
   });
+}
+
+/** Al admin: alguien avisó desde el recordatorio que no viene (el lugar ya quedó libre). */
+export async function sendAdminDeclined(input: { name: string; email: string; phone: string | null; event: EventLike; eventId: string; quantity: number; amount: number }) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!isEmailConfigured() || !adminEmail) return;
+  const html = layout(
+    "No viene",
+    `<p><strong>${input.name}</strong> avisó desde el recordatorio que <strong>no va a poder ir</strong> a ${input.event.title} (${formatLong(input.event.date)}).</p>
+     <p>${input.quantity === 1 ? "Su lugar quedó" : `Sus ${input.quantity} lugares quedaron`} libre${input.quantity === 1 ? "" : "s"} y, si hay lista de espera, ya les avisamos.</p>
+     <p>Había pagado ${formatPrice(input.amount)}: lo de la devolución o el cambio de fecha se charla por WhatsApp (${input.phone ?? "sin teléfono"}) o al mail ${input.email}.</p>
+     <p><a href="${siteUrl()}/admin/eventos/${input.eventId}" style="color:#c9a96e">Ver la cena en el panel</a></p>`,
+  );
+  const { error } = await sendMail({ to: adminEmail, subject: `No viene: ${input.name} (${input.quantity}) · ${input.event.title}`, html, text: toText(html) });
+  if (error) console.error("[email] aviso no viene falló", error);
 }

@@ -144,6 +144,7 @@ const eventSchema = z.object({
   barPrice: z.coerce.number().int().min(0).optional(),
   address: z.string().trim().max(200).optional(),
   published: z.boolean(),
+  unlisted: z.boolean(),
 });
 
 function readEventForm(formData: FormData) {
@@ -158,6 +159,7 @@ function readEventForm(formData: FormData) {
     barPrice: formData.get("barPrice") || undefined,
     address: formData.get("address") || undefined,
     published: formData.get("published") === "on",
+    unlisted: formData.get("unlisted") === "on",
   });
 }
 
@@ -178,6 +180,7 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
       barPrice: d.barPrice ?? null,
       address: d.address ?? null,
       published: d.published,
+      unlisted: d.unlisted,
     },
   });
   revalidatePath("/");
@@ -215,6 +218,7 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
       barPrice: d.barPrice ?? null,
       address: d.address ?? null,
       published: d.published,
+      unlisted: d.unlisted,
     },
   });
   revalidatePath("/");
@@ -701,7 +705,7 @@ export async function requestReviewsAction(_prev: ActionState, formData: FormDat
   if (!event) return { ok: false, message: "Cena inexistente." };
   if (event.date.getTime() > Date.now()) return { ok: false, message: "La cena todavía no pasó." };
   if (!isEmailConfigured()) return { ok: false, message: "Los mails no están configurados (ver Ajustes → Estado de los servicios)." };
-  const next = await prisma.event.findFirst({ where: { published: true, date: { gt: new Date() } }, orderBy: { date: "asc" }, select: { id: true, title: true, date: true } });
+  const next = await prisma.event.findFirst({ where: { published: true, unlisted: false, date: { gt: new Date() } }, orderBy: { date: "asc" }, select: { id: true, title: true, date: true } });
   const { sent, failed } = await sendReviewRequests({
     event,
     people: event.reservations.map((r) => ({ id: r.id, name: r.name, email: r.email })),

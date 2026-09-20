@@ -59,7 +59,7 @@ export default async function HomePage() {
     getUpcomingEvents(),
     getAbout(),
     getPhotos(),
-    prisma.event.count({ where: { published: true } }),
+    prisma.event.count({ where: { published: true, unlisted: false } }),
     getApprovedReviews(),
     getAverageRating(),
     getInstagram(),
@@ -77,7 +77,7 @@ export default async function HomePage() {
   const previous =
     event && ownSteps.length === 0
       ? await prisma.event.findFirst({
-          where: { published: true, date: { lt: event.date }, menu: { not: "" } },
+          where: { published: true, unlisted: false, date: { lt: event.date }, menu: { not: "" } },
           orderBy: { date: "desc" },
           select: { title: true, date: true, menu: true, bar: true, barPrice: true, description: true },
         })

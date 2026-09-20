@@ -55,7 +55,7 @@ export async function runDailyTasks(now = new Date()) {
     include: { reservations: { where: { status: "PAID" } } },
   });
   const next = past.length
-    ? await prisma.event.findFirst({ where: { published: true, date: { gt: now } }, orderBy: { date: "asc" }, select: { id: true, title: true, date: true } })
+    ? await prisma.event.findFirst({ where: { published: true, unlisted: false, date: { gt: now } }, orderBy: { date: "asc" }, select: { id: true, title: true, date: true } })
     : null;
   for (const e of past) {
     const people = e.reservations.filter((r) => !r.email.endsWith("@local"));

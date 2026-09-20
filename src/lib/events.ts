@@ -65,7 +65,7 @@ export async function duplicateWeekLater(sourceId: string) {
 export async function ensureNextDraft(now = new Date()): Promise<string | null> {
   const upcoming = await prisma.event.count({ where: { date: { gt: now } } });
   if (upcoming > 0) return null;
-  const last = await prisma.event.findFirst({ where: { published: true }, orderBy: { date: "desc" } });
+  const last = await prisma.event.findFirst({ where: { published: true, unlisted: false }, orderBy: { date: "desc" } });
   if (!last) return null;
   const copy = await duplicateWeekLater(last.id);
   return copy?.id ?? null;

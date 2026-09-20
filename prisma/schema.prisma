@@ -30,6 +30,8 @@ model Event {
   reviewsRequestedAt DateTime?
   /// Reservas cerradas a mano (p. ej. el día de la cena, para cerrar la lista): el público ve "reservas cerradas".
   closedAt    DateTime?
+  /// Cena privada / a pedido: no aparece en el home ni en /fechas; se reserva solo con su link (/privada/[id]).
+  unlisted    Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   /// Cóctel de recepción (sin alcohol): "nombre | una frase". Es el Acto I del juego de las mesitas.
@@ -109,6 +111,12 @@ model Reservation {
   confirmedAt    DateTime?
   /// Marcado en la puerta, la noche de la cena.
   arrivedAt      DateTime?
+  /// Avisó desde el recordatorio que no viene (la reserva pasa a CANCELLED y se libera el lugar).
+  declinedAt     DateTime?
+  /// Es un regalo: para quién, su mail (opcional, para mandarle la tarjeta) y un mensaje.
+  giftName       String?
+  giftEmail      String?
+  giftMessage    String?
   /// Huella (hash) de la IP que creó el hold, para limitar reservas en proceso por persona.
   ipHash         String?
   /// Hasta cuándo se mantienen los lugares si el pago sigue pendiente.

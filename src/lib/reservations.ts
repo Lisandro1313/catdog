@@ -23,7 +23,7 @@ export async function purgeExpiredHolds(eventId: string) {
 export async function getNextEvent() {
   const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000);
   return prisma.event.findFirst({
-    where: { published: true, date: { gte: cutoff } },
+    where: { published: true, unlisted: false, date: { gte: cutoff } },
     orderBy: { date: "asc" },
   });
 }
@@ -39,7 +39,7 @@ export type UpcomingEvent = Awaited<ReturnType<typeof getNextEvent>> & { free: n
 export async function getUpcomingEvents(limit = 4): Promise<NonNullable<UpcomingEvent>[]> {
   const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000);
   const events = await prisma.event.findMany({
-    where: { published: true, date: { gte: cutoff } },
+    where: { published: true, unlisted: false, date: { gte: cutoff } },
     orderBy: { date: "asc" },
     take: limit,
   });

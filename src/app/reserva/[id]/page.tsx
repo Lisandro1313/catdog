@@ -11,6 +11,7 @@ import { getPaymentConfig } from "@/lib/payment";
 import { formatLong as formatLongDate } from "@/lib/dates";
 import { SeatChooser } from "@/components/SeatChooser";
 import { TransferForm } from "@/components/TransferForm";
+import { DeclineForm } from "@/components/DeclineForm";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export default async function ReservationPage({ params, searchParams }: Props) {
   const sp = await searchParams;
   const paymentId = typeof sp.payment_id === "string" ? sp.payment_id : null;
   const confirming = sp.confirmo === "1";
+  const declining = sp.novoy === "1";
+  const released = sp.liberado === "1";
 
   let reservation = await prisma.reservation.findUnique({ where: { id }, include });
   if (!reservation) notFound();
@@ -72,6 +75,11 @@ export default async function ReservationPage({ params, searchParams }: Props) {
 
           {reservation.status === "PAID" && (
             <>
+              {declining && upcoming && !reservation.arrivedAt && (
+                <div className="mb-6">
+                  <DeclineForm reservationId={reservation.id} dateLabel={formatLong(reservation.event.date).toLowerCase()} />
+                </div>
+              )}
               {confirming && reservation.confirmedAt && (
                 <p className="mx-auto mb-4 inline-block rounded-full border border-ok/50 bg-ok/10 px-4 py-1.5 text-sm text-ok">
                   ✓ Gracias por confirmar, te esperamos
@@ -224,14 +232,16 @@ export default async function ReservationPage({ params, searchParams }: Props) {
           {(expired || reservation.status === "CANCELLED") && (
             <>
               <h1 className="font-display mt-3 text-3xl">
-                {expired ? "La reserva venció" : "La reserva fue cancelada"}
+                {expired ? "La reserva venció" : released || reservation.declinedAt ? "Gracias por avisar" : "La reserva fue cancelada"}
               </h1>
               <p className="mt-4 text-muted">
                 {expired
                   ? byTransfer
                     ? "Pasó el tiempo que guardábamos el lugar y no vimos la transferencia. Si la hiciste, mandanos el comprobante por WhatsApp y lo confirmamos igual, si queda lugar."
                     : "Pasaron los 30 minutos sin pago y el cupo volvió a quedar libre."
-                  : "Si pagaste y esto es un error, escribinos."}
+                  : released || reservation.declinedAt
+                    ? "Tu lugar quedó libre para otra persona. Lo del pago lo charlamos por WhatsApp: escribinos cuando puedas. Ojalá la próxima."
+                    : "Si pagaste y esto es un error, escribinos."}
               </p>
               <Link href="/" className="btn btn-ghost mt-8">
                 Volver al inicio
@@ -310,7 +320,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
               </div>
             )}
             {upcoming && (
-              <div className="mt-8 border-t border-line pt-5">
+              <div id="pasar" className="mt-8 scroll-mt-6 border-t border-line pt-5">
                 <TransferForm reservationId={reservation.id} currentName={reservation.name} />
               </div>
             )}
