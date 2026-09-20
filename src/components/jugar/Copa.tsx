@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake } from "./Shell";
+import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
 import { Fin } from "./Fin";
 
 const COPAS = 5;
@@ -88,6 +88,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
     else if (pts >= 95) {
       beep(880, 120);
       setTimeout(() => beep(1320, 220), 110);
+      tap(20);
     } else if (pts >= 80) beep(760, 160);
     else beep(320, 200, "triangle");
     try {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake } from "./Shell";
+import { Shell, beep, buzz, keepAwake, tap as vibrar } from "./Shell";
 import { Fin } from "./Fin";
 
 type Ing = { id: string; label: string; emoji: string };
@@ -167,6 +167,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
         nextArrival = t + 900 + Math.random() * 1500;
         beep(1046, 80);
         setTimeout(() => beep(1318, 120), 90);
+        vibrar(15);
       }
       if (cur !== ordersRef.current) setOrdersBoth(cur);
       setActive((a) => (a != null && cur.some((o) => o.id === a) ? a : (cur[0]?.id ?? null)));

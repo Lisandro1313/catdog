@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake } from "./Shell";
+import { Shell, beep, buzz, keepAwake, tap as vibrar } from "./Shell";
 import { Fin } from "./Fin";
 
 const DURATION = 30;
@@ -158,6 +158,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
     setStreak(streakRef.current);
     const bonus = streakRef.current % 5 === 0 ? 3 : 0;
     beep(600 + w.points * 80 + streakRef.current * 8, 90);
+    vibrar(8);
     setScore((s) => s + w.points + bonus);
     setHit({ hole, text: bonus ? `¡Racha ×${streakRef.current}! +${w.points + bonus}` : w.say[rnd(w.say.length)], id: now(), bad: false });
   }

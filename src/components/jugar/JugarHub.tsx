@@ -40,7 +40,7 @@ const Mimica = dynamic(() => import("./Mimica").then((m) => m.Mimica), { ssr: fa
 const Trivia = dynamic(() => import("./Trivia").then((m) => m.Trivia), { ssr: false, loading: cargando });
 
 type View = "hub" | GameId | "premio" | "records" | "duelo";
-type Duelo = { game: GameId; names: [string, string]; scores: [number | null, number | null]; turn: 0 | 1; stage: "setup" | "play" | "between" | "done" };
+type Duelo = { game: GameId; names: [string, string]; scores: [number | null, number | null]; wins: [number, number]; turn: 0 | 1; stage: "setup" | "play" | "between" | "done" };
 
 const NAME_KEY = "catdog:jugar:nombre";
 
@@ -109,8 +109,15 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
       const scores: [number | null, number | null] = [...duelo.scores] as [number | null, number | null];
       scores[duelo.turn] = value;
       const done = duelo.turn === 1;
-      if (done && scores[0] != null && scores[1] != null && ganaDuelo(duelo.game, scores[0], scores[1]) != null) setDuelosGanados((n) => n + 1);
-      setDuelo({ ...duelo, scores, stage: done ? "done" : "between" });
+      const wins: [number, number] = [...duelo.wins] as [number, number];
+      if (done && scores[0] != null && scores[1] != null) {
+        const w = ganaDuelo(duelo.game, scores[0], scores[1]);
+        if (w != null) {
+          wins[w] += 1;
+          setDuelosGanados((n) => n + 1);
+        }
+      }
+      setDuelo({ ...duelo, scores, wins, stage: done ? "done" : "between" });
       withTransition(() => setViewRaw("duelo"));
     }
     const res = await reportScoreAction({ game, value, name: name || undefined });
@@ -241,6 +248,9 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
   if (view === "duelo" && duelo) {
     const info = GAME_INFO[duelo.game];
     const w = duelo.scores[0] != null && duelo.scores[1] != null ? ganaDuelo(duelo.game, duelo.scores[0], duelo.scores[1]) : null;
+    const partidas = duelo.wins[0] + duelo.wins[1];
+    // Mejor de 3: el primero que llega a 2 se lleva la serie.
+    const serie = duelo.wins[0] >= 2 ? 0 : duelo.wins[1] >= 2 ? 1 : null;
     return (
       <div className="jg-stage">
         <div className="flex items-center justify-between text-xs text-muted">
@@ -254,7 +264,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
             <p className="text-4xl" aria-hidden="true">
               ⚔️
             </p>
-            <p className="mt-3 text-sm text-muted">Dos personas, un celular. Juega uno, después el otro, y gana el mejor. Elegí el juego y pongan los nombres.</p>
+            <p className="mt-3 text-sm text-muted">Dos personas, un celular. Juega uno, después el otro, y gana el mejor. Al mejor de 3. Elegí el juego y pongan los nombres.</p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {GAMES.filter((g) => g !== "mimica").map((g) => (
                 <button key={g} type="button" className={`jg-tab ${duelo.game === g ? "is-on" : ""}`} onClick={() => setDuelo({ ...duelo, game: g })}>
@@ -271,7 +281,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
               type="button"
               disabled={!duelo.names[0].trim() || !duelo.names[1].trim()}
               onClick={() => {
-                setDuelo({ ...duelo, names: [duelo.names[0].trim(), duelo.names[1].trim()], scores: [null, null], turn: 0, stage: "play" });
+                setDuelo({ ...duelo, names: [duelo.names[0].trim(), duelo.names[1].trim()], scores: [null, null], wins: [0, 0], turn: 0, stage: "play" });
                 setView(duelo.game);
               }}
             >
@@ -300,9 +310,15 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
         )}
         {duelo.stage === "done" && (
           <div className="jg-center">
-            <Confetti count={w == null ? 0 : 30} />
+            <Confetti count={serie != null ? 60 : w == null ? 0 : 30} />
             <p className="ap-eyebrow">{info.icon} {info.title}</p>
-            <h2 className="ap-display mt-3 text-4xl">{w == null ? "Empate" : `Ganó ${duelo.names[w]}`}</h2>
+            <h2 className="ap-display mt-3 text-4xl">{serie != null ? `${duelo.names[serie]} se lleva la serie` : w == null ? "Empate" : `Ganó ${duelo.names[w]}`}</h2>
+            {partidas > 0 && (
+              <p className="mt-2 text-sm text-muted">
+                Serie: {duelo.names[0]} {duelo.wins[0]} · {duelo.names[1]} {duelo.wins[1]}
+                {serie == null && <> · al mejor de 3</>}
+              </p>
+            )}
             <ul className="mt-6 divide-y divide-line text-left">
               {([0, 1] as const).map((k) => (
                 <li key={k} className={`flex items-baseline justify-between py-2 ${w === k ? "text-accent" : ""}`}>
@@ -321,13 +337,14 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
                 className="btn btn-primary btn-sm"
                 type="button"
                 onClick={() => {
-                  setDuelo({ ...duelo, scores: [null, null], turn: 0, stage: "play" });
+                  // Si la serie terminó, la revancha arranca una serie nueva; si no, sigue la misma.
+                  setDuelo({ ...duelo, scores: [null, null], wins: serie != null ? [0, 0] : duelo.wins, turn: serie != null ? 0 : w === 0 ? 1 : 0, stage: "play" });
                   setView(duelo.game);
                 }}
               >
-                Revancha
+                {serie != null ? "Otra serie" : partidas > 0 ? "Siguiente partida" : "Revancha"}
               </button>
-              <button className="btn btn-ghost btn-sm" type="button" onClick={() => setDuelo({ ...duelo, scores: [null, null], turn: 0, stage: "setup" })}>
+              <button className="btn btn-ghost btn-sm" type="button" onClick={() => setDuelo({ ...duelo, scores: [null, null], wins: [0, 0], turn: 0, stage: "setup" })}>
                 Otro juego
               </button>
               <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setDuelo(null); setView("hub"); }}>
@@ -480,7 +497,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
         })}
       </ul>
 
-      <button type="button" className="jg-link mt-6 w-full text-left" onClick={() => { setDuelo({ game: "chef", names: ["", ""], scores: [null, null], turn: 0, stage: "setup" }); setView("duelo"); }}>
+      <button type="button" className="jg-link mt-6 w-full text-left" onClick={() => { setDuelo({ game: "chef", names: ["", ""], scores: [null, null], wins: [0, 0], turn: 0, stage: "setup" }); setView("duelo"); }}>
         <span className="jg-link-title">⚔️ Duelo</span>
         <span className="jg-link-sub">Dos personas, un celular: juega uno, después el otro, gana el mejor. Sirve para cualquier juego menos la mímica.</span>
       </button>

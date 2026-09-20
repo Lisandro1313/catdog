@@ -123,6 +123,16 @@ export function beep(freq: number, ms = 160, type: OscillatorType = "sine", volu
   }
 }
 
+/** Vibración corta (si el celu puede). Sin sonido: sirve para acompañar un acierto. */
+export function tap(ms = 10) {
+  try {
+    navigator.vibrate?.(ms);
+  } catch {
+    // sin vibración
+  }
+}
+
 export function buzz() {
   beep(110, 320, "sawtooth", 0.12);
+  tap(45);
 }

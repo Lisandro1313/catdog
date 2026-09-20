@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, shuffle } from "./Shell";
+import { Shell, beep, shuffle, tap } from "./Shell";
 import { Fin } from "./Fin";
 
 const PAIRS = 8;
@@ -64,6 +64,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
             setFound((f) => new Set(f).add(a.key));
             beep(880, 90);
             setTimeout(() => beep(1175, 140), 90);
+            tap(15);
           }
           setOpen([]);
           lock.current = false;

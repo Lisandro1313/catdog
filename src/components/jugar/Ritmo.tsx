@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake } from "./Shell";
+import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
 import { Fin } from "./Fin";
 
 /** Notas como [nombre, duración en tiempos]. "-" es silencio. Todas de dominio público. */
@@ -100,6 +100,30 @@ const SONGS: Song[] = [
       ["F4", 0.5], ["G4", 0.5], ["A4", 0.5], ["B4", 0.5], ["C5", 2],
       ["C5", 0.5], ["C5", 0.5], ["B4", 0.5], ["A4", 0.5], ["G4", 1], ["E4", 1],
       ["F4", 0.5], ["E4", 0.5], ["D4", 0.5], ["B3", 0.5], ["C4", 2],
+    ],
+  },
+  {
+    title: "Himno a la alegría",
+    by: "Beethoven, 1824",
+    bpm: 120,
+    notes: [
+      ["E4", 1], ["E4", 1], ["F4", 1], ["G4", 1], ["G4", 1], ["F4", 1], ["E4", 1], ["D4", 1],
+      ["C4", 1], ["C4", 1], ["D4", 1], ["E4", 1], ["E4", 1.5], ["D4", 0.5], ["D4", 2],
+      ["E4", 1], ["E4", 1], ["F4", 1], ["G4", 1], ["G4", 1], ["F4", 1], ["E4", 1], ["D4", 1],
+      ["C4", 1], ["C4", 1], ["D4", 1], ["E4", 1], ["D4", 1.5], ["C4", 0.5], ["C4", 2],
+    ],
+  },
+  {
+    title: "La cucaracha",
+    by: "tradicional",
+    bpm: 132,
+    notes: [
+      ["C4", 0.5], ["C4", 0.5], ["C4", 0.5], ["F4", 1], ["A4", 1.5],
+      ["C4", 0.5], ["C4", 0.5], ["C4", 0.5], ["F4", 1], ["A4", 1.5],
+      ["F4", 0.5], ["F4", 0.5], ["E4", 0.5], ["E4", 0.5], ["D4", 0.5], ["D4", 0.5], ["C4", 2],
+      ["C4", 0.5], ["C4", 0.5], ["C4", 0.5], ["E4", 1], ["G4", 1.5],
+      ["C4", 0.5], ["C4", 0.5], ["C4", 0.5], ["E4", 1], ["G4", 1.5],
+      ["C5", 0.5], ["D5", 0.5], ["C5", 0.5], ["A#4", 0.5], ["A4", 0.5], ["G4", 0.5], ["F4", 2],
     ],
   },
   {
@@ -278,11 +302,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       const perfect = Math.abs(n.t - t) <= 60;
       n.perfect = perfect;
       beep(n.f, 260, "triangle", 0.22);
-      try {
-        navigator.vibrate?.(perfect ? 18 : 8);
-      } catch {
-        // sin vibración
-      }
+      tap(perfect ? 18 : 8);
       comboRef.current += 1;
       setCombo(comboRef.current);
       setHits((h) => h + 1);
