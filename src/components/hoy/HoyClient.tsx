@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { guessAction } from "@/app/hoy/actions";
+import { withTransition } from "@/components/jugar/Shell";
 import { formatPrice } from "@/lib/config";
 import type { BarItem } from "@/lib/menu";
 
@@ -48,7 +49,8 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
   // Separada por modo: lo que se jugó "de ejemplo" antes de la cena no puede aparecer como jugado esa noche.
   const storeKey = `catdog:hoy:${eventId}:${demo ? "demo" : "live"}`;
   const [progress, setProgress] = useState<Progress>({ revealed: {}, opened: false });
-  const [view, setView] = useState<View>({ kind: "intro" });
+  const [view, setViewRaw] = useState<View>({ kind: "intro" });
+  const setView = (v: View) => withTransition(() => setViewRaw(v));
   const [stage, setStage] = useState<Stage>("front");
   const [choice, setChoice] = useState<string | null>(null);
   const [stake, setStake] = useState<1 | 3>(1);

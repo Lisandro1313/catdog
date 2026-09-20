@@ -21,6 +21,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records }: Props) {
   const [left, setLeft] = useState(DURATION);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [hits, setHits] = useState(0);
   const [pos, setPos] = useState<Pos>({ x: 40, y: 40, size: 96, angry: false, ms: 600 });
   const [bubble, setBubble] = useState<{ text: string; x: number; y: number; id: number; gold?: boolean } | null>(null);
   const area = useRef<HTMLDivElement>(null);
@@ -111,6 +112,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records }: Props) {
       setScore((s) => Math.max(0, s - 2));
       say("¡Estaba enojado! −2", pos.x, pos.y);
     } else {
+      setHits((h) => h + 1);
       streakRef.current += 1;
       setStreak(streakRef.current);
       const bonus = streakRef.current > 0 && streakRef.current % 3 === 0;
@@ -153,7 +155,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records }: Props) {
           <div className="mt-3 flex items-baseline justify-between gap-3">
             <p className="text-xs text-muted">Se escapó de la cocina. Tocalo antes de que se mueva. Tres seguidos: bonus. Si está rojo, ni se te ocurra.</p>
             <div className="shrink-0 text-right">
-              <p className="ap-display text-3xl tabular-nums">{score}</p>
+              <p key={score} className="ap-display text-3xl tabular-nums jg-pop">{score}</p>
               {streak >= 2 && <p className="text-[10px] uppercase tracking-[0.2em] text-accent">racha {streak}</p>}
             </div>
           </div>
@@ -180,7 +182,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records }: Props) {
                 aria-label="El chef"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/chef.png" alt="" draggable={false} />
+                <img key={hits} src="/chef.png" alt="" draggable={false} className={hits ? "jg-squash" : ""} />
                 {pos.angry && <span className="jg-chef-mark">💢</span>}
               </button>
             )}

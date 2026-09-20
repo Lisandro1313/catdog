@@ -133,7 +133,18 @@ export function Simon({ onDone, onBack, marcas, records }: Props) {
         </div>
       ) : (
         <>
-          <p className="mt-4 text-center text-xs uppercase tracking-[0.2em] text-muted">{phase === "show" ? "Mirá…" : "Tu turno"}</p>
+          <p className="mt-4 flex items-center justify-center gap-2 text-xs uppercase tracking-[0.2em] text-muted">
+            {phase === "show" ? (
+              <>
+                <span className="jg-shake text-base" aria-hidden="true">
+                  🍸
+                </span>
+                Mirá…
+              </>
+            ) : (
+              "Tu turno"
+            )}
+          </p>
           <div className="jg-simon mt-4">
             {ING.map((ing) => (
               <button

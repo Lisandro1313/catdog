@@ -2,6 +2,7 @@
 
 import { METAS, logrado, type GameId, type Marcas, type Records } from "@/lib/juegos";
 import { GAME_INFO, Tabla } from "./info";
+import { CountUpLabel } from "./CountUp";
 
 type Props = {
   game: GameId;
@@ -23,8 +24,10 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
   const esMejor = best != null && best === value;
   return (
     <div className="jg-center">
-      <p className="ap-eyebrow">{meta ? "Marca lograda" : "Terminó"}</p>
-      <p className="ap-display mt-2 text-4xl">{label}</p>
+      <p className={`ap-eyebrow ${meta ? "jg-glow" : ""}`}>{meta ? "Marca lograda" : "Terminó"}</p>
+      <p className="ap-display mt-2 text-4xl">
+        <CountUpLabel label={label} value={value} />
+      </p>
       <p className="mt-2 text-xs text-muted">
         {meta ? bien ?? "Va para el trago." : mal ?? `Para el trago: ${GAME_INFO[game].meta.toLowerCase()}.`}
         {esMejor && !meta && " Es tu mejor marca."}

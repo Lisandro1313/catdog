@@ -1605,3 +1605,196 @@ details.faq > summary::-webkit-details-marker {
     transition-duration: 0.01s !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Animaciones: transiciones de pantalla, contadores, confeti, micro-rebotes.
+--------------------------------------------------------------------------- */
+
+/* Cambio de pantalla en /hoy y /hoy/jugar (View Transitions API): lo viejo se va, lo nuevo entra deslizándose. */
+::view-transition-old(root) {
+  animation: vt-out 0.22s ease-in both;
+}
+::view-transition-new(root) {
+  animation: vt-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+/* Número que salta cuando cambia (se re-monta con key) */
+.jg-pop {
+  animation: jg-pop-num 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+@keyframes jg-pop-num {
+  0% {
+    transform: scale(1.35);
+    color: var(--accent-strong);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* "Marca lograda" con brillo */
+.jg-glow {
+  animation: jg-glow 1.6s ease-in-out infinite alternate;
+}
+@keyframes jg-glow {
+  from {
+    text-shadow: 0 0 0 rgba(224, 194, 131, 0);
+  }
+  to {
+    text-shadow: 0 0 14px rgba(224, 194, 131, 0.8);
+  }
+}
+
+/* La cara del chef se aplasta al atraparlo */
+.jg-squash {
+  animation: jg-squash 0.28s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes jg-squash {
+  0% {
+    transform: scale(1.25, 0.75);
+  }
+  60% {
+    transform: scale(0.9, 1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Coctelera agitándose (Simón) */
+.jg-shake {
+  display: inline-block;
+  animation: jg-shake 0.35s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
+@keyframes jg-shake {
+  0%,
+  100% {
+    transform: rotate(-18deg) translateY(0);
+  }
+  50% {
+    transform: rotate(18deg) translateY(-3px);
+  }
+}
+
+/* La copa tiembla cuando rebalsa */
+.jg-copa.is-spill .jg-copa-glass {
+  animation: jg-tremble 0.35s ease-in-out infinite;
+}
+@keyframes jg-tremble {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0);
+  }
+  25% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+  75% {
+    transform: translateX(2px) rotate(1deg);
+  }
+}
+
+/* Fichas de "Puertas adentro": rebote al elegir */
+.hoy-chip.is-on {
+  animation: jg-chip 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+@keyframes jg-chip {
+  0% {
+    transform: scale(0.94);
+  }
+  60% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Confeti dorado */
+.jg-confetti {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 30;
+}
+.jg-confetti span {
+  position: absolute;
+  top: -12px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: jg-fall;
+  animation-timing-function: cubic-bezier(0.3, 0.2, 0.6, 1);
+  animation-fill-mode: forwards;
+}
+@keyframes jg-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), 100vh) rotate(var(--rot));
+  }
+}
+
+/* Home: un brillo dorado recorre el borde de la carta cuando entra en pantalla */
+.menu-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  border: 1px solid transparent;
+  background: linear-gradient(115deg, transparent 30%, rgba(224, 194, 131, 0.85) 50%, transparent 70%) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  background-size: 300% 100%;
+  background-position: 120% 0;
+  opacity: 0;
+}
+.reveal.is-in .menu-card::after {
+  animation: jg-sweep 1.6s ease-out 0.4s forwards;
+}
+@keyframes jg-sweep {
+  0% {
+    opacity: 1;
+    background-position: 120% 0;
+  }
+  100% {
+    opacity: 0;
+    background-position: -120% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+  .jg-pop,
+  .jg-glow,
+  .jg-squash,
+  .jg-shake,
+  .jg-copa.is-spill .jg-copa-glass,
+  .hoy-chip.is-on,
+  .reveal.is-in .menu-card::after {
+    animation: none;
+  }
+  .jg-confetti {
+    display: none;
+  }
+}

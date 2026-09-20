@@ -5,6 +5,8 @@ import Link from "next/link";
 import { reportScoreAction, setNameAction, type ReportResult } from "@/app/hoy/jugar/actions";
 import { GAMES, logrado, type GameId, type Marcas, type Records } from "@/lib/juegos";
 import { GAME_INFO, Tabla } from "./info";
+import { withTransition } from "./Shell";
+import { Confetti } from "./Confetti";
 import { Memoria } from "./Memoria";
 import { AtrapaChef } from "./AtrapaChef";
 import { Copa } from "./Copa";
@@ -19,7 +21,8 @@ const NAME_KEY = "catdog:jugar:nombre";
 type Props = { photos: string[]; mimica: string[]; initialMarcas: Marcas; initialRecords: Records };
 
 export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }: Props) {
-  const [view, setView] = useState<View>("hub");
+  const [view, setViewRaw] = useState<View>("hub");
+  const setView = (v: View) => withTransition(() => setViewRaw(v));
   const [marcas, setMarcas] = useState<Marcas>(initialMarcas);
   const [records, setRecords] = useState<Records>(initialRecords);
   const [name, setName] = useState<string>(initialMarcas.name ?? "");
@@ -121,6 +124,7 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
   if (view === "premio" && marcas.premio) {
     return (
       <div className="jg-stage">
+        <Confetti />
         <div className="jg-premio">
           <p className="ap-ornament">✦</p>
           <p className="ap-eyebrow mt-3">Completaste los {GAMES.length}</p>
@@ -198,6 +202,7 @@ export function JugarHub({ photos, mimica, initialMarcas = {}, initialRecords }:
         </button>
       </div>
 
+      {justWon && marcas.premio && <Confetti count={24} />}
       {justWon && marcas.premio && (
         <button type="button" className="jg-won mt-5" onClick={() => setView("premio")}>
           <span className="ap-eyebrow">¡Los {GAMES.length}!</span>

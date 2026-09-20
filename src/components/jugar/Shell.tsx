@@ -1,5 +1,7 @@
 "use client";
 
+import { flushSync } from "react-dom";
+
 /** Marco común de cada juego: volver + título arriba, el juego abajo. */
 export function Shell({ title, onBack, children, right }: { title: string; onBack: () => void; children?: React.ReactNode; right?: React.ReactNode }) {
   return (
@@ -23,4 +25,20 @@ export function shuffle<T>(items: T[]): T[] {
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
+}
+
+/**
+ * Cambia de pantalla con una transición suave (View Transitions API) donde el navegador la soporta;
+ * si no, o con reduced-motion, cambia directo.
+ */
+export function withTransition(update: () => void) {
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+  const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!doc.startViewTransition || reduced) {
+    update();
+    return;
+  }
+  doc.startViewTransition(() => {
+    flushSync(update);
+  });
 }

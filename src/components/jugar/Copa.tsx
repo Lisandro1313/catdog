@@ -128,10 +128,10 @@ export function Copa({ onDone, onBack, marcas, records }: Props) {
         <>
           <div className="mt-3 flex items-baseline justify-between">
             <p className="font-display text-lg">{NOMBRES[i]}</p>
-            <p className="ap-display text-3xl tabular-nums">{total}</p>
+            <p key={total} className="ap-display text-3xl tabular-nums jg-pop">{total}</p>
           </div>
           <div
-            className={`jg-copa ${pouring ? "is-pouring" : ""}`}
+            className={`jg-copa ${pouring ? "is-pouring" : ""} ${level > 1 ? "is-spill" : ""}`}
             onPointerDown={(e) => {
               e.preventDefault();
               if (flash || active.current) return;
