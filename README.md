@@ -244,6 +244,25 @@ para servir y soltar en la línea; cinco copas), **Simón de la barra** (repetir
 - Los valores imposibles se descartan (`plausible`); igual las marcas las manda el teléfono, así que el premio es
   "difícil de conseguir" más que "imposible de trucar": para una mesa de amigos alcanza.
 
+## Regalos, cenas privadas y "no voy a poder"
+
+- **Es un regalo**: en la reserva, quien paga marca "Es un regalo", pone para quién es (y su mail si quiere). Al confirmar
+  el pago le llega a esa persona la tarjeta **"Te regalaron una cena"** (fecha, dirección, mensaje, link para elegir
+  silla). En el panel la reserva aparece con 🎁.
+- **Cena privada / a pedido**: en la cena, tildar "Cena privada". No sale en el home ni en Fechas; se reserva solo desde
+  `/privada/<id>` (la cena muestra el link con "Copiar"). Tiene que estar publicada además de privada.
+- **No voy a poder**: el botón del recordatorio lleva a la reserva con la opción de pasar el lugar a otra persona o
+  **liberarlo** (con confirmación). Al liberar: la reserva queda cancelada (`declinedAt`), te llega un mail y se avisa
+  a la lista de espera.
+- Cada cena tiene **Carta para la mesa (imprimir)** (A5 con QR de las mesitas; Ctrl+P → PDF), **Afiche** y **Copiar
+  mensaje para WhatsApp** (fecha, carta, precio y link directo).
+- Caja: por cena, cobrado/gastado/queda **por cubierto** y margen; **Descargar CSV** por cena o completa (`/admin/exportar`).
+
+## Tests
+
+`npm test` corre vitest sobre lo que no puede fallar sin base de datos: reglas y metas de los juegos, actos y apuesta
+de Puertas adentro, y cupos (`getUpcomingEvents`, `markPaid` que no sobrevende) con un Prisma simulado.
+
 ## Desarrollo local
 
 ```bash

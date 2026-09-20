@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { boardAction, guessAction } from "@/app/hoy/actions";
 import type { TableRow } from "@/lib/hoy";
+import { ShareButton } from "@/components/ShareButton";
 import { withTransition } from "@/components/jugar/Shell";
 import { formatPrice } from "@/lib/config";
 import type { BarItem } from "@/lib/menu";
@@ -32,6 +33,9 @@ type Props = {
   table: number | null;
   demo: boolean;
   exampleSecrets: boolean;
+  /** La próxima cena publicada (para el cierre), si hay. */
+  nextDate?: { id: string; label: string } | null;
+  siteUrl: string;
 };
 
 type View = { kind: "intro" } | { kind: "act"; index: number } | { kind: "mazo" } | { kind: "fin" };
@@ -46,7 +50,7 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPrice, table, demo, exampleSecrets }: Props) {
+export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPrice, table, demo, exampleSecrets, nextDate, siteUrl }: Props) {
   // Separada por modo: lo que se jugó "de ejemplo" antes de la cena no puede aparecer como jugado esa noche.
   const storeKey = `catdog:hoy:${eventId}:${demo ? "demo" : "live"}`;
   const [progress, setProgress] = useState<Progress>({ revealed: {}, opened: false });
@@ -246,12 +250,22 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
           </ul>
           <p className="mt-6 text-xs text-muted">Sacale una captura si querés guardarla.</p>
           <div className="mt-6 flex flex-col items-center gap-3">
+            <ShareButton
+              className="btn btn-primary btn-sm"
+              text={`Le pegué a ${score.hits} de ${playable.length} ingredientes escondidos en “Puertas adentro” de ${title} · ${score.stars} ✦. Una cena a puertas cerradas en La Plata: ${siteUrl}`}
+            />
             <button className="btn btn-ghost btn-sm" type="button" onClick={() => setView({ kind: "mazo" })}>
               Volver al mazo
             </button>
-            <Link href="/" className="text-xs text-muted hover:text-ink">
-              Próximas fechas
-            </Link>
+            {nextDate ? (
+              <Link href={`/?fecha=${nextDate.id}#reservar`} className="text-xs text-accent underline-offset-4 hover:underline">
+                La próxima es el {nextDate.label} · reservar
+              </Link>
+            ) : (
+              <Link href="/" className="text-xs text-muted hover:text-ink">
+                Próximas fechas
+              </Link>
+            )}
           </div>
         </div>
       </Stage>

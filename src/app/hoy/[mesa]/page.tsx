@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SITE_NAME, formatPrice } from "@/lib/config";
+import { SITE_NAME, formatPrice, siteUrl } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday } from "@/lib/dates";
 import { parseBar, parseMenu } from "@/lib/menu";
 import { getUpcomingEvents } from "@/lib/reservations";
@@ -75,6 +75,7 @@ export default async function HoyPage({ params, searchParams }: Props) {
   }
 
   const live = Boolean(tonight && tonight.id === event.id) && !demo;
+  const [nextDate] = await getUpcomingEvents(2).then((list) => list.filter((e) => e.id !== event.id && e.free > 0));
   const acts = buildActs(event, demo || exampleSecrets || !live);
   const bar = parseBar(event.bar);
 
@@ -126,6 +127,8 @@ export default async function HoyPage({ params, searchParams }: Props) {
         table={table}
         demo={!live}
         exampleSecrets={exampleSecrets || (!live && event.steps.length === 0)}
+        nextDate={nextDate ? { id: nextDate.id, label: `${formatWeekday(nextDate.date)} ${formatDayNumber(nextDate.date)}` } : null}
+        siteUrl={siteUrl()}
       />
     </>
   );
