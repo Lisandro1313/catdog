@@ -68,6 +68,41 @@ const SONGS: Song[] = [
     ],
   },
   {
+    title: "La morocha",
+    by: "Enrique Saborido, 1905",
+    bpm: 108,
+    notes: [
+      ["G4", 0.5], ["A4", 0.5], ["B4", 0.5], ["C5", 0.5], ["D5", 1], ["B4", 1],
+      ["C5", 0.5], ["B4", 0.5], ["A4", 0.5], ["G4", 0.5], ["A4", 1.5], ["-", 0.5],
+      ["G4", 0.5], ["A4", 0.5], ["B4", 0.5], ["C5", 0.5], ["D5", 1], ["E5", 1],
+      ["D5", 0.5], ["C5", 0.5], ["B4", 0.5], ["A4", 0.5], ["G4", 1.5], ["-", 0.5],
+      ["E5", 0.5], ["D5", 0.5], ["C5", 0.5], ["B4", 0.5], ["C5", 1], ["A4", 1],
+      ["B4", 0.5], ["A4", 0.5], ["G4", 0.5], ["F#4", 0.5], ["G4", 2],
+    ],
+  },
+  {
+    title: "Mambrú",
+    by: "tradicional",
+    bpm: 126,
+    notes: [
+      ["G4", 0.5], ["G4", 0.5], ["G4", 0.5], ["A4", 0.5], ["B4", 1], ["G4", 1],
+      ["A4", 0.5], ["A4", 0.5], ["A4", 0.5], ["B4", 0.5], ["C5", 2],
+      ["B4", 0.5], ["B4", 0.5], ["B4", 0.5], ["C5", 0.5], ["D5", 1], ["B4", 1],
+      ["A4", 0.5], ["G4", 0.5], ["A4", 0.5], ["F#4", 0.5], ["G4", 2],
+    ],
+  },
+  {
+    title: "La farolera",
+    by: "tradicional",
+    bpm: 118,
+    notes: [
+      ["C5", 0.5], ["C5", 0.5], ["B4", 0.5], ["A4", 0.5], ["G4", 1], ["E4", 1],
+      ["F4", 0.5], ["G4", 0.5], ["A4", 0.5], ["B4", 0.5], ["C5", 2],
+      ["C5", 0.5], ["C5", 0.5], ["B4", 0.5], ["A4", 0.5], ["G4", 1], ["E4", 1],
+      ["F4", 0.5], ["E4", 0.5], ["D4", 0.5], ["B3", 0.5], ["C4", 2],
+    ],
+  },
+  {
     title: "Can-can",
     by: "Offenbach, 1858",
     bpm: 150,
@@ -105,8 +140,8 @@ function rnd(n: number): number {
   return Math.floor(Math.random() * n);
 }
 /** Arma la partitura de una canción: tiempo absoluto, carril (por altura) y frecuencia. */
-function chart(song: Song): Note[] {
-  const beat = 60000 / song.bpm;
+function chart(song: Song, tempo = 1): Note[] {
+  const beat = 60000 / (song.bpm * tempo);
   const pitches = Array.from(new Set(song.notes.filter(([n]) => n !== "-").map(([n]) => freq(n)))).sort((a, b) => a - b);
   const laneOf = (f: number) => Math.min(3, Math.floor((pitches.indexOf(f) / pitches.length) * 4));
   let t = 1500;
@@ -128,6 +163,7 @@ function chart(song: Song): Note[] {
 export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [songIx, setSongIx] = useState(0);
+  const [tempo, setTempo] = useState<0.8 | 1 | 1.25>(1);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [hits, setHits] = useState(0);
@@ -143,7 +179,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
   function start() {
     keepAwake();
     reported.current = false;
-    notes.current = chart(song);
+    notes.current = chart(song, tempo);
     startAt.current = now();
     comboRef.current = 0;
     scoreRef.current = 0;
@@ -211,7 +247,6 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       }
     }, 33);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   useEffect(() => {
@@ -222,6 +257,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   useEffect(() => {
@@ -242,8 +278,9 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       setCombo(comboRef.current);
       setHits((h) => h + 1);
       const bonus = comboRef.current % 10 === 0 ? 5 : 0;
-      scoreRef.current += 1 + bonus;
-      setScore(scoreRef.current);
+      // Rápido vale más, lento vale menos: así el récord compara parejo.
+      scoreRef.current += Math.round((1 + bonus) * (tempo === 1.25 ? 1.5 : tempo === 0.8 ? 0.7 : 1) * 10) / 10;
+      setScore(Math.round(scoreRef.current));
       setFlash({ lane, ok: true, id: t });
     } else {
       buzz();
@@ -295,7 +332,14 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
           <p className="mt-2 text-xs text-muted">
             {song.by} · {song.notes.filter(([n]) => n !== "-").length} notas
           </p>
-          <button className="btn btn-primary mt-5" type="button" onClick={start}>
+          <div className="mt-4 flex justify-center gap-2 text-xs">
+            {([0.8, 1, 1.25] as const).map((v) => (
+              <button key={v} type="button" className={`jg-tab ${tempo === v ? "is-on" : ""}`} onClick={() => setTempo(v)}>
+                {v === 0.8 ? "Lento ×0,7" : v === 1 ? "Normal" : "Rápido ×1,5"}
+              </button>
+            ))}
+          </div>
+          <button className="btn btn-primary mt-4" type="button" onClick={start}>
             Tocar
           </button>
           <button type="button" className="mt-3 block w-full text-xs text-muted underline-offset-4 hover:underline" onClick={() => setSongIx(rnd(SONGS.length))}>

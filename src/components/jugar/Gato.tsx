@@ -21,7 +21,7 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [eaten, setEaten] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const state = useRef({ snake: [] as P[], dir: "R" as Dir, next: "R" as Dir, food: { x: 10, y: 7 }, foodIx: 0, dog: { x: 3, y: 12 }, eaten: 0, alive: false });
+  const state = useRef({ snake: [] as P[], dir: "R" as Dir, next: "R" as Dir, food: { x: 10, y: 7 }, foodIx: 0, golden: false, goldenUntil: 0, dog: { x: 3, y: 12 }, eaten: 0, alive: false });
   const last = useRef(0);
   const reported = useRef(false);
   const swipe = useRef<P | null>(null);
@@ -67,6 +67,12 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
     ctx.font = `${size * 0.8}px serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    if (s.golden) {
+      ctx.fillStyle = "rgba(224,194,131,0.35)";
+      ctx.beginPath();
+      ctx.arc(s.food.x * size + size / 2, s.food.y * size + size / 2, size * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.fillText(FOOD[s.foodIx], s.food.x * size + size / 2, s.food.y * size + size / 2 + 1);
     const f = faces.current;
     const dogImg = f?.perros[s.eaten % 2];
@@ -110,12 +116,21 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
       return;
     }
     s.snake.unshift(head);
-    if (head.x === s.food.x && head.y === s.food.y) {
-      s.eaten += 1;
-      setEaten(s.eaten);
-      beep(520 + s.eaten * 12, 90);
+    // El dorado vence si no lo comés a tiempo.
+    if (s.golden && performance.now() > s.goldenUntil) {
+      s.golden = false;
       s.food = randomFree();
       s.foodIx = Math.floor(Math.random() * FOOD.length);
+    }
+    if (head.x === s.food.x && head.y === s.food.y) {
+      s.eaten += s.golden ? 3 : 1;
+      setEaten(s.eaten);
+      beep(s.golden ? 990 : 520 + s.eaten * 12, s.golden ? 200 : 90);
+      s.food = randomFree();
+      s.foodIx = Math.floor(Math.random() * FOOD.length);
+      // Cada tanto aparece uno dorado: vale 3 pero dura poco.
+      s.golden = Math.random() < 0.22;
+      s.goldenUntil = performance.now() + 3200;
       // El perro se muda cada dos ingredientes.
       if (s.eaten % 2 === 0) s.dog = randomFree();
     } else {
@@ -182,6 +197,7 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
     s.eaten = 0;
     s.food = { x: 10, y: 7 };
     s.foodIx = 0;
+    s.golden = false;
     s.alive = true;
     setEaten(0);
     last.current = 0;
@@ -217,7 +233,7 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             El gato de la casa (sí, ese) come lo que encuentra en la cocina y crece. Deslizá el dedo sobre el tablero (o usá las flechas) para guiarlo. Si choca la pared,
-            su cola o a alguno de los perros, se termina. Cada bocado lo acelera. Para la marca: {METAS.gato} ingredientes.
+            su cola o a alguno de los perros, se termina. Cada bocado lo acelera; los que brillan en dorado valen 3 pero duran poco. Para la marca: {METAS.gato} ingredientes.
           </p>
           <button className="btn btn-primary mt-6" type="button" onClick={start}>
             Soltar al gato

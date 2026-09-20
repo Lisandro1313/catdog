@@ -247,6 +247,15 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
         </button>
       </div>
 
+      {!marcas.premio && completos > 0 && completos < PREMIO_MINIMO && (
+        <p className="mt-3 text-xs text-muted">
+          Te faltan {PREMIO_MINIMO - completos}. Podés elegir entre:{" "}
+          {GAMES.filter((g) => !logrado(g, marcas[g]))
+            .map((g) => GAME_INFO[g].title)
+            .join(", ")}
+          .
+        </p>
+      )}
       {justWon && marcas.premio && <Confetti count={24} />}
       {justWon && marcas.premio && (
         <button type="button" className="jg-won mt-5" onClick={() => setView("premio")}>

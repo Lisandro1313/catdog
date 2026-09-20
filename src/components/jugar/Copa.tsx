@@ -24,6 +24,8 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
   const [pouring, setPouring] = useState(false);
   const [scores, setScores] = useState<number[]>([]);
   const [flash, setFlash] = useState<{ pts: number; text: string } | null>(null);
+  /** Desde la cuarta copa la línea se mueve despacio: hay que soltar donde está en ese momento. */
+  const [wobble, setWobble] = useState(0);
   const raf = useRef<number | null>(null);
   const last = useRef(0);
   const lastTone = useRef(0);
@@ -75,7 +77,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
     if (!active.current) return;
     active.current = false;
     setPouring(false);
-    const target = TARGETS[i];
+    const target = TARGETS[i] + (i >= 3 ? wobble : 0);
     const diff = levelRef.current - target;
     // Llegar corto castiga menos que rebalsar: 0.03 de error ≈ 90 pts, rebalsar (>1) da 0.
     const over = levelRef.current > 1;
@@ -106,6 +108,13 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
     }, 900);
   }
 
+  useEffect(() => {
+    if (phase !== "play" || i < 3) return;
+    const t0 = performance.now();
+    const id = setInterval(() => setWobble(Math.sin((performance.now() - t0) / 900) * 0.07), 50);
+    return () => clearInterval(id);
+  }, [phase, i]);
+
   const total = scores.reduce((a, b) => a + b, 0);
   useEffect(() => {
     if (phase === "end" && !reported.current) {
@@ -122,7 +131,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
     );
   }
 
-  const target = TARGETS[i];
+  const target = TARGETS[i] + (i >= 3 ? wobble : 0);
   return (
     <Shell title="Llená la copa" onBack={onBack} right={phase === "play" ? <>{i + 1}/{COPAS}</> : null}>
       {phase === "idle" ? (
@@ -140,7 +149,10 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
       ) : (
         <>
           <div className="mt-3 flex items-baseline justify-between">
-            <p className="font-display text-lg">{NOMBRES[i]}</p>
+            <p className="font-display text-lg">
+              {NOMBRES[i]}
+              {i >= 3 && <span className="ml-2 text-xs text-accent">la línea se mueve</span>}
+            </p>
             <p key={total} className="ap-display text-3xl tabular-nums jg-pop">{total}</p>
           </div>
           <div

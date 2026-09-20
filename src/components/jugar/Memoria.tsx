@@ -26,13 +26,19 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
   const [open, setOpen] = useState<number[]>([]);
   const [found, setFound] = useState<Set<string>>(new Set());
   const [moves, setMoves] = useState(0);
+  /** Vistazo de 1,5 s al empezar: se ven todas y se dan vuelta. */
+  const [peek, setPeek] = useState(true);
   const lock = useRef(false);
   const reported = useRef(false);
 
   // Se reparte en el cliente (aleatorio) después de montar, para no pelear con la hidratación.
   useEffect(() => {
     const id = setTimeout(() => setCards(deal(photos)), 0);
-    return () => clearTimeout(id);
+    const p = setTimeout(() => setPeek(false), 1800);
+    return () => {
+      clearTimeout(id);
+      clearTimeout(p);
+    };
   }, [photos]);
 
   const done = cards != null && found.size === PAIRS;
@@ -44,7 +50,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
   }, [done, moves, onDone]);
 
   function flip(i: number) {
-    if (!cards || lock.current || open.includes(i) || found.has(cards[i].key)) return;
+    if (!cards || peek || lock.current || open.includes(i) || found.has(cards[i].key)) return;
     const next = [...open, i];
     setOpen(next);
     if (next.length === 2) {
@@ -68,13 +74,15 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
     setFound(new Set());
     setMoves(0);
     reported.current = false;
+    setPeek(true);
+    setTimeout(() => setPeek(false), 1800);
   }
 
   return (
     <Shell title="Memotest" onBack={onBack} right={<>{moves} mov.</>}>
       {!done && (
         <p className="mt-4 text-xs text-muted">
-          {found.size} de {PAIRS} pares · para la marca: {METAS.memoria} movimientos o menos.
+          {peek ? "Mirá bien…" : `${found.size} de ${PAIRS} pares · para la marca: ${METAS.memoria} movimientos o menos.`}
         </p>
       )}
       {done ? (
@@ -82,7 +90,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
       ) : cards ? (
         <div className="jg-grid mt-4">
           {cards.map((c, i) => {
-            const up = open.includes(i) || found.has(c.key);
+            const up = peek || open.includes(i) || found.has(c.key);
             return (
               <button
                 key={c.id}
