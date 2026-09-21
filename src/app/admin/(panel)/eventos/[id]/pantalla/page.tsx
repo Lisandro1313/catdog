@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { buildActs, getTablesBoard } from "@/lib/hoy";
 import { getRecords, GAMES, PREMIO_MINIMO, dayKey } from "@/lib/premios";
 import { GAME_INFO } from "@/components/jugar/info";
-import { getHuellasOf, getVoteTally } from "@/lib/vivo";
+import { getHuellasOf, getPedidosOf, getVoteTally } from "@/lib/vivo";
 import { AutoRefresh } from "@/components/admin/AutoRefresh";
 import { ForceDark } from "@/components/admin/ForceDark";
 import { SITE_NAME } from "@/lib/config";
@@ -21,13 +21,15 @@ export default async function PantallaPage({ params }: { params: Promise<{ id: s
   if (!event) notFound();
   const acts = buildActs(event, false);
   const today = dayKey();
-  const [board, records, prizes, tally, huellas] = await Promise.all([
+  const [board, records, prizes, tally, huellas, pedidos] = await Promise.all([
     getTablesBoard(id),
     getRecords(),
     prisma.prize.findMany({ where: { day: today }, orderBy: { createdAt: "desc" }, take: 12 }),
     getVoteTally(id),
     getHuellasOf(id),
+    getPedidosOf(id),
   ]);
+  const pendientes = pedidos.filter((p) => p.status === "pendiente");
   // Nombre del que ganó el trago: el que dejó en los juegos ese mismo día (si lo dejó).
   const named = prizes.length ? await prisma.gameScore.findMany({ where: { day: today, deviceKey: { in: prizes.map((p) => p.deviceKey) }, name: { not: null } }, select: { deviceKey: true, name: true } }) : [];
   const nameOf = new Map(named.map((n) => [n.deviceKey, n.name!]));
@@ -102,6 +104,23 @@ export default async function PantallaPage({ params }: { params: Promise<{ id: s
         </div>
 
         <div>
+          {pendientes.length > 0 && (
+            <section className="mb-8 rounded-3xl border border-accent bg-accent/10 p-6">
+              <p className="ap-eyebrow">Pedidos en la barra</p>
+              <ul className="mt-3 space-y-2">
+                {pendientes.map((p) => (
+                  <li key={p.id} className="flex items-baseline justify-between text-2xl">
+                    <span>
+                      <span className="mr-3 text-base text-muted">Mesita {p.table}</span>
+                      {p.qty > 1 ? `${p.qty} × ` : ""}
+                      {p.item}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-muted">Se marcan como listos desde “En vivo”.</p>
+            </section>
+          )}
           <section>
             <p className="ap-eyebrow">La sala · Puertas adentro</p>
             {board.length === 0 ? (

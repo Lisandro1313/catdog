@@ -180,7 +180,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
       }
       if (cur !== ordersRef.current) setOrdersBoth(cur);
       setActive((a) => (a != null && cur.some((o) => o.id === a) ? a : (cur[0]?.id ?? null)));
-      setTick((k) => k + 1);
+      setTick(t);
     }, 100);
     return () => clearInterval(id);
   }, [phase]);
@@ -264,7 +264,6 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   const current = orders.find((o) => o.id === active) ?? null;
-  void tick;
 
   return (
     <Shell title="Servicio" onBack={onBack} right={<>{"❤".repeat(lives)}{"♡".repeat(Math.max(0, LIVES - lives))}</>}>
@@ -283,7 +282,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
 
       <div className={`mt-3 grid gap-2 ${slots === 3 ? "grid-cols-3 jg-pico" : slots === 2 ? "grid-cols-2" : ""}`}>
         {orders.map((o) => {
-          const left = Math.max(0, ((o.deadline - now()) / o.total) * 100);
+          const left = Math.max(0, ((o.deadline - (tick || now())) / o.total) * 100);
           const on = o.id === active;
           return (
             <button key={o.id} type="button" onClick={() => setActive(o.id)} className={`jg-cliente ${on ? "is-on" : "is-off"} ${o.shake ? "is-shake" : ""} ${o.vip ? "is-vip" : ""}`} data-shake={o.shake}>

@@ -19,7 +19,9 @@ export const GAME_INFO: Record<GameId, { title: string; blurb: string; meta: str
 /** Tabla de récords de un juego, con la fila propia resaltada si aparece. */
 export function Tabla({ rows, unit, mine, myName }: { rows: { name: string; best: number }[]; unit: string; mine?: number; myName?: string }) {
   if (!rows?.length) return <p className="mt-2 text-xs text-muted">Todavía nadie se anotó. Podés ser el primero.</p>;
+  const enTabla = rows.some((r) => myName && r.name === myName && r.best === mine);
   return (
+    <>
     <ol className="mt-2 divide-y divide-line text-sm">
       {rows.map((r, i) => {
         const me = myName && r.name === myName && r.best === mine;
@@ -36,5 +38,12 @@ export function Tabla({ rows, unit, mine, myName }: { rows: { name: string; best
         );
       })}
     </ol>
+    {mine != null && !enTabla && (
+      <p className="mt-2 text-xs text-muted">
+        Tu mejor: <span className="text-ink tabular-nums">{mine}</span> {unit}
+        {myName ? " · todavía fuera de la tabla" : " · dejá tu nombre para aparecer"}
+      </p>
+    )}
+    </>
   );
 }

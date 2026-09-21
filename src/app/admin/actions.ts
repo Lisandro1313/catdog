@@ -276,7 +276,7 @@ export async function markPaidAction(_prev: ActionState, formData: FormData): Pr
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
   const via = String(formData.get("via") ?? "efectivo");
-  const r = await prisma.reservation.findUnique({ where: { id }, select: { eventId: true, status: true, name: true } });
+  const r = await prisma.reservation.findUnique({ where: { id }, select: { eventId: true, status: true, name: true, email: true } });
   if (!r) return { ok: false, message: "Reserva inexistente." };
   if (r.status === "PAID") return { ok: true, message: "Ya estaba paga." };
   try {
@@ -288,7 +288,7 @@ export async function markPaidAction(_prev: ActionState, formData: FormData): Pr
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath(`/admin/eventos/${r.eventId}`);
-  return { ok: true, message: `${r.name}: pagado. Le sale el mail con la dirección.` };
+  return { ok: true, message: r.email.endsWith("@local") ? `${r.name}: pagado. (Sin mail: pasale la dirección vos.)` : `${r.name}: pagado. Le sale el mail con la dirección.` };
 }
 
 export async function cancelReservationAction(formData: FormData) {

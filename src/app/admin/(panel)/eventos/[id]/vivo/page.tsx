@@ -6,6 +6,7 @@ import { buildActs } from "@/lib/hoy";
 import { getHuellasOf, getPedidosOf, getSugerencias, getVoteTally } from "@/lib/vivo";
 import { pedidoStatusAction, serveStepAction, sugerenciaAdminAction } from "../../../../actions";
 import { AutoRefresh } from "@/components/admin/AutoRefresh";
+import { TitleBadge } from "@/components/admin/TitleBadge";
 import { OfflineBadge } from "@/components/admin/OfflineBadge";
 import { HuellaCard } from "@/components/admin/HuellaCard";
 
@@ -31,6 +32,7 @@ export default async function VivoPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="contents">
       <AutoRefresh />
+      <TitleBadge count={pendientes.length} />
       <div className="flex items-center justify-between gap-3 text-sm text-muted">
         <Link href={`/admin/eventos/${event.id}`} className="hover:text-ink">
           ← {event.title}

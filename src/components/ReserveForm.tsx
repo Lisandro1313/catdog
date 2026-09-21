@@ -122,7 +122,7 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
                     active
                       ? "border-accent bg-accent/15 text-ink"
                       : full
-                        ? "border-line text-muted/60 line-through decoration-muted/60"
+                        ? "border-line text-muted opacity-80 line-through"
                         : "border-line text-muted hover:border-accent/60 hover:text-ink"
                   }`}
                 >
