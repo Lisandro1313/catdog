@@ -195,6 +195,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
   const [perfects, setPerfects] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
   const notes = useRef<Note[]>([]);
+  const [total, setTotal] = useState(0);
   const startAt = useRef(0);
   const comboRef = useRef(0);
   const scoreRef = useRef(0);
@@ -205,6 +206,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
     keepAwake();
     reported.current = false;
     notes.current = chart(song, tempo);
+    setTotal(notes.current.length);
     startAt.current = now();
     comboRef.current = 0;
     scoreRef.current = 0;
@@ -286,12 +288,14 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
+  // Las canciones tienen entre 22 y 47 notas: el puntaje se lleva a "como si fueran 40" para que el récord compare parejo.
+  const normalizado = total ? Math.round((score * 40) / total) : score;
   useEffect(() => {
     if (phase === "end" && !reported.current) {
       reported.current = true;
-      onDone(score);
+      onDone(normalizado);
     }
-  }, [phase, score, onDone]);
+  }, [phase, normalizado, onDone]);
 
   function strum(lane: number) {
     if (phase !== "play") return;
@@ -324,20 +328,19 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   if (phase === "end") {
-    const total = notes.current.length;
     return (
       <Shell title="Ritmo de la casa" onBack={onBack}>
         <Fin
           nueva={nueva}
           game="ritmo"
-          value={score}
-          label={`${score} puntos`}
+          value={normalizado}
+          label={`${normalizado} puntos`}
           marcas={marcas}
           records={records}
           again={start}
           onBack={onBack}
-          bien={`${hits} de ${total} notas en “${song.title}”, ${perfects} perfectas. Sacaste la melodía.`}
-          mal={`${hits} de ${total} notas en “${song.title}”, ${perfects} perfectas. Para el trago: ${METAS.ritmo} puntos (perfecta vale 2; cada 10 seguidas, +5).`}
+          bien={`${hits} de ${total} notas en “${song.title}”, ${perfects} perfectas${normalizado !== score ? ` (${score} crudos, llevados a 40 notas)` : ""}. Sacaste la melodía.`}
+          mal={`${hits} de ${total} notas en “${song.title}”, ${perfects} perfectas${normalizado !== score ? ` (${score} crudos, llevados a 40 notas)` : ""}. Para el trago: ${METAS.ritmo} puntos (perfecta vale 2; cada 10 seguidas, +5).`}
         />
       </Shell>
     );

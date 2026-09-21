@@ -330,6 +330,11 @@ export default async function HomePage() {
             </section>
           )}
 
+        </>
+      )}
+
+      {/* Lo que no depende de la fecha: prueba social, quiénes somos, dónde y preguntas se ven siempre. */}
+      <>
           {/* El libro de visitas */}
           {(huellas.length > 0 || winners) && (
             <section id="huellas" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
@@ -430,7 +435,13 @@ export default async function HomePage() {
                   confirmación de la reserva.
                 </p>
                 <p className="mt-3 text-sm text-muted">
-                  Llegá <span className="text-ink">{formatTime(event.date)} hs</span>. Se recibe de pie con un cóctel sin alcohol de la casa.
+                  {event ? (
+                    <>
+                      Llegá <span className="text-ink">{formatTime(event.date)} hs</span>. Se recibe de pie con un cóctel sin alcohol de la casa.
+                    </>
+                  ) : (
+                    <>Se recibe de pie con un cóctel sin alcohol de la casa.</>
+                  )}
                 </p>
               </div>
               <MapFacade center={MAP_CENTER} title="Mapa de la zona" />
@@ -458,6 +469,10 @@ export default async function HomePage() {
             </div>
           </section>
 
+      </>
+
+      {event && (
+        <>
           {/* Reserva */}
           <section id="reservar" className="mx-auto w-full max-w-xl scroll-mt-8 px-6 py-16 sm:py-24">
             <div className="text-center">

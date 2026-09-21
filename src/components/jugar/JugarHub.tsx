@@ -5,7 +5,7 @@ import Link from "next/link";
 import { reportScoreAction, setNameAction, startGameAction, type ReportResult } from "@/app/hoy/jugar/actions";
 import { GAMES, PREMIO_MINIMO, ganaDuelo, logrado, logrosParaPremio, retoDelDia, type GameId, type Marcas, type Records } from "@/lib/juegos";
 import { GAME_INFO, Tabla } from "./info";
-import { withTransition } from "./Shell";
+import { letSleep, withTransition } from "./Shell";
 import { Confetti } from "./Confetti";
 import { ShareButton } from "@/components/ShareButton";
 
@@ -54,6 +54,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
   const pushed = useRef(0);
   /** Entrar a un juego deja una entrada en el historial: "atrás" vuelve al hub en vez de salir. */
   const setView = (v: View) => {
+    if (v === "hub") letSleep();
     if (v !== "hub") {
       if (pushed.current === 0) {
         history.pushState({ jg: v }, "");

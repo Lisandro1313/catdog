@@ -56,14 +56,45 @@ export function MuteButton() {
   );
 }
 
+type Sentinel = { release: () => Promise<void> };
+type WakeNav = Navigator & { wakeLock?: { request: (t: "screen") => Promise<Sentinel> } };
+let sentinel: Sentinel | null = null;
+let wanted = false;
+
 /** Que la pantalla no se apague en el medio de una partida (Wake Lock; si el navegador no lo tiene, no pasa nada). */
 export function keepAwake() {
+  wanted = true;
+  request();
+}
+
+function request() {
   try {
-    const nav = navigator as Navigator & { wakeLock?: { request: (t: "screen") => Promise<unknown> } };
-    void nav.wakeLock?.request("screen").catch(() => {});
+    if (sentinel || typeof document === "undefined" || document.hidden) return;
+    void (navigator as WakeNav).wakeLock
+      ?.request("screen")
+      .then((s) => {
+        sentinel = s;
+      })
+      .catch(() => {});
   } catch {
     // sin wake lock
   }
+}
+
+/** Al salir del juego: la pantalla vuelve a apagarse sola. */
+export function letSleep() {
+  wanted = false;
+  const s = sentinel;
+  sentinel = null;
+  void s?.release().catch(() => {});
+}
+
+// El navegador suelta el lock al irse a segundo plano: al volver, si seguíamos jugando, se pide de nuevo.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) sentinel = null;
+    else if (wanted) request();
+  });
 }
 
 export function shuffle<T>(items: T[]): T[] {

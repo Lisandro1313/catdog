@@ -476,6 +476,11 @@ export default async function AdminEventPage({
             }}
           />
         </div>
+        {event.recipeGift && (
+          <p className="mt-4 text-xs text-muted">
+            Receta de regalo: {event.recipeSentAt ? `enviada el ${formatShort(event.recipeSentAt)}` : "se manda sola a los que vinieron, 36 h después de la cena"}.
+          </p>
+        )}
         <form action={toggleClosedAction} className="mt-6 border-t border-line pt-5">
           <input type="hidden" name="id" value={event.id} />
           <button className={`btn btn-sm ${event.closedAt ? "btn-primary" : "btn-ghost"}`} type="submit">

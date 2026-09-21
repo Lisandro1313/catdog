@@ -933,12 +933,18 @@ export async function barSaleAction(input: unknown): Promise<BarSaleResult> {
   const { eventId, table, item, price, delta } = parsed.data;
   const current = await prisma.barSale.findUnique({ where: { eventId_table_item: { eventId, table, item } } });
   if (current?.settledAt) return { ok: false, error: "La barra de esta cena ya se cerró." };
-  const qty = Math.max(0, (current?.qty ?? 0) + delta);
-  await prisma.barSale.upsert({
-    where: { eventId_table_item: { eventId, table, item } },
-    update: { qty, price },
-    create: { eventId, table, item, price, qty },
-  });
+  if (!current) {
+    if (delta > 0) {
+      const exists = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
+      if (!exists) return { ok: false, error: "Esa cena no existe." };
+      await prisma.barSale.create({ data: { eventId, table, item, price, qty: delta } });
+    }
+  } else if (delta > 0) {
+    // Suma en la base (no leer-y-escribir): dos toques rápidos o dos celulares no se pisan.
+    await prisma.barSale.update({ where: { id: current.id }, data: { qty: { increment: delta }, price } });
+  } else if (delta < 0) {
+    await prisma.barSale.updateMany({ where: { id: current.id, qty: { gte: -delta } }, data: { qty: { decrement: -delta }, price } });
+  }
   const rows = await prisma.barSale.findMany({ where: { eventId }, select: { table: true, item: true, price: true, qty: true } });
   return { ok: true, rows };
 }
