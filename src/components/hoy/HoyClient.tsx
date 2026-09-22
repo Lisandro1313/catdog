@@ -165,7 +165,8 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
     const id = setTimeout(() => {
       const saved = readJson<Progress>(storeKey, { revealed: {}, opened: false });
       setProgress(saved);
-      if (saved.opened) setView({ kind: "mazo" });
+      // Si ya lo abrió, va derecho al mazo sin transición: así no se ve el telón a medio abrir pisándose con el mazo.
+      if (saved.opened) setViewRaw({ kind: "mazo" });
       setHydrated(true);
     }, 0);
     return () => clearTimeout(id);
@@ -261,7 +262,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
 
   if (view.kind === "intro") {
     return (
-      <Stage>
+      <Stage className={hydrated ? "" : "is-pending"}>
         <div className="hoy-curtains" aria-hidden="true">
           <span className="hoy-curtain left" />
           <span className="hoy-curtain right" />
@@ -604,8 +605,8 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
   );
 }
 
-function Stage({ children }: { children: React.ReactNode }) {
-  return <div className="hoy-stage">{children}</div>;
+function Stage({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`hoy-stage ${className}`}>{children}</div>;
 }
 
 function Dots({ acts, revealed, current }: { acts: PublicAct[]; revealed: Record<number, Revealed>; current?: number }) {

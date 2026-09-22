@@ -694,6 +694,13 @@ details.faq > summary::-webkit-details-marker {
     opacity: 0.85;
   }
 }
+/* Hasta hidratar no se sabe si este teléfono ya abrió la función: el telón espera quieto y sin verse.
+   Al sacar la clase, la animación arranca de cero (cerrado → se abre). */
+.hoy-stage.is-pending .hoy-curtain,
+.hoy-stage.is-pending .hoy-intro {
+  animation: none;
+  visibility: hidden;
+}
 .hoy-intro {
   position: relative;
   z-index: 1;
