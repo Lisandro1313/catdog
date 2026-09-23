@@ -30,3 +30,11 @@ export type BarItem = {
 export function parseBar(bar: string | null | undefined): BarItem[] {
   return parseMenu(bar).map((s) => ({ name: s.dish, description: s.drink }));
 }
+
+/** Un cóctel de la carta se escribe "Nombre — ingredientes": el nombre se luce, los ingredientes acompañan. */
+export function splitDrink(drink: string | null | undefined): { name: string; note: string | null } {
+  if (!drink) return { name: "", note: null };
+  const i = drink.search(/\s+[—–-]\s+/);
+  if (i < 0) return { name: drink.trim(), note: null };
+  return { name: drink.slice(0, i).trim(), note: drink.slice(i).replace(/^\s*[—–-]\s*/, "").trim() || null };
+}

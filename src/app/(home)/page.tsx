@@ -4,7 +4,7 @@ import Image from "next/image";
 import { HOLD_MINUTES, MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
 import { getUpcomingEvents } from "@/lib/reservations";
-import { parseBar, parseMenu } from "@/lib/menu";
+import { parseBar, parseMenu, splitDrink } from "@/lib/menu";
 import { getAbout, getInstagram, getPhotos, getVideo } from "@/lib/photos";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { prisma } from "@/lib/prisma";
@@ -296,7 +296,12 @@ export default async function HomePage() {
                     <li key={i} className="ap-step reveal" style={{ transitionDelay: `${i * 90}ms` }}>
                       <span className="n">{String(i + 1).padStart(2, "0")}</span>
                       <span className="dish">{s.dish}</span>
-                      {s.drink && <span className="drink">{s.drink}</span>}
+                      {s.drink && (
+                        <span className="drink">
+                          <span className="drink-name">{splitDrink(s.drink).name}</span>
+                          {splitDrink(s.drink).note && <span className="drink-note">{splitDrink(s.drink).note}</span>}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ol>

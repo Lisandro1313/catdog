@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { SITE_NAME, formatPrice, siteUrl } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday } from "@/lib/dates";
-import { parseMenu } from "@/lib/menu";
+import { parseMenu, splitDrink } from "@/lib/menu";
 import { getUpcomingEvents } from "@/lib/reservations";
 import { prisma } from "@/lib/prisma";
 
@@ -42,12 +42,28 @@ export async function GET(req: Request) {
   const count = await prisma.event.count({ where: { published: true, unlisted: false } });
   const title = count <= 1 ? "Apertura" : "Próxima cena";
 
-  const text = [SITE_NAME, title, day, when, event.title, ...steps.map((s) => s.dish), formatPrice(event.price), host, "Cena a puertas cerradas · La Plata", "por persona · pocos lugares", "Efectivo, transferencia o tarjeta en la puerta", "Reservá en", "0123456789"].join("");
+  const text = [
+    SITE_NAME,
+    title,
+    day,
+    when,
+    event.title,
+    ...steps.flatMap((st) => [st.dish, st.drink ?? ""]),
+    formatPrice(event.price),
+    host,
+    "Cena a puertas cerradas · La Plata",
+    "por persona · pocos lugares",
+    "Efectivo, transferencia o tarjeta en la puerta",
+    "Reservá en",
+    "0123456789",
+  ].join("");
   const playfair = await loadFont("Playfair Display", text);
   const font = playfair ? "Playfair" : "serif";
   const gold = "#c9a96e";
 
-  const S = story ? 1 : 0.62; // escala de tipografías para el cuadrado
+  // El cuadrado tiene la mitad de alto: todo se achica, y con carta larga un poco más.
+  const S = story ? 1 : 0.62;
+  const K = steps.length >= 5 ? 0.86 : 1;
 
   return new ImageResponse(
     (
@@ -60,7 +76,7 @@ export async function GET(req: Request) {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: story ? "250px 80px" : "70px 80px",
+          padding: story ? "170px 70px" : "54px 60px",
           background: "radial-gradient(ellipse at 50% 35%, #2a2419 0%, #141210 60%)",
           color: "#f3ede4",
           fontFamily: font,
@@ -70,42 +86,61 @@ export async function GET(req: Request) {
         <div
           style={{
             position: "absolute",
-            top: story ? 215 : 40,
-            bottom: story ? 215 : 40,
-            left: 40,
-            right: 40,
+            top: story ? 150 : 32,
+            bottom: story ? 150 : 32,
+            left: 32,
+            right: 32,
             border: `2px solid ${gold}`,
             opacity: 0.35,
             display: "flex",
           }}
         />
 
-        <div style={{ display: "flex", fontSize: 22 * S + 8, letterSpacing: 6, textTransform: "uppercase", color: gold, whiteSpace: "nowrap" }}>
+        <div style={{ display: "flex", fontSize: 20 * S + 7, letterSpacing: 6, textTransform: "uppercase", color: gold, whiteSpace: "nowrap" }}>
           Cena a puertas cerradas · La Plata
         </div>
-        <div style={{ display: "flex", fontSize: 150 * S, marginTop: 30 * S, lineHeight: 1 }}>{title}</div>
-        <div style={{ display: "flex", width: 160, height: 2, background: gold, margin: `${40 * S}px 0` }} />
-        <div style={{ display: "flex", fontSize: 110 * S, lineHeight: 1, color: gold }}>{day}</div>
-        <div style={{ display: "flex", fontSize: 40 * S + 6, marginTop: 14, color: "#e6dfd3" }}>{when}</div>
+        <div style={{ display: "flex", fontSize: 96 * S, marginTop: 18 * S, lineHeight: 1, color: gold }}>{day}</div>
+        <div style={{ display: "flex", fontSize: 34 * S + 6, marginTop: 10, color: "#e6dfd3" }}>{when}</div>
+        <div style={{ display: "flex", width: 150, height: 2, background: gold, opacity: 0.6, margin: `${26 * S}px 0` }} />
+        <div style={{ display: "flex", fontSize: 54 * S + 6, lineHeight: 1.1, color: "#f3ede4", textAlign: "center" }}>{event.title}</div>
 
-        <div style={{ display: "flex", fontSize: 44 * S + 4, marginTop: 60 * S, color: "#f3ede4" }}>{event.title}</div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 24 * S, gap: 12 * S }}>
-          {steps.map((s, i) => (
-            <div key={i} style={{ display: "flex", fontSize: 30 * S + 4, color: "#cfc6b8", textAlign: "center", maxWidth: 860 }}>
-              {s.dish}
-            </div>
-          ))}
+        {/* La carta, igual que en el sitio: número, plato y debajo el cóctel */}
+        <div style={{ display: "flex", flexDirection: "column", width: "100%", maxWidth: story ? 800 : 820, marginTop: 34 * S * K }}>
+          {steps.map((st, i) => {
+            const d = splitDrink(st.drink);
+            return (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 18,
+                  padding: `${16 * S * K}px 0`,
+                  borderTop: i === 0 ? "none" : "1px solid rgba(201,169,110,0.18)",
+                }}
+              >
+                <div style={{ display: "flex", fontSize: 26 * S + 4, color: gold, opacity: 0.8, paddingTop: 4 }}>{String(i + 1).padStart(2, "0")}</div>
+                <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+                  <div style={{ display: "flex", fontSize: 34 * S * K + 6, lineHeight: 1.25, color: "#f3ede4" }}>{st.dish}</div>
+                  {d.name && (
+                    <div style={{ display: "flex", fontSize: 27 * S * K + 4, marginTop: 6, color: gold, fontStyle: "italic" }}>{d.name}</div>
+                  )}
+                  {d.note && (
+                    <div style={{ display: "flex", fontSize: 22 * S * K + 3, marginTop: 3, color: "#9a9187", lineHeight: 1.35 }}>{d.note}</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <div style={{ display: "flex", fontSize: 34 * S + 4, marginTop: 60 * S, color: "#9a9187" }}>
+        <div style={{ display: "flex", fontSize: 30 * S + 6, marginTop: 34 * S, color: "#cfc6b8" }}>
           {formatPrice(event.price)} por persona · pocos lugares
         </div>
-        <div style={{ display: "flex", fontSize: 26 * S + 4, marginTop: 12 * S, color: "#9a9187" }}>
-          Efectivo, transferencia o tarjeta en la puerta
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 40 * S }}>
-          <div style={{ display: "flex", fontSize: 24 * S + 6, letterSpacing: 6, textTransform: "uppercase", color: gold }}>Reservá en</div>
-          <div style={{ display: "flex", fontSize: 40 * S + 8, marginTop: 8, color: "#f3ede4" }}>{host}</div>
+        <div style={{ display: "flex", fontSize: 22 * S + 5, marginTop: 8, color: "#9a9187" }}>Efectivo, transferencia o tarjeta en la puerta</div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 26 * S }}>
+          <div style={{ display: "flex", fontSize: 20 * S + 6, letterSpacing: 6, textTransform: "uppercase", color: gold }}>Reservá en</div>
+          <div style={{ display: "flex", fontSize: 34 * S + 8, marginTop: 6, color: "#f3ede4" }}>{host}</div>
         </div>
       </div>
     ),

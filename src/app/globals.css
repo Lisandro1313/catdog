@@ -506,10 +506,22 @@ html {
 }
 .ap-step .drink {
   grid-column: 2;
-  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.35rem;
+}
+/* El cóctel: el nombre se luce, los ingredientes acompañan en voz baja. */
+.ap-step .drink-name {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1rem;
   font-style: italic;
-  letter-spacing: 0.02em;
   color: var(--ap-gold);
+}
+.ap-step .drink-note {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--muted);
 }
 
 /* Preguntas: el texto aparece suave al abrir */
