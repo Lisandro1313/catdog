@@ -26,10 +26,9 @@ async function loadFont(family: string, text: string, weight = 400): Promise<Arr
 /**
  * Afiche para redes: ?f=cuadrado (publicación) o ?f=historia (historia / estado de WhatsApp).
  *
- * En el feed la imagen se ve chica, dentro de un celular y comprimida por Instagram: ahí entra poco
- * texto y tiene que ser grande, así que van los platos con el nombre del cóctel y nada más (los
- * ingredientes van en el texto del posteo). La historia se ve a pantalla completa y sí los aguanta.
- * Sale al doble de resolución para que no se pixele.
+ * La carta va como en el sitio: número, plato y debajo el cóctel con lo que lleva al lado (el nombre
+ * solo no dice nada). En el feed la imagen se ve chica y comprimida, así que todo va en cuerpo grande
+ * y bien contrastado. Sale al doble de resolución para que no se pixele al ampliarlo.
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -72,8 +71,8 @@ export async function GET(req: Request) {
   const K = steps.length >= 5 ? 0.86 : 1;
   // Medidas pensadas para que la carta entre entera: en el cuadrado hay la mitad de alto que en la historia.
   const s = story
-    ? { eyebrow: 26, day: 104, when: 42, title: 58, n: 30, dish: 43, drink: 33, note: 26, price: 38, pay: 28, res: 26, host: 44, pad: 136, gapTop: 40, row: 20 }
-    : { eyebrow: 22, day: 88, when: 34, title: 46, n: 26, dish: 36, drink: 27, note: 0, price: 32, pay: 24, res: 22, host: 34, pad: 40, gapTop: 26, row: 16 };
+    ? { eyebrow: 26, day: 104, when: 42, title: 58, n: 30, dish: 43, drink: 33, note: 27, price: 38, pay: 28, res: 26, host: 44, pad: 136, gapTop: 40, row: 20 }
+    : { eyebrow: 21, day: 72, when: 31, title: 42, n: 24, dish: 33, drink: 26, note: 23, price: 30, pay: 23, res: 21, host: 33, pad: 34, gapTop: 22, row: 15 };
 
   return new ImageResponse(
     (
@@ -132,10 +131,10 @@ export async function GET(req: Request) {
                 <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
                   <div style={{ display: "flex", fontSize: px(s.dish * K), lineHeight: 1.22, color: "#f7f1e6" }}>{st.dish}</div>
                   {d.name && (
-                    <div style={{ display: "flex", fontSize: px(s.drink * K), marginTop: px(7), color: gold, fontStyle: "italic" }}>{d.name}</div>
-                  )}
-                  {s.note > 0 && d.note && (
-                    <div style={{ display: "flex", fontSize: px(s.note * K), marginTop: px(4), color: "#bdb3a4", lineHeight: 1.35 }}>{d.note}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: px(9), marginTop: px(7) }}>
+                      <div style={{ display: "flex", fontSize: px(s.drink * K), color: gold, fontStyle: "italic" }}>{d.name}</div>
+                      {d.note && <div style={{ display: "flex", fontSize: px(s.note * K), color: "#bdb3a4", lineHeight: 1.3 }}>{d.note}</div>}
+                    </div>
                   )}
                 </div>
               </div>

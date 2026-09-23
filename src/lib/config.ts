@@ -52,11 +52,13 @@ export function siteUrl(): string {
 }
 
 export function formatPrice(amount: number): string {
-  return new Intl.NumberFormat("es-AR", {
+  const s = new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
     maximumFractionDigits: 0,
   }).format(amount);
+  // Intl mete un espacio duro entre el signo y el número; acá se escribe pegado: $40.000.
+  return s.replace(/^(\D+)\s+/u, "$1");
 }
 
 /**
