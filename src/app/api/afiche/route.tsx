@@ -42,7 +42,7 @@ export async function GET(req: Request) {
   const count = await prisma.event.count({ where: { published: true, unlisted: false } });
   const title = count <= 1 ? "Apertura" : "Próxima cena";
 
-  const text = [SITE_NAME, title, day, when, event.title, ...steps.map((s) => s.dish), formatPrice(event.price), host, "Cena a puertas cerradas · La Plata", "por persona · pocos lugares", "Reservá en", "0123456789"].join("");
+  const text = [SITE_NAME, title, day, when, event.title, ...steps.map((s) => s.dish), formatPrice(event.price), host, "Cena a puertas cerradas · La Plata", "por persona · pocos lugares", "Efectivo, transferencia o tarjeta en la puerta", "Reservá en", "0123456789"].join("");
   const playfair = await loadFont("Playfair Display", text);
   const font = playfair ? "Playfair" : "serif";
   const gold = "#c9a96e";
@@ -99,6 +99,9 @@ export async function GET(req: Request) {
 
         <div style={{ display: "flex", fontSize: 34 * S + 4, marginTop: 60 * S, color: "#9a9187" }}>
           {formatPrice(event.price)} por persona · pocos lugares
+        </div>
+        <div style={{ display: "flex", fontSize: 26 * S + 4, marginTop: 12 * S, color: "#9a9187" }}>
+          Efectivo, transferencia o tarjeta en la puerta
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 40 * S }}>
           <div style={{ display: "flex", fontSize: 24 * S + 6, letterSpacing: 6, textTransform: "uppercase", color: gold }}>Reservá en</div>
