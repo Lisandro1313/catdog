@@ -70,9 +70,10 @@ export async function GET(req: Request) {
   const Z = 2;
   const px = (n: number) => Math.round(n * Z);
   const K = steps.length >= 5 ? 0.86 : 1;
+  // Medidas pensadas para que la carta entre entera: en el cuadrado hay la mitad de alto que en la historia.
   const s = story
-    ? { eyebrow: 26, day: 104, when: 42, title: 60, n: 30, dish: 44, drink: 34, note: 27, price: 38, pay: 28, res: 26, host: 44, pad: 140, gapTop: 44, row: 22 }
-    : { eyebrow: 24, day: 116, when: 42, title: 58, n: 30, dish: 46, drink: 34, note: 0, price: 38, pay: 28, res: 24, host: 40, pad: 54, gapTop: 34, row: 20 };
+    ? { eyebrow: 26, day: 104, when: 42, title: 58, n: 30, dish: 43, drink: 33, note: 26, price: 38, pay: 28, res: 26, host: 44, pad: 136, gapTop: 40, row: 20 }
+    : { eyebrow: 22, day: 88, when: 34, title: 46, n: 26, dish: 36, drink: 27, note: 0, price: 32, pay: 24, res: 22, host: 34, pad: 40, gapTop: 26, row: 16 };
 
   return new ImageResponse(
     (
@@ -107,9 +108,9 @@ export async function GET(req: Request) {
         <div style={{ display: "flex", fontSize: px(s.eyebrow), letterSpacing: px(5), textTransform: "uppercase", color: gold, whiteSpace: "nowrap" }}>
           Cena a puertas cerradas · La Plata
         </div>
-        <div style={{ display: "flex", fontSize: px(s.day), fontWeight: 700, marginTop: px(14), lineHeight: 1, color: gold }}>{day}</div>
+        <div style={{ display: "flex", fontSize: px(s.day), fontWeight: 700, marginTop: px(story ? 14 : 8), lineHeight: 1, color: gold }}>{day}</div>
         <div style={{ display: "flex", fontSize: px(s.when), marginTop: px(8), color: "#efe6d8" }}>{when}</div>
-        <div style={{ display: "flex", width: px(150), height: px(2), background: gold, opacity: 0.65, margin: `${px(22)}px 0` }} />
+        <div style={{ display: "flex", width: px(150), height: px(2), background: gold, opacity: 0.65, margin: `${px(story ? 22 : 14)}px 0` }} />
         <div style={{ display: "flex", fontSize: px(s.title), fontWeight: 700, lineHeight: 1.15, textAlign: "center" }}>{event.title}</div>
 
         {/* La carta: número, plato y el cóctel que lo acompaña */}
@@ -146,7 +147,7 @@ export async function GET(req: Request) {
           {formatPrice(event.price)} por persona
         </div>
         <div style={{ display: "flex", fontSize: px(s.pay), marginTop: px(8), color: "#c6bcae" }}>Pocos lugares · efectivo, transferencia o tarjeta</div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: px(22) }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: px(story ? 22 : 14) }}>
           <div style={{ display: "flex", fontSize: px(s.res), letterSpacing: px(5), textTransform: "uppercase", color: gold }}>Reservá en</div>
           <div style={{ display: "flex", fontSize: px(s.host), fontWeight: 700, marginTop: px(6), color: "#f7f1e6" }}>{host}</div>
         </div>
