@@ -68,7 +68,7 @@ export async function tomarCuentaAction(input: unknown): Promise<MesaResult> {
 
 const abrirSchema = z.object({
   eventId: z.string().min(1),
-  table: z.number().int().min(1).max(99),
+  table: z.number().int().min(0).max(99),
   name: z.string().max(40),
   reservationId: z.string().nullable().optional(),
 });

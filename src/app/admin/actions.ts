@@ -1088,7 +1088,7 @@ export async function cerrarCuentaAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const eventId = String(formData.get("eventId") ?? "");
   const via = String(formData.get("via") ?? "efectivo");
-  if (via !== "efectivo" && via !== "transferencia" && via !== "invitado") return;
+  if (via !== "efectivo" && via !== "tarjeta" && via !== "transferencia" && via !== "invitado") return;
   try {
     await cerrarCuenta(id, via);
   } catch {

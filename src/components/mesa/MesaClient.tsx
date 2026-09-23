@@ -23,7 +23,9 @@ type Props = {
   eventId: string;
   title: string;
   dateLabel: string;
-  table: number;
+  /** La trae el QR viejo por mesa; con el QR único es null y la elige la persona. */
+  table: number | null;
+  mesas?: number;
   price: number;
   menu: string | null;
   bar: BarItem[];
@@ -51,7 +53,7 @@ function marca(e: EstadoPedido): string {
  * cobre la cena, y ya adentro pedir los pasos a su ritmo y los tragos, viendo lo que lleva.
  * Un teléfono puede llevar más de una cuenta: si a alguien se le apaga el celular, otro toma la suya.
  */
-export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar, barPrice, reservas, initial }: Props) {
+export function MesaClient({ eventId, title, dateLabel, table, mesas = 0, price, menu, bar, barPrice, reservas, initial }: Props) {
   const [cuentas, setCuentas] = useState<CuentaRow[]>(initial);
   const [focoId, setFocoId] = useState<string | null>(initial[0]?.id ?? null);
   const [name, setName] = useState("");
@@ -63,6 +65,8 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   const [modo, setModo] = useState<"ver" | "nueva" | "tomar">(initial.length ? "ver" : "nueva");
   const [ajenas, setAjenas] = useState<{ id: string; name: string }[] | null>(null);
   const [tomarId, setTomarId] = useState<string | null>(null);
+  // Sin mesas numeradas, la cuenta se abre con 0 ("sin mesa") y el número no aparece en pantalla.
+  const [mesaElegida, setMesaElegida] = useState<number | null>(table ?? (mesas > 0 ? null : 0));
   const [sinSenal, setSinSenal] = useState(false);
   const avisoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Para que una respuesta vieja del refresco no pise lo que acabás de pedir. */
@@ -70,6 +74,8 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   const fallos = useRef(0);
 
   const cuenta = cuentas.find((c) => c.id === focoId) ?? cuentas[0] ?? null;
+  /** La mesa que se usa en pantalla: la de la cuenta abierta, la del QR, o la que eligió. */
+  const mesa = cuenta?.table ?? mesaElegida;
 
   // Se consulta cada tanto para reflejar lo que hace la casa (el cobro, los pedidos servidos).
   useEffect(() => {
@@ -141,7 +147,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
     setAjenas(null);
     setModo("tomar");
     try {
-      const cs = await cuentasEnTraspasoAction(eventId, table);
+      const cs = await cuentasEnTraspasoAction(eventId, mesa ?? 0);
       const mias = new Set(cuentas.map((c) => c.id));
       setAjenas(cs.filter((c) => !mias.has(c.id)));
     } catch {
@@ -153,7 +159,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   // ---------- abrir o tomar una cuenta ----------
   if (!cuenta || modo !== "ver") {
     return (
-      <Stage title={title} dateLabel={dateLabel} table={table}>
+      <Stage title={title} dateLabel={dateLabel} table={mesa}>
         {modo === "tomar" ? (
           <>
             <p className="ap-display mt-6 text-2xl">Tomar una cuenta</p>
@@ -208,6 +214,25 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
                 ? "Otra cuenta en este mismo teléfono, para alguien que está con vos."
                 : "Esta es tu cuenta de la noche. La abrís con tu nombre, la casa te cobra la cena y desde acá pedís cada paso cuando quieras y lo que tomes."}
             </p>
+            {table === null && mesas > 0 && (
+              <div className="mt-6">
+                <p className="ap-eyebrow">¿En qué mesa estás?</p>
+                <div className="mt-2 flex flex-wrap justify-center gap-2">
+                  {Array.from({ length: mesas }, (_, i) => i + 1).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`hoy-chip hoy-chip-plain ${mesaElegida === n ? "is-on" : ""}`}
+                      aria-pressed={mesaElegida === n}
+                      onClick={() => setMesaElegida(n)}
+                    >
+                      Mesa {n}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-muted">Es para saber a dónde llevarte cada paso.</p>
+              </div>
+            )}
             {reservas.length > 0 && (
               <div className="mt-6">
                 <p className="ap-eyebrow">¿Reservaste?</p>
@@ -238,8 +263,8 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
             <button
               className="btn btn-primary mt-6 w-full"
               type="button"
-              disabled={name.trim().length < 2 || busy === "abrir"}
-              onClick={() => correr("abrir", () => abrirCuentaAction({ eventId, table, name, reservationId: reservaId }), "Cuenta abierta")}
+              disabled={name.trim().length < 2 || mesaElegida === null || busy === "abrir"}
+              onClick={() => correr("abrir", () => abrirCuentaAction({ eventId, table: mesaElegida, name, reservationId: reservaId }), "Cuenta abierta")}
             >
               {busy === "abrir" ? "Abriendo…" : "Abrir mi cuenta"}
             </button>
@@ -261,7 +286,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
             </button>
           )}
         </div>
-        <p className="mt-4 text-xs text-muted">Mesa {table}. Si no es tu mesa, escaneá el código de la tuya.</p>
+
       </Stage>
     );
   }
@@ -313,7 +338,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   // ---------- trabada: falta que la casa cobre ----------
   if (!cuenta.coverPaid) {
     return (
-      <Stage title={title} dateLabel={dateLabel} table={table}>
+      <Stage title={title} dateLabel={dateLabel} table={mesa}>
         {barra}
         {selector}
         <h1 className="ap-display mt-6 text-3xl">Hola, {cuenta.name}</h1>
@@ -355,7 +380,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   // ---------- cerrada ----------
   if (cuenta.closedAt) {
     return (
-      <Stage title={title} dateLabel={dateLabel} table={table}>
+      <Stage title={title} dateLabel={dateLabel} table={mesa}>
         {barra}
         {selector}
         <p className="ap-ornament mt-8">✦</p>
@@ -377,11 +402,11 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   const enCamino = cuenta.consumos.filter((c) => c.status === "pendiente");
 
   return (
-    <Stage title={title} dateLabel={dateLabel} table={table}>
+    <Stage title={title} dateLabel={dateLabel} table={mesa}>
       {barra}
       {selector}
       <h1 className="ap-display mt-4 text-2xl">Hola, {cuenta.name}</h1>
-      <p className="text-xs uppercase tracking-[0.2em] text-muted">Mesa {table}</p>
+      {mesa ? <p className="text-xs uppercase tracking-[0.2em] text-muted">Mesa {mesa}</p> : null}
 
       {enCamino.length > 0 && (
         <section className="mt-6 rounded-2xl border border-accent/50 bg-accent/10 p-4 text-left">
@@ -496,7 +521,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
         <span className="jg-link-title">Los juegos de la casa</span>
         <span className="jg-link-sub">Once juegos. Si lográs nueve, hay un trago.</span>
       </Link>
-      <Link href={`/hoy/${table}`} className="mt-4 block text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
+      <Link href={`/hoy/${mesa || 1}`} className="mt-4 block text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
         Puertas adentro: lo que la carta no dice
       </Link>
       {pie}
@@ -539,13 +564,14 @@ function Cuentita({ cuenta, price }: { cuenta: CuentaRow; price: number }) {
   );
 }
 
-function Stage({ children, title, dateLabel, table }: { children: React.ReactNode; title: string; dateLabel: string; table: number }) {
+function Stage({ children, title, dateLabel, table }: { children: React.ReactNode; title: string; dateLabel: string; table: number | null }) {
   return (
     <div className="hoy-stage">
       <div className="w-full text-center">
         <p className="ap-eyebrow">✦ {title} ✦</p>
         <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted">
-          {dateLabel} · mesa {table}
+          {dateLabel}
+          {table ? ` · mesa ${table}` : ""}
         </p>
         {children}
       </div>

@@ -51,7 +51,8 @@ export default async function CocinaPage({ params }: { params: Promise<{ id: str
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-sm uppercase tracking-[0.2em] text-muted">
-                        Mesa {p.table} · {p.name} · {HORA.format(p.createdAt)} hs
+                        {p.name}
+                        {p.table ? ` · mesa ${p.table}` : ""} · {HORA.format(p.createdAt)} hs
                         {mins >= 5 && <span className="ml-2 text-accent">hace {mins} min</span>}
                       </p>
                       <p className="ap-display mt-2 text-4xl leading-tight">{p.item}</p>

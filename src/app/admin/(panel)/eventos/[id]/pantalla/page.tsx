@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { buildActs, getTablesBoard } from "@/lib/hoy";
 import { getRecords, GAMES, PREMIO_MINIMO, dayKey } from "@/lib/premios";
 import { GAME_INFO } from "@/components/jugar/info";
-import { getHuellasOf, getPedidosOf, getVoteTally } from "@/lib/vivo";
+import { getHuellasOf, getVoteTally } from "@/lib/vivo";
+import { getPendientes } from "@/lib/sala";
 import { AutoRefresh } from "@/components/admin/AutoRefresh";
 import { ForceDark } from "@/components/admin/ForceDark";
 import { SITE_NAME } from "@/lib/config";
@@ -27,9 +28,9 @@ export default async function PantallaPage({ params }: { params: Promise<{ id: s
     prisma.prize.findMany({ where: { day: today }, orderBy: { createdAt: "desc" }, take: 12 }),
     getVoteTally(id),
     getHuellasOf(id),
-    getPedidosOf(id),
+    getPendientes(id, "todo"),
   ]);
-  const pendientes = pedidos.filter((p) => p.status === "pendiente");
+  const pendientes = pedidos;
   // Nombre del que ganó el trago: el que dejó en los juegos ese mismo día (si lo dejó).
   const named = prizes.length ? await prisma.gameScore.findMany({ where: { day: today, deviceKey: { in: prizes.map((p) => p.deviceKey) }, name: { not: null } }, select: { deviceKey: true, name: true } }) : [];
   const nameOf = new Map(named.map((n) => [n.deviceKey, n.name!]));
@@ -111,7 +112,7 @@ export default async function PantallaPage({ params }: { params: Promise<{ id: s
                 {pendientes.map((p) => (
                   <li key={p.id} className="flex items-baseline justify-between text-2xl">
                     <span>
-                      <span className="mr-3 text-base text-muted">Mesita {p.table}</span>
+                      <span className="mr-3 text-base text-muted">{p.name}</span>
                       {p.qty > 1 ? `${p.qty} × ` : ""}
                       {p.item}
                     </span>

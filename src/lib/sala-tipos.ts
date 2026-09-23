@@ -6,10 +6,18 @@ import { labelForStep } from "./pasos";
  * datos: lo que necesita Prisma vive en sala.ts, que re-exporta todo esto.
  */
 
-export type CoverVia = "efectivo" | "transferencia" | "invitado" | "reserva";
-export const COVER_VIAS: CoverVia[] = ["efectivo", "transferencia", "invitado", "reserva"];
+/**
+ * Por ahora no hay mesas numeradas: son quince personas y la casa las conoce. Las cuentas guardan
+ * `table: 0` ("sin mesa") y en pantalla no se muestra. Si algún día hacen falta, alcanza con volver
+ * a pedirla al abrir la cuenta: el número ya viaja en todos lados.
+ */
+export const MESAS = 0;
+
+export type CoverVia = "efectivo" | "tarjeta" | "transferencia" | "invitado" | "reserva";
+export const COVER_VIAS: CoverVia[] = ["efectivo", "tarjeta", "transferencia", "invitado", "reserva"];
 export const VIA_LABEL: Record<CoverVia, string> = {
   efectivo: "efectivo",
+  tarjeta: "tarjeta",
   transferencia: "transferencia",
   invitado: "invitado de la casa",
   reserva: "ya lo pagó al reservar",

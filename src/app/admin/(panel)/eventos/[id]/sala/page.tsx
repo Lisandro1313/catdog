@@ -78,7 +78,8 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
                   <li key={x.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                     <div className="min-w-0">
                       <p>
-                        <strong>Mesa {c.table}</strong> · {c.name} · {x.qty > 1 ? `${x.qty} × ` : ""}
+                        <strong>{c.name}</strong>
+                        {c.table ? ` · mesa ${c.table}` : ""} · {x.qty > 1 ? `${x.qty} × ` : ""}
                         {x.item}
                         <span className="ml-2 text-xs text-muted">{x.kind === "paso" ? "cocina" : "barra"}</span>
                       </p>
@@ -157,18 +158,19 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
               <li key={c.id} className="rounded-xl border border-accent/40 p-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="font-display text-lg">
-                    {c.name} <span className="text-sm text-muted">· mesa {c.table}</span>
+                    {c.name}
+                    {c.table ? <span className="text-sm text-muted"> · mesa {c.table}</span> : null}
                   </p>
                   <p className="tabular-nums text-accent">{formatPrice(c.cover)}</p>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {(["efectivo", "transferencia", "invitado"] as const).map((via) => (
+                  {(["efectivo", "tarjeta", "transferencia", "invitado"] as const).map((via) => (
                     <form key={via} action={cobrarCenaAction}>
                       <input type="hidden" name="id" value={c.id} />
                       <input type="hidden" name="eventId" value={event.id} />
                       <input type="hidden" name="via" value={via} />
                       <button className={`btn btn-sm ${via === "invitado" ? "btn-ghost" : "btn-primary"}`} type="submit">
-                        {via === "efectivo" ? "Efectivo" : via === "transferencia" ? "Transferencia" : "Invitado"}
+                        {via === "efectivo" ? "Efectivo" : via === "tarjeta" ? "Tarjeta" : via === "transferencia" ? "Transferencia" : "Invitado"}
                       </button>
                     </form>
                   ))}
@@ -217,7 +219,8 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
             {cerradas.map((c) => (
               <li key={c.id} className="flex items-center justify-between gap-3 py-2">
                 <span>
-                  <strong>{c.name}</strong> <span className="text-muted">· mesa {c.table}</span>
+                  <strong>{c.name}</strong>
+                  {c.table ? <span className="text-muted"> · mesa {c.table}</span> : null}
                   <span className="ml-2 text-xs text-muted">
                     {formatPrice(c.cover + c.extra)} · {c.coverVia ? VIA_LABEL[c.coverVia as keyof typeof VIA_LABEL] ?? c.coverVia : "—"}
                   </span>
@@ -261,7 +264,8 @@ function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; b
     <li className="rounded-xl border border-line p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-display text-lg">
-          {c.name} <span className="text-sm text-muted">· mesa {c.table}</span>
+          {c.name}
+          {c.table ? <span className="text-sm text-muted"> · mesa {c.table}</span> : null}
         </p>
         <p className="text-sm text-muted">
           cena {c.cover > 0 ? formatPrice(c.cover) : "—"}
@@ -277,13 +281,13 @@ function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; b
           {formatPrice(c.extra)} <span className="text-xs font-sans text-muted">de barra</span>
         </p>
         <div className="flex flex-wrap gap-2">
-          {(["efectivo", "transferencia"] as const).map((via) => (
+          {(["efectivo", "tarjeta", "transferencia"] as const).map((via) => (
             <form key={via} action={cerrarCuentaAction}>
               <input type="hidden" name="id" value={c.id} />
               <input type="hidden" name="eventId" value={eventId} />
               <input type="hidden" name="via" value={via} />
               <button className="btn btn-primary btn-sm" type="submit">
-                Cerrar {via === "efectivo" ? "efectivo" : "transfer."}
+                Cerrar {via === "efectivo" ? "efectivo" : via === "tarjeta" ? "tarjeta" : "transfer."}
               </button>
             </form>
           ))}
@@ -307,7 +311,7 @@ function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; b
       ) : null}
 
       <details className="mt-3">
-        <summary className="cursor-pointer text-xs text-muted">Más: cargar un extra, pasar a otro celu, trabar</summary>
+        <summary className="cursor-pointer text-xs text-muted">Más: extra, forma de pago, pasar a otro celu, trabar</summary>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <form action={cargarExtraAction} className="flex items-center gap-1">
             <input type="hidden" name="id" value={c.id} />
@@ -318,6 +322,17 @@ function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; b
               Cargar
             </button>
           </form>
+          {/* Si el código destrabó la cuenta quedó como efectivo: acá se corrige si en realidad fue tarjeta o transferencia. */}
+          {(["efectivo", "tarjeta", "transferencia"] as const).map((via) => (
+            <form key={`fix-${via}`} action={cobrarCenaAction}>
+              <input type="hidden" name="id" value={c.id} />
+              <input type="hidden" name="eventId" value={eventId} />
+              <input type="hidden" name="via" value={via} />
+              <button className={`btn btn-sm ${c.coverVia === via ? "btn-primary" : "btn-ghost"}`} type="submit">
+                {via === "efectivo" ? "Pagó efectivo" : via === "tarjeta" ? "Pagó tarjeta" : "Pagó transfer."}
+              </button>
+            </form>
+          ))}
           {!c.traspasoCode && (
             <form action={abrirTraspasoAction}>
               <input type="hidden" name="id" value={c.id} />

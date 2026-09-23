@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { parseBar, parseMenu } from "./menu";
+import { parseBar, parseMenu, splitDrink } from "./menu";
 import { KIND_MARIDAJE, KIND_PLATO, type ConsumoRow, type CoverVia, type CuentaRow } from "./sala-tipos";
 
 export * from "./sala-tipos";
@@ -211,7 +211,8 @@ export async function pedirPaso(cuentaId: string, stepIndex: number, que: "plato
   const quiereTrago = que !== "plato" && Boolean(paso.drink);
   const nuevos: { kind: string; item: string }[] = [];
   if (quierePlato && !vivos.some((c) => c.kind === KIND_PLATO && c.stepIndex === stepIndex)) nuevos.push({ kind: KIND_PLATO, item: paso.dish });
-  if (quiereTrago && !vivos.some((c) => c.kind === KIND_MARIDAJE && c.stepIndex === stepIndex)) nuevos.push({ kind: KIND_MARIDAJE, item: paso.drink! });
+  // A la barra le llega el nombre del cóctel, no la lista de ingredientes.
+  if (quiereTrago && !vivos.some((c) => c.kind === KIND_MARIDAJE && c.stepIndex === stepIndex)) nuevos.push({ kind: KIND_MARIDAJE, item: splitDrink(paso.drink).name });
   if (nuevos.length === 0) throw new SalaError("Eso ya lo pediste.");
   const platosEnCamino = cuenta.consumos.filter((c) => c.kind === KIND_PLATO && c.status === "pendiente").length;
   if (quierePlato && platosEnCamino >= 2) throw new SalaError("Ya tenés dos platos en camino; esperá a que lleguen.");
@@ -261,7 +262,7 @@ export async function getPendientes(eventId: string, destino: "cocina" | "barra"
 }
 
 /** Cierra una cuenta: se cobró todo lo que consumió. */
-export async function cerrarCuenta(id: string, via: "efectivo" | "transferencia" | "invitado") {
+export async function cerrarCuenta(id: string, via: "efectivo" | "tarjeta" | "transferencia" | "invitado") {
   const c = await prisma.cuenta.findUnique({ where: { id }, select: { coverPaidAt: true } });
   if (!c) throw new SalaError("Esa cuenta no existe.");
   if (!c.coverPaidAt) throw new SalaError("Primero cobrá (o marcá como invitado) la cena.");
