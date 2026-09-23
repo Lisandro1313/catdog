@@ -42,6 +42,8 @@ model Event {
   /// Carta en vivo: índice del último acto que salió a la mesa (null = todavía nada). Lo marca la cocina desde el panel.
   servedStep Int?
   servedAt   DateTime?
+  /// Código de la noche (4 dígitos) para desbloquear una cuenta desde el celular del invitado, sin pasar por el panel.
+  salaCode   String?
   /// Receta de regalo (texto libre): se manda por mail al día siguiente a los que vinieron.
   recipeGift   String?
   recipeSentAt DateTime?
@@ -58,6 +60,7 @@ model Event {
   votos    Voto[]
   pedidos  Pedido[]
   sugerencias Sugerencia[]
+  cuentas  Cuenta[]
 }
 
 /// "Lo que no dice la carta": un secreto por acto del juego de las mesitas. index 0 = recepción, 1..n = pasos del menú.
@@ -394,4 +397,57 @@ model Sugerencia {
   text      String
   createdAt DateTime  @default(now())
   seenAt    DateTime?
+}
+
+/// La cuenta de una persona en una mesa, durante la cena. Se abre al escanear el QR de la mesa.
+model Cuenta {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// Mesa donde está sentada (el número del QR).
+  table     Int
+  name      String
+  /// Reserva de la que salió, si la eligió al abrir.
+  reservationId String?
+  /// El teléfono que la abrió: solo ese ve y usa la cuenta.
+  deviceKey String
+  /// Lo que le toca pagar por la cena. 0 = invitado de la casa.
+  cover     Int
+  /// Por qué ese monto: "entera" | "2x1" | "invitado" | "ya pago" (reservó y pagó antes) | "a mano".
+  coverNote String?
+  /// Cuándo se saldó el cubierto (null = todavía debe la cena; hasta entonces la cuenta está trabada).
+  coverPaidAt DateTime?
+  /// Cómo lo pagó: "efectivo" | "transferencia" | "mercadopago" | "invitado" | "reserva".
+  coverVia  String?
+  openedAt  DateTime @default(now())
+  /// Cuándo se cerró la cuenta (se cobró todo lo consumido).
+  closedAt  DateTime?
+  /// Cómo pagó lo consumido al cerrar.
+  closedVia String?
+
+  consumos  Consumo[]
+
+  @@index([eventId, table])
+  @@index([eventId, deviceKey])
+}
+
+/// Algo cargado a una cuenta: un paso de la cena (sin costo), un trago de la barra o un extra.
+model Consumo {
+  id        String    @id @default(cuid())
+  cuentaId  String
+  cuenta    Cuenta    @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  /// "paso" (va a la cocina) | "trago" (va a la barra) | "extra" (lo carga la casa).
+  kind      String
+  item      String
+  /// Para los pasos: qué número de paso de la carta es.
+  stepIndex Int?
+  qty       Int       @default(1)
+  /// Precio unitario en pesos al momento de pedirlo (los pasos van en 0).
+  price     Int       @default(0)
+  /// "pendiente" | "listo" | "cancelado".
+  status    String    @default("pendiente")
+  createdAt DateTime  @default(now())
+  doneAt    DateTime?
+
+  @@index([cuentaId])
 }

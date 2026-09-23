@@ -1,5 +1,8 @@
 import { prisma } from "./prisma";
 import { parseMenu } from "./menu";
+import { ROMAN, labelForStep } from "./pasos";
+
+export { labelForStep };
 
 /**
  * "Puertas adentro": el juego de las mesitas. Cada acto de la noche (recepción, pasos, postre)
@@ -62,8 +65,7 @@ export type Act = {
   secret: string | null;
 };
 
-const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
-const STEP_LABELS = ["Primer paso", "Segundo paso", "Tercer paso", "Cuarto paso", "Quinto paso", "Sexto paso"];
+
 
 /** Banco de ejemplo para ver el juego cuando una cena todavía no tiene secretos cargados. */
 export const DEMO_BANK: { secret: string; decoys: string[]; why: string }[] = [
@@ -74,10 +76,7 @@ export const DEMO_BANK: { secret: string; decoys: string[]; why: string }[] = [
   { secret: "pimienta negra", decoys: ["aceto", "vainilla", "canela"], why: "Frutal y fresco para cerrar: el postre pide algo que no empalague." },
 ];
 
-export function labelForStep(i: number, dish: string, total: number): string {
-  if (i === total && /postre|dulce|helado|frutilla|torta|flan|mousse|panna|crema/i.test(dish)) return "El postre";
-  return STEP_LABELS[i - 1] ?? `Paso ${i}`;
-}
+
 
 /**
  * Arma los actos de una cena a partir de la carta y los secretos cargados.

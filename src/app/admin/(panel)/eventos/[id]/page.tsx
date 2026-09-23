@@ -185,6 +185,9 @@ export default async function AdminEventPage({
             <Link href={`/admin/eventos/${event.id}/noche`} className="btn btn-ghost btn-sm">
               La puerta
             </Link>
+            <Link href={`/admin/eventos/${event.id}/sala`} className="btn btn-primary btn-sm">
+              La sala
+            </Link>
             <Link href={`/admin/eventos/${event.id}/vivo`} className="btn btn-ghost btn-sm">
               En vivo
             </Link>

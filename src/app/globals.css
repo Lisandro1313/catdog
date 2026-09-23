@@ -2646,3 +2646,38 @@ details.faq > summary::-webkit-details-marker {
     opacity: 1;
   }
 }
+
+/* La cuenta de la mesa: los pasos que se piden */
+.mesa-paso {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-align: left;
+  touch-action: manipulation;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.mesa-paso:active:not(:disabled) {
+  transform: scale(0.99);
+}
+.mesa-paso.is-next {
+  border-color: var(--accent);
+  background: linear-gradient(170deg, var(--surface-2), var(--surface));
+}
+.mesa-paso.is-wait {
+  border-color: rgba(201, 169, 110, 0.6);
+  animation: hoy-pulse 1.8s ease-in-out infinite;
+}
+.mesa-paso.is-done {
+  opacity: 0.55;
+}
+.mesa-paso-n {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.1rem;
+  color: var(--accent);
+  min-width: 1.6rem;
+}

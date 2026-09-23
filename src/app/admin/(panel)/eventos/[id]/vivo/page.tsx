@@ -38,6 +38,9 @@ export default async function VivoPage({ params }: { params: Promise<{ id: strin
           ← {event.title}
         </Link>
         <div className="flex items-center gap-3">
+          <Link href={`/admin/eventos/${event.id}/sala`} className="hover:text-ink">
+            La sala
+          </Link>
           <Link href={`/admin/eventos/${event.id}/noche`} className="hover:text-ink">
             La puerta
           </Link>
