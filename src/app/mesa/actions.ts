@@ -9,7 +9,9 @@ import { cleanName } from "@/lib/juegos";
 import {
   abrirCuenta,
   cancelarMiConsumo,
-  getMiCuenta,
+  getCuentasDeLaMesa,
+  getMisCuentas,
+  tomarCuenta,
   pedirPaso,
   pedirTrago,
   saldarCover,
@@ -22,7 +24,7 @@ import {
  * noche si la casa se lo da, pedir los pasos y los tragos, y mirar lo que lleva.
  */
 
-export type MesaResult = { ok: true; cuenta: CuentaRow } | { ok: false; error: string };
+export type MesaResult = { ok: true; cuentas: CuentaRow[]; foco?: string } | { ok: false; error: string };
 
 async function eventoDeHoy(eventId: string) {
   const tonight = await getTonightEvent();
@@ -30,11 +32,39 @@ async function eventoDeHoy(eventId: string) {
   return tonight;
 }
 
-/** Lo que este teléfono tiene abierto ahora (para refrescar la pantalla). */
-export async function miCuentaAction(eventId: string): Promise<CuentaRow | null> {
+/** Lo que este teléfono lleva ahora (para refrescar la pantalla). */
+export async function misCuentasAction(eventId: string): Promise<CuentaRow[]> {
   const key = await readSalaKey();
-  if (!key) return null;
-  return getMiCuenta(eventId, key);
+  if (!key) return [];
+  return getMisCuentas(eventId, key);
+}
+
+/** Las cuentas abiertas de esta mesa, para tomar la de alguien que se quedó sin celular. */
+export async function cuentasDeLaMesaAction(eventId: string, table: number): Promise<{ id: string; name: string }[]> {
+  if (!(await eventoDeHoy(eventId)) || !Number.isInteger(table)) return [];
+  return getCuentasDeLaMesa(eventId, table);
+}
+
+const tomarSchema = z.object({ eventId: z.string().min(1), cuentaId: z.string().min(1), code: z.string().trim().max(8) });
+
+/** Toma una cuenta de esta mesa en este teléfono, con el código de la noche. */
+export async function tomarCuentaAction(input: unknown): Promise<MesaResult> {
+  const parsed = tomarSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Datos inválidos." };
+  const { eventId, cuentaId, code } = parsed.data;
+  const event = await eventoDeHoy(eventId);
+  if (!event) return { ok: false, error: "Esto funciona solo durante la cena." };
+  const key = await ensureSalaKey();
+  if (!allowKey(`tomar:${key}`, 12)) return { ok: false, error: "Probaste varias veces; pedile el código a la casa." };
+  if (!event.salaCode || code !== event.salaCode) return { ok: false, error: "Ese código no es." };
+  const dueña = await prisma.cuenta.findUnique({ where: { id: cuentaId }, select: { eventId: true, table: true } });
+  if (!dueña || dueña.eventId !== eventId) return { ok: false, error: "Esa cuenta no es de esta cena." };
+  try {
+    await tomarCuenta(cuentaId, key);
+  } catch (err) {
+    return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo tomar." };
+  }
+  return { ok: true, cuentas: await getMisCuentas(eventId, key), foco: cuentaId };
 }
 
 const abrirSchema = z.object({
@@ -57,7 +87,7 @@ export async function abrirCuentaAction(input: unknown): Promise<MesaResult> {
   if (!allowKey(`cuenta:${key}`, 8) || !(await allowRequest("cuenta-ip", 200))) return { ok: false, error: "Esperá un momento." };
   try {
     const cuenta = await abrirCuenta({ eventId, table, name, deviceKey: key, reservationId: reservationId ?? null, price: event.price });
-    return { ok: true, cuenta };
+    return { ok: true, cuentas: await getMisCuentas(eventId, key), foco: cuenta.id };
   } catch (err) {
     return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo abrir la cuenta." };
   }
@@ -91,8 +121,7 @@ export async function codigoAction(input: unknown): Promise<MesaResult> {
   if (!allowKey(`codigo:${mine.key}`, 10)) return { ok: false, error: "Probaste varias veces; pedile el código a la casa." };
   if (!event.salaCode || code !== event.salaCode) return { ok: false, error: "Ese código no es." };
   await saldarCover(cuentaId, "efectivo");
-  const cuenta = await getMiCuenta(eventId, mine.key);
-  return cuenta ? { ok: true, cuenta } : { ok: false, error: "No se pudo destrabar." };
+  return { ok: true, cuentas: await getMisCuentas(eventId, mine.key), foco: cuentaId };
 }
 
 const pasoSchema = z.object({ eventId: z.string().min(1), cuentaId: z.string().min(1), stepIndex: z.number().int().min(1).max(20), que: z.enum(["plato", "trago", "ambos"]) });
@@ -110,8 +139,7 @@ export async function pedirPasoAction(input: unknown): Promise<MesaResult> {
   } catch (err) {
     return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo pedir." };
   }
-  const cuenta = await getMiCuenta(eventId, mine.key);
-  return cuenta ? { ok: true, cuenta } : { ok: false, error: "No se pudo pedir." };
+  return { ok: true, cuentas: await getMisCuentas(eventId, mine.key), foco: cuentaId };
 }
 
 const tragoSchema = z.object({ eventId: z.string().min(1), cuentaId: z.string().min(1), item: z.string().trim().min(1).max(120), qty: z.number().int().min(1).max(4).optional() });
@@ -129,14 +157,12 @@ export async function pedirTragoAction(input: unknown): Promise<MesaResult> {
   } catch (err) {
     return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo pedir." };
   }
-  const cuenta = await getMiCuenta(eventId, mine.key);
-  return cuenta ? { ok: true, cuenta } : { ok: false, error: "No se pudo pedir." };
+  return { ok: true, cuentas: await getMisCuentas(eventId, mine.key), foco: cuentaId };
 }
 
 export async function cancelarConsumoAction(eventId: string, consumoId: string): Promise<MesaResult> {
   const key = await readSalaKey();
   if (!key || typeof consumoId !== "string") return { ok: false, error: "No se pudo cancelar." };
   await cancelarMiConsumo(consumoId, key);
-  const cuenta = await getMiCuenta(eventId, key);
-  return cuenta ? { ok: true, cuenta } : { ok: false, error: "No se pudo cancelar." };
+  return { ok: true, cuentas: await getMisCuentas(eventId, key) };
 }

@@ -5,7 +5,7 @@ import { formatDayNumber, formatMonth, formatWeekday } from "@/lib/dates";
 import { parseBar } from "@/lib/menu";
 import { readSalaKey } from "@/lib/device";
 import { getTonightEvent } from "@/lib/hoy";
-import { getMiCuenta, getReservasDeLaNoche } from "@/lib/sala";
+import { getMisCuentas, getReservasDeLaNoche } from "@/lib/sala";
 import { MesaClient } from "@/components/mesa/MesaClient";
 import { TrackVisit } from "@/components/TrackVisit";
 
@@ -41,7 +41,7 @@ export default async function MesaPage({ params }: { params: Promise<{ mesa: str
   }
 
   const key = await readSalaKey();
-  const [cuenta, reservas] = await Promise.all([key ? getMiCuenta(event.id, key) : Promise.resolve(null), getReservasDeLaNoche(event.id)]);
+  const [cuentas, reservas] = await Promise.all([key ? getMisCuentas(event.id, key) : Promise.resolve([]), getReservasDeLaNoche(event.id)]);
 
   return (
     <>
@@ -56,7 +56,7 @@ export default async function MesaPage({ params }: { params: Promise<{ mesa: str
         bar={parseBar(event.bar)}
         barPrice={event.barPrice}
         reservas={reservas}
-        initial={cuenta}
+        initial={cuentas}
       />
     </>
   );

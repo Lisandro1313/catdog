@@ -2,7 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { abrirCuentaAction, cancelarConsumoAction, codigoAction, miCuentaAction, pedirPasoAction, pedirTragoAction } from "@/app/mesa/actions";
+import {
+  abrirCuentaAction,
+  cancelarConsumoAction,
+  codigoAction,
+  cuentasDeLaMesaAction,
+  misCuentasAction,
+  pedirPasoAction,
+  pedirTragoAction,
+  tomarCuentaAction,
+  type MesaResult,
+} from "@/app/mesa/actions";
 import { pasosDe, type CartaPaso, type CuentaRow, type EstadoPedido } from "@/lib/sala-tipos";
 import type { BarItem } from "@/lib/menu";
 import { formatPrice } from "@/lib/config";
@@ -19,7 +29,7 @@ type Props = {
   bar: BarItem[];
   barPrice: number | null;
   reservas: Reserva[];
-  initial: CuentaRow | null;
+  initial: CuentaRow[];
 };
 
 const CADA = 12000;
@@ -37,30 +47,36 @@ function marca(e: EstadoPedido): string {
 }
 
 /**
- * La cuenta de una persona, desde el QR de su mesa. Tres momentos: abrirla (nombre), esperar a que la
- * casa cobre la cena, y ya adentro pedir los pasos a su ritmo y los tragos, viendo lo que lleva.
+ * La cuenta de una persona, desde el QR de su mesa. Abrirla con el nombre, esperar a que la casa
+ * cobre la cena, y ya adentro pedir los pasos a su ritmo y los tragos, viendo lo que lleva.
+ * Un teléfono puede llevar más de una cuenta: si a alguien se le apaga el celular, otro toma la suya.
  */
 export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar, barPrice, reservas, initial }: Props) {
-  const [cuenta, setCuenta] = useState<CuentaRow | null>(initial);
+  const [cuentas, setCuentas] = useState<CuentaRow[]>(initial);
+  const [focoId, setFocoId] = useState<string | null>(initial[0]?.id ?? null);
   const [name, setName] = useState("");
   const [reservaId, setReservaId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [modo, setModo] = useState<"ver" | "nueva" | "tomar">(initial.length ? "ver" : "nueva");
+  const [ajenas, setAjenas] = useState<{ id: string; name: string }[]>([]);
+  const [tomarId, setTomarId] = useState<string | null>(null);
   const avisoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Mientras la cuenta está trabada o con algo en camino, se consulta cada tanto para reflejar lo que hace la casa.
+  const cuenta = cuentas.find((c) => c.id === focoId) ?? cuentas[0] ?? null;
+
+  // Se consulta cada tanto para reflejar lo que hace la casa (el cobro, los pedidos servidos).
   useEffect(() => {
-    const id = setInterval(() => {
-      if (document.hidden) return;
-      miCuentaAction(eventId)
-        .then((c) => c && setCuenta(c))
+    const traer = () =>
+      misCuentasAction(eventId)
+        .then((cs) => cs.length && setCuentas(cs))
         .catch(() => {});
+    const id = setInterval(() => {
+      if (!document.hidden) traer();
     }, CADA);
-    const onVis = () => {
-      if (!document.hidden) miCuentaAction(eventId).then((c) => c && setCuenta(c)).catch(() => {});
-    };
+    const onVis = () => !document.hidden && traer();
     document.addEventListener("visibilitychange", onVis);
     return () => {
       clearInterval(id);
@@ -80,10 +96,10 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
     }
   }
 
-  async function correr(key: string, fn: () => Promise<{ ok: true; cuenta: CuentaRow } | { ok: false; error: string }>, ok?: string) {
+  async function correr(key: string, fn: () => Promise<MesaResult>, ok?: string) {
     setBusy(key);
     setError(null);
-    let res: Awaited<ReturnType<typeof fn>>;
+    let res: MesaResult;
     try {
       res = await fn();
     } catch {
@@ -94,66 +110,182 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
       setError(res.error);
       return false;
     }
-    setCuenta(res.cuenta);
+    setCuentas(res.cuentas);
+    if (res.foco) setFocoId(res.foco);
+    setModo("ver");
     if (ok) decir(ok);
     return true;
   }
 
-  // ---------- abrir la cuenta ----------
-  if (!cuenta) {
+  async function verAjenas() {
+    setError(null);
+    setModo("tomar");
+    try {
+      const cs = await cuentasDeLaMesaAction(eventId, table);
+      const mias = new Set(cuentas.map((c) => c.id));
+      setAjenas(cs.filter((c) => !mias.has(c.id)));
+    } catch {
+      setError("Sin señal. Probá de nuevo.");
+    }
+  }
+
+  // ---------- abrir o tomar una cuenta ----------
+  if (!cuenta || modo !== "ver") {
     return (
       <Stage title={title} dateLabel={dateLabel} table={table}>
-        <p className="mt-6 text-sm leading-relaxed text-muted">
-          Esta es tu cuenta de la noche. La abrís con tu nombre, la casa te cobra la cena y desde acá pedís cada paso cuando quieras y lo que tomes.
-        </p>
-        {reservas.length > 0 && (
-          <div className="mt-6">
-            <p className="ap-eyebrow">¿Reservaste?</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {reservas.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  className={`hoy-chip hoy-chip-plain ${reservaId === r.id ? "is-on" : ""}`}
-                  aria-pressed={reservaId === r.id}
-                  onClick={() => {
-                    setReservaId(reservaId === r.id ? null : r.id);
-                    if (reservaId !== r.id) setName(r.name);
-                  }}
-                >
-                  {r.name}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-muted">Si tu nombre está acá, la cena ya está paga.</p>
-          </div>
+        {modo === "tomar" ? (
+          <>
+            <p className="ap-display mt-6 text-2xl">Tomar una cuenta</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Si a alguien se le apagó el celular, su cuenta se puede pasar a este. Elegí el nombre y pedile el código a la casa.
+            </p>
+            {ajenas.length === 0 ? (
+              <p className="mt-6 text-sm text-muted">No hay otras cuentas abiertas en esta mesa.</p>
+            ) : (
+              <>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {ajenas.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      className={`hoy-chip hoy-chip-plain ${tomarId === a.id ? "is-on" : ""}`}
+                      aria-pressed={tomarId === a.id}
+                      onClick={() => setTomarId(a.id)}
+                    >
+                      {a.name}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <input
+                    className="input flex-1 text-center text-2xl tracking-[0.4em]"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="0000"
+                    aria-label="Código de la casa"
+                  />
+                  <button
+                    className="btn btn-primary shrink-0"
+                    type="button"
+                    disabled={!tomarId || code.length < 4 || busy === "tomar"}
+                    onClick={() => correr("tomar", () => tomarCuentaAction({ eventId, cuentaId: tomarId!, code }), "Cuenta tomada")}
+                  >
+                    {busy === "tomar" ? "…" : "Tomar"}
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="mt-6 text-sm leading-relaxed text-muted">
+              {cuentas.length > 0
+                ? "Otra cuenta en este mismo teléfono, para alguien que está con vos."
+                : "Esta es tu cuenta de la noche. La abrís con tu nombre, la casa te cobra la cena y desde acá pedís cada paso cuando quieras y lo que tomes."}
+            </p>
+            {reservas.length > 0 && (
+              <div className="mt-6">
+                <p className="ap-eyebrow">¿Reservaste?</p>
+                <div className="mt-2 flex flex-wrap justify-center gap-2">
+                  {reservas.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className={`hoy-chip hoy-chip-plain ${reservaId === r.id ? "is-on" : ""}`}
+                      aria-pressed={reservaId === r.id}
+                      onClick={() => {
+                        const nuevo = reservaId === r.id ? null : r.id;
+                        setReservaId(nuevo);
+                        if (nuevo) setName(r.name);
+                      }}
+                    >
+                      {r.name}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-muted">Si tu nombre está acá, la cena ya está paga.</p>
+              </div>
+            )}
+            <label className="mt-6 block text-left">
+              <span className="ap-eyebrow">Tu nombre</span>
+              <input className="input mt-2 w-full" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="Como te dicen" aria-label="Tu nombre" />
+            </label>
+            <button
+              className="btn btn-primary mt-6 w-full"
+              type="button"
+              disabled={name.trim().length < 2 || busy === "abrir"}
+              onClick={() => correr("abrir", () => abrirCuentaAction({ eventId, table, name, reservationId: reservaId }), "Cuenta abierta")}
+            >
+              {busy === "abrir" ? "Abriendo…" : "Abrir mi cuenta"}
+            </button>
+          </>
         )}
-        <label className="mt-6 block text-left">
-          <span className="ap-eyebrow">Tu nombre</span>
-          <input className="input mt-2 w-full" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="Como te dicen" aria-label="Tu nombre" />
-        </label>
         {error && (
           <p className="mt-3 text-sm text-danger" role="alert">
             {error}
           </p>
         )}
-        <button
-          className="btn btn-primary mt-6 w-full"
-          type="button"
-          disabled={name.trim().length < 2 || busy === "abrir"}
-          onClick={() => correr("abrir", () => abrirCuentaAction({ eventId, table, name, reservationId: reservaId }))}
-        >
-          {busy === "abrir" ? "Abriendo…" : "Abrir mi cuenta"}
-        </button>
+        <div className="mt-6 flex flex-col items-center gap-2 text-xs">
+          {modo !== "tomar" && (
+            <button type="button" className="text-muted underline-offset-4 hover:text-ink hover:underline" onClick={verAjenas}>
+              Se me apagó el celu: tomar una cuenta de esta mesa
+            </button>
+          )}
+          {cuenta && (
+            <button type="button" className="text-muted underline-offset-4 hover:text-ink hover:underline" onClick={() => setModo("ver")}>
+              Volver a mi cuenta
+            </button>
+          )}
+        </div>
         <p className="mt-4 text-xs text-muted">Mesa {table}. Si no es tu mesa, escaneá el código de la tuya.</p>
       </Stage>
     );
   }
 
+  const selector =
+    cuentas.length > 1 ? (
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        {cuentas.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className={`hoy-chip hoy-chip-plain ${c.id === cuenta.id ? "is-on" : ""}`}
+            aria-pressed={c.id === cuenta.id}
+            onClick={() => setFocoId(c.id)}
+          >
+            {c.name}
+            {c.closedAt ? " ✓" : !c.coverPaid ? " ·" : ""}
+          </button>
+        ))}
+      </div>
+    ) : null;
+
+  const pie = (
+    <div className="mt-8 flex flex-col items-center gap-2 text-xs">
+      <button
+        type="button"
+        className="text-muted underline-offset-4 hover:text-ink hover:underline"
+        onClick={() => {
+          setName("");
+          setReservaId(null);
+          setModo("nueva");
+        }}
+      >
+        Abrir otra cuenta en este teléfono
+      </button>
+      <button type="button" className="text-muted underline-offset-4 hover:text-ink hover:underline" onClick={verAjenas}>
+        Tomar la cuenta de alguien de la mesa
+      </button>
+    </div>
+  );
+
   // ---------- trabada: falta que la casa cobre ----------
   if (!cuenta.coverPaid) {
     return (
       <Stage title={title} dateLabel={dateLabel} table={table}>
+        {selector}
         <p className="ap-display mt-6 text-3xl">Hola, {cuenta.name}</p>
         <div className="mt-6 rounded-2xl border border-accent/40 bg-surface/70 p-5">
           <p className="ap-eyebrow">La cena</p>
@@ -190,6 +322,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
           <span className="jg-link-title">Mientras tanto, los juegos</span>
           <span className="jg-link-sub">Once juegos de la casa. Si lográs nueve, hay un trago.</span>
         </Link>
+        {pie}
       </Stage>
     );
   }
@@ -198,6 +331,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   if (cuenta.closedAt) {
     return (
       <Stage title={title} dateLabel={dateLabel} table={table}>
+        {selector}
         <p className="ap-ornament mt-8">✦</p>
         <p className="ap-display mt-3 text-3xl">Gracias, {cuenta.name}</p>
         <p className="mt-3 text-muted">Tu cuenta quedó cerrada. Fue un gusto.</p>
@@ -206,6 +340,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
           <span className="jg-link-title">Los juegos de la casa</span>
           <span className="jg-link-sub">Para la sobremesa.</span>
         </Link>
+        {pie}
       </Stage>
     );
   }
@@ -217,6 +352,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
 
   return (
     <Stage title={title} dateLabel={dateLabel} table={table}>
+      {selector}
       {aviso && (
         <p className="jg-duelo-bar mt-4" role="status">
           {aviso}
@@ -235,11 +371,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
                   {c.qty > 1 ? `${c.qty} × ` : ""}
                   {c.item}
                 </span>
-                <button
-                  type="button"
-                  className="text-xs text-muted hover:text-ink"
-                  onClick={() => correr(`cancel-${c.id}`, () => cancelarConsumoAction(eventId, c.id))}
-                >
+                <button type="button" className="text-xs text-muted hover:text-ink" onClick={() => correr(`cancel-${c.id}`, () => cancelarConsumoAction(eventId, c.id))}>
                   cancelar
                 </button>
               </li>
@@ -250,7 +382,9 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
 
       <section className="mt-8 text-left">
         <p className="ap-eyebrow">La cena, paso a paso</p>
-        <p className="mt-1 text-xs text-muted">Pedí lo que quieras cuando estés listo: el plato, el trago que lo acompaña, o los dos. El plato va a la cocina y el trago a la barra.</p>
+        <p className="mt-1 text-xs text-muted">
+          Pedí lo que quieras cuando estés listo: el plato, el trago que lo acompaña, o los dos. El plato va a la cocina y el trago a la barra.
+        </p>
         <ul className="mt-3 grid gap-2">
           {pasos.map((p) => (
             <li key={p.index}>
@@ -344,6 +478,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
       <Link href={`/hoy/${table}`} className="mt-4 block text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
         Puertas adentro: lo que la carta no dice
       </Link>
+      {pie}
     </Stage>
   );
 }
@@ -378,9 +513,7 @@ function Cuentita({ cuenta, price }: { cuenta: CuentaRow; price: number }) {
         <span className="ap-eyebrow">{cuenta.closedAt ? "Pagaste" : "Llevás"}</span>
         <span className="font-display text-2xl tabular-nums">{formatPrice((cuenta.coverPaid ? cuenta.cover : price) + cuenta.extra)}</span>
       </div>
-      {!cuenta.closedAt && cuenta.extra > 0 && (
-        <p className="mt-2 text-xs text-muted">Al final pagás lo de la barra: {formatPrice(cuenta.extra)}.</p>
-      )}
+      {!cuenta.closedAt && cuenta.extra > 0 && <p className="mt-2 text-xs text-muted">Al final pagás lo de la barra: {formatPrice(cuenta.extra)}.</p>}
     </section>
   );
 }

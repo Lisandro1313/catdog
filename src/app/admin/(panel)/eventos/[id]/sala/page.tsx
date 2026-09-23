@@ -83,6 +83,9 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
         <p className="mt-3 text-sm text-muted">
           Cantale el código a quien ya te pagó en mano o venga invitado: lo escribe en su celular y se destraba sin que toques nada. Si cobrás acá, se destraba solo.
         </p>
+        <p className="mt-2 text-xs text-muted">
+          Con el mismo código, si a alguien se le apaga el celular, otro de la mesa escanea el QR, toca “tomar una cuenta” y se la lleva con todo lo pedido.
+        </p>
         <div className="mt-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
           <Dato label="En la sala" value={String(r.personas)} />
           <Dato label="Esperando cobro" value={String(r.trabadas)} tone={r.trabadas > 0 ? "warn" : undefined} />

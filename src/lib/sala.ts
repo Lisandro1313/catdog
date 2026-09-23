@@ -56,6 +56,35 @@ export async function getMiCuenta(eventId: string, deviceKey: string): Promise<C
   return row ? armar(row) : null;
 }
 
+/**
+ * Todas las cuentas que lleva este teléfono. Suelen ser una, pero a alguien se le puede apagar el
+ * celular y otro le lleva la suya, o una pareja usa un teléfono solo.
+ */
+export async function getMisCuentas(eventId: string, deviceKey: string): Promise<CuentaRow[]> {
+  const rows = await prisma.cuenta.findMany({ where: { eventId, deviceKey }, orderBy: { openedAt: "asc" }, include });
+  return rows.map(armar);
+}
+
+/** Las cuentas abiertas de una mesa, para poder tomar la de alguien que se quedó sin celular. */
+export async function getCuentasDeLaMesa(eventId: string, table: number) {
+  const rows = await prisma.cuenta.findMany({ where: { eventId, table, closedAt: null }, orderBy: { openedAt: "asc" }, select: { id: true, name: true } });
+  return rows;
+}
+
+/**
+ * Pasa una cuenta a otro teléfono: el nuevo la toma con el código de la noche. Sirve cuando a alguien
+ * se le apaga el celular o prefiere que se la lleve otro. La cuenta es la misma, con todo lo pedido.
+ */
+export async function tomarCuenta(cuentaId: string, deviceKey: string) {
+  const c = await prisma.cuenta.findUnique({ where: { id: cuentaId }, select: { closedAt: true, deviceKey: true } });
+  if (!c) throw new SalaError("Esa cuenta no existe.");
+  if (c.closedAt) throw new SalaError("Esa cuenta ya se cerró.");
+  if (c.deviceKey === deviceKey) throw new SalaError("Esa cuenta ya es de este teléfono.");
+  const cuantas = await prisma.cuenta.count({ where: { deviceKey, closedAt: null } });
+  if (cuantas >= 4) throw new SalaError("Este teléfono ya lleva cuatro cuentas.");
+  await prisma.cuenta.update({ where: { id: cuentaId }, data: { deviceKey } });
+}
+
 export async function getCuenta(id: string): Promise<CuentaRow | null> {
   const row = await prisma.cuenta.findUnique({ where: { id }, include });
   return row ? armar(row) : null;
@@ -75,8 +104,9 @@ export class SalaError extends Error {}
 
 /** Abre la cuenta de una persona en una mesa. Queda trabada hasta que la casa cobre (o la marque invitada). */
 export async function abrirCuenta(input: { eventId: string; table: number; name: string; deviceKey: string; reservationId?: string | null; price: number }) {
+  // Un teléfono puede llevar varias (una pareja con un celu, o el que le lleva la cuenta a un amigo).
   const abiertas = await prisma.cuenta.count({ where: { eventId: input.eventId, deviceKey: input.deviceKey, closedAt: null } });
-  if (abiertas > 0) throw new SalaError("Este teléfono ya tiene una cuenta abierta esta noche.");
+  if (abiertas >= 4) throw new SalaError("Este teléfono ya lleva cuatro cuentas.");
   const enLaMesa = await prisma.cuenta.count({ where: { eventId: input.eventId, table: input.table, closedAt: null } });
   if (enLaMesa >= 12) throw new SalaError("Esa mesa ya tiene muchas cuentas abiertas.");
   let reservationId: string | null = null;
