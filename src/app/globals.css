@@ -18,6 +18,7 @@
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--border);
+  --line: var(--border);
   --color-ink: var(--text);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
@@ -188,7 +189,7 @@ html {
   box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.15);
 }
 .input::placeholder {
-  color: #6f675f;
+  color: #8a8279;
 }
 
 .btn {
@@ -240,7 +241,7 @@ html {
   color: var(--danger);
 }
 .btn-sm {
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0.45rem 1rem;
   font-size: 0.85rem;
 }
@@ -619,6 +620,7 @@ details.faq > summary::-webkit-details-marker {
 }
 
 /* Aparición suave de las secciones al bajar */
+/* Sin JavaScript no hay quien saque la clase: el contenido se ve igual (ver el <noscript> del layout). */
 .reveal {
   opacity: 0;
   transform: translateY(14px);
@@ -2391,7 +2393,8 @@ details.faq > summary::-webkit-details-marker {
 
 /* Fichas para elegir el juego en los récords */
 .jg-tab {
-  padding: 0.4rem 0.7rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.9rem;
   border-radius: 999px;
   border: 1px solid var(--border);
   font-size: 0.78rem;
@@ -2647,6 +2650,31 @@ details.faq > summary::-webkit-details-marker {
   }
 }
 
+/* Lo que pasa ahora en la mesa: se ve siempre, aunque estés al final de la carta */
+.mesa-flash {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  z-index: 40;
+  max-width: min(26rem, calc(100vw - 2rem));
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 0.9rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.mesa-flash.is-error {
+  border-color: var(--danger);
+}
+.mesa-flash.is-warn {
+  border-color: var(--muted);
+  color: var(--muted);
+}
+
 /* La cuenta de la mesa: los pasos que se piden */
 .mesa-paso {
   display: flex;
@@ -2680,4 +2708,36 @@ details.faq > summary::-webkit-details-marker {
   font-size: 1.1rem;
   color: var(--accent);
   min-width: 1.6rem;
+}
+
+/* En apaisado la pantalla es más baja que alta: los juegos de arena no pueden pedir 22rem. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .jg-arena,
+  .jg-copa {
+    min-height: 0;
+    height: 68dvh;
+  }
+  .jg-board {
+    max-width: min(22.5rem, 62dvh);
+  }
+}
+
+/* Con el notch en apaisado, el contenido no puede quedar debajo de la muesca. */
+.hoy-stage,
+.jg-stage {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-cue,
+  .ap-date .num::before,
+  .jg-reto,
+  .hoy-abrir-espera,
+  .jg-cliente-face,
+  .jg-hole-emoji,
+  .jg-hole-face,
+  .mesa-paso.is-wait {
+    animation: none;
+  }
 }

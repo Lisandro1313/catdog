@@ -420,6 +420,9 @@ model Cuenta {
   /// Cómo lo pagó: "efectivo" | "transferencia" | "mercadopago" | "invitado" | "reserva".
   coverVia  String?
   openedAt  DateTime @default(now())
+  /// Código de un solo uso que da la casa para pasar esta cuenta a otro teléfono, y hasta cuándo vale.
+  traspasoCode  String?
+  traspasoHasta DateTime?
   /// Cuándo se cerró la cuenta (se cobró todo lo consumido).
   closedAt  DateTime?
   /// Cómo pagó lo consumido al cerrar.

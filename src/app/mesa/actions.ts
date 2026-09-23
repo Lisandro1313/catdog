@@ -9,7 +9,7 @@ import { cleanName } from "@/lib/juegos";
 import {
   abrirCuenta,
   cancelarMiConsumo,
-  getCuentasDeLaMesa,
+  getCuentasEnTraspaso,
   getMisCuentas,
   tomarCuenta,
   pedirPaso,
@@ -39,10 +39,10 @@ export async function misCuentasAction(eventId: string): Promise<CuentaRow[]> {
   return getMisCuentas(eventId, key);
 }
 
-/** Las cuentas abiertas de esta mesa, para tomar la de alguien que se quedó sin celular. */
-export async function cuentasDeLaMesaAction(eventId: string, table: number): Promise<{ id: string; name: string }[]> {
+/** Las cuentas de esta mesa que la casa habilitó para pasar a otro teléfono. */
+export async function cuentasEnTraspasoAction(eventId: string, table: number): Promise<{ id: string; name: string }[]> {
   if (!(await eventoDeHoy(eventId)) || !Number.isInteger(table)) return [];
-  return getCuentasDeLaMesa(eventId, table);
+  return getCuentasEnTraspaso(eventId, table);
 }
 
 const tomarSchema = z.object({ eventId: z.string().min(1), cuentaId: z.string().min(1), code: z.string().trim().max(8) });
@@ -55,12 +55,11 @@ export async function tomarCuentaAction(input: unknown): Promise<MesaResult> {
   const event = await eventoDeHoy(eventId);
   if (!event) return { ok: false, error: "Esto funciona solo durante la cena." };
   const key = await ensureSalaKey();
-  if (!allowKey(`tomar:${key}`, 12)) return { ok: false, error: "Probaste varias veces; pedile el código a la casa." };
-  if (!event.salaCode || code !== event.salaCode) return { ok: false, error: "Ese código no es." };
-  const dueña = await prisma.cuenta.findUnique({ where: { id: cuentaId }, select: { eventId: true, table: true } });
+  if (!allowKey(`tomar:${key}`, 8)) return { ok: false, error: "Probaste varias veces; pedile el código a la casa." };
+  const dueña = await prisma.cuenta.findUnique({ where: { id: cuentaId }, select: { eventId: true } });
   if (!dueña || dueña.eventId !== eventId) return { ok: false, error: "Esa cuenta no es de esta cena." };
   try {
-    await tomarCuenta(cuentaId, key);
+    await tomarCuenta(cuentaId, key, code);
   } catch (err) {
     return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo tomar." };
   }

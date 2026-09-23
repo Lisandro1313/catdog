@@ -185,7 +185,7 @@ export default async function HomePage() {
       />
 
       {/* Afiche */}
-      <section id="inicio" className="relative flex min-h-[92vh] items-center overflow-hidden px-6 py-20 sm:min-h-[88vh]">
+      <section id="inicio" className="relative flex min-h-[92dvh] items-center overflow-hidden px-6 py-20 sm:min-h-[88dvh]">
         {photos[0] && (
           <div className="ap-photo" aria-hidden="true">
             <Image src={photos[0].url} alt="" fill sizes="100vw" priority className="object-cover" />

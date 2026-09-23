@@ -150,16 +150,19 @@ export function Votacion({ eventId, options, initial }: { eventId: string; optio
   const [local, setLocal] = useState<Partial<Record<"plato" | "trago", string>>>({});
   const votes = { ...initial, ...confirmed, ...local };
   const [error, setError] = useState<string | null>(null);
+  const [votando, setVotando] = useState<string | null>(null);
 
   async function vote(kind: "plato" | "trago", choice: string) {
     setLocal((l) => ({ ...l, [kind]: choice }));
     setError(null);
+    setVotando(choice);
     let res: Awaited<ReturnType<typeof votoAction>>;
     try {
       res = await votoAction({ eventId, kind, choice });
     } catch {
       res = { ok: false, error: "Sin señal. Probá de nuevo." };
     }
+    setVotando(null);
     if (!res.ok) {
       setLocal((l) => {
         const { [kind]: _drop, ...rest } = l;
@@ -188,7 +191,15 @@ export function Votacion({ eventId, options, initial }: { eventId: string; optio
             <p className="text-xs uppercase tracking-[0.2em] text-muted">{kind === "plato" ? "El plato" : "El trago"}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {options[kind].map((o) => (
-                <button key={o} type="button" className={`hoy-chip hoy-chip-plain ${votes[kind] === o ? "is-on" : ""}`} aria-pressed={votes[kind] === o} onClick={() => vote(kind, o)}>
+                <button
+                  key={o}
+                  type="button"
+                  className={`hoy-chip hoy-chip-plain ${votes[kind] === o ? "is-on" : ""} ${votando === o ? "opacity-60" : ""}`}
+                  aria-pressed={votes[kind] === o}
+                  aria-busy={votando === o}
+                  disabled={votando !== null}
+                  onClick={() => vote(kind, o)}
+                >
                   {votes[kind] === o ? "✦ " : ""}
                   {o}
                 </button>
@@ -278,7 +289,7 @@ export function Barra({ eventId, table, bar, barPrice, pedidos, onChange }: { ev
               {p.status === "pendiente" && (
                 <button
                   type="button"
-                  className="text-xs text-muted hover:text-ink"
+                  className="-m-2 min-h-11 p-2 text-xs text-muted hover:text-ink"
                   onClick={async () => {
                     try {
                       await cancelarPedidoAction(p.id);
@@ -394,7 +405,7 @@ export function Telon({ roman, label, dish, drink, onOpen, onClose }: { roman: s
         <button ref={first} className="btn btn-primary mt-10 px-8" type="button" onClick={onOpen}>
           Ver la carta
         </button>
-        <button className="mt-4 text-xs text-muted hover:text-ink" type="button" onClick={onClose}>
+        <button className="btn btn-ghost btn-sm mt-4" type="button" onClick={onClose}>
           Después
         </button>
       </div>

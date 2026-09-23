@@ -22,7 +22,7 @@ export function MapFacade({ center, zoom = 16, title }: { center: string; zoom?:
           io.disconnect();
         }
       },
-      { rootMargin: "400px 0px" },
+      { rootMargin: "0px" },
     );
     io.observe(el);
     return () => io.disconnect();

@@ -30,7 +30,7 @@ import { allowRequest } from "@/lib/rate-limit";
 import { ReservationError, cancelReservation, chooseSeats, createManualReservation, markPaid } from "@/lib/reservations";
 import { runAnalysis } from "@/lib/ai-analysis";
 import { approveHuella, markSugerenciasSeen, removeHuella, removeSugerencia, setPedidoStatus, setServedStep } from "@/lib/vivo";
-import { COVER_VIAS, cargarExtra, cerrarCuenta, desmarcarCover, getCuentas, nuevoSalaCode, reabrirCuenta, resumen, saldarCover, setConsumoStatus, setCover, type CoverVia } from "@/lib/sala";
+import { COVER_VIAS, abrirTraspaso, cancelarTraspaso, cargarExtra, cerrarCuenta, desmarcarCover, getCuentas, nuevoSalaCode, reabrirCuenta, resumen, saldarCover, setConsumoStatus, setCover, type CoverVia } from "@/lib/sala";
 
 export type ActionState = { ok: boolean; message?: string } | null;
 
@@ -1105,6 +1105,27 @@ export async function reabrirCuentaAction(formData: FormData) {
   revalidatePath(`/admin/eventos/${eventId}/sala`);
 }
 
+/** Habilita pasar una cuenta a otro teléfono: devuelve un código de un solo uso que dura 15 minutos. */
+export async function abrirTraspasoAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const eventId = String(formData.get("eventId") ?? "");
+  try {
+    await abrirTraspaso(id);
+  } catch {
+    return;
+  }
+  revalidatePath(`/admin/eventos/${eventId}/sala`);
+}
+
+export async function cancelarTraspasoAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const eventId = String(formData.get("eventId") ?? "");
+  await cancelarTraspaso(id);
+  revalidatePath(`/admin/eventos/${eventId}/sala`);
+}
+
 export async function nuevoSalaCodeAction(formData: FormData) {
   await requireAdmin();
   const eventId = String(formData.get("eventId") ?? "");
@@ -1124,6 +1145,16 @@ export async function cerrarSalaAction(formData: FormData): Promise<void> {
   const r = resumen(cuentas);
   const total = r.cobradoCena + r.cobradoConsumo;
   if (total <= 0) return;
+  // Si ya se cargó la sala de esta noche, no se duplica el ingreso.
+  const yaEsta = await prisma.ledgerEntry.findFirst({ where: { eventId, category: "cena", deletedAt: null, description: { startsWith: "Sala:" } } });
+  if (yaEsta) {
+    const resto = total - yaEsta.amount;
+    if (resto <= 0) return;
+    await prisma.ledgerEntry.update({ where: { id: yaEsta.id }, data: { amount: total, description: `Sala: ${r.personas} personas (${r.invitados} de la casa), cenas ${formatPrice(r.cobradoCena)}, barra ${formatPrice(r.cobradoConsumo)}`.slice(0, 200), updatedAt: new Date(), updatedBy: me.name } });
+    revalidatePath(`/admin/eventos/${eventId}/sala`);
+    revalidatePath("/admin/gastos");
+    return;
+  }
   const detalle = `Sala: ${r.personas} personas (${r.invitados} de la casa), cenas ${formatPrice(r.cobradoCena)}, barra ${formatPrice(r.cobradoConsumo)}`;
   await prisma.ledgerEntry.create({
     data: { eventId, kind: "INCOME", category: "cena", description: detalle.slice(0, 200), amount: total, day: argentinaDay(), by: me.name, fromPocket: false, createdBy: me.name },

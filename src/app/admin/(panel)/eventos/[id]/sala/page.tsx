@@ -5,6 +5,8 @@ import { formatLong, formatTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/config";
 import { getCuentas, getSalaCode, resumen, VIA_LABEL, type CuentaRow } from "@/lib/sala";
 import {
+  abrirTraspasoAction,
+  cancelarTraspasoAction,
   cargarExtraAction,
   cerrarCuentaAction,
   cerrarSalaAction,
@@ -16,6 +18,7 @@ import {
   setCoverAction,
 } from "../../../../actions";
 import { AutoRefresh } from "@/components/admin/AutoRefresh";
+import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { TitleBadge } from "@/components/admin/TitleBadge";
 import { OfflineBadge } from "@/components/admin/OfflineBadge";
 
@@ -61,6 +64,51 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
 
+      {pendientes.length > 0 && (
+        <section className="card border-accent/60 p-5">
+          <div className="flex items-baseline justify-between">
+            <p className="eyebrow">Pedidos en camino</p>
+            <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-bg">{pendientes.length}</span>
+          </div>
+          <ul className="mt-3 divide-y divide-line">
+            {cuentas.flatMap((c) =>
+              c.consumos
+                .filter((x) => x.status === "pendiente")
+                .map((x) => (
+                  <li key={x.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <p>
+                        <strong>Mesa {c.table}</strong> · {c.name} · {x.qty > 1 ? `${x.qty} × ` : ""}
+                        {x.item}
+                        <span className="ml-2 text-xs text-muted">{x.kind === "paso" ? "cocina" : "barra"}</span>
+                      </p>
+                      <p className="text-xs text-muted">{HORA.format(x.createdAt)} hs</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <form action={consumoStatusAction}>
+                        <input type="hidden" name="id" value={x.id} />
+                        <input type="hidden" name="eventId" value={event.id} />
+                        <input type="hidden" name="status" value="listo" />
+                        <button className="btn btn-primary btn-sm" type="submit">
+                          Servido
+                        </button>
+                      </form>
+                      <form action={consumoStatusAction}>
+                        <input type="hidden" name="id" value={x.id} />
+                        <input type="hidden" name="eventId" value={event.id} />
+                        <input type="hidden" name="status" value="cancelado" />
+                        <ConfirmButton className="text-xs text-muted hover:text-danger" message={`¿Cancelar ${x.item} de ${c.name}?`}>
+                          cancelar
+                        </ConfirmButton>
+                      </form>
+                    </div>
+                  </li>
+                )),
+            )}
+          </ul>
+        </section>
+      )}
+
       <section className="card p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <div>
@@ -72,11 +120,11 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
           <div className="text-right">
             <p className="text-xs uppercase tracking-[0.2em] text-muted">Código de la noche</p>
             <p className="font-display text-3xl tabular-nums text-accent">{code}</p>
-            <form action={nuevoSalaCodeAction}>
+            <form action={nuevoSalaCodeAction} className="mt-1">
               <input type="hidden" name="eventId" value={event.id} />
-              <button className="text-xs text-muted hover:text-ink" type="submit">
+              <ConfirmButton className="text-xs text-muted hover:text-ink" message="¿Cambiar el código? Los que ya cantaste dejan de servir.">
                 cambiar
-              </button>
+              </ConfirmButton>
             </form>
           </div>
         </div>
@@ -84,7 +132,7 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
           Cantale el código a quien ya te pagó en mano o venga invitado: lo escribe en su celular y se destraba sin que toques nada. Si cobrás acá, se destraba solo.
         </p>
         <p className="mt-2 text-xs text-muted">
-          Con el mismo código, si a alguien se le apaga el celular, otro de la mesa escanea el QR, toca “tomar una cuenta” y se la lleva con todo lo pedido.
+          Si a alguien se le apaga el celular, tocá “pasar a otro celu” en su cuenta: te da un código aparte, de un solo uso, para que otro se la lleve con todo lo pedido.
         </p>
         <div className="mt-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
           <Dato label="En la sala" value={String(r.personas)} />
@@ -136,7 +184,7 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
                   <form action={setCoverAction} className="flex items-center gap-1">
                     <input type="hidden" name="id" value={c.id} />
                     <input type="hidden" name="eventId" value={event.id} />
-                    <input className="input h-9 w-24 text-sm" name="monto" inputMode="numeric" placeholder="otro $" aria-label="Otro monto" />
+                    <input className="input h-11 w-28" name="monto" inputMode="numeric" placeholder="otro $" aria-label="Otro monto" />
                     <input type="hidden" name="nota" value="a mano" />
                     <button className="btn btn-ghost btn-sm" type="submit">
                       Poner
@@ -145,51 +193,6 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
                 </div>
               </li>
             ))}
-          </ul>
-        </section>
-      )}
-
-      {pendientes.length > 0 && (
-        <section className="card p-5">
-          <div className="flex items-baseline justify-between">
-            <p className="eyebrow">Pedidos en camino</p>
-            <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-bg">{pendientes.length}</span>
-          </div>
-          <ul className="mt-3 divide-y divide-line">
-            {cuentas.flatMap((c) =>
-              c.consumos
-                .filter((x) => x.status === "pendiente")
-                .map((x) => (
-                  <li key={x.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                    <div>
-                      <p>
-                        <strong>Mesa {c.table}</strong> · {c.name} · {x.qty > 1 ? `${x.qty} × ` : ""}
-                        {x.item}
-                        <span className="ml-2 text-xs text-muted">{x.kind === "paso" ? "cocina" : "barra"}</span>
-                      </p>
-                      <p className="text-xs text-muted">{HORA.format(x.createdAt)} hs</p>
-                    </div>
-                    <div className="flex shrink-0 gap-2">
-                      <form action={consumoStatusAction}>
-                        <input type="hidden" name="id" value={x.id} />
-                        <input type="hidden" name="eventId" value={event.id} />
-                        <input type="hidden" name="status" value="listo" />
-                        <button className="btn btn-primary btn-sm" type="submit">
-                          Servido
-                        </button>
-                      </form>
-                      <form action={consumoStatusAction}>
-                        <input type="hidden" name="id" value={x.id} />
-                        <input type="hidden" name="eventId" value={event.id} />
-                        <input type="hidden" name="status" value="cancelado" />
-                        <button className="btn btn-ghost btn-sm" type="submit">
-                          No
-                        </button>
-                      </form>
-                    </div>
-                  </li>
-                )),
-            )}
           </ul>
         </section>
       )}
@@ -241,10 +244,11 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
         {r.porCobrar > 0 && <p className="mt-1 text-xs text-danger">Ojo: quedan {formatPrice(r.porCobrar)} sin cobrar.</p>}
         <form action={cerrarSalaAction} className="mt-3">
           <input type="hidden" name="eventId" value={event.id} />
-          <button className="btn btn-primary btn-sm" type="submit" disabled={r.cobradoCena + r.cobradoConsumo <= 0}>
+          <ConfirmButton className="btn btn-primary btn-sm" message={`¿Cargar ${formatPrice(r.cobradoCena + r.cobradoConsumo)} en la caja de la noche?`} disabled={r.cobradoCena + r.cobradoConsumo <= 0}>
             Cargar en la caja
-          </button>
+          </ConfirmButton>
         </form>
+        <p className="mt-2 text-xs text-muted">Se puede tocar de nuevo más tarde: actualiza el mismo movimiento, no lo duplica.</p>
       </section>
     </div>
   );
@@ -268,20 +272,11 @@ function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; b
         {pasosListos} paso{pasosListos === 1 ? "" : "s"} servido{pasosListos === 1 ? "" : "s"}
         {items.length > 0 && ` · ${items.map((i) => `${i.qty > 1 ? `${i.qty} × ` : ""}${i.item}`).join(", ")}`}
       </p>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <p className="font-display text-xl tabular-nums">
           {formatPrice(c.extra)} <span className="text-xs font-sans text-muted">de barra</span>
         </p>
         <div className="flex flex-wrap gap-2">
-          <form action={cargarExtraAction} className="flex items-center gap-1">
-            <input type="hidden" name="id" value={c.id} />
-            <input type="hidden" name="eventId" value={eventId} />
-            <input className="input h-9 w-28 text-sm" name="item" placeholder="extra" aria-label="Qué extra" />
-            <input className="input h-9 w-20 text-sm" name="price" inputMode="numeric" placeholder="$" defaultValue={barPrice ?? undefined} aria-label="Precio" />
-            <button className="btn btn-ghost btn-sm" type="submit">
-              Cargar
-            </button>
-          </form>
           {(["efectivo", "transferencia"] as const).map((via) => (
             <form key={via} action={cerrarCuentaAction}>
               <input type="hidden" name="id" value={c.id} />
@@ -292,15 +287,55 @@ function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; b
               </button>
             </form>
           ))}
-          <form action={desmarcarCenaAction}>
+        </div>
+      </div>
+
+      {c.traspasoCode ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 p-3">
+          <p className="text-sm">
+            Código para pasar la cuenta: <strong className="font-display text-2xl tabular-nums text-accent">{c.traspasoCode}</strong>
+            <span className="ml-2 text-xs text-muted">vale 15 minutos, un solo uso</span>
+          </p>
+          <form action={cancelarTraspasoAction}>
             <input type="hidden" name="id" value={c.id} />
             <input type="hidden" name="eventId" value={eventId} />
             <button className="text-xs text-muted hover:text-ink" type="submit">
-              trabar
+              anular
             </button>
           </form>
         </div>
-      </div>
+      ) : null}
+
+      <details className="mt-3">
+        <summary className="cursor-pointer text-xs text-muted">Más: cargar un extra, pasar a otro celu, trabar</summary>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <form action={cargarExtraAction} className="flex items-center gap-1">
+            <input type="hidden" name="id" value={c.id} />
+            <input type="hidden" name="eventId" value={eventId} />
+            <input className="input h-11 w-32" name="item" placeholder="extra" aria-label="Qué extra" />
+            <input className="input h-11 w-24" name="price" inputMode="numeric" placeholder="$" defaultValue={barPrice ?? undefined} aria-label="Precio" />
+            <button className="btn btn-ghost btn-sm" type="submit">
+              Cargar
+            </button>
+          </form>
+          {!c.traspasoCode && (
+            <form action={abrirTraspasoAction}>
+              <input type="hidden" name="id" value={c.id} />
+              <input type="hidden" name="eventId" value={eventId} />
+              <button className="btn btn-ghost btn-sm" type="submit">
+                Pasar a otro celu
+              </button>
+            </form>
+          )}
+          <form action={desmarcarCenaAction}>
+            <input type="hidden" name="id" value={c.id} />
+            <input type="hidden" name="eventId" value={eventId} />
+            <ConfirmButton className="btn btn-ghost btn-sm text-danger" message={`¿Trabar la cuenta de ${c.name}? No va a poder pedir hasta que le vuelvas a cobrar.`}>
+              Trabar
+            </ConfirmButton>
+          </form>
+        </div>
+      </details>
     </li>
   );
 }

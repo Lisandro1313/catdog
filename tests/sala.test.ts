@@ -20,6 +20,7 @@ function cuenta(over: Partial<CuentaRow> = {}): CuentaRow {
     coverNote: null,
     coverPaid,
     coverVia: over.coverVia ?? "efectivo",
+    traspasoCode: null,
     abierta: coverPaid && !over.closedAt,
     openedAt: new Date(0),
     closedAt: null,

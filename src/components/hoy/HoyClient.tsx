@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { extrasAction, guessAction, liveAction, type ExtrasState, type LiveSnapshot } from "@/app/hoy/actions";
 import type { TableRow } from "@/lib/hoy";
+import { PREMIO_MINIMO } from "@/lib/juegos";
 import { Barra, Huella, Recomendar, Telon, Votacion } from "./Extras";
 import { TarjetaButton } from "./Tarjeta";
 import { ShareButton } from "@/components/ShareButton";
@@ -444,7 +445,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
           <Recomendar eventId={eventId} />
           <Link href="/hoy/jugar" className="jg-link mt-8">
             <span className="jg-link-title">Para la espera: once juegos</span>
-            <span className="jg-link-sub">Maridaje, servicio, el gato, ritmo, memotest, atrapá al chef, los de la casa, llená la copa, Simón, mímica y trivia. Si lográs nueve, hay un trago.</span>
+            <span className="jg-link-sub">Maridaje, servicio, el gato, ritmo, memotest, atrapá al chef, los de la casa, llená la copa, Simón, mímica y trivia. Si lográs {PREMIO_MINIMO}, hay un trago.</span>
           </Link>
         </div>
       </Stage>

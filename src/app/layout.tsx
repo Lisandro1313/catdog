@@ -29,6 +29,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${inter.variable} ${playfair.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
+      <noscript>
+          {/* Sin JavaScript nadie saca la clase .reveal: el contenido se muestra igual. */}
+          <style>{`.reveal{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
         {children}
         <div className="grain" aria-hidden="true" />
       </body>

@@ -6,7 +6,7 @@ import {
   abrirCuentaAction,
   cancelarConsumoAction,
   codigoAction,
-  cuentasDeLaMesaAction,
+  cuentasEnTraspasoAction,
   misCuentasAction,
   pedirPasoAction,
   pedirTragoAction,
@@ -43,7 +43,7 @@ function todo(p: CartaPaso): EstadoPedido {
 }
 
 function marca(e: EstadoPedido): string {
-  return e === "listo" ? "✓" : e === "pendiente" ? "· en camino ·" : "·";
+  return e === "listo" ? "✓ servido" : e === "pendiente" ? "en camino" : "sin pedir";
 }
 
 /**
@@ -61,18 +61,35 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   const [busy, setBusy] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [modo, setModo] = useState<"ver" | "nueva" | "tomar">(initial.length ? "ver" : "nueva");
-  const [ajenas, setAjenas] = useState<{ id: string; name: string }[]>([]);
+  const [ajenas, setAjenas] = useState<{ id: string; name: string }[] | null>(null);
   const [tomarId, setTomarId] = useState<string | null>(null);
+  const [sinSenal, setSinSenal] = useState(false);
   const avisoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Para que una respuesta vieja del refresco no pise lo que acabás de pedir. */
+  const epoca = useRef(0);
+  const fallos = useRef(0);
 
   const cuenta = cuentas.find((c) => c.id === focoId) ?? cuentas[0] ?? null;
 
   // Se consulta cada tanto para reflejar lo que hace la casa (el cobro, los pedidos servidos).
   useEffect(() => {
-    const traer = () =>
+    const traer = () => {
+      const mio = epoca.current;
       misCuentasAction(eventId)
-        .then((cs) => cs.length && setCuentas(cs))
-        .catch(() => {});
+        .then((cs) => {
+          fallos.current = 0;
+          setSinSenal(false);
+          // Si mientras tanto tocaste algo, esta respuesta quedó vieja: se descarta.
+          if (mio !== epoca.current) return;
+          setCuentas(cs);
+          // Si otro teléfono se llevó la última cuenta, volvemos a la pantalla de abrir.
+          if (cs.length === 0) setModo("nueva");
+        })
+        .catch(() => {
+          fallos.current += 1;
+          if (fallos.current >= 2) setSinSenal(true);
+        });
+    };
     const id = setInterval(() => {
       if (!document.hidden) traer();
     }, CADA);
@@ -99,12 +116,14 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   async function correr(key: string, fn: () => Promise<MesaResult>, ok?: string) {
     setBusy(key);
     setError(null);
+    epoca.current += 1;
     let res: MesaResult;
     try {
       res = await fn();
     } catch {
       res = { ok: false, error: "Sin señal. Probá de nuevo." };
     }
+    epoca.current += 1;
     setBusy(null);
     if (!res.ok) {
       setError(res.error);
@@ -119,12 +138,14 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
 
   async function verAjenas() {
     setError(null);
+    setAjenas(null);
     setModo("tomar");
     try {
-      const cs = await cuentasDeLaMesaAction(eventId, table);
+      const cs = await cuentasEnTraspasoAction(eventId, table);
       const mias = new Set(cuentas.map((c) => c.id));
       setAjenas(cs.filter((c) => !mias.has(c.id)));
     } catch {
+      setAjenas([]);
       setError("Sin señal. Probá de nuevo.");
     }
   }
@@ -137,10 +158,12 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
           <>
             <p className="ap-display mt-6 text-2xl">Tomar una cuenta</p>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Si a alguien se le apagó el celular, su cuenta se puede pasar a este. Elegí el nombre y pedile el código a la casa.
+              Si a alguien se le apagó el celular, pedile a la casa que habilite el pase. Ahí aparece el nombre acá y te dan un código.
             </p>
-            {ajenas.length === 0 ? (
-              <p className="mt-6 text-sm text-muted">No hay otras cuentas abiertas en esta mesa.</p>
+            {ajenas === null ? (
+              <p className="mt-6 text-sm text-muted">Buscando…</p>
+            ) : ajenas.length === 0 ? (
+              <p className="mt-6 text-sm text-muted">Ninguna cuenta de esta mesa está habilitada para pasar. Pedíselo a la casa.</p>
             ) : (
               <>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
@@ -227,15 +250,14 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
             {error}
           </p>
         )}
-        <div className="mt-6 flex flex-col items-center gap-2 text-xs">
-          {modo !== "tomar" && (
-            <button type="button" className="text-muted underline-offset-4 hover:text-ink hover:underline" onClick={verAjenas}>
-              Se me apagó el celu: tomar una cuenta de esta mesa
+        <div className="mt-6 flex flex-col items-center gap-3">
+          {modo !== "tomar" ? (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={verAjenas}>
+              Se me apagó el celu: tomar una cuenta
             </button>
-          )}
-          {cuenta && (
-            <button type="button" className="text-muted underline-offset-4 hover:text-ink hover:underline" onClick={() => setModo("ver")}>
-              Volver a mi cuenta
+          ) : (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setModo(cuentas.length ? "ver" : "nueva")}>
+              Volver
             </button>
           )}
         </div>
@@ -263,21 +285,28 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
     ) : null;
 
   const pie = (
-    <div className="mt-8 flex flex-col items-center gap-2 text-xs">
+    <div className="mt-10 flex flex-col items-center gap-3 border-t border-line pt-6">
       <button
         type="button"
-        className="text-muted underline-offset-4 hover:text-ink hover:underline"
+        className="btn btn-ghost btn-sm"
         onClick={() => {
           setName("");
           setReservaId(null);
           setModo("nueva");
         }}
       >
-        Abrir otra cuenta en este teléfono
+        Abrir otra cuenta acá
       </button>
-      <button type="button" className="text-muted underline-offset-4 hover:text-ink hover:underline" onClick={verAjenas}>
-        Tomar la cuenta de alguien de la mesa
+      <button type="button" className="btn btn-ghost btn-sm" onClick={verAjenas}>
+        Tomar la cuenta de alguien
       </button>
+    </div>
+  );
+
+  /** Lo que pasa ahora: se ve siempre, aunque estés al final de la carta. */
+  const barra = (aviso || error || sinSenal) && (
+    <div className={`mesa-flash ${error ? "is-error" : sinSenal ? "is-warn" : ""}`} role={error ? "alert" : "status"}>
+      {error ?? aviso ?? "Sin señal, reintentando…"}
     </div>
   );
 
@@ -285,8 +314,9 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   if (!cuenta.coverPaid) {
     return (
       <Stage title={title} dateLabel={dateLabel} table={table}>
+        {barra}
         {selector}
-        <p className="ap-display mt-6 text-3xl">Hola, {cuenta.name}</p>
+        <h1 className="ap-display mt-6 text-3xl">Hola, {cuenta.name}</h1>
         <div className="mt-6 rounded-2xl border border-accent/40 bg-surface/70 p-5">
           <p className="ap-eyebrow">La cena</p>
           <p className="ap-display mt-2 text-4xl">{formatPrice(cuenta.cover)}</p>
@@ -312,11 +342,6 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
             {busy === "code" ? "…" : "Destrabar"}
           </button>
         </div>
-        {error && (
-          <p className="mt-3 text-sm text-danger" role="alert">
-            {error}
-          </p>
-        )}
         <p className="mt-8 text-xs text-muted">Esta pantalla se actualiza sola cuando la casa marca tu pago.</p>
         <Link href="/hoy/jugar" className="jg-link mt-8">
           <span className="jg-link-title">Mientras tanto, los juegos</span>
@@ -331,9 +356,10 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
   if (cuenta.closedAt) {
     return (
       <Stage title={title} dateLabel={dateLabel} table={table}>
+        {barra}
         {selector}
         <p className="ap-ornament mt-8">✦</p>
-        <p className="ap-display mt-3 text-3xl">Gracias, {cuenta.name}</p>
+        <h1 className="ap-display mt-3 text-3xl">Gracias, {cuenta.name}</h1>
         <p className="mt-3 text-muted">Tu cuenta quedó cerrada. Fue un gusto.</p>
         <Cuentita cuenta={cuenta} price={price} />
         <Link href="/hoy/jugar" className="jg-link mt-8">
@@ -352,13 +378,9 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
 
   return (
     <Stage title={title} dateLabel={dateLabel} table={table}>
+      {barra}
       {selector}
-      {aviso && (
-        <p className="jg-duelo-bar mt-4" role="status">
-          {aviso}
-        </p>
-      )}
-      <p className="ap-display mt-4 text-2xl">Hola, {cuenta.name}</p>
+      <h1 className="ap-display mt-4 text-2xl">Hola, {cuenta.name}</h1>
       <p className="text-xs uppercase tracking-[0.2em] text-muted">Mesa {table}</p>
 
       {enCamino.length > 0 && (
@@ -371,8 +393,13 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
                   {c.qty > 1 ? `${c.qty} × ` : ""}
                   {c.item}
                 </span>
-                <button type="button" className="text-xs text-muted hover:text-ink" onClick={() => correr(`cancel-${c.id}`, () => cancelarConsumoAction(eventId, c.id))}>
-                  cancelar
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm shrink-0"
+                  disabled={busy !== null}
+                  onClick={() => correr(`cancel-${c.id}`, () => cancelarConsumoAction(eventId, c.id), "Cancelado")}
+                >
+                  {busy === `cancel-${c.id}` ? "…" : "Cancelar"}
                 </button>
               </li>
             ))}
@@ -404,7 +431,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
-                        disabled={busy === `paso-${p.index}-plato`}
+                        disabled={busy !== null}
                         onClick={() => correr(`paso-${p.index}-plato`, () => pedirPasoAction({ eventId, cuentaId: cuenta.id, stepIndex: p.index, que: "plato" }), `Pedido: ${p.dish}`)}
                       >
                         {busy === `paso-${p.index}-plato` ? "…" : "El plato"}
@@ -414,7 +441,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
-                        disabled={busy === `paso-${p.index}-trago`}
+                        disabled={busy !== null}
                         onClick={() => correr(`paso-${p.index}-trago`, () => pedirPasoAction({ eventId, cuentaId: cuenta.id, stepIndex: p.index, que: "trago" }), `Pedido: ${p.drink}`)}
                       >
                         {busy === `paso-${p.index}-trago` ? "…" : "El trago"}
@@ -424,7 +451,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
                       <button
                         type="button"
                         className="btn btn-primary btn-sm"
-                        disabled={busy === `paso-${p.index}-ambos`}
+                        disabled={busy !== null}
                         onClick={() => correr(`paso-${p.index}-ambos`, () => pedirPasoAction({ eventId, cuentaId: cuenta.id, stepIndex: p.index, que: "ambos" }), `Pedido: ${p.dish} y ${p.drink}`)}
                       >
                         {busy === `paso-${p.index}-ambos` ? "…" : "Los dos"}
@@ -452,7 +479,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm shrink-0"
-                  disabled={busy === `trago-${b.name}`}
+                  disabled={busy !== null}
                   onClick={() => correr(`trago-${b.name}`, () => pedirTragoAction({ eventId, cuentaId: cuenta.id, item: b.name }), `Pedido: ${b.name}`)}
                 >
                   {busy === `trago-${b.name}` ? "…" : "Pedir"}
@@ -461,12 +488,6 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
             ))}
           </ul>
         </section>
-      )}
-
-      {error && (
-        <p className="mt-4 text-sm text-danger" role="alert">
-          {error}
-        </p>
       )}
 
       <Cuentita cuenta={cuenta} price={price} />
@@ -496,7 +517,7 @@ function Cuentita({ cuenta, price }: { cuenta: CuentaRow; price: number }) {
             La cena
             {cuenta.coverNote === "invitado" ? " · invitado de la casa" : cuenta.coverNote === "ya pago" ? " · pagada al reservar" : ""}
           </span>
-          <span className="tabular-nums">{cuenta.cover > 0 ? formatPrice(cuenta.cover) : "—"}</span>
+          <span className="shrink-0 whitespace-nowrap tabular-nums">{cuenta.cover > 0 ? formatPrice(cuenta.cover) : "—"}</span>
         </li>
         {items.map((c) => (
           <li key={c.id} className="flex items-baseline justify-between gap-3">
@@ -505,13 +526,13 @@ function Cuentita({ cuenta, price }: { cuenta: CuentaRow; price: number }) {
               {c.item}
               {c.status === "pendiente" && <span className="ml-2 text-xs text-muted">en camino</span>}
             </span>
-            <span className="tabular-nums">{formatPrice(c.qty * c.price)}</span>
+            <span className="shrink-0 whitespace-nowrap tabular-nums">{formatPrice(c.qty * c.price)}</span>
           </li>
         ))}
       </ul>
       <div className="mt-3 flex items-baseline justify-between border-t border-line pt-3">
         <span className="ap-eyebrow">{cuenta.closedAt ? "Pagaste" : "Llevás"}</span>
-        <span className="font-display text-2xl tabular-nums">{formatPrice((cuenta.coverPaid ? cuenta.cover : price) + cuenta.extra)}</span>
+        <span className="shrink-0 whitespace-nowrap font-display text-2xl tabular-nums">{formatPrice((cuenta.coverPaid ? cuenta.cover : price) + cuenta.extra)}</span>
       </div>
       {!cuenta.closedAt && cuenta.extra > 0 && <p className="mt-2 text-xs text-muted">Al final pagás lo de la barra: {formatPrice(cuenta.extra)}.</p>}
     </section>

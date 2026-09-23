@@ -176,7 +176,7 @@ export function ReserveForm({ events, defaultEventId, maxSeats, byTransfer = fal
         <span className="field-label">Nombre y apellido</span>
         <input
           className="input"
-          placeholder="Como figura en tu reserva"
+          placeholder="Como querés que te llamemos"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required

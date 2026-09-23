@@ -21,6 +21,8 @@ function armar(c: {
   coverVia: string | null;
   openedAt: Date;
   closedAt: Date | null;
+  traspasoCode: string | null;
+  traspasoHasta: Date | null;
   consumos: ConsumoRow[];
 }): CuentaRow {
   const extra = c.consumos.filter((x) => x.status !== "cancelado").reduce((n, x) => n + x.qty * x.price, 0);
@@ -36,6 +38,7 @@ function armar(c: {
     abierta: coverPaid && !c.closedAt,
     openedAt: c.openedAt,
     closedAt: c.closedAt,
+    traspasoCode: c.traspasoHasta && c.traspasoHasta.getTime() > Date.now() ? c.traspasoCode : null,
     consumos: c.consumos,
     extra,
     debe: (coverPaid ? 0 : c.cover) + (c.closedAt ? 0 : extra),
@@ -65,24 +68,56 @@ export async function getMisCuentas(eventId: string, deviceKey: string): Promise
   return rows.map(armar);
 }
 
-/** Las cuentas abiertas de una mesa, para poder tomar la de alguien que se quedó sin celular. */
-export async function getCuentasDeLaMesa(eventId: string, table: number) {
-  const rows = await prisma.cuenta.findMany({ where: { eventId, table, closedAt: null }, orderBy: { openedAt: "asc" }, select: { id: true, name: true } });
+/**
+ * Las cuentas de la mesa que la casa habilitó para pasar a otro teléfono. Solo esas se listan: el
+ * nombre de alguien no aparece hasta que la casa abre el traspaso.
+ */
+export async function getCuentasEnTraspaso(eventId: string, table: number) {
+  const rows = await prisma.cuenta.findMany({
+    where: { eventId, table, closedAt: null, traspasoCode: { not: null }, traspasoHasta: { gt: new Date() } },
+    orderBy: { openedAt: "asc" },
+    select: { id: true, name: true },
+  });
   return rows;
 }
 
+const TRASPASO_MINUTOS = 15;
+
 /**
- * Pasa una cuenta a otro teléfono: el nuevo la toma con el código de la noche. Sirve cuando a alguien
- * se le apaga el celular o prefiere que se la lleve otro. La cuenta es la misma, con todo lo pedido.
+ * La casa habilita pasar una cuenta a otro teléfono y le da a la persona un código de un solo uso.
+ * Es aparte del código de la noche, que lo escucha toda la sala: así nadie se queda con la cuenta ajena.
  */
-export async function tomarCuenta(cuentaId: string, deviceKey: string) {
-  const c = await prisma.cuenta.findUnique({ where: { id: cuentaId }, select: { closedAt: true, deviceKey: true } });
+export async function abrirTraspaso(cuentaId: string): Promise<string> {
+  const code = String(Math.floor(1000 + Math.random() * 9000));
+  const c = await prisma.cuenta.updateMany({
+    where: { id: cuentaId, closedAt: null },
+    data: { traspasoCode: code, traspasoHasta: new Date(Date.now() + TRASPASO_MINUTOS * 60000) },
+  });
+  if (c.count === 0) throw new SalaError("Esa cuenta no está abierta.");
+  return code;
+}
+
+export async function cancelarTraspaso(cuentaId: string) {
+  await prisma.cuenta.updateMany({ where: { id: cuentaId }, data: { traspasoCode: null, traspasoHasta: null } });
+}
+
+/**
+ * Pasa una cuenta a otro teléfono con el código de un solo uso. Sirve cuando a alguien se le apaga el
+ * celular o prefiere que se la lleve otro. La cuenta es la misma, con todo lo pedido.
+ */
+export async function tomarCuenta(cuentaId: string, deviceKey: string, code: string) {
+  const c = await prisma.cuenta.findUnique({ where: { id: cuentaId }, select: { closedAt: true, deviceKey: true, traspasoCode: true, traspasoHasta: true } });
   if (!c) throw new SalaError("Esa cuenta no existe.");
   if (c.closedAt) throw new SalaError("Esa cuenta ya se cerró.");
   if (c.deviceKey === deviceKey) throw new SalaError("Esa cuenta ya es de este teléfono.");
+  if (!c.traspasoCode || !c.traspasoHasta || c.traspasoHasta.getTime() < Date.now()) {
+    throw new SalaError("Pedile a la casa que habilite el pase de esa cuenta.");
+  }
+  if (c.traspasoCode !== code) throw new SalaError("Ese código no es.");
   const cuantas = await prisma.cuenta.count({ where: { deviceKey, closedAt: null } });
   if (cuantas >= 4) throw new SalaError("Este teléfono ya lleva cuatro cuentas.");
-  await prisma.cuenta.update({ where: { id: cuentaId }, data: { deviceKey } });
+  // El código se quema al usarlo.
+  await prisma.cuenta.update({ where: { id: cuentaId }, data: { deviceKey, traspasoCode: null, traspasoHasta: null } });
 }
 
 export async function getCuenta(id: string): Promise<CuentaRow | null> {

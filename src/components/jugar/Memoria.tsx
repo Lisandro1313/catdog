@@ -21,6 +21,11 @@ function deal(photos: string[]): Card[] {
 /** Memotest: 8 pares con fotos de la casa (o emojis si faltan fotos). Cuenta movimientos, no tiempo. */
 type Props = { photos: string[]; onDone: (moves: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
+/** La foto por el optimizador de Next: en una baldosa de 80 px no hace falta el original del Blob. */
+function chica(url: string): string {
+  return url.startsWith("/") ? `/_next/image?url=${encodeURIComponent(url)}&w=256&q=70` : url;
+}
+
 export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Props) {
   const [cards, setCards] = useState<Card[] | null>(null);
   const [open, setOpen] = useState<number[]>([]);
@@ -108,8 +113,12 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
                 <span className="jg-flip-inner">
                   <span className="jg-flip-back">✦</span>
                   <span className="jg-flip-front">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {c.img ? <img src={c.img} alt="" loading="eager" decoding="async" /> : <span className="jg-emoji">{c.emoji}</span>}
+                    {c.img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={chica(c.img)} alt="" loading={i < 6 ? "eager" : "lazy"} decoding="async" />
+                    ) : (
+                      <span className="jg-emoji">{c.emoji}</span>
+                    )}
                   </span>
                 </span>
               </button>

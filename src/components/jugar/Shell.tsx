@@ -8,7 +8,7 @@ export function Shell({ title, onBack, children, right }: { title: string; onBac
   return (
     <div className="jg-stage">
       <div className="flex items-center justify-between gap-2 text-xs text-muted">
-        <button type="button" className="hover:text-ink" onClick={onBack}>
+        <button type="button" className="-m-2 inline-flex min-h-11 items-center p-2 hover:text-ink" onClick={onBack}>
           ← Juegos
         </button>
         <span className="truncate tracking-[0.2em] uppercase">{title}</span>

@@ -27,6 +27,8 @@ export type CuentaRow = {
   abierta: boolean;
   openedAt: Date;
   closedAt: Date | null;
+  /** Código de un solo uso si la casa habilitó pasar la cuenta a otro teléfono. */
+  traspasoCode: string | null;
   consumos: ConsumoRow[];
   /** Lo consumido aparte de la cena (tragos y extras que no se cancelaron). */
   extra: number;

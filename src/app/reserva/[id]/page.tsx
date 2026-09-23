@@ -72,7 +72,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
   return (
     <div className="flex flex-1 flex-col items-center px-5 py-12 sm:py-16">
       <div className="w-full max-w-2xl flex flex-col gap-6">
-        <div className="card p-8 text-center">
+        <div className="card p-5 sm:p-8 text-center">
           <p className="eyebrow">{SITE_NAME}</p>
 
           {reservation.status === "PAID" && (

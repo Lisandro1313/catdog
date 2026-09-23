@@ -25,7 +25,7 @@ export default async function CocinaPage({ params }: { params: Promise<{ id: str
   const ahora = nowMs();
 
   return (
-    <div className="ap fixed inset-0 z-50 overflow-y-auto bg-bg px-5 py-6 text-ink">
+    <div className="ap fixed inset-0 z-50 overflow-y-auto bg-bg px-5 pt-6 text-ink" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}>
       <AutoRefresh every={8000} />
       <TitleBadge count={pendientes.length} />
       <ForceDark />
