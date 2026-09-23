@@ -70,3 +70,50 @@ export function pasosDe(menu: string | null, consumos: ConsumoRow[]): CartaPaso[
   });
 }
 
+export type Resumen = {
+  abiertas: number;
+  trabadas: number;
+  cerradas: number;
+  personas: number;
+  cobradoCena: number;
+  cobradoConsumo: number;
+  porCobrar: number;
+  invitados: number;
+  /** Por forma de pago, para contar la caja al final. */
+  porVia: { via: string; total: number }[];
+};
+
+/** Los números de la noche: lo cobrado, lo que falta y cómo entró. */
+export function resumen(cuentas: CuentaRow[]): Resumen {
+  const porVia = new Map<string, number>();
+  let cobradoCena = 0;
+  let cobradoConsumo = 0;
+  let porCobrar = 0;
+  let invitados = 0;
+  for (const c of cuentas) {
+    if (c.coverPaid && c.coverVia && c.coverVia !== "invitado" && c.coverVia !== "reserva") {
+      cobradoCena += c.cover;
+      porVia.set(c.coverVia, (porVia.get(c.coverVia) ?? 0) + c.cover);
+    }
+    if (c.coverVia === "invitado" || c.cover === 0) invitados += 1;
+    if (c.closedAt) {
+      cobradoConsumo += c.extra;
+      if (c.extra > 0) {
+        const via = "consumo";
+        porVia.set(via, (porVia.get(via) ?? 0) + c.extra);
+      }
+    }
+    porCobrar += c.debe;
+  }
+  return {
+    abiertas: cuentas.filter((c) => c.abierta).length,
+    trabadas: cuentas.filter((c) => !c.coverPaid && !c.closedAt).length,
+    cerradas: cuentas.filter((c) => c.closedAt).length,
+    personas: cuentas.length,
+    cobradoCena,
+    cobradoConsumo,
+    porCobrar,
+    invitados,
+    porVia: [...porVia].map(([via, total]) => ({ via, total })).sort((a, b) => b.total - a.total),
+  };
+}
