@@ -248,7 +248,7 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
 }
 
 function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; barPrice: number | null }) {
-  const items = c.consumos.filter((x) => x.kind !== "paso" && x.status !== "cancelado");
+  const items = c.consumos.filter((x) => x.kind === "trago" || x.kind === "extra").filter((x) => x.status !== "cancelado");
   const pasosListos = c.consumos.filter((x) => x.kind === "paso" && x.status === "listo").length;
   return (
     <li className="rounded-xl border border-line p-3">

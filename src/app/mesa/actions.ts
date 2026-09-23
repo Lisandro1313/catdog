@@ -95,18 +95,18 @@ export async function codigoAction(input: unknown): Promise<MesaResult> {
   return cuenta ? { ok: true, cuenta } : { ok: false, error: "No se pudo destrabar." };
 }
 
-const pasoSchema = z.object({ eventId: z.string().min(1), cuentaId: z.string().min(1), stepIndex: z.number().int().min(1).max(20) });
+const pasoSchema = z.object({ eventId: z.string().min(1), cuentaId: z.string().min(1), stepIndex: z.number().int().min(1).max(20), que: z.enum(["plato", "trago", "ambos"]) });
 
 export async function pedirPasoAction(input: unknown): Promise<MesaResult> {
   const parsed = pasoSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Pedido inválido." };
-  const { eventId, cuentaId, stepIndex } = parsed.data;
+  const { eventId, cuentaId, stepIndex, que } = parsed.data;
   if (!(await eventoDeHoy(eventId))) return { ok: false, error: "Esto funciona solo durante la cena." };
   const mine = await miCuentaOError(eventId, cuentaId);
   if (mine.error !== undefined || mine.key === undefined) return { ok: false, error: mine.error ?? "Abrí tu cuenta primero." };
   if (!allowKey(`paso:${mine.key}`, 30)) return { ok: false, error: "Esperá un momento." };
   try {
-    await pedirPaso(cuentaId, stepIndex);
+    await pedirPaso(cuentaId, stepIndex, que);
   } catch (err) {
     return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo pedir." };
   }

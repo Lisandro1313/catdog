@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { abrirCuentaAction, cancelarConsumoAction, codigoAction, miCuentaAction, pedirPasoAction, pedirTragoAction } from "@/app/mesa/actions";
-import { pasosDe, type CuentaRow } from "@/lib/sala-tipos";
+import { pasosDe, type CartaPaso, type CuentaRow, type EstadoPedido } from "@/lib/sala-tipos";
 import type { BarItem } from "@/lib/menu";
 import { formatPrice } from "@/lib/config";
 
@@ -23,6 +23,18 @@ type Props = {
 };
 
 const CADA = 12000;
+
+/** El estado del paso entero, para pintar la fila. */
+function todo(p: CartaPaso): EstadoPedido {
+  const partes: EstadoPedido[] = p.drink ? [p.plato, p.trago] : [p.plato];
+  if (partes.every((x) => x === "listo")) return "listo";
+  if (partes.some((x) => x === "pendiente")) return "pendiente";
+  return "no";
+}
+
+function marca(e: EstadoPedido): string {
+  return e === "listo" ? "✓" : e === "pendiente" ? "· en camino ·" : "·";
+}
 
 /**
  * La cuenta de una persona, desde el QR de su mesa. Tres momentos: abrirla (nombre), esperar a que la
@@ -200,7 +212,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
 
   // ---------- abierta: pedir ----------
   const pasos = pasosDe(menu, cuenta.consumos);
-  const proximo = pasos.find((p) => p.pedido === "no");
+  const proximo = pasos.find((p) => p.plato === "no" && p.trago === "no");
   const enCamino = cuenta.consumos.filter((c) => c.status === "pendiente");
 
   return (
@@ -238,25 +250,55 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
 
       <section className="mt-8 text-left">
         <p className="ap-eyebrow">La cena, paso a paso</p>
-        <p className="mt-1 text-xs text-muted">Pedí el que quieras cuando estés listo. Va directo a la cocina.</p>
+        <p className="mt-1 text-xs text-muted">Pedí lo que quieras cuando estés listo: el plato, el trago que lo acompaña, o los dos. El plato va a la cocina y el trago a la barra.</p>
         <ul className="mt-3 grid gap-2">
           {pasos.map((p) => (
             <li key={p.index}>
-              <button
-                type="button"
-                className={`mesa-paso ${p.pedido === "listo" ? "is-done" : p.pedido === "pendiente" ? "is-wait" : proximo?.index === p.index ? "is-next" : ""}`}
-                disabled={p.pedido !== "no" || busy === `paso-${p.index}`}
-                onClick={() => correr(`paso-${p.index}`, () => pedirPasoAction({ eventId, cuentaId: cuenta.id, stepIndex: p.index }), `Pedido: ${p.dish}`)}
-              >
+              <div className={`mesa-paso ${todo(p) === "listo" ? "is-done" : todo(p) === "pendiente" ? "is-wait" : proximo?.index === p.index ? "is-next" : ""}`}>
                 <span className="mesa-paso-n">{String(p.index).padStart(2, "0")}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-display text-lg leading-tight">{p.dish}</span>
-                  {p.drink && <span className="block text-xs italic text-accent">con {p.drink}</span>}
+                  <span className="mt-0.5 block text-xs text-muted">{marca(p.plato)} el plato</span>
+                  {p.drink && (
+                    <>
+                      <span className="mt-1 block text-sm italic text-accent">{p.drink}</span>
+                      <span className="block text-xs text-muted">{marca(p.trago)} el trago</span>
+                    </>
+                  )}
+                  <span className="mt-2 flex flex-wrap gap-2">
+                    {p.plato === "no" && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={busy === `paso-${p.index}-plato`}
+                        onClick={() => correr(`paso-${p.index}-plato`, () => pedirPasoAction({ eventId, cuentaId: cuenta.id, stepIndex: p.index, que: "plato" }), `Pedido: ${p.dish}`)}
+                      >
+                        {busy === `paso-${p.index}-plato` ? "…" : "El plato"}
+                      </button>
+                    )}
+                    {p.drink && p.trago === "no" && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={busy === `paso-${p.index}-trago`}
+                        onClick={() => correr(`paso-${p.index}-trago`, () => pedirPasoAction({ eventId, cuentaId: cuenta.id, stepIndex: p.index, que: "trago" }), `Pedido: ${p.drink}`)}
+                      >
+                        {busy === `paso-${p.index}-trago` ? "…" : "El trago"}
+                      </button>
+                    )}
+                    {p.plato === "no" && p.drink && p.trago === "no" && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={busy === `paso-${p.index}-ambos`}
+                        onClick={() => correr(`paso-${p.index}-ambos`, () => pedirPasoAction({ eventId, cuentaId: cuenta.id, stepIndex: p.index, que: "ambos" }), `Pedido: ${p.dish} y ${p.drink}`)}
+                      >
+                        {busy === `paso-${p.index}-ambos` ? "…" : "Los dos"}
+                      </button>
+                    )}
+                  </span>
                 </span>
-                <span className="shrink-0 text-xs text-muted">
-                  {p.pedido === "listo" ? "✓ servido" : p.pedido === "pendiente" ? "en camino" : busy === `paso-${p.index}` ? "…" : "Pedir"}
-                </span>
-              </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -308,7 +350,8 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
 
 /** Lo que lleva consumido y lo que va a pagar al final. */
 function Cuentita({ cuenta, price }: { cuenta: CuentaRow; price: number }) {
-  const items = cuenta.consumos.filter((c) => c.kind !== "paso" && c.status !== "cancelado");
+  // En la cuenta solo se listan los que se pagan: los pasos y sus maridajes van en el cubierto.
+  const items = cuenta.consumos.filter((c) => (c.kind === "trago" || c.kind === "extra") && c.status !== "cancelado");
   return (
     <section className="mt-8 rounded-2xl border border-line bg-surface/60 p-5 text-left">
       <p className="ap-eyebrow">Tu cuenta</p>

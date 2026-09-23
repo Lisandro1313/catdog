@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { parseBar, parseMenu } from "./menu";
-import type { ConsumoRow, CoverVia, CuentaRow } from "./sala-tipos";
+import { KIND_MARIDAJE, KIND_PLATO, type ConsumoRow, type CoverVia, type CuentaRow } from "./sala-tipos";
 
 export * from "./sala-tipos";
 
@@ -129,8 +129,11 @@ export async function setCover(id: string, monto: number, nota: string | null) {
   await prisma.cuenta.updateMany({ where: { id }, data: { cover: Math.max(0, Math.round(monto)), coverNote: nota } });
 }
 
-/** Pide un paso de la cena: no cuesta (va en el cubierto) y le llega a la cocina. */
-export async function pedirPaso(cuentaId: string, stepIndex: number) {
+/**
+ * Pide un paso: el plato (va a la cocina), el trago que lo acompaña (va a la barra), o los dos.
+ * Nada de esto cuesta aparte: está en el cubierto. Muchos piden el trago antes que la comida.
+ */
+export async function pedirPaso(cuentaId: string, stepIndex: number, que: "plato" | "trago" | "ambos") {
   const cuenta = await prisma.cuenta.findUnique({ where: { id: cuentaId }, include: { event: { select: { menu: true } }, consumos: true } });
   if (!cuenta) throw new SalaError("Esa cuenta no existe.");
   if (!cuenta.coverPaidAt) throw new SalaError("La cuenta todavía está trabada.");
@@ -138,11 +141,16 @@ export async function pedirPaso(cuentaId: string, stepIndex: number) {
   const steps = parseMenu(cuenta.event.menu);
   const paso = steps[stepIndex - 1];
   if (!paso) throw new SalaError("Ese paso no está en la carta.");
-  const yaPedido = cuenta.consumos.some((c) => c.kind === "paso" && c.stepIndex === stepIndex && c.status !== "cancelado");
-  if (yaPedido) throw new SalaError("Ese paso ya lo pediste.");
-  const pendientes = cuenta.consumos.filter((c) => c.kind === "paso" && c.status === "pendiente").length;
-  if (pendientes >= 2) throw new SalaError("Ya tenés dos pasos en camino; esperá a que lleguen.");
-  await prisma.consumo.create({ data: { cuentaId, kind: "paso", item: paso.dish, stepIndex, price: 0 } });
+  const vivos = cuenta.consumos.filter((c) => c.status !== "cancelado");
+  const quierePlato = que !== "trago";
+  const quiereTrago = que !== "plato" && Boolean(paso.drink);
+  const nuevos: { kind: string; item: string }[] = [];
+  if (quierePlato && !vivos.some((c) => c.kind === KIND_PLATO && c.stepIndex === stepIndex)) nuevos.push({ kind: KIND_PLATO, item: paso.dish });
+  if (quiereTrago && !vivos.some((c) => c.kind === KIND_MARIDAJE && c.stepIndex === stepIndex)) nuevos.push({ kind: KIND_MARIDAJE, item: paso.drink! });
+  if (nuevos.length === 0) throw new SalaError("Eso ya lo pediste.");
+  const platosEnCamino = cuenta.consumos.filter((c) => c.kind === KIND_PLATO && c.status === "pendiente").length;
+  if (quierePlato && platosEnCamino >= 2) throw new SalaError("Ya tenés dos platos en camino; esperá a que lleguen.");
+  await prisma.consumo.createMany({ data: nuevos.map((n) => ({ cuentaId, kind: n.kind, item: n.item, stepIndex, price: 0 })) });
 }
 
 /** Pide un trago de la barra: se suma a la cuenta y le llega a la barra. */
@@ -177,7 +185,8 @@ export type PedidoSala = { id: string; cuentaId: string; table: number; name: st
 
 /** Lo que está esperando: `destino` "cocina" son los pasos, "barra" los tragos. */
 export async function getPendientes(eventId: string, destino: "cocina" | "barra" | "todo" = "todo"): Promise<PedidoSala[]> {
-  const kinds = destino === "cocina" ? ["paso"] : destino === "barra" ? ["trago"] : ["paso", "trago"];
+  // La cocina ve los platos; la barra, los tragos sueltos y los del maridaje.
+  const kinds = destino === "cocina" ? [KIND_PLATO] : destino === "barra" ? ["trago", KIND_MARIDAJE] : [KIND_PLATO, "trago", KIND_MARIDAJE];
   const rows = await prisma.consumo.findMany({
     where: { kind: { in: kinds }, status: "pendiente", cuenta: { eventId } },
     orderBy: { createdAt: "asc" },
