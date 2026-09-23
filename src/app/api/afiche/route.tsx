@@ -5,26 +5,32 @@ import { parseMenu, splitDrink } from "@/lib/menu";
 import { getUpcomingEvents } from "@/lib/reservations";
 import { prisma } from "@/lib/prisma";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * Afiche listo para redes con la próxima cena: ?f=historia (1080×1920, historia de Instagram /
- * estado de WhatsApp) o ?f=cuadrado (1080×1080, publicación). Texto dentro de la zona segura
- * (250 px arriba y abajo en la historia). ?id=<cena> para otra fecha.
- */
-async function loadFont(family: string, text: string): Promise<ArrayBuffer | null> {
+/** La tipografía de la casa, pedida a Google con solo los caracteres que aparecen en el afiche. */
+async function loadFont(family: string, text: string, weight = 400): Promise<ArrayBuffer | null> {
   try {
-    const css = await fetch(`https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}&text=${encodeURIComponent(text)}`, {
-      headers: { "User-Agent": "curl/8" },
-    }).then((r) => r.text());
-    const url = css.match(/src: url\(([^)]+)\)/)?.[1];
-    if (!url || url.includes("woff2")) return null;
+    const css = await fetch(
+      `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}&text=${encodeURIComponent(text)}`,
+      { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } },
+    ).then((r) => r.text());
+    const url = css.match(/src: url\((.+?)\)/)?.[1];
+    if (!url) return null;
     return await fetch(url).then((r) => r.arrayBuffer());
   } catch {
     return null;
   }
 }
 
+/**
+ * Afiche para redes: ?f=cuadrado (publicación) o ?f=historia (historia / estado de WhatsApp).
+ *
+ * En el feed la imagen se ve chica, dentro de un celular y comprimida por Instagram: ahí entra poco
+ * texto y tiene que ser grande, así que van los platos con el nombre del cóctel y nada más (los
+ * ingredientes van en el texto del posteo). La historia se ve a pantalla completa y sí los aguanta.
+ * Sale al doble de resolución para que no se pixele.
+ */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const story = url.searchParams.get("f") !== "cuadrado";
@@ -33,18 +39,13 @@ export async function GET(req: Request) {
   if (!event) return new Response("Todavía no hay cena", { status: 404 });
 
   const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
-  const W = 1080;
-  const H = story ? 1920 : 1080;
   const steps = parseMenu(event.menu).slice(0, 6);
   const host = siteUrl().replace(/^https?:\/\//, "");
   const day = `${cap(formatWeekday(event.date))} ${formatDayNumber(event.date)}`;
   const when = `de ${formatMonth(event.date)} · ${formatTime(event.date)} hs`;
-  const count = await prisma.event.count({ where: { published: true, unlisted: false } });
-  const title = count <= 1 ? "Apertura" : "Próxima cena";
 
   const text = [
     SITE_NAME,
-    title,
     day,
     when,
     event.title,
@@ -57,13 +58,21 @@ export async function GET(req: Request) {
     "Reservá en",
     "0123456789",
   ].join("");
-  const playfair = await loadFont("Playfair Display", text);
-  const font = playfair ? "Playfair" : "serif";
-  const gold = "#c9a96e";
+  const [regular, bold] = await Promise.all([loadFont("Playfair Display", text, 400), loadFont("Playfair Display", text, 700)]);
+  const font = regular ? "Playfair" : "serif";
+  const fonts = [
+    ...(regular ? [{ name: "Playfair", data: regular, style: "normal" as const, weight: 400 as const }] : []),
+    ...(bold ? [{ name: "Playfair", data: bold, style: "normal" as const, weight: 700 as const }] : []),
+  ];
+  const gold = "#d8b878";
 
-  // El cuadrado tiene la mitad de alto: todo se achica, y con carta larga un poco más.
-  const S = story ? 1 : 0.62;
+  // Todo se mide sobre un lienzo de 1080 y se emite al doble: nítido aunque lo amplíen.
+  const Z = 2;
+  const px = (n: number) => Math.round(n * Z);
   const K = steps.length >= 5 ? 0.86 : 1;
+  const s = story
+    ? { eyebrow: 26, day: 104, when: 42, title: 60, n: 30, dish: 44, drink: 34, note: 27, price: 38, pay: 28, res: 26, host: 44, pad: 140, gapTop: 44, row: 22 }
+    : { eyebrow: 24, day: 116, when: 42, title: 58, n: 30, dish: 46, drink: 34, note: 0, price: 38, pay: 28, res: 24, host: 40, pad: 54, gapTop: 34, row: 20 };
 
   return new ImageResponse(
     (
@@ -76,36 +85,35 @@ export async function GET(req: Request) {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: story ? "170px 70px" : "54px 60px",
-          background: "radial-gradient(ellipse at 50% 35%, #2a2419 0%, #141210 60%)",
-          color: "#f3ede4",
+          padding: `${px(s.pad)}px ${px(62)}px`,
+          background: "radial-gradient(ellipse at 50% 32%, #2e2719 0%, #14110e 62%)",
+          color: "#f7f1e6",
           fontFamily: font,
         }}
       >
-        {/* marco */}
         <div
           style={{
             position: "absolute",
-            top: story ? 150 : 32,
-            bottom: story ? 150 : 32,
-            left: 32,
-            right: 32,
-            border: `2px solid ${gold}`,
-            opacity: 0.35,
+            top: px(story ? 124 : 30),
+            bottom: px(story ? 124 : 30),
+            left: px(30),
+            right: px(30),
+            border: `${px(2)}px solid ${gold}`,
+            opacity: 0.4,
             display: "flex",
           }}
         />
 
-        <div style={{ display: "flex", fontSize: 20 * S + 7, letterSpacing: 6, textTransform: "uppercase", color: gold, whiteSpace: "nowrap" }}>
+        <div style={{ display: "flex", fontSize: px(s.eyebrow), letterSpacing: px(5), textTransform: "uppercase", color: gold, whiteSpace: "nowrap" }}>
           Cena a puertas cerradas · La Plata
         </div>
-        <div style={{ display: "flex", fontSize: 96 * S, marginTop: 18 * S, lineHeight: 1, color: gold }}>{day}</div>
-        <div style={{ display: "flex", fontSize: 34 * S + 6, marginTop: 10, color: "#e6dfd3" }}>{when}</div>
-        <div style={{ display: "flex", width: 150, height: 2, background: gold, opacity: 0.6, margin: `${26 * S}px 0` }} />
-        <div style={{ display: "flex", fontSize: 54 * S + 6, lineHeight: 1.1, color: "#f3ede4", textAlign: "center" }}>{event.title}</div>
+        <div style={{ display: "flex", fontSize: px(s.day), fontWeight: 700, marginTop: px(14), lineHeight: 1, color: gold }}>{day}</div>
+        <div style={{ display: "flex", fontSize: px(s.when), marginTop: px(8), color: "#efe6d8" }}>{when}</div>
+        <div style={{ display: "flex", width: px(150), height: px(2), background: gold, opacity: 0.65, margin: `${px(22)}px 0` }} />
+        <div style={{ display: "flex", fontSize: px(s.title), fontWeight: 700, lineHeight: 1.15, textAlign: "center" }}>{event.title}</div>
 
-        {/* La carta, igual que en el sitio: número, plato y debajo el cóctel */}
-        <div style={{ display: "flex", flexDirection: "column", width: "100%", maxWidth: story ? 800 : 820, marginTop: 34 * S * K }}>
+        {/* La carta: número, plato y el cóctel que lo acompaña */}
+        <div style={{ display: "flex", flexDirection: "column", width: "100%", maxWidth: px(story ? 860 : 900), marginTop: px(s.gapTop) }}>
           {steps.map((st, i) => {
             const d = splitDrink(st.drink);
             return (
@@ -114,19 +122,19 @@ export async function GET(req: Request) {
                 style={{
                   display: "flex",
                   alignItems: "flex-start",
-                  gap: 18,
-                  padding: `${16 * S * K}px 0`,
-                  borderTop: i === 0 ? "none" : "1px solid rgba(201,169,110,0.18)",
+                  gap: px(18),
+                  padding: `${px(s.row * K)}px 0`,
+                  borderTop: i === 0 ? "none" : `${px(1)}px solid rgba(216,184,120,0.22)`,
                 }}
               >
-                <div style={{ display: "flex", fontSize: 26 * S + 4, color: gold, opacity: 0.8, paddingTop: 4 }}>{String(i + 1).padStart(2, "0")}</div>
+                <div style={{ display: "flex", fontSize: px(s.n), color: gold, opacity: 0.85, paddingTop: px(6) }}>{String(i + 1).padStart(2, "0")}</div>
                 <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-                  <div style={{ display: "flex", fontSize: 34 * S * K + 6, lineHeight: 1.25, color: "#f3ede4" }}>{st.dish}</div>
+                  <div style={{ display: "flex", fontSize: px(s.dish * K), lineHeight: 1.22, color: "#f7f1e6" }}>{st.dish}</div>
                   {d.name && (
-                    <div style={{ display: "flex", fontSize: 27 * S * K + 4, marginTop: 6, color: gold, fontStyle: "italic" }}>{d.name}</div>
+                    <div style={{ display: "flex", fontSize: px(s.drink * K), marginTop: px(7), color: gold, fontStyle: "italic" }}>{d.name}</div>
                   )}
-                  {d.note && (
-                    <div style={{ display: "flex", fontSize: 22 * S * K + 3, marginTop: 3, color: "#9a9187", lineHeight: 1.35 }}>{d.note}</div>
+                  {s.note > 0 && d.note && (
+                    <div style={{ display: "flex", fontSize: px(s.note * K), marginTop: px(4), color: "#bdb3a4", lineHeight: 1.35 }}>{d.note}</div>
                   )}
                 </div>
               </div>
@@ -134,20 +142,20 @@ export async function GET(req: Request) {
           })}
         </div>
 
-        <div style={{ display: "flex", fontSize: 30 * S + 6, marginTop: 34 * S, color: "#cfc6b8" }}>
-          {formatPrice(event.price)} por persona · pocos lugares
+        <div style={{ display: "flex", fontSize: px(s.price), fontWeight: 700, marginTop: px(s.gapTop), color: "#f7f1e6" }}>
+          {formatPrice(event.price)} por persona
         </div>
-        <div style={{ display: "flex", fontSize: 22 * S + 5, marginTop: 8, color: "#9a9187" }}>Efectivo, transferencia o tarjeta en la puerta</div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 26 * S }}>
-          <div style={{ display: "flex", fontSize: 20 * S + 6, letterSpacing: 6, textTransform: "uppercase", color: gold }}>Reservá en</div>
-          <div style={{ display: "flex", fontSize: 34 * S + 8, marginTop: 6, color: "#f3ede4" }}>{host}</div>
+        <div style={{ display: "flex", fontSize: px(s.pay), marginTop: px(8), color: "#c6bcae" }}>Pocos lugares · efectivo, transferencia o tarjeta</div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: px(22) }}>
+          <div style={{ display: "flex", fontSize: px(s.res), letterSpacing: px(5), textTransform: "uppercase", color: gold }}>Reservá en</div>
+          <div style={{ display: "flex", fontSize: px(s.host), fontWeight: 700, marginTop: px(6), color: "#f7f1e6" }}>{host}</div>
         </div>
       </div>
     ),
     {
-      width: W,
-      height: H,
-      fonts: playfair ? [{ name: "Playfair", data: playfair, style: "normal", weight: 400 }] : undefined,
+      width: px(1080),
+      height: px(story ? 1920 : 1080),
+      fonts: fonts.length ? fonts : undefined,
       headers: { "Cache-Control": "private, no-store" },
     },
   );
