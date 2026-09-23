@@ -9,10 +9,9 @@ export const dynamic = "force-dynamic";
 const qr = (url: string) => QRCode.toString(url, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#1a150d", light: "#0000" } });
 
 /**
- * Tarjetas A6 para imprimir, cuatro por hoja. Dos juegos:
- * la cuenta (/mesa), que es el mismo QR para todas las mesas porque la cuenta es de cada persona y
- * la mesa la elige al abrirla; y el juego de los ingredientes escondidos (/hoy/N), que sí es por
- * mesita porque compiten entre mesas. Con ?que=cuenta o ?que=juego se imprime uno solo.
+ * Tarjetas A6 para imprimir, cuatro por hoja. Dos juegos: la cuenta (/mesa), un solo QR para todos
+ * porque la cuenta es de cada persona; y el juego de los ingredientes escondidos (/hoy/N), que sí es
+ * por mesita porque compiten entre sí. Con ?que=cuenta o ?que=juego se imprime uno solo.
  */
 export default async function MesitasPage({ searchParams }: { searchParams: Promise<{ que?: string }> }) {
   const { que } = await searchParams;
@@ -31,8 +30,8 @@ export default async function MesitasPage({ searchParams }: { searchParams: Prom
           <div>
             <h1 className="font-display text-2xl">QR para las mesas</h1>
             <p className="mt-1 text-sm text-muted">
-              El de <strong className="text-ink">la cuenta</strong> (<code className="text-ink">/mesa</code>) es el mismo para todas y va en la mesa toda la noche:
-              cada uno abre su cuenta, elige en qué mesa está, le cobrás la cena y desde ahí pide los pasos y los tragos. El de{" "}
+              El de <strong className="text-ink">la cuenta</strong> (<code className="text-ink">/mesa</code>) es uno solo y va en las mesas toda la noche: cada
+              uno abre su cuenta con su nombre, le cobrás la cena y desde ahí pide los pasos y los tragos. El de{" "}
               <strong className="text-ink">Puertas adentro</strong> (<code className="text-ink">/hoy/N</code>) sí es por mesita, porque el juego compite entre
               mesas. Imprimí en cartulina y plastificá.
             </p>

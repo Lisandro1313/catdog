@@ -5,7 +5,7 @@ import { KIND_MARIDAJE, KIND_PLATO, type ConsumoRow, type CoverVia, type CuentaR
 export * from "./sala-tipos";
 
 /**
- * La sala: cada persona abre su cuenta escaneando el QR de su mesa. La casa cobra la cena ahí mismo
+ * La sala: cada persona abre su cuenta escaneando el QR de la casa. La casa cobra la cena ahí mismo
  * (efectivo o transferencia; los invitados y el 2x1 se marcan y no pagan) y con eso la cuenta se
  * destraba. Desde ahí piden los pasos cuando quieren (van a la cocina) y los tragos (van a la barra),
  * viendo siempre lo que llevan consumido. Al final se cierra la cuenta y todo entra en la caja.
@@ -21,6 +21,7 @@ function armar(c: {
   coverVia: string | null;
   openedAt: Date;
   closedAt: Date | null;
+  closedVia: string | null;
   traspasoCode: string | null;
   traspasoHasta: Date | null;
   consumos: ConsumoRow[];
@@ -38,6 +39,7 @@ function armar(c: {
     abierta: coverPaid && !c.closedAt,
     openedAt: c.openedAt,
     closedAt: c.closedAt,
+    closedVia: c.closedVia,
     traspasoCode: c.traspasoHasta && c.traspasoHasta.getTime() > Date.now() ? c.traspasoCode : null,
     consumos: c.consumos,
     extra,
@@ -53,12 +55,6 @@ export async function getCuentas(eventId: string): Promise<CuentaRow[]> {
   return rows.map(armar);
 }
 
-/** La cuenta de este teléfono en esta cena (la última que abrió y no se cerró). */
-export async function getMiCuenta(eventId: string, deviceKey: string): Promise<CuentaRow | null> {
-  const row = await prisma.cuenta.findFirst({ where: { eventId, deviceKey, closedAt: null }, orderBy: { openedAt: "desc" }, include });
-  return row ? armar(row) : null;
-}
-
 /**
  * Todas las cuentas que lleva este teléfono. Suelen ser una, pero a alguien se le puede apagar el
  * celular y otro le lleva la suya, o una pareja usa un teléfono solo.
@@ -69,12 +65,12 @@ export async function getMisCuentas(eventId: string, deviceKey: string): Promise
 }
 
 /**
- * Las cuentas de la mesa que la casa habilitó para pasar a otro teléfono. Solo esas se listan: el
- * nombre de alguien no aparece hasta que la casa abre el traspaso.
+ * Las cuentas que la casa habilitó para pasar a otro teléfono. Solo esas se listan: el nombre de
+ * alguien no aparece hasta que la casa abre el traspaso, y para tomarla hace falta además su código.
  */
-export async function getCuentasEnTraspaso(eventId: string, table: number) {
+export async function getCuentasEnTraspaso(eventId: string) {
   const rows = await prisma.cuenta.findMany({
-    where: { eventId, table, closedAt: null, traspasoCode: { not: null }, traspasoHasta: { gt: new Date() } },
+    where: { eventId, closedAt: null, traspasoCode: { not: null }, traspasoHasta: { gt: new Date() } },
     orderBy: { openedAt: "asc" },
     select: { id: true, name: true },
   });
@@ -120,11 +116,6 @@ export async function tomarCuenta(cuentaId: string, deviceKey: string, code: str
   await prisma.cuenta.update({ where: { id: cuentaId }, data: { deviceKey, traspasoCode: null, traspasoHasta: null } });
 }
 
-export async function getCuenta(id: string): Promise<CuentaRow | null> {
-  const row = await prisma.cuenta.findUnique({ where: { id }, include });
-  return row ? armar(row) : null;
-}
-
 /** Quiénes reservaron y pagaron esta cena: para elegir el nombre al abrir la cuenta (y saber que ya pagó). */
 export async function getReservasDeLaNoche(eventId: string) {
   const rows = await prisma.reservation.findMany({ where: { eventId, status: "PAID" }, orderBy: { name: "asc" }, select: { id: true, name: true, quantity: true } });
@@ -142,8 +133,6 @@ export async function abrirCuenta(input: { eventId: string; table: number; name:
   // Un teléfono puede llevar varias (una pareja con un celu, o el que le lleva la cuenta a un amigo).
   const abiertas = await prisma.cuenta.count({ where: { eventId: input.eventId, deviceKey: input.deviceKey, closedAt: null } });
   if (abiertas >= 4) throw new SalaError("Este teléfono ya lleva cuatro cuentas.");
-  const enLaMesa = await prisma.cuenta.count({ where: { eventId: input.eventId, table: input.table, closedAt: null } });
-  if (enLaMesa >= 12) throw new SalaError("Esa mesa ya tiene muchas cuentas abiertas.");
   let reservationId: string | null = null;
   let cover = input.price;
   let coverNote: string | null = "entera";

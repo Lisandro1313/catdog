@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 const HORA = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Argentina/Buenos_Aires" });
 
 /**
- * La sala: cada persona abre su cuenta con el QR de su mesa y queda trabada hasta que acá se cobre la
+ * La sala: cada persona abre su cuenta con el QR de la casa y queda trabada hasta que acá se cobre la
  * cena (efectivo, transferencia, invitado, o ya pagó al reservar). Después piden solos y esto muestra
  * lo que va llegando, lo que lleva cada uno y lo que falta cobrar. Se refresca sola.
  */
@@ -53,6 +53,9 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
         <div className="flex items-center gap-3">
           <Link href={`/admin/eventos/${event.id}/cocina`} className="hover:text-ink" target="_blank">
             Cocina ↗
+          </Link>
+          <Link href={`/admin/eventos/${event.id}/tragos`} className="hover:text-ink" target="_blank">
+            Barra ↗
           </Link>
           <Link href={`/admin/eventos/${event.id}/vivo`} className="hover:text-ink">
             En vivo
@@ -202,7 +205,7 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
       <section className="card p-5">
         <p className="eyebrow">Cuentas abiertas ({abiertas.length})</p>
         {abiertas.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">Nadie con cuenta abierta todavía. Se abren solas cuando escanean el QR de su mesa.</p>
+          <p className="mt-2 text-sm text-muted">Nadie con cuenta abierta todavía. Se abren cuando escanean el QR y ponen su nombre.</p>
         ) : (
           <ul className="mt-3 grid gap-3">
             {abiertas.map((c) => (

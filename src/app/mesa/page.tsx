@@ -5,7 +5,7 @@ import { formatDayNumber, formatMonth, formatWeekday } from "@/lib/dates";
 import { parseBar } from "@/lib/menu";
 import { readSalaKey } from "@/lib/device";
 import { getTonightEvent } from "@/lib/hoy";
-import { getMisCuentas, getReservasDeLaNoche, MESAS } from "@/lib/sala";
+import { getMisCuentas, getReservasDeLaNoche } from "@/lib/sala";
 import { MesaClient } from "@/components/mesa/MesaClient";
 import { TrackVisit } from "@/components/TrackVisit";
 
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * El QR de la casa apunta acá: uno solo para todas las mesas. Como la cuenta es de cada persona,
- * la mesa se elige al abrirla (solo hace falta para saber a dónde llevar el plato y el trago).
+ * El QR de la casa apunta acá: uno solo para todos. La cuenta es de cada persona y se abre con el
+ * nombre; la casa la autoriza (con el código o desde el panel) y desde ahí pide a su ritmo.
  */
 export default async function MesaPage() {
   const event = await getTonightEvent();
@@ -49,7 +49,6 @@ export default async function MesaPage() {
         title={event.title}
         dateLabel={`${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}`}
         table={null}
-        mesas={MESAS}
         price={event.price}
         menu={event.menu}
         bar={parseBar(event.bar)}

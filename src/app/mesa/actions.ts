@@ -39,10 +39,10 @@ export async function misCuentasAction(eventId: string): Promise<CuentaRow[]> {
   return getMisCuentas(eventId, key);
 }
 
-/** Las cuentas de esta mesa que la casa habilitó para pasar a otro teléfono. */
-export async function cuentasEnTraspasoAction(eventId: string, table: number): Promise<{ id: string; name: string }[]> {
-  if (!(await eventoDeHoy(eventId)) || !Number.isInteger(table)) return [];
-  return getCuentasEnTraspaso(eventId, table);
+/** Las cuentas que la casa habilitó para pasar a otro teléfono. */
+export async function cuentasEnTraspasoAction(eventId: string): Promise<{ id: string; name: string }[]> {
+  if (!(await eventoDeHoy(eventId))) return [];
+  return getCuentasEnTraspaso(eventId);
 }
 
 const tomarSchema = z.object({ eventId: z.string().min(1), cuentaId: z.string().min(1), code: z.string().trim().max(8) });
@@ -68,7 +68,7 @@ export async function tomarCuentaAction(input: unknown): Promise<MesaResult> {
 
 const abrirSchema = z.object({
   eventId: z.string().min(1),
-  table: z.number().int().min(0).max(99),
+  table: z.literal(0).optional(),
   name: z.string().max(40),
   reservationId: z.string().nullable().optional(),
 });
@@ -77,7 +77,7 @@ const abrirSchema = z.object({
 export async function abrirCuentaAction(input: unknown): Promise<MesaResult> {
   const parsed = abrirSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Datos inválidos." };
-  const { eventId, table, reservationId } = parsed.data;
+  const { eventId, reservationId } = parsed.data;
   const event = await eventoDeHoy(eventId);
   if (!event) return { ok: false, error: "Esto funciona solo durante la cena." };
   const name = cleanName(parsed.data.name);
@@ -85,7 +85,7 @@ export async function abrirCuentaAction(input: unknown): Promise<MesaResult> {
   const key = await ensureSalaKey();
   if (!allowKey(`cuenta:${key}`, 8) || !(await allowRequest("cuenta-ip", 200))) return { ok: false, error: "Esperá un momento." };
   try {
-    const cuenta = await abrirCuenta({ eventId, table, name, deviceKey: key, reservationId: reservationId ?? null, price: event.price });
+    const cuenta = await abrirCuenta({ eventId, table: 0, name, deviceKey: key, reservationId: reservationId ?? null, price: event.price });
     return { ok: true, cuentas: await getMisCuentas(eventId, key), foco: cuenta.id };
   } catch (err) {
     return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo abrir la cuenta." };
@@ -119,7 +119,8 @@ export async function codigoAction(input: unknown): Promise<MesaResult> {
   if (mine.error !== undefined || mine.key === undefined) return { ok: false, error: mine.error ?? "Abrí tu cuenta primero." };
   if (!allowKey(`codigo:${mine.key}`, 10)) return { ok: false, error: "Probaste varias veces; pedile el código a la casa." };
   if (!event.salaCode || code !== event.salaCode) return { ok: false, error: "Ese código no es." };
-  await saldarCover(cuentaId, "efectivo");
+  // Queda como "destrabada con el código": la casa después confirma en el panel cómo pagó de verdad.
+  await saldarCover(cuentaId, "codigo");
   return { ok: true, cuentas: await getMisCuentas(eventId, mine.key), foco: cuentaId };
 }
 

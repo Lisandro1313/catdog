@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SITE_NAME, formatPrice, siteUrl } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday } from "@/lib/dates";
-import { parseBar, parseMenu } from "@/lib/menu";
+import { parseBar, parseMenu, splitDrink } from "@/lib/menu";
 import { PrintButton } from "@/components/admin/PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +64,12 @@ export default async function CartaPage({ params }: { params: Promise<{ id: stri
               <li key={i}>
                 <span className="carta-n">{String(i + 1).padStart(2, "0")}</span>
                 <span className="carta-dish">{s.dish}</span>
-                {s.drink && <span className="carta-drink">{s.drink}</span>}
+                {s.drink && (
+                  <span className="carta-drink">
+                    <span className="carta-drink-name">{splitDrink(s.drink).name}</span>
+                    {splitDrink(s.drink).note && <span className="carta-drink-note">{splitDrink(s.drink).note}</span>}
+                  </span>
+                )}
               </li>
             ))}
           </ol>

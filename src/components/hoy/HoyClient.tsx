@@ -5,7 +5,7 @@ import Link from "next/link";
 import { extrasAction, guessAction, liveAction, type ExtrasState, type LiveSnapshot } from "@/app/hoy/actions";
 import type { TableRow } from "@/lib/hoy";
 import { PREMIO_MINIMO } from "@/lib/juegos";
-import { Barra, Huella, Recomendar, Telon, Votacion } from "./Extras";
+import { Huella, Recomendar, Telon, Votacion } from "./Extras";
 import { TarjetaButton } from "./Tarjeta";
 import { ShareButton } from "@/components/ShareButton";
 import { withTransition } from "@/components/jugar/Shell";
@@ -431,14 +431,20 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
             </section>
           )}
           {bar.length > 0 && (
-            <Barra
-              eventId={eventId}
-              table={demo ? null : table}
-              bar={bar}
-              barPrice={barPrice ? formatPrice(barPrice) : null}
-              pedidos={live?.pedidos ?? []}
-              onChange={refreshLive}
-            />
+            <section className="mt-10 border-t border-line pt-6">
+              <p className="ap-eyebrow">Si querés algo más</p>
+              <p className="mt-1 text-xs text-muted">
+                La barra de hoy{barPrice ? ` · ${formatPrice(barPrice)} cada uno` : ""}. Se pide desde tu cuenta, con el otro QR de la mesa.
+              </p>
+              <ul className="mt-4 space-y-3">
+                {bar.map((b) => (
+                  <li key={b.name}>
+                    <p className="font-display text-lg leading-tight">{b.name}</p>
+                    {b.description && <p className="text-xs leading-relaxed text-muted">{b.description}</p>}
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
           {!demo && <Votacion eventId={eventId} options={votos} initial={extras.votes} />}
           {!demo && <Huella eventId={eventId} table={table} initial={extras.huellas} onSaved={refreshExtras} />}

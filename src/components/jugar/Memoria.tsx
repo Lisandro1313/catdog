@@ -23,7 +23,8 @@ type Props = { photos: string[]; onDone: (moves: number) => void; onBack: () => 
 
 /** La foto por el optimizador de Next: en una baldosa de 80 px no hace falta el original del Blob. */
 function chica(url: string): string {
-  return url.startsWith("/") ? `/_next/image?url=${encodeURIComponent(url)}&w=256&q=70` : url;
+  // q=75 es el único permitido por defecto en Next 16; con otro valor el optimizador responde 400.
+  return url.startsWith("/") ? `/_next/image?url=${encodeURIComponent(url)}&w=256&q=75` : url;
 }
 
 export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Props) {

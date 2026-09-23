@@ -404,7 +404,7 @@ model Cuenta {
   id        String   @id @default(cuid())
   eventId   String
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  /// Mesa donde está sentada (el número del QR).
+  /// Mesa, si algún día se numeran. Hoy siempre 0: la cuenta es de la persona, no del lugar.
   table     Int
   name      String
   /// Reserva de la que salió, si la eligió al abrir.
@@ -417,7 +417,7 @@ model Cuenta {
   coverNote String?
   /// Cuándo se saldó el cubierto (null = todavía debe la cena; hasta entonces la cuenta está trabada).
   coverPaidAt DateTime?
-  /// Cómo lo pagó: "efectivo" | "transferencia" | "mercadopago" | "invitado" | "reserva".
+  /// Cómo lo pagó: ver COVER_VIAS en src/lib/sala-tipos.ts.
   coverVia  String?
   openedAt  DateTime @default(now())
   /// Código de un solo uso que da la casa para pasar esta cuenta a otro teléfono, y hasta cuándo vale.

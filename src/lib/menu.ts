@@ -5,8 +5,8 @@ export type MenuStep = {
 };
 
 /**
- * Cada línea del menú es un paso. Si tiene " | " (o " — " / " - "),
- * lo de la derecha es el trago que acompaña ese plato.
+ * Cada línea del menú es un paso. Si tiene " | " (o " — "), lo de la derecha es el trago que acompaña
+ * ese plato. El guion simple no separa: hay platos que lo llevan ("Ojo de bife - cocción lenta").
  */
 export function parseMenu(menu: string | null | undefined): MenuStep[] {
   if (!menu) return [];
@@ -16,7 +16,7 @@ export function parseMenu(menu: string | null | undefined): MenuStep[] {
     .filter(Boolean)
     .map((line) => {
       const cleaned = line.replace(/^\d+[.)]\s*/, "");
-      const parts = cleaned.split(/\s+\|\s+|\s+—\s+|\s+-\s+/);
+      const parts = cleaned.split(/\s+\|\s+|\s+—\s+/);
       return { dish: parts[0], drink: parts.slice(1).join(" — ") || null };
     });
 }

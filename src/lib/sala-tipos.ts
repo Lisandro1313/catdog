@@ -6,21 +6,21 @@ import { labelForStep } from "./pasos";
  * datos: lo que necesita Prisma vive en sala.ts, que re-exporta todo esto.
  */
 
-/**
+/*
  * Por ahora no hay mesas numeradas: son quince personas y la casa las conoce. Las cuentas guardan
- * `table: 0` ("sin mesa") y en pantalla no se muestra. Si algún día hacen falta, alcanza con volver
- * a pedirla al abrir la cuenta: el número ya viaja en todos lados.
+ * `table: 0` ("sin mesa") y en pantalla no se muestra. Si algún día hacen falta, el número ya viaja
+ * en la base y en todas las pantallas: solo hay que volver a pedirlo al abrir la cuenta.
  */
-export const MESAS = 0;
 
-export type CoverVia = "efectivo" | "tarjeta" | "transferencia" | "invitado" | "reserva";
-export const COVER_VIAS: CoverVia[] = ["efectivo", "tarjeta", "transferencia", "invitado", "reserva"];
+export type CoverVia = "efectivo" | "tarjeta" | "transferencia" | "invitado" | "reserva" | "codigo";
+export const COVER_VIAS: CoverVia[] = ["efectivo", "tarjeta", "transferencia", "invitado", "reserva", "codigo"];
 export const VIA_LABEL: Record<CoverVia, string> = {
   efectivo: "efectivo",
   tarjeta: "tarjeta",
   transferencia: "transferencia",
   invitado: "invitado de la casa",
   reserva: "ya lo pagó al reservar",
+  codigo: "destrabada con el código",
 };
 
 export type ConsumoRow = { id: string; kind: string; item: string; stepIndex: number | null; qty: number; price: number; status: string; createdAt: Date };
@@ -35,6 +35,7 @@ export type CuentaRow = {
   abierta: boolean;
   openedAt: Date;
   closedAt: Date | null;
+  closedVia: string | null;
   /** Código de un solo uso si la casa habilitó pasar la cuenta a otro teléfono. */
   traspasoCode: string | null;
   consumos: ConsumoRow[];
@@ -83,6 +84,8 @@ export function pasosDe(menu: string | null, consumos: ConsumoRow[]): CartaPaso[
 export type Resumen = {
   abiertas: number;
   trabadas: number;
+  /** Se destrabaron con el código: falta confirmar cómo pagaron. */
+  aConfirmar: number;
   cerradas: number;
   personas: number;
   cobradoCena: number;
@@ -105,19 +108,18 @@ export function resumen(cuentas: CuentaRow[]): Resumen {
       cobradoCena += c.cover;
       porVia.set(c.coverVia, (porVia.get(c.coverVia) ?? 0) + c.cover);
     }
-    if (c.coverVia === "invitado" || c.cover === 0) invitados += 1;
+    if (c.coverVia === "invitado" || (c.cover === 0 && c.coverVia !== "reserva")) invitados += 1;
     if (c.closedAt) {
       cobradoConsumo += c.extra;
-      if (c.extra > 0) {
-        const via = "consumo";
-        porVia.set(via, (porVia.get(via) ?? 0) + c.extra);
-      }
+      // Se suma a la forma de pago con la que se cerró: al final de la noche hay que contar la caja.
+      if (c.extra > 0 && c.closedVia !== "invitado") porVia.set(c.closedVia ?? "consumo", (porVia.get(c.closedVia ?? "consumo") ?? 0) + c.extra);
     }
     porCobrar += c.debe;
   }
   return {
     abiertas: cuentas.filter((c) => c.abierta).length,
     trabadas: cuentas.filter((c) => !c.coverPaid && !c.closedAt).length,
+    aConfirmar: cuentas.filter((c) => c.coverVia === "codigo" && !c.closedAt).length,
     cerradas: cuentas.filter((c) => c.closedAt).length,
     personas: cuentas.length,
     cobradoCena,

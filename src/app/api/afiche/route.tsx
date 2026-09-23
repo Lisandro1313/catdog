@@ -15,7 +15,8 @@ async function loadFont(family: string, text: string, weight = 400): Promise<Arr
       `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}&text=${encodeURIComponent(text)}`,
       { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } },
     ).then((r) => r.text());
-    const url = css.match(/src: url\((.+?)\)/)?.[1];
+    // Satori no lee woff2: se pide el formato que sí entiende.
+    const url = css.match(/src: url\((.+?)\) format\('(?:opentype|truetype)'\)/)?.[1];
     if (!url) return null;
     return await fetch(url).then((r) => r.arrayBuffer());
   } catch {
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
   const day = `${cap(formatWeekday(event.date))} ${formatDayNumber(event.date)}`;
   const when = `de ${formatMonth(event.date)} · ${formatTime(event.date)} hs`;
 
-  const text = [
+  const crudo = [
     SITE_NAME,
     day,
     when,
@@ -57,6 +58,8 @@ export async function GET(req: Request) {
     "Reservá en",
     "0123456789",
   ].join("");
+  // El subset trae solo los caracteres pedidos: las líneas en mayúsculas necesitan sus versiones.
+  const text = `${crudo}${crudo.toUpperCase()}`;
   const [regular, bold] = await Promise.all([loadFont("Playfair Display", text, 400), loadFont("Playfair Display", text, 700)]);
   const font = regular ? "Playfair" : "serif";
   const fonts = [
@@ -66,9 +69,9 @@ export async function GET(req: Request) {
   const gold = "#d8b878";
 
   // Todo se mide sobre un lienzo de 1080 y se emite al doble: nítido aunque lo amplíen.
-  const Z = 2;
+  const Z = story ? 1.5 : 2;
   const px = (n: number) => Math.round(n * Z);
-  const K = steps.length >= 5 ? 0.86 : 1;
+  const K = steps.length >= 6 ? 0.78 : steps.length >= 5 ? 0.86 : 1;
   // Medidas pensadas para que la carta entre entera: en el cuadrado hay la mitad de alto que en la historia.
   const s = story
     ? { eyebrow: 26, day: 104, when: 42, title: 58, n: 30, dish: 43, drink: 33, note: 27, price: 38, pay: 28, res: 26, host: 44, pad: 136, gapTop: 40, row: 20 }
@@ -107,10 +110,10 @@ export async function GET(req: Request) {
         <div style={{ display: "flex", fontSize: px(s.eyebrow), letterSpacing: px(5), textTransform: "uppercase", color: gold, whiteSpace: "nowrap" }}>
           Cena a puertas cerradas · La Plata
         </div>
-        <div style={{ display: "flex", fontSize: px(s.day), fontWeight: 700, marginTop: px(story ? 14 : 8), lineHeight: 1, color: gold }}>{day}</div>
+        <div style={{ display: "flex", fontSize: px(s.day * K), fontWeight: 700, marginTop: px(story ? 14 : 8), lineHeight: 1, color: gold }}>{day}</div>
         <div style={{ display: "flex", fontSize: px(s.when), marginTop: px(8), color: "#efe6d8" }}>{when}</div>
         <div style={{ display: "flex", width: px(150), height: px(2), background: gold, opacity: 0.65, margin: `${px(story ? 22 : 14)}px 0` }} />
-        <div style={{ display: "flex", fontSize: px(s.title), fontWeight: 700, lineHeight: 1.15, textAlign: "center" }}>{event.title}</div>
+        <div style={{ display: "flex", fontSize: px(s.title * K), fontWeight: 700, lineHeight: 1.15, textAlign: "center" }}>{event.title}</div>
 
         {/* La carta: número, plato y el cóctel que lo acompaña */}
         <div style={{ display: "flex", flexDirection: "column", width: "100%", maxWidth: px(story ? 860 : 900), marginTop: px(s.gapTop) }}>

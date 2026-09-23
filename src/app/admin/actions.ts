@@ -1051,7 +1051,10 @@ export async function setCoverAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
   const eventId = String(formData.get("eventId") ?? "");
-  const monto = Number(String(formData.get("monto") ?? "").replace(/\D/g, "")) || 0;
+  const crudo = String(formData.get("monto") ?? "").trim();
+  // Sin monto no se hace nada: un toque de más no puede dejar la cena en cero.
+  if (!crudo) return;
+  const monto = Number(crudo.replace(/\D/g, "")) || 0;
   const nota = String(formData.get("nota") ?? "").trim().slice(0, 40) || null;
   await setCover(id, monto, nota);
   revalidatePath(`/admin/eventos/${eventId}/sala`);
@@ -1148,8 +1151,7 @@ export async function cerrarSalaAction(formData: FormData): Promise<void> {
   // Si ya se cargó la sala de esta noche, no se duplica el ingreso.
   const yaEsta = await prisma.ledgerEntry.findFirst({ where: { eventId, category: "cena", deletedAt: null, description: { startsWith: "Sala:" } } });
   if (yaEsta) {
-    const resto = total - yaEsta.amount;
-    if (resto <= 0) return;
+    // Se actualiza siempre, también si bajó (una cuenta reabierta o un cobro desmarcado).
     await prisma.ledgerEntry.update({ where: { id: yaEsta.id }, data: { amount: total, description: `Sala: ${r.personas} personas (${r.invitados} de la casa), cenas ${formatPrice(r.cobradoCena)}, barra ${formatPrice(r.cobradoConsumo)}`.slice(0, 200), updatedAt: new Date(), updatedBy: me.name } });
     revalidatePath(`/admin/eventos/${eventId}/sala`);
     revalidatePath("/admin/gastos");

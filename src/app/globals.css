@@ -189,7 +189,7 @@ html {
   box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.15);
 }
 .input::placeholder {
-  color: #8a8279;
+  color: var(--muted);
 }
 
 .btn {
@@ -507,6 +507,7 @@ html {
 .ap-step .drink {
   grid-column: 2;
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 0.15rem;
   margin-top: 0.35rem;
@@ -2752,4 +2753,16 @@ details.faq > summary::-webkit-details-marker {
   .mesa-paso.is-wait {
     animation: none;
   }
+}
+
+/* La carta impresa: el cóctel con su nombre destacado, igual que en el sitio */
+.carta-drink-name {
+  display: block;
+  font-style: italic;
+}
+.carta-drink-note {
+  display: block;
+  font-size: 0.85em;
+  font-style: normal;
+  opacity: 0.85;
 }

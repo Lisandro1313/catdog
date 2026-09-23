@@ -14,12 +14,13 @@ function cuenta(over: Partial<CuentaRow> = {}): CuentaRow {
   const cover = over.cover ?? 40000;
   return {
     id: "c1",
-    table: 3,
+    table: 0,
     name: "Nico",
     cover,
     coverNote: null,
     coverPaid,
     coverVia: over.coverVia ?? "efectivo",
+    closedVia: null,
     traspasoCode: null,
     abierta: coverPaid && !over.closedAt,
     openedAt: new Date(0),
