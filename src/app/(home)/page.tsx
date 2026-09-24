@@ -192,10 +192,11 @@ export default async function HomePage() {
           </div>
         )}
         <div className="ap-frame" aria-hidden="true" />
-        <div className="ap-backdrop" aria-hidden="true">
-          {steps.map((s, i) => (
-            <span key={i}>{s.dish}</span>
-          ))}
+        {/* Brasas: tres manchas de luz que derivan muy lento. Sin palabras: el titulo manda. */}
+        <div className="ap-embers" aria-hidden="true">
+          <span />
+          <span />
+          <span />
         </div>
         <div className="ap-spot relative z-10 mx-auto w-full max-w-2xl text-center">
           <p className="ap-eyebrow">Cena a puertas cerradas · La Plata</p>
