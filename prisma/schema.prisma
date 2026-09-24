@@ -60,6 +60,7 @@ model Event {
   votos    Voto[]
   pedidos  Pedido[]
   sugerencias Sugerencia[]
+  temas        Tema[]
   cuentas  Cuenta[]
 }
 
@@ -453,4 +454,45 @@ model Consumo {
   doneAt    DateTime?
 
   @@index([cuentaId])
+}
+
+/// La sobremesa: un tema que abre alguien (de la casa o un invitado) y la charla que se arma abajo.
+/// Se publica al instante; desde el panel se puede ocultar o fijar arriba.
+model Tema {
+  id         String    @id @default(cuid())
+  /// Si salio de una cena puntual, cual (para poder decir "de la cena del 25").
+  eventId    String?
+  event      Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  title      String
+  text       String
+  authorName String
+  /// El telefono que lo escribio: sirve para que pueda borrar lo suyo y para los frenos.
+  deviceKey  String
+  /// Lo abrio la casa desde el panel (se muestra distinto).
+  fromHouse  Boolean   @default(false)
+  pinned     Boolean   @default(false)
+  /// Oculto desde el panel (no se borra: se puede volver a mostrar).
+  hiddenAt   DateTime?
+  createdAt  DateTime  @default(now())
+  /// Ultima respuesta, para ordenar por lo que se esta hablando.
+  lastAt     DateTime  @default(now())
+
+  respuestas Respuesta[]
+
+  @@index([hiddenAt, pinned, lastAt])
+}
+
+/// Una respuesta dentro de un tema de la sobremesa.
+model Respuesta {
+  id         String    @id @default(cuid())
+  temaId     String
+  tema       Tema      @relation(fields: [temaId], references: [id], onDelete: Cascade)
+  text       String
+  authorName String
+  deviceKey  String
+  fromHouse  Boolean   @default(false)
+  hiddenAt   DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([temaId, createdAt])
 }

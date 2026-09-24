@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema } from "@/lib/foro";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
@@ -1192,4 +1193,43 @@ export async function cerrarSalaAction(formData: FormData): Promise<void> {
   });
   revalidatePath(`/admin/eventos/${eventId}/sala`);
   revalidatePath("/admin/gastos");
+}
+
+// ---------- la sobremesa ----------
+
+export async function foroOcultarAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await ocultarTema(id, String(formData.get("ocultar") ?? "") === "si");
+  revalidatePath("/admin/sobremesa");
+  revalidatePath("/sobremesa");
+}
+
+export async function foroFijarAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await fijarTema(id, String(formData.get("fijar") ?? "") === "si");
+  revalidatePath("/admin/sobremesa");
+  revalidatePath("/sobremesa");
+}
+
+export async function foroOcultarRespuestaAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await ocultarRespuesta(id, String(formData.get("ocultar") ?? "") === "si");
+  revalidatePath("/admin/sobremesa");
+  revalidatePath("/sobremesa");
+}
+
+/** Borrado de verdad: se lleva las respuestas con él. Para lo que no debe quedar ni oculto. */
+export async function foroBorrarAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await borrarTemaDefinitivo(id);
+  revalidatePath("/admin/sobremesa");
+  revalidatePath("/sobremesa");
 }

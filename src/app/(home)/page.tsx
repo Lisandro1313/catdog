@@ -193,6 +193,7 @@ export default async function HomePage() {
           { href: "#carta", label: "La carta" },
           { href: "#nosotros", label: "Quiénes somos" },
           ...(reviews.length > 0 ? [{ href: "#opiniones", label: "Opiniones" }] : []),
+          { href: "#sobremesa", label: "La sobremesa" },
           { href: "#donde", label: "Dónde" },
           { href: "#preguntas", label: "Preguntas" },
         ]}
@@ -210,7 +211,7 @@ export default async function HomePage() {
         {cinta.length > 0 && (
           /* La carta pasando abajo del afiche: se ve de entrada y se mueve sola. La segunda vuelta es
              la misma lista repetida (oculta para el lector de pantalla) para que el loop no tenga costura. */
-          <div className="ap-cinta" aria-label="La carta de la noche">
+          <a className="ap-cinta" href="#carta" aria-label="La carta de la noche">
             <div className="ap-cinta-pista" style={{ animationDuration: `${cintaSegundos}s` }}>
               {[0, 1].map((vuelta) => (
                 <div className="ap-cinta-grupo" key={vuelta} aria-hidden={vuelta === 1 ? true : undefined}>
@@ -224,7 +225,7 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-          </div>
+          </a>
         )}
         <div className="ap-spot relative z-10 mx-auto w-full max-w-2xl text-center">
           <p className="ap-eyebrow">Cena a puertas cerradas · La Plata</p>
@@ -457,6 +458,23 @@ export default async function HomePage() {
               </ul>
             </section>
           )}
+
+          {/* La sobremesa */}
+          <section id="sobremesa" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
+            <div className="text-center">
+              <p className="ap-ornament mb-3">✦</p>
+              <h2 className="ap-eyebrow">La sobremesa</h2>
+              <p className="mx-auto mt-4 max-w-md leading-relaxed text-muted">
+                La charla no termina cuando se levantan los platos. Un lugar para seguir un tema de la mesa, pedir la receta de
+                algo, recomendar un disco o tirar una idea para la próxima.
+              </p>
+              <p className="mt-6">
+                <Link className="btn btn-ghost" href="/sobremesa">
+                  Entrar a la sobremesa
+                </Link>
+              </p>
+            </div>
+          </section>
 
           {/* Dónde */}
           <section id="donde" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">

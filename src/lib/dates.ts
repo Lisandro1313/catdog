@@ -149,3 +149,19 @@ export function todayIso(now: Date = new Date()): string {
 export function formatDayShort(date: Date): string {
   return new Intl.DateTimeFormat("es-AR", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" }).format(date);
 }
+
+/**
+ * "hace un rato", "hace 3 horas", "ayer", "el 12 de septiembre": cuánto pasó desde algo,
+ * contado como lo diría una persona. Para la sobremesa, donde la hora exacta no importa.
+ */
+export function desde(date: Date, now: Date = new Date()): string {
+  const min = Math.floor((now.getTime() - date.getTime()) / 60000);
+  if (min < 2) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const horas = Math.floor(min / 60);
+  if (horas < 24) return `hace ${horas} ${horas === 1 ? "hora" : "horas"}`;
+  const dias = Math.floor(horas / 24);
+  if (dias === 1) return "ayer";
+  if (dias < 7) return `hace ${dias} días`;
+  return `el ${formatDayNumber(date)} de ${formatMonth(date)}`;
+}

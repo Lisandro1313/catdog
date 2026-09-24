@@ -449,7 +449,13 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
           {!demo && <Votacion eventId={eventId} options={votos} initial={extras.votes} />}
           {!demo && <Huella eventId={eventId} table={table} initial={extras.huellas} onSaved={refreshExtras} />}
           <Recomendar eventId={eventId} />
-          <Link href="/hoy/jugar" className="jg-link mt-8">
+          <Link href="/sobremesa" className="jg-link mt-8">
+            <span className="jg-link-title">La sobremesa</span>
+            <span className="jg-link-sub">
+              Lo que se está hablando en la mesa, para seguirlo durante la semana: dejá un tema, pedí una receta, recomendá algo.
+            </span>
+          </Link>
+          <Link href="/hoy/jugar" className="jg-link mt-4">
             <span className="jg-link-title">Para la espera: once juegos</span>
             <span className="jg-link-sub">Maridaje, servicio, el gato, ritmo, memotest, atrapá al chef, los de la casa, llená la copa, Simón, mímica y trivia. Si lográs {PREMIO_MINIMO}, hay un trago.</span>
           </Link>

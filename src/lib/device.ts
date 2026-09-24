@@ -39,3 +39,23 @@ export async function readSalaKey(): Promise<string | null> {
   const v = (await cookies()).get(MESA_COOKIE)?.value;
   return v && PATTERN.test(v) ? v : null;
 }
+
+export const FORO_COOKIE = "catdog_foro";
+
+/**
+ * Identificador del teléfono en la sobremesa. Va con path "/" (y no atado a una ruta como los otros)
+ * porque a la charla se entra desde el home, desde /hoy y desde el link que alguien comparte.
+ */
+export async function ensureForoKey(): Promise<string> {
+  const store = await cookies();
+  const existing = store.get(FORO_COOKIE)?.value;
+  if (existing && PATTERN.test(existing)) return existing;
+  const key = randomUUID();
+  store.set(FORO_COOKIE, key, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 365 });
+  return key;
+}
+
+export async function readForoKey(): Promise<string | null> {
+  const v = (await cookies()).get(FORO_COOKIE)?.value;
+  return v && PATTERN.test(v) ? v : null;
+}
