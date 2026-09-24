@@ -92,6 +92,20 @@ export default async function HomePage() {
   const steps = parseMenu(menuSource?.menu);
   const bar = parseBar(menuSource?.bar);
   const menuIsPrevious = Boolean(previous) && menuSource === previous;
+  // Lo que pasa por la cinta de arriba: el coctel de recepcion y despues cada paso con el suyo, entero.
+  const bienvenida = event?.welcomeDrink ? splitDrink(event.welcomeDrink) : null;
+  const cinta = [
+    // De la frase de recepcion va solo lo primero: la cinta es para leer al pasar, no un parrafo.
+    ...(bienvenida ? [{ plato: "Al llegar", nombre: bienvenida.name, nota: bienvenida.note?.split(/\.\s/)[0] ?? null }] : []),
+    ...steps.map((s) => {
+      const d = s.drink ? splitDrink(s.drink) : null;
+      return { plato: s.dish, nombre: d?.name ?? null, nota: d?.note ?? null };
+    }),
+  ];
+  // La cinta va siempre a la misma velocidad (unos 45 px por segundo), mida lo que mida la carta:
+  // si no, una carta larga pasaria volando y una corta se arrastraria.
+  const anchoCinta = cinta.reduce((n, c) => n + (c.plato.length + (c.nombre?.length ?? 0) + (c.nota?.length ?? 0)) * 8.2 + 90, 0);
+  const cintaSegundos = Math.min(120, Math.max(28, Math.round(anchoCinta / 45)));
   const heroTitle = eventCount <= 1 ? "Apertura" : "Próxima cena";
   const dateShort = (d: Date) => `${formatWeekday(d)} ${formatDayNumber(d)}`;
   const dateLong = (d: Date) => `${formatWeekday(d)} ${formatDayNumber(d)} de ${formatMonth(d)}, ${formatTime(d)} hs`;
@@ -193,17 +207,18 @@ export default async function HomePage() {
         )}
         <div className="ap-grain" aria-hidden="true" />
         <div className="ap-frame" aria-hidden="true" />
-        {steps.length > 0 && (
+        {cinta.length > 0 && (
           /* La carta pasando abajo del afiche: se ve de entrada y se mueve sola. La segunda vuelta es
              la misma lista repetida (oculta para el lector de pantalla) para que el loop no tenga costura. */
           <div className="ap-cinta" aria-label="La carta de la noche">
-            <div className="ap-cinta-pista">
+            <div className="ap-cinta-pista" style={{ animationDuration: `${cintaSegundos}s` }}>
               {[0, 1].map((vuelta) => (
                 <div className="ap-cinta-grupo" key={vuelta} aria-hidden={vuelta === 1 ? true : undefined}>
-                  {steps.map((s, i) => (
+                  {cinta.map((c, i) => (
                     <span key={i}>
-                      <span className="plato">{s.dish}</span>
-                      {s.drink && <span className="trago">{splitDrink(s.drink).name}</span>}
+                      <span className="plato">{c.plato}</span>
+                      {c.nombre && <span className="trago">{c.nombre}</span>}
+                      {c.nota && <span className="lleva">{c.nota}</span>}
                     </span>
                   ))}
                 </div>

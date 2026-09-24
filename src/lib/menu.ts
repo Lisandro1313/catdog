@@ -34,6 +34,9 @@ export function parseBar(bar: string | null | undefined): BarItem[] {
 /** Un cóctel de la carta se escribe "Nombre — ingredientes": el nombre se luce, los ingredientes acompañan. */
 export function splitDrink(drink: string | null | undefined): { name: string; note: string | null } {
   if (!drink) return { name: "", note: null };
+  // El trago de recepcion se guarda como "nombre | una frase"; los de la carta, como "Nombre — ingredientes".
+  const barra = drink.search(/\s*\|\s*/);
+  if (barra >= 0) return { name: drink.slice(0, barra).trim(), note: drink.slice(barra).replace(/^\s*\|\s*/, "").trim() || null };
   const i = drink.search(/\s+[—–-]\s+/);
   if (i < 0) return { name: drink.trim(), note: null };
   return { name: drink.slice(0, i).trim(), note: drink.slice(i).replace(/^\s*[—–-]\s*/, "").trim() || null };

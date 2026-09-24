@@ -495,6 +495,16 @@ html {
   content: "· ";
   opacity: 0.6;
 }
+/* Lo que lleva el coctel: mas chico y en gris, para que no le compita al nombre del plato. */
+.ap-cinta .lleva {
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+}
+.ap-cinta .lleva::before {
+  content: "— ";
+  opacity: 0.55;
+}
 @keyframes cinta {
   from {
     transform: translate3d(0, 0, 0);
