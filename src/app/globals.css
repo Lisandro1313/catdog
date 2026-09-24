@@ -288,76 +288,91 @@ html {
   background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.55), transparent);
 }
 
-/* Brasas: tres manchas de luz calida que derivan muy lento detras del titulo (fuego lento, sin palabras). */
+/* Brasas: manchas de luz calida que derivan y respiran detras del titulo (fuego lento, sin palabras).
+   Los gradientes ya nacen difusos, asi que no hace falta filter: blur() -- que en el celular es lo caro.
+   Solo se animan transform y opacity: eso lo resuelve la GPU sin volver a dibujar nada. */
 .ap-embers {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 35%, transparent 100%);
-  mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 35%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 30%, transparent 100%);
 }
 .ap-embers > span {
   position: absolute;
   display: block;
   border-radius: 50%;
-  filter: blur(60px);
-  will-change: transform;
+  will-change: transform, opacity;
 }
+/* Tres paradas y no dos: el degrade baja parejo y no se le marcan los anillos en las pantallas oscuras. */
 .ap-embers > span:nth-child(1) {
-  left: -10%;
-  top: 8%;
-  width: 62vw;
-  height: 62vw;
-  max-width: 620px;
-  max-height: 620px;
-  background: radial-gradient(circle, rgba(201, 169, 110, 0.2), transparent 68%);
+  left: -14%;
+  top: 4%;
+  width: 78vmax;
+  height: 78vmax;
+  background: radial-gradient(circle closest-side, rgba(201, 169, 110, 0.17), rgba(201, 169, 110, 0.07) 45%, transparent 72%);
   animation: ember-a 46s ease-in-out infinite alternate;
 }
 .ap-embers > span:nth-child(2) {
-  right: -14%;
-  top: 30%;
-  width: 70vw;
-  height: 70vw;
-  max-width: 700px;
-  max-height: 700px;
-  background: radial-gradient(circle, rgba(176, 108, 62, 0.17), transparent 70%);
+  right: -18%;
+  top: 26%;
+  width: 88vmax;
+  height: 88vmax;
+  background: radial-gradient(circle closest-side, rgba(176, 108, 62, 0.15), rgba(176, 108, 62, 0.06) 45%, transparent 72%);
   animation: ember-b 62s ease-in-out infinite alternate;
 }
 .ap-embers > span:nth-child(3) {
-  left: 28%;
-  bottom: -18%;
-  width: 54vw;
-  height: 54vw;
-  max-width: 560px;
-  max-height: 560px;
-  background: radial-gradient(circle, rgba(201, 169, 110, 0.13), transparent 70%);
+  left: 18%;
+  bottom: -26%;
+  width: 70vmax;
+  height: 70vmax;
+  background: radial-gradient(circle closest-side, rgba(201, 169, 110, 0.12), rgba(201, 169, 110, 0.05) 45%, transparent 72%);
   animation: ember-c 54s ease-in-out infinite alternate;
 }
 @keyframes ember-a {
   from {
     transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.75;
   }
   to {
-    transform: translate3d(7vw, 5vh, 0) scale(1.14);
+    transform: translate3d(6vw, 4vh, 0) scale(1.12);
+    opacity: 1;
   }
 }
 @keyframes ember-b {
   from {
-    transform: translate3d(0, 0, 0) scale(1.08);
+    transform: translate3d(0, 0, 0) scale(1.1);
+    opacity: 1;
   }
   to {
-    transform: translate3d(-8vw, -6vh, 0) scale(1);
+    transform: translate3d(-7vw, -5vh, 0) scale(1);
+    opacity: 0.7;
   }
 }
 @keyframes ember-c {
   from {
     transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.6;
   }
   to {
-    transform: translate3d(-5vw, -7vh, 0) scale(1.2);
+    transform: translate3d(-4vw, -6vh, 0) scale(1.18);
+    opacity: 0.95;
   }
+}
+
+/* Grano de pelicula: quieto, una sola textura chica repetida. Da piel de afiche impreso y, de paso,
+   rompe las bandas que dejan los degrades grandes sobre fondo oscuro. */
+.ap-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.16;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
 }
 
 /* Foto de fondo del afiche (la primera que suben): muy velada, para que el texto mande. */
@@ -376,18 +391,19 @@ html {
     linear-gradient(180deg, rgba(20, 18, 16, 0.45), rgba(20, 18, 16, 0.35) 60%, var(--bg));
 }
 .ap-photo img {
-  filter: saturate(0.6) contrast(0.92) blur(1.5px);
-  opacity: 0.34;
+  /* El desenfoque es fijo (se dibuja una sola vez); lo unico que se anima despues es el transform. */
+  filter: saturate(0.55) contrast(0.9) blur(2px);
+  opacity: 0.3;
   transform-origin: 55% 45%;
-  animation: ap-deriva 70s ease-in-out infinite alternate;
+  animation: ap-deriva 90s ease-in-out infinite alternate;
   will-change: transform;
 }
 @keyframes ap-deriva {
   from {
-    transform: scale(1.04) translate3d(0, 0, 0);
+    transform: scale(1.06) translate3d(0, 0, 0);
   }
   to {
-    transform: scale(1.12) translate3d(-1.5%, -1%, 0);
+    transform: scale(1.14) translate3d(-2%, -1.2%, 0);
   }
 }
 

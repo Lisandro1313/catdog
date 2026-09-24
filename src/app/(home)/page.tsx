@@ -191,6 +191,7 @@ export default async function HomePage() {
             <Image src={photos[0].url} alt="" fill sizes="100vw" priority className="object-cover" />
           </div>
         )}
+        <div className="ap-grain" aria-hidden="true" />
         <div className="ap-frame" aria-hidden="true" />
         {/* Brasas: tres manchas de luz que derivan muy lento. Sin palabras: el titulo manda. */}
         <div className="ap-embers" aria-hidden="true">
