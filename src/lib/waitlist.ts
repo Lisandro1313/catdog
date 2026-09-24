@@ -29,6 +29,7 @@ export async function notifyWaitlist(eventId: string): Promise<number> {
   const people = waiting.filter((w) => !w.email.endsWith("@local"));
   if (people.length === 0 || !isEmailConfigured()) return 0;
   const { sent } = await sendMany(people.map((w) => ({ to: w.email, ...renderSeatFreed(event, w.name, free) })));
-  await prisma.waitlist.updateMany({ where: { id: { in: people.map((w) => w.id) } }, data: { notifiedAt: new Date() } });
+  // Si no salió ninguno, quedan sin marcar para volver a intentarlo: si no, ese lugar no se ocupa nunca.
+  if (sent > 0) await prisma.waitlist.updateMany({ where: { id: { in: people.map((w) => w.id) } }, data: { notifiedAt: new Date() } });
   return sent;
 }

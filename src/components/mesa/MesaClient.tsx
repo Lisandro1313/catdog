@@ -18,8 +18,6 @@ import { splitDrink } from "@/lib/menu";
 import type { BarItem } from "@/lib/menu";
 import { formatPrice } from "@/lib/config";
 
-type Reserva = { id: string; name: string; quantity: number };
-
 type Props = {
   eventId: string;
   title: string;
@@ -30,7 +28,6 @@ type Props = {
   menu: string | null;
   bar: BarItem[];
   barPrice: number | null;
-  reservas: Reserva[];
   initial: CuentaRow[];
 };
 
@@ -53,11 +50,10 @@ function marca(e: EstadoPedido): string {
  * cobre la cena, y ya adentro pedir los pasos a su ritmo y los tragos, viendo lo que lleva.
  * Un teléfono puede llevar más de una cuenta: si a alguien se le apaga el celular, otro toma la suya.
  */
-export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar, barPrice, reservas, initial }: Props) {
+export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar, barPrice, initial }: Props) {
   const [cuentas, setCuentas] = useState<CuentaRow[]>(initial);
   const [focoId, setFocoId] = useState<string | null>(initial[0]?.id ?? null);
   const [name, setName] = useState("");
-  const [reservaId, setReservaId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -211,31 +207,8 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
             <p className="mt-6 text-sm leading-relaxed text-muted">
               {cuentas.length > 0
                 ? "Otra cuenta en este mismo teléfono, para alguien que está con vos."
-                : "Esta es tu cuenta de la noche. La abrís con tu nombre, la casa te cobra la cena y desde acá pedís cada paso cuando quieras y lo que tomes."}
+                : "Esta es tu cuenta de la noche. La abrís con tu nombre, la casa te cobra la cena (o marca que ya la pagaste al reservar) y desde acá pedís cada paso cuando quieras y lo que tomes."}
             </p>
-            {reservas.length > 0 && (
-              <div className="mt-6">
-                <p className="ap-eyebrow">¿Reservaste?</p>
-                <div className="mt-2 flex flex-wrap justify-center gap-2">
-                  {reservas.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      className={`hoy-chip hoy-chip-plain ${reservaId === r.id ? "is-on" : ""}`}
-                      aria-pressed={reservaId === r.id}
-                      onClick={() => {
-                        const nuevo = reservaId === r.id ? null : r.id;
-                        setReservaId(nuevo);
-                        if (nuevo) setName(r.name);
-                      }}
-                    >
-                      {r.name}
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-2 text-xs text-muted">Si tu nombre está acá, la cena ya está paga.</p>
-              </div>
-            )}
             <label className="mt-6 block text-left">
               <span className="ap-eyebrow">Tu nombre</span>
               <input className="input mt-2 w-full" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="Como te dicen" aria-label="Tu nombre" />
@@ -244,7 +217,7 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
               className="btn btn-primary mt-6 w-full"
               type="button"
               disabled={name.trim().length < 2 || busy === "abrir"}
-              onClick={() => correr("abrir", () => abrirCuentaAction({ eventId, name, reservationId: reservaId }), "Cuenta abierta")}
+              onClick={() => correr("abrir", () => abrirCuentaAction({ eventId, name }), "Cuenta abierta")}
             >
               {busy === "abrir" ? "Abriendo…" : "Abrir mi cuenta"}
             </button>
@@ -296,7 +269,6 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
         className="btn btn-ghost btn-sm"
         onClick={() => {
           setName("");
-          setReservaId(null);
           setModo("nueva");
         }}
       >

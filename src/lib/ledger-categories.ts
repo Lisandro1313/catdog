@@ -20,6 +20,7 @@ export const LEDGER_CATEGORIES: Record<LedgerKind, Category[]> = {
     { value: "otros", label: "Otros", emoji: "📦" },
   ],
   INCOME: [
+    { value: "cena", label: "Cenas cobradas en la sala", emoji: "🍽️" },
     { value: "barra", label: "Barra", emoji: "🍸" },
     { value: "otros", label: "Otros ingresos", emoji: "💵" },
   ],

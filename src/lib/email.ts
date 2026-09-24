@@ -338,8 +338,11 @@ export function renderReminder(input: ReminderInput): RenderedMail {
     `<a href="${href}" style="display:inline-block;margin:6px 6px 6px 0;padding:12px 22px;border-radius:999px;${
       primary ? "background:#c9a96e;color:#141210;" : "border:1px solid #6f675f;color:#f3ede4;"
     }text-decoration:none;font-weight:bold">${label}</a>`;
+  // El cron puede mandarlo el mismo día (a alguien que pagó anoche): no puede decir "mañana".
+  const faltan = Math.round((input.event.date.getTime() - Date.now()) / 36e5);
+  const cuando = faltan <= 14 ? "Hoy es la cena" : "Mañana es la cena";
   const body = `
-    <p>Hola ${first}. Mañana es la cena: <strong>${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs</strong>.</p>
+    <p>Hola ${esc(first)}. ${cuando}: <strong>${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs</strong>.</p>
     ${input.event.address ? `<p style="font-size:18px"><strong>${input.event.address}</strong><br><span style="color:#9a9187;font-size:14px">Casa sin cartel: portón, pasillo y puerta. Se recibe de pie con un cóctel sin alcohol de la casa.</span></p>` : ""}
     <p>${input.quantity === 1 ? "Tu lugar" : `Tus ${input.quantity} lugares`}: ${
       input.seats.length ? `silla${input.seats.length > 1 ? "s" : ""} <strong>${input.seats.join(", ")}</strong>` : `<a href="${link}" style="color:#c9a96e">todavía no elegiste la silla, elegila acá</a>`
@@ -349,7 +352,7 @@ export function renderReminder(input: ReminderInput): RenderedMail {
     <p style="color:#9a9187;font-size:14px">Si no podés venir, podés pasarle tu lugar a otra persona desde <a href="${link}" style="color:#c9a96e">tu reserva</a> (cambiás el nombre y le llega la confirmación).</p>`;
   const html = layout("Es mañana", body, `Tu reserva: <a href="${link}" style="color:#8a8279">${link}</a>`);
   return {
-    subject: `Mañana te esperamos · ${input.event.title} · ${formatTime(input.event.date)} hs`,
+    subject: `${faltan <= 14 ? "Hoy" : "Mañana"} te esperamos · ${input.event.title} · ${formatTime(input.event.date)} hs`,
     html,
     text: toText(html),
   };

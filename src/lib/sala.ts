@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { allowKey } from "./rate-limit";
 import { parseBar, parseMenu, splitDrink } from "./menu";
 import { KIND_MARIDAJE, KIND_PLATO, type ConsumoRow, type CoverVia, type CuentaRow } from "./sala-tipos";
 
@@ -48,6 +49,29 @@ function armar(c: {
 }
 
 const include = { consumos: { orderBy: { createdAt: "asc" } } } as const;
+
+/**
+ * Corre algo sobre una cuenta con su fila bloqueada en la base (`FOR UPDATE`): mientras tanto, otro
+ * pedido del mismo teléfono espera. Es lo que evita que dos toques simultáneos esquiven los topes.
+ * Exige además que la cuenta esté abierta y con la cena saldada.
+ */
+async function conCuentaBloqueada<T>(
+  cuentaId: string,
+  fn: (tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], cuenta: { event: { menu: string | null; bar: string | null; barPrice: number | null }; consumos: ConsumoRow[] }) => Promise<T>,
+): Promise<T> {
+  return prisma.$transaction(async (tx) => {
+    const bloqueada = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Cuenta" WHERE id = ${cuentaId} FOR UPDATE`;
+    if (bloqueada.length === 0) throw new SalaError("Esa cuenta no existe.");
+    const cuenta = await tx.cuenta.findUnique({
+      where: { id: cuentaId },
+      include: { event: { select: { menu: true, bar: true, barPrice: true } }, consumos: true },
+    });
+    if (!cuenta) throw new SalaError("Esa cuenta no existe.");
+    if (!cuenta.coverPaidAt) throw new SalaError("La cuenta todavía está trabada.");
+    if (cuenta.closedAt) throw new SalaError("Esa cuenta ya se cerró.");
+    return fn(tx, cuenta);
+  });
+}
 
 /** Todas las cuentas de una cena, ordenadas por mesa. */
 export async function getCuentas(eventId: string): Promise<CuentaRow[]> {
@@ -109,54 +133,59 @@ export async function tomarCuenta(cuentaId: string, deviceKey: string, code: str
   if (!c.traspasoCode || !c.traspasoHasta || c.traspasoHasta.getTime() < Date.now()) {
     throw new SalaError("Pedile a la casa que habilite el pase de esa cuenta.");
   }
-  if (c.traspasoCode !== code) throw new SalaError("Ese código no es.");
+  if (c.traspasoCode !== code) {
+    // Cada cuenta aguanta pocos intentos: cinco errores y hay que pedir el pase de nuevo.
+    if (!allowKey(`traspaso:${cuentaId}`, 5, 30 * 60000)) {
+      await cancelarTraspaso(cuentaId);
+      throw new SalaError("Demasiados intentos: pedile a la casa que lo habilite otra vez.");
+    }
+    throw new SalaError("Ese código no es.");
+  }
   const cuantas = await prisma.cuenta.count({ where: { deviceKey, closedAt: null } });
   if (cuantas >= 4) throw new SalaError("Este teléfono ya lleva cuatro cuentas.");
   // El código se quema al usarlo.
   await prisma.cuenta.update({ where: { id: cuentaId }, data: { deviceKey, traspasoCode: null, traspasoHasta: null } });
 }
 
-/** Quiénes reservaron y pagaron esta cena: para elegir el nombre al abrir la cuenta (y saber que ya pagó). */
+/**
+ * Quiénes reservaron y pagaron esta cena, con los lugares que todavía no reclamó nadie. Es para el
+ * panel: la lista de invitados no se le muestra a quien escanea el QR (cualquiera podría decir que
+ * es otro y cenar gratis). En la puerta, la casa toca "ya pagó al reservar" en su cuenta.
+ */
 export async function getReservasDeLaNoche(eventId: string) {
   const rows = await prisma.reservation.findMany({ where: { eventId, status: "PAID" }, orderBy: { name: "asc" }, select: { id: true, name: true, quantity: true } });
   const abiertas = await prisma.cuenta.findMany({ where: { eventId }, select: { reservationId: true } });
   const usadas = new Map<string, number>();
   for (const a of abiertas) if (a.reservationId) usadas.set(a.reservationId, (usadas.get(a.reservationId) ?? 0) + 1);
-  // Una reserva de 3 lugares deja abrir 3 cuentas con ese nombre.
-  return rows.filter((r) => (usadas.get(r.id) ?? 0) < r.quantity).map((r) => ({ id: r.id, name: r.name, quantity: r.quantity }));
+  return rows
+    .map((r) => ({ id: r.id, name: r.name, libres: r.quantity - (usadas.get(r.id) ?? 0) }))
+    .filter((r) => r.libres > 0);
+}
+
+/** La casa marca que esa cuenta corresponde a una reserva ya paga: la cena queda saldada. */
+export async function marcarReserva(cuentaId: string, reservationId: string) {
+  const cuenta = await prisma.cuenta.findUnique({ where: { id: cuentaId }, select: { eventId: true, closedAt: true } });
+  if (!cuenta || cuenta.closedAt) throw new SalaError("Esa cuenta no está abierta.");
+  const libres = await getReservasDeLaNoche(cuenta.eventId);
+  if (!libres.some((r) => r.id === reservationId)) throw new SalaError("Esa reserva ya está usada.");
+  await prisma.cuenta.updateMany({
+    where: { id: cuentaId },
+    data: { reservationId, cover: 0, coverNote: "ya pago", coverPaidAt: new Date(), coverVia: "reserva" },
+  });
 }
 
 export class SalaError extends Error {}
 
 /** Abre la cuenta de una persona en una mesa. Queda trabada hasta que la casa cobre (o la marque invitada). */
-export async function abrirCuenta(input: { eventId: string; table: number; name: string; deviceKey: string; reservationId?: string | null; price: number }) {
+export async function abrirCuenta(input: { eventId: string; table: number; name: string; deviceKey: string; price: number }) {
   // Un teléfono puede llevar varias (una pareja con un celu, o el que le lleva la cuenta a un amigo).
   const abiertas = await prisma.cuenta.count({ where: { eventId: input.eventId, deviceKey: input.deviceKey, closedAt: null } });
   if (abiertas >= 4) throw new SalaError("Este teléfono ya lleva cuatro cuentas.");
-  let reservationId: string | null = null;
-  let cover = input.price;
-  let coverNote: string | null = "entera";
-  if (input.reservationId) {
-    const libres = await getReservasDeLaNoche(input.eventId);
-    const r = libres.find((x) => x.id === input.reservationId);
-    if (r) {
-      // Reservó y pagó por adelantado: la cena ya está saldada.
-      reservationId = r.id;
-      cover = 0;
-      coverNote = "ya pago";
-    }
-  }
+  // Un tope duro por noche: que nadie pueda llenar el panel de cuentas basura.
+  const enLaNoche = await prisma.cuenta.count({ where: { eventId: input.eventId } });
+  if (enLaNoche >= 60) throw new SalaError("Hay demasiadas cuentas abiertas; avisale a la casa.");
   const row = await prisma.cuenta.create({
-    data: {
-      eventId: input.eventId,
-      table: input.table,
-      name: input.name,
-      deviceKey: input.deviceKey,
-      reservationId,
-      cover,
-      coverNote,
-      ...(reservationId ? { coverPaidAt: new Date(), coverVia: "reserva" } : {}),
-    },
+    data: { eventId: input.eventId, table: input.table, name: input.name, deviceKey: input.deviceKey, cover: input.price, coverNote: "entera" },
     include,
   });
   return armar(row);
@@ -175,7 +204,7 @@ export async function saldarCover(id: string, via: CoverVia, monto?: number) {
 
 /** Deshace el cobro (se marcó por error). */
 export async function desmarcarCover(id: string) {
-  await prisma.cuenta.updateMany({ where: { id }, data: { coverPaidAt: null, coverVia: null } });
+  await prisma.cuenta.updateMany({ where: { id, closedAt: null }, data: { coverPaidAt: null, coverVia: null } });
 }
 
 /** Cambia lo que le toca pagar por la cena (2x1, descuento, lo que sea). */
@@ -188,36 +217,34 @@ export async function setCover(id: string, monto: number, nota: string | null) {
  * Nada de esto cuesta aparte: está en el cubierto. Muchos piden el trago antes que la comida.
  */
 export async function pedirPaso(cuentaId: string, stepIndex: number, que: "plato" | "trago" | "ambos") {
-  const cuenta = await prisma.cuenta.findUnique({ where: { id: cuentaId }, include: { event: { select: { menu: true } }, consumos: true } });
-  if (!cuenta) throw new SalaError("Esa cuenta no existe.");
-  if (!cuenta.coverPaidAt) throw new SalaError("La cuenta todavía está trabada.");
-  if (cuenta.closedAt) throw new SalaError("Esa cuenta ya se cerró.");
-  const steps = parseMenu(cuenta.event.menu);
-  const paso = steps[stepIndex - 1];
-  if (!paso) throw new SalaError("Ese paso no está en la carta.");
-  const vivos = cuenta.consumos.filter((c) => c.status !== "cancelado");
-  const quierePlato = que !== "trago";
-  const quiereTrago = que !== "plato" && Boolean(paso.drink);
-  const nuevos: { kind: string; item: string }[] = [];
-  if (quierePlato && !vivos.some((c) => c.kind === KIND_PLATO && c.stepIndex === stepIndex)) nuevos.push({ kind: KIND_PLATO, item: paso.dish });
-  // A la barra le llega el nombre del cóctel, no la lista de ingredientes.
-  if (quiereTrago && !vivos.some((c) => c.kind === KIND_MARIDAJE && c.stepIndex === stepIndex)) nuevos.push({ kind: KIND_MARIDAJE, item: splitDrink(paso.drink).name });
-  if (nuevos.length === 0) throw new SalaError("Eso ya lo pediste.");
-  const platosEnCamino = cuenta.consumos.filter((c) => c.kind === KIND_PLATO && c.status === "pendiente").length;
-  if (quierePlato && platosEnCamino >= 2) throw new SalaError("Ya tenés dos platos en camino; esperá a que lleguen.");
-  await prisma.consumo.createMany({ data: nuevos.map((n) => ({ cuentaId, kind: n.kind, item: n.item, stepIndex, price: 0 })) });
+  // Todo adentro de una transacción con la cuenta bloqueada: dos toques a la vez no pueden colarse
+  // entre el chequeo y el alta, que es como se podrían pedir treinta platos del mismo paso.
+  await conCuentaBloqueada(cuentaId, async (tx, cuenta) => {
+    const steps = parseMenu(cuenta.event.menu);
+    const paso = steps[stepIndex - 1];
+    if (!paso) throw new SalaError("Ese paso no está en la carta.");
+    const vivos = cuenta.consumos.filter((c) => c.status !== "cancelado");
+    const quierePlato = que !== "trago";
+    const quiereTrago = que !== "plato" && Boolean(paso.drink);
+    const nuevos: { kind: string; item: string }[] = [];
+    if (quierePlato && !vivos.some((c) => c.kind === KIND_PLATO && c.stepIndex === stepIndex)) nuevos.push({ kind: KIND_PLATO, item: paso.dish });
+    // A la barra le llega el nombre del cóctel, no la lista de ingredientes.
+    if (quiereTrago && !vivos.some((c) => c.kind === KIND_MARIDAJE && c.stepIndex === stepIndex)) nuevos.push({ kind: KIND_MARIDAJE, item: splitDrink(paso.drink).name });
+    if (nuevos.length === 0) throw new SalaError("Eso ya lo pediste.");
+    const platosEnCamino = cuenta.consumos.filter((c) => c.kind === KIND_PLATO && c.status === "pendiente").length;
+    if (quierePlato && platosEnCamino >= 2) throw new SalaError("Ya tenés dos platos en camino; esperá a que lleguen.");
+    await tx.consumo.createMany({ data: nuevos.map((n) => ({ cuentaId, kind: n.kind, item: n.item, stepIndex, price: 0 })) });
+  });
 }
 
 /** Pide un trago de la barra: se suma a la cuenta y le llega a la barra. */
 export async function pedirTrago(cuentaId: string, item: string, qty = 1) {
-  const cuenta = await prisma.cuenta.findUnique({ where: { id: cuentaId }, include: { event: { select: { bar: true, barPrice: true } }, consumos: true } });
-  if (!cuenta) throw new SalaError("Esa cuenta no existe.");
-  if (!cuenta.coverPaidAt) throw new SalaError("La cuenta todavía está trabada.");
-  if (cuenta.closedAt) throw new SalaError("Esa cuenta ya se cerró.");
-  if (!parseBar(cuenta.event.bar).some((b) => b.name === item)) throw new SalaError("Eso no está en la barra de hoy.");
-  const enCamino = cuenta.consumos.filter((c) => c.kind === "trago" && c.status === "pendiente").length;
-  if (enCamino >= 3) throw new SalaError("Ya tenés tragos en camino; esperá a que lleguen.");
-  await prisma.consumo.create({ data: { cuentaId, kind: "trago", item, qty: Math.min(4, Math.max(1, qty)), price: cuenta.event.barPrice ?? 0 } });
+  await conCuentaBloqueada(cuentaId, async (tx, cuenta) => {
+    if (!parseBar(cuenta.event.bar).some((b) => b.name === item)) throw new SalaError("Eso no está en la barra de hoy.");
+    const enCamino = cuenta.consumos.filter((c) => c.kind === "trago" && c.status === "pendiente").length;
+    if (enCamino >= 3) throw new SalaError("Ya tenés tragos en camino; esperá a que lleguen.");
+    await tx.consumo.create({ data: { cuentaId, kind: "trago", item, qty: Math.min(4, Math.max(1, qty)), price: cuenta.event.barPrice ?? 0 } });
+  });
 }
 
 /** La casa carga algo a mano (una botella, una picada, lo que sea). */
@@ -231,9 +258,11 @@ export async function setConsumoStatus(id: string, status: "pendiente" | "listo"
 
 /** El invitado cancela algo suyo que todavía no salió. */
 export async function cancelarMiConsumo(id: string, deviceKey: string) {
-  const c = await prisma.consumo.findUnique({ where: { id }, include: { cuenta: { select: { deviceKey: true } } } });
-  if (!c || c.cuenta.deviceKey !== deviceKey || c.status !== "pendiente") return;
-  await prisma.consumo.update({ where: { id }, data: { status: "cancelado", doneAt: new Date() } });
+  // Una sola escritura condicional: si el barman ya lo marcó servido, no se puede cancelar después.
+  await prisma.consumo.updateMany({
+    where: { id, status: "pendiente", cuenta: { deviceKey } },
+    data: { status: "cancelado", doneAt: new Date() },
+  });
 }
 
 export type PedidoSala = { id: string; cuentaId: string; table: number; name: string; kind: string; item: string; qty: number; createdAt: Date; status: string };
@@ -243,7 +272,7 @@ export async function getPendientes(eventId: string, destino: "cocina" | "barra"
   // La cocina ve los platos; la barra, los tragos sueltos y los del maridaje.
   const kinds = destino === "cocina" ? [KIND_PLATO] : destino === "barra" ? ["trago", KIND_MARIDAJE] : [KIND_PLATO, "trago", KIND_MARIDAJE];
   const rows = await prisma.consumo.findMany({
-    where: { kind: { in: kinds }, status: "pendiente", cuenta: { eventId } },
+    where: { kind: { in: kinds }, status: "pendiente", cuenta: { eventId, closedAt: null } },
     orderBy: { createdAt: "asc" },
     include: { cuenta: { select: { id: true, table: true, name: true } } },
   });

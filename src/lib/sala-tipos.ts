@@ -104,17 +104,19 @@ export function resumen(cuentas: CuentaRow[]): Resumen {
   let porCobrar = 0;
   let invitados = 0;
   for (const c of cuentas) {
-    if (c.coverPaid && c.coverVia && c.coverVia !== "invitado" && c.coverVia !== "reserva") {
+    // "codigo" es una cuenta destrabada a mano: la plata no se cuenta hasta saber cómo pagó.
+    if (c.coverPaid && c.coverVia && !["invitado", "reserva", "codigo"].includes(c.coverVia)) {
       cobradoCena += c.cover;
       porVia.set(c.coverVia, (porVia.get(c.coverVia) ?? 0) + c.cover);
     }
     if (c.coverVia === "invitado" || (c.cover === 0 && c.coverVia !== "reserva")) invitados += 1;
-    if (c.closedAt) {
+    // Lo de la barra entra a la caja cuando la cuenta se cierra, salvo que se haya regalado.
+    if (c.closedAt && c.closedVia !== "invitado") {
       cobradoConsumo += c.extra;
-      // Se suma a la forma de pago con la que se cerró: al final de la noche hay que contar la caja.
-      if (c.extra > 0 && c.closedVia !== "invitado") porVia.set(c.closedVia ?? "consumo", (porVia.get(c.closedVia ?? "consumo") ?? 0) + c.extra);
+      if (c.extra > 0) porVia.set(c.closedVia ?? "consumo", (porVia.get(c.closedVia ?? "consumo") ?? 0) + c.extra);
     }
-    porCobrar += c.debe;
+    // Lo destrabado con el código figura como pendiente de confirmar, no como cobrado.
+    porCobrar += c.debe + (c.coverVia === "codigo" && !c.closedAt ? c.cover : 0);
   }
   return {
     abiertas: cuentas.filter((c) => c.abierta).length,

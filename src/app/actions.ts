@@ -165,6 +165,7 @@ export type TransferResult = { ok: true; name: string; email: string } | { ok: f
 
 /** Pasarle la reserva a otra persona (nombre, mail y WhatsApp nuevos; las sillas quedan). */
 export async function transferReservationAction(input: unknown): Promise<TransferResult> {
+  if (!(await allowRequest("transferir", 6))) return { ok: false, error: "Demasiados intentos; probá en un rato." };
   const parsed = transferSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   try {
@@ -193,6 +194,7 @@ export async function confirmReservationAction(formData: FormData) {
 }
 
 export async function declineReservationAction(_prev: SubscribeResult | null, formData: FormData): Promise<SubscribeResult> {
+  if (!(await allowRequest("liberar", 6))) return { ok: false, error: "Demasiados intentos; probá en un rato." };
   const id = String(formData.get("id") ?? "");
   const r = await prisma.reservation.findUnique({ where: { id }, include: { event: true } });
   if (!r) return { ok: false, error: "Reserva inexistente." };

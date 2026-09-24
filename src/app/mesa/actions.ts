@@ -55,7 +55,7 @@ export async function tomarCuentaAction(input: unknown): Promise<MesaResult> {
   const event = await eventoDeHoy(eventId);
   if (!event) return { ok: false, error: "Esto funciona solo durante la cena." };
   const key = await ensureSalaKey();
-  if (!allowKey(`tomar:${key}`, 8)) return { ok: false, error: "Probaste varias veces; pedile el código a la casa." };
+  if (!allowKey(`tomar:${key}`, 8) || !(await allowRequest("tomar-ip", 60))) return { ok: false, error: "Probaste varias veces; pedile el código a la casa." };
   const dueña = await prisma.cuenta.findUnique({ where: { id: cuentaId }, select: { eventId: true } });
   if (!dueña || dueña.eventId !== eventId) return { ok: false, error: "Esa cuenta no es de esta cena." };
   try {
@@ -66,26 +66,22 @@ export async function tomarCuentaAction(input: unknown): Promise<MesaResult> {
   return { ok: true, cuentas: await getMisCuentas(eventId, key), foco: cuentaId };
 }
 
-const abrirSchema = z.object({
-  eventId: z.string().min(1),
-  table: z.literal(0).optional(),
-  name: z.string().max(40),
-  reservationId: z.string().nullable().optional(),
-});
+const abrirSchema = z.object({ eventId: z.string().min(1), name: z.string().max(40) });
 
 /** Abre la cuenta de una persona en una mesa. Queda trabada hasta que la casa cobre la cena. */
 export async function abrirCuentaAction(input: unknown): Promise<MesaResult> {
   const parsed = abrirSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Datos inválidos." };
-  const { eventId, reservationId } = parsed.data;
+  const { eventId } = parsed.data;
   const event = await eventoDeHoy(eventId);
   if (!event) return { ok: false, error: "Esto funciona solo durante la cena." };
   const name = cleanName(parsed.data.name);
   if (!name) return { ok: false, error: "Poné tu nombre." };
   const key = await ensureSalaKey();
-  if (!allowKey(`cuenta:${key}`, 8) || !(await allowRequest("cuenta-ip", 200))) return { ok: false, error: "Esperá un momento." };
+  // Todos salen por el mismo wifi: el freno real es por teléfono, el de IP solo corta un bot.
+  if (!allowKey(`cuenta:${key}`, 6) || !(await allowRequest("cuenta-ip", 2000))) return { ok: false, error: "Esperá un momento." };
   try {
-    const cuenta = await abrirCuenta({ eventId, table: 0, name, deviceKey: key, reservationId: reservationId ?? null, price: event.price });
+    const cuenta = await abrirCuenta({ eventId, table: 0, name, deviceKey: key, price: event.price });
     return { ok: true, cuentas: await getMisCuentas(eventId, key), foco: cuenta.id };
   } catch (err) {
     return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo abrir la cuenta." };
@@ -119,6 +115,9 @@ export async function codigoAction(input: unknown): Promise<MesaResult> {
   if (mine.error !== undefined || mine.key === undefined) return { ok: false, error: mine.error ?? "Abrí tu cuenta primero." };
   if (!allowKey(`codigo:${mine.key}`, 10)) return { ok: false, error: "Probaste varias veces; pedile el código a la casa." };
   if (!event.salaCode || code !== event.salaCode) return { ok: false, error: "Ese código no es." };
+  const estado = await prisma.cuenta.findUnique({ where: { id: cuentaId }, select: { closedAt: true, coverPaidAt: true } });
+  if (!estado || estado.closedAt) return { ok: false, error: "Esa cuenta ya se cerró." };
+  if (estado.coverPaidAt) return { ok: false, error: "Tu cena ya está paga." };
   // Queda como "destrabada con el código": la casa después confirma en el panel cómo pagó de verdad.
   await saldarCover(cuentaId, "codigo");
   return { ok: true, cuentas: await getMisCuentas(eventId, mine.key), foco: cuentaId };
@@ -163,6 +162,7 @@ export async function pedirTragoAction(input: unknown): Promise<MesaResult> {
 export async function cancelarConsumoAction(eventId: string, consumoId: string): Promise<MesaResult> {
   const key = await readSalaKey();
   if (!key || typeof consumoId !== "string") return { ok: false, error: "No se pudo cancelar." };
+  if (!allowKey(`cancel:${key}`, 40)) return { ok: false, error: "Esperá un momento." };
   await cancelarMiConsumo(consumoId, key);
   return { ok: true, cuentas: await getMisCuentas(eventId, key) };
 }
