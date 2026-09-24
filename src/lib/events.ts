@@ -67,6 +67,9 @@ export async function ensureNextDraft(now = new Date()): Promise<string | null> 
   if (upcoming > 0) return null;
   const last = await prisma.event.findFirst({ where: { published: true, unlisted: false }, orderBy: { date: "desc" } });
   if (!last) return null;
+  // La copia va una semana despues de la ultima cena: si esa fecha tambien quedo en el pasado, no sirve de nada
+  // y ademas se crearia un borrador nuevo cada dia. En ese caso la proxima cena se carga a mano.
+  if (last.date.getTime() + WEEK_MS < now.getTime()) return null;
   const copy = await duplicateWeekLater(last.id);
   return copy?.id ?? null;
 }

@@ -17,7 +17,15 @@ export function NotifyForm({ eventId, subscribers, notifiedAt }: { eventId: stri
   return (
     <form action={action} className="flex flex-wrap items-center gap-3">
       <input type="hidden" name="id" value={eventId} />
-      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending || subscribers === 0}>
+      <button
+        className="btn btn-ghost btn-sm"
+        type="submit"
+        disabled={pending || subscribers === 0}
+        onClick={(e) => {
+          // Es un mail que sale a toda la lista y no se puede volver atras.
+          if (!confirm(`¿Mandar el aviso de esta cena a ${subscribers} suscriptor${subscribers === 1 ? "" : "es"}? No se puede deshacer.`)) e.preventDefault();
+        }}
+      >
         {pending ? "Enviando…" : `Avisar a ${subscribers} suscriptor${subscribers === 1 ? "" : "es"}`}
       </button>
       <span className="text-xs text-muted">

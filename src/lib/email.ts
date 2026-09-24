@@ -39,7 +39,11 @@ export function toText(html: string): string {
 export { isEmailConfigured };
 
 function secret(): string {
-  return process.env.APP_SECRET ?? process.env.ADMIN_PASSWORD ?? "dev-secret";
+  const s = process.env.APP_SECRET ?? process.env.ADMIN_PASSWORD;
+  if (s) return s;
+  // En produccion un secreto conocido dejaria falsificar los links de baja: mejor que falle y se note.
+  if (process.env.NODE_ENV === "production") throw new Error("Falta APP_SECRET (o ADMIN_PASSWORD) para firmar los links.");
+  return "dev-secret";
 }
 
 export function unsubscribeToken(email: string): string {

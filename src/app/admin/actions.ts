@@ -199,9 +199,10 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   const d = parsed.data;
 
-  const [taken, paid] = await Promise.all([
+  const [taken, paid, antes] = await Promise.all([
     prisma.seat.aggregate({ where: { eventId: id }, _max: { number: true } }),
     prisma.reservation.aggregate({ where: { eventId: id, status: "PAID" }, _sum: { quantity: true } }),
+    prisma.event.findUnique({ where: { id }, select: { date: true } }),
   ]);
   if (taken._max.number && taken._max.number > d.capacity) {
     return { ok: false, message: `Hay un lugar ${taken._max.number} reservado; no podés bajar la capacidad a ${d.capacity}.` };
@@ -225,6 +226,8 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
       recipeGift: d.recipeGift ?? null,
       published: d.published,
       unlisted: d.unlisted,
+      // Si se corre la fecha, el recordatorio tiene que volver a salir con la nueva.
+      ...(antes && antes.date.getTime() !== parseArgentinaLocal(d.date).getTime() ? { remindedAt: null } : {}),
     },
   });
   revalidatePath("/");
@@ -241,8 +244,8 @@ export async function deleteEventAction(formData: FormData) {
     await prisma.event.update({ where: { id }, data: { published: false } });
   } else {
     // Los movimientos de caja de esa cena no se borran con ella: quedan sueltos en el libro.
-  await prisma.ledgerEntry.updateMany({ where: { eventId: id }, data: { eventId: null } });
-  await prisma.event.delete({ where: { id } });
+    await prisma.ledgerEntry.updateMany({ where: { eventId: id }, data: { eventId: null } });
+    await prisma.event.delete({ where: { id } });
   }
   revalidatePath("/");
   redirect("/admin");

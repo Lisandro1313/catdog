@@ -156,6 +156,7 @@ export async function submitReviewAction(input: unknown): Promise<ReviewResult> 
 
 const transferSchema = z.object({
   reservationId: z.string().min(1),
+  owner: z.email("Pone el mail con el que reservaste").max(120),
   name: z.string().trim().min(2, "Poné el nombre de la persona").max(80),
   email: z.email("Email inválido").max(120),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
@@ -169,11 +170,15 @@ export async function transferReservationAction(input: unknown): Promise<Transfe
   const parsed = transferSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   try {
-    const r = await transferReservation(parsed.data.reservationId, {
-      name: parsed.data.name,
-      email: parsed.data.email.toLowerCase(),
-      phone: parsed.data.phone ? normalizeArPhone(parsed.data.phone) || undefined : undefined,
-    });
+    const r = await transferReservation(
+      parsed.data.reservationId,
+      {
+        name: parsed.data.name,
+        email: parsed.data.email.toLowerCase(),
+        phone: parsed.data.phone ? normalizeArPhone(parsed.data.phone) || undefined : undefined,
+      },
+      parsed.data.owner,
+    );
     return { ok: true, name: r.name, email: r.email };
   } catch (err) {
     if (err instanceof ReservationError) return { ok: false, error: err.message };

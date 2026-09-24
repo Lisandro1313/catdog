@@ -130,10 +130,10 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
       `Ya tenés una reserva en proceso por ${existing.quantity === 1 ? "1 lugar" : `${existing.quantity} lugares`} para esa fecha. Terminala desde el link que te mandamos o escribinos para cambiarla.`,
     );
   }
-  if (existing?.mpInitPoint) return { reservationId: existing.id, checkoutUrl: existing.mpInitPoint };
   if (existing && byTransfer) return { reservationId: existing.id, checkoutUrl: `${siteUrl()}/reserva/${existing.id}` };
+  if (existing?.mpInitPoint) return { reservationId: existing.id, checkoutUrl: existing.mpInitPoint };
 
-  if (input.ipHash) {
+  if (!existing && input.ipHash) {
     const holds = await prisma.reservation.count({
       where: { eventId: event.id, ipHash: input.ipHash, status: "PENDING", expiresAt: { gt: new Date() } },
     });
@@ -146,11 +146,13 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
   // pero nunca más allá de media hora antes de la cena.
   const holdMs = (byTransfer ? payment.holdHours * 60 : HOLD_MINUTES) * 60 * 1000;
   const latest = event.date.getTime() - 30 * 60 * 1000;
-  const expiresAt = new Date(Math.max(Date.now() + 10 * 60 * 1000, Math.min(Date.now() + holdMs, latest)));
+  const expiresAt = existing?.expiresAt ?? new Date(Math.max(Date.now() + 10 * 60 * 1000, Math.min(Date.now() + holdMs, latest)));
   const amount = event.price * input.quantity;
 
-  // Lock por evento para que dos personas no tomen los últimos cupos a la vez.
-  const reservation = await prisma.$transaction(async (tx) => {
+  // Si ya tenia un lugar guardado y todavia no hay link de pago (cambio la forma de cobro mientras tanto),
+  // se reusa ese mismo: crear otro le bloquearia dos de los lugares de la noche a la misma persona.
+  // Lock por evento para que dos personas no tomen los ultimos cupos a la vez.
+  const reservation = existing ?? await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${event.id}))`;
     const { paid, holding } = await getOccupancy(event.id, tx);
     const free = event.capacity - paid - holding;
@@ -223,8 +225,8 @@ export async function createHoldAndCheckout(input: CreateHoldInput) {
     });
     return { reservationId: reservation.id, checkoutUrl: pref.initPoint };
   } catch (err) {
-    // Si Mercado Pago falla, liberamos el cupo.
-    await prisma.reservation.delete({ where: { id: reservation.id } }).catch(() => {});
+    // Si Mercado Pago falla, liberamos el cupo (salvo que el lugar ya estuviera guardado de antes).
+    if (!existing) await prisma.reservation.delete({ where: { id: reservation.id } }).catch(() => {});
     console.error("[mp] createPreference falló", err);
     throw new ReservationError("No pudimos iniciar el pago. Intentá de nuevo en un momento.");
   }
@@ -376,9 +378,17 @@ export async function markPaid(reservationId: string, via: string, mpPaymentId?:
  * Quien pagó le pasa su lugar a otra persona: cambia nombre/mail/teléfono (las sillas quedan),
  * le llega la confirmación al nuevo y avisamos al admin. Hasta el inicio de la cena.
  */
-export async function transferReservation(reservationId: string, to: { name: string; email: string; phone?: string }) {
+export async function transferReservation(
+  reservationId: string,
+  to: { name: string; email: string; phone?: string },
+  ownerEmail: string,
+) {
   const reservation = await prisma.reservation.findUnique({ where: { id: reservationId }, include: { event: true, seats: true } });
   if (!reservation) throw new ReservationError("Reserva inexistente.");
+  // El link solo no alcanza: hay que saber el mail con el que se reservo, si no cualquiera que lo vea pasa la reserva.
+  if (ownerEmail.trim().toLowerCase() !== reservation.email.toLowerCase()) {
+    throw new ReservationError("Ese no es el mail con el que se hizo la reserva.");
+  }
   if (reservation.status !== "PAID") throw new ReservationError("Solo se puede pasar una reserva ya paga.");
   if (reservation.event.date.getTime() < Date.now()) throw new ReservationError("Esa cena ya pasó.");
   if (reservation.arrivedAt) throw new ReservationError("Esa reserva ya fue usada.");
