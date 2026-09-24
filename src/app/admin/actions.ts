@@ -226,10 +226,12 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
       recipeGift: d.recipeGift ?? null,
       published: d.published,
       unlisted: d.unlisted,
-      // Si se corre la fecha, el recordatorio tiene que volver a salir con la nueva.
-      ...(antes && antes.date.getTime() !== parseArgentinaLocal(d.date).getTime() ? { remindedAt: null } : {}),
     },
   });
+  // Si se corre la fecha, el recordatorio de cada reserva tiene que volver a salir con la nueva.
+  if (antes && antes.date.getTime() !== parseArgentinaLocal(d.date).getTime()) {
+    await prisma.reservation.updateMany({ where: { eventId: id, status: "PAID" }, data: { remindedAt: null } });
+  }
   revalidatePath("/");
   revalidatePath(`/admin/eventos/${id}`);
   return { ok: true, message: "Guardado." };
