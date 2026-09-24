@@ -1,6 +1,13 @@
-import { redirect } from "next/navigation";
+import HoyMesaPage from "./[mesa]/page";
 
-/** Link sin mesita (reenviado por WhatsApp): la misma experiencia, sin número de mesa. */
-export default function HoyIndex() {
-  redirect("/hoy/0");
+export const dynamic = "force-dynamic";
+
+export { metadata } from "./[mesa]/page";
+
+/**
+ * El QR impreso apunta acá, sin número: no hay mesas numeradas. Es la misma pantalla que /hoy/N
+ * (que sigue existiendo para los QR viejos), pero sin redirección, así en el teléfono no queda un "0" en la barra.
+ */
+export default async function HoyIndex({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
+  return HoyMesaPage({ params: Promise.resolve({ mesa: "0" }), searchParams });
 }

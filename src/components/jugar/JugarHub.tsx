@@ -532,7 +532,9 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
         <Link href="/hoy" className="hover:text-ink">
           ← Puertas adentro
         </Link>
-        <span className="tracking-[0.2em] uppercase">Entretenimiento</span>
+        <Link href="/sobremesa" className="hover:text-ink">
+          La sobremesa →
+        </Link>
       </div>
       <h1 className="ap-display mt-6 text-4xl">Para la espera</h1>
       <p className="mt-3 text-sm leading-relaxed text-muted">
