@@ -193,6 +193,24 @@ export default async function HomePage() {
         )}
         <div className="ap-grain" aria-hidden="true" />
         <div className="ap-frame" aria-hidden="true" />
+        {steps.length > 0 && (
+          /* La carta pasando abajo del afiche: se ve de entrada y se mueve sola. La segunda vuelta es
+             la misma lista repetida (oculta para el lector de pantalla) para que el loop no tenga costura. */
+          <div className="ap-cinta" aria-label="La carta de la noche">
+            <div className="ap-cinta-pista">
+              {[0, 1].map((vuelta) => (
+                <div className="ap-cinta-grupo" key={vuelta} aria-hidden={vuelta === 1 ? true : undefined}>
+                  {steps.map((s, i) => (
+                    <span key={i}>
+                      <span className="plato">{s.dish}</span>
+                      {s.drink && <span className="trago">{splitDrink(s.drink).name}</span>}
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {/* Brasas: tres manchas de luz que derivan muy lento. Sin palabras: el titulo manda. */}
         <div className="ap-embers" aria-hidden="true">
           <span />
@@ -256,7 +274,7 @@ export default async function HomePage() {
                   </>
                 )}
               </div>
-              <a href="#carta" className="mt-12 inline-flex flex-col items-center gap-1 text-xs tracking-[0.2em] uppercase text-muted hover:text-ink">
+              <a href="#carta" className="mt-10 inline-flex flex-col items-center gap-1 text-xs tracking-[0.2em] uppercase text-muted hover:text-ink">
                 La carta de la noche
                 <span className="ap-cue" aria-hidden="true">
                   ↓
