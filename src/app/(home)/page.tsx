@@ -226,12 +226,6 @@ export default async function HomePage() {
             </div>
           </div>
         )}
-        {/* Brasas: tres manchas de luz que derivan muy lento. Sin palabras: el titulo manda. */}
-        <div className="ap-embers" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
         <div className="ap-spot relative z-10 mx-auto w-full max-w-2xl text-center">
           <p className="ap-eyebrow">Cena a puertas cerradas · La Plata</p>
           <h1 className="ap-display mt-6 text-[clamp(3.2rem,16vw,7.5rem)]">{heroTitle}</h1>

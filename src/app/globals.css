@@ -288,80 +288,6 @@ html {
   background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.55), transparent);
 }
 
-/* Brasas: manchas de luz calida que derivan y respiran detras del titulo (fuego lento, sin palabras).
-   Los gradientes ya nacen difusos, asi que no hace falta filter: blur() -- que en el celular es lo caro.
-   Solo se animan transform y opacity: eso lo resuelve la GPU sin volver a dibujar nada. */
-.ap-embers {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-  -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 30%, transparent 100%);
-  mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, #000 30%, transparent 100%);
-}
-.ap-embers > span {
-  position: absolute;
-  display: block;
-  border-radius: 50%;
-  will-change: transform, opacity;
-}
-/* Tres paradas y no dos: el degrade baja parejo y no se le marcan los anillos en las pantallas oscuras. */
-.ap-embers > span:nth-child(1) {
-  left: -14%;
-  top: 4%;
-  width: 78vmax;
-  height: 78vmax;
-  background: radial-gradient(circle closest-side, rgba(201, 169, 110, 0.34), rgba(201, 169, 110, 0.15) 45%, transparent 72%);
-  animation: ember-a 18s ease-in-out infinite alternate;
-}
-.ap-embers > span:nth-child(2) {
-  right: -18%;
-  top: 26%;
-  width: 88vmax;
-  height: 88vmax;
-  background: radial-gradient(circle closest-side, rgba(176, 108, 62, 0.3), rgba(176, 108, 62, 0.13) 45%, transparent 72%);
-  animation: ember-b 24s ease-in-out infinite alternate;
-}
-.ap-embers > span:nth-child(3) {
-  left: 18%;
-  bottom: -26%;
-  width: 70vmax;
-  height: 70vmax;
-  background: radial-gradient(circle closest-side, rgba(201, 169, 110, 0.26), rgba(201, 169, 110, 0.11) 45%, transparent 72%);
-  animation: ember-c 21s ease-in-out infinite alternate;
-}
-@keyframes ember-a {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.75;
-  }
-  to {
-    transform: translate3d(10vw, 7vh, 0) scale(1.18);
-    opacity: 1;
-  }
-}
-@keyframes ember-b {
-  from {
-    transform: translate3d(0, 0, 0) scale(1.1);
-    opacity: 1;
-  }
-  to {
-    transform: translate3d(-11vw, -8vh, 0) scale(1);
-    opacity: 0.7;
-  }
-}
-@keyframes ember-c {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.6;
-  }
-  to {
-    transform: translate3d(-8vw, -9vh, 0) scale(1.26);
-    opacity: 0.95;
-  }
-}
-
 /* Grano de pelicula: quieto, una sola textura chica repetida. Da piel de afiche impreso y, de paso,
    rompe las bandas que dejan los degrades grandes sobre fondo oscuro. */
 .ap-grain {
@@ -803,7 +729,6 @@ details.faq > summary::-webkit-details-marker {
   transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .ap-embers > span,
   .ap-photo img,
   .ap-cinta-pista {
     animation: none;
