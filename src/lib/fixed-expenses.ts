@@ -103,3 +103,9 @@ export async function refreshCurrentWeekEntry(fixedExpenseId: string) {
     data: { amount: weeklyAmount(f.monthlyAmount), category: f.category, description: `${f.name} (fijo, semana)` },
   });
 }
+
+/** Lo que se paga por mes en gastos fijos activos: la base del plan de la caja. */
+export async function getMonthlyFixedTotal(): Promise<number> {
+  const rows = await prisma.fixedExpense.findMany({ where: { active: true }, select: { monthlyAmount: true } });
+  return rows.reduce((n, r) => n + r.monthlyAmount, 0);
+}

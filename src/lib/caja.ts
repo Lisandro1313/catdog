@@ -1,60 +1,58 @@
 import { prisma } from "./prisma";
-import { CATEGORIA_ARQUEO, calcularSaldo, type SaldoCaja } from "./caja-tipos";
+import { CATEGORIA_ARQUEO, CATEGORIA_TRASPASO, armarSaldo, clasificarLedger, esEfectivo, type SaldoCaja } from "./caja-tipos";
 
-export { CATEGORIA_ARQUEO, calcularSaldo, diferenciaArqueo } from "./caja-tipos";
-export type { MovimientoCaja, SaldoCaja } from "./caja-tipos";
+export * from "./caja-tipos";
 
 /**
- * Lo que hay en la caja de efectivo del local, con el detalle de cómo se llegó a ese número.
+ * La caja: la plata que el negocio cobró y todavía tiene, separada en billete y cuenta.
  *
- * Nada de esto necesita una tabla nueva: la forma de pago ya está guardada en cada cuenta de la sala
- * (`coverVia` y `closedVia`) y en cada reserva (`paidVia`), y los gastos ya dicen si salieron de la
- * caja o del bolsillo de un socio (`fromPocket`).
+ * La plata se cuenta de una sola fuente para no sumarla dos veces: las reservas pagadas (que viven en
+ * su propia tabla) y los movimientos del libro. Las ventas de la noche entran al libro cuando se
+ * cierra la caja de la sala, así que no hay que mirar las cuentas de la sala por separado.
+ *
+ * Una venta puede pasar en cualquier momento, no solo durante el servicio: una botella un martes al
+ * mediodía se carga como ingreso y entra a la caja igual.
  */
 export async function getSaldoCaja(): Promise<SaldoCaja> {
-  const [cuentas, reservas, movimientos] = await Promise.all([
-    // Cobrado en mano en la sala: la cena de cada cuenta y lo consumido al cerrarla.
-    prisma.cuenta.findMany({
-      where: { OR: [{ coverVia: "efectivo" }, { closedVia: "efectivo" }] },
-      select: { cover: true, coverVia: true, closedVia: true, consumos: { select: { qty: true, price: true, status: true } } },
-    }),
-    // Reservas pagadas en efectivo (las de Mercado Pago y transferencia no tocan el cajón).
-    prisma.reservation.aggregate({ _sum: { amount: true }, where: { status: "PAID", paidVia: "efectivo" } }),
-    // Gastos pagados de la caja, aportes y retiros. Lo que un socio puso de su bolsillo no entra acá.
+  const [reservas, movimientos] = await Promise.all([
+    prisma.reservation.groupBy({ by: ["paidVia"], where: { status: "PAID" }, _sum: { amount: true } }),
     prisma.ledgerEntry.findMany({
-      where: { deletedAt: null, OR: [{ kind: "EXPENSE", fromPocket: false }, { kind: "CONTRIBUTION" }, { kind: "WITHDRAWAL" }] },
-      select: { kind: true, amount: true, category: true },
+      where: { deletedAt: null },
+      select: { kind: true, amount: true, category: true, via: true, fromPocket: true, fixedExpenseId: true },
     }),
   ]);
 
-  let cenas = 0;
-  let consumos = 0;
-  for (const c of cuentas) {
-    if (c.coverVia === "efectivo") cenas += c.cover;
-    if (c.closedVia === "efectivo") {
-      for (const x of c.consumos) if (x.status !== "cancelado") consumos += x.qty * x.price;
-    }
+  let reservasEfectivo = 0;
+  let reservasVirtual = 0;
+  for (const r of reservas) {
+    const monto = r._sum.amount ?? 0;
+    // Una reserva sin forma de pago anotada se cobró a mano: efectivo.
+    if (esEfectivo(r.paidVia)) reservasEfectivo += monto;
+    else reservasVirtual += monto;
   }
 
-  let gastos = 0;
-  let aportes = 0;
-  let retiros = 0;
-  // Las diferencias de arqueo se guardan como gasto de la caja: si faltaba, la caja baja.
-  let arqueos = 0;
-  for (const m of movimientos) {
-    if (m.kind === "CONTRIBUTION") aportes += m.amount;
-    else if (m.kind === "WITHDRAWAL") retiros += m.amount;
-    else if (m.category === CATEGORIA_ARQUEO) arqueos += m.amount;
-    else gastos += m.amount;
-  }
+  const c = clasificarLedger(movimientos);
+  const ventasEfectivo = c.ventasEfectivo + reservasEfectivo;
+  const ventasVirtual = c.ventasVirtual + reservasVirtual;
 
-  return calcularSaldo([
-    { concepto: "Cenas cobradas en mano", monto: cenas },
-    { concepto: "Consumos cobrados en mano", monto: consumos },
-    { concepto: "Reservas pagadas en efectivo", monto: reservas._sum.amount ?? 0 },
-    { concepto: "Aportes de los socios", monto: aportes },
-    { concepto: "Gastos pagados de la caja", monto: -gastos },
-    { concepto: "Retiros de los socios", monto: -retiros },
-    { concepto: "Diferencias de arqueo", monto: -arqueos },
-  ]);
+  return armarSaldo(
+    [
+      { concepto: "Ventas cobradas en mano", monto: ventasEfectivo },
+      { concepto: "Lo que pusieron los socios", monto: c.aportesEfectivo },
+      { concepto: "Pasado de la cuenta al cajón", monto: c.traspaso },
+      { concepto: "Gastos pagados de la caja", monto: -c.gastosEfectivo },
+      { concepto: "Retiros de los socios", monto: -c.retirosEfectivo },
+      { concepto: "Diferencias de arqueo", monto: c.arqueoNeto },
+    ],
+    [
+      { concepto: "Ventas cobradas por transferencia o tarjeta", monto: ventasVirtual },
+      { concepto: "Lo que pusieron los socios", monto: c.aportesVirtual },
+      { concepto: "Pasado al cajón", monto: -c.traspaso },
+      { concepto: "Gastos pagados desde la cuenta", monto: -c.gastosVirtual },
+      { concepto: "Retiros de los socios", monto: -c.retirosVirtual },
+    ],
+    ventasEfectivo + ventasVirtual,
+  );
 }
+
+export { CATEGORIA_ARQUEO, CATEGORIA_TRASPASO };

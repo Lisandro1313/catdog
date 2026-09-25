@@ -33,7 +33,7 @@ import { runAnalysis } from "@/lib/ai-analysis";
 import { approveHuella, markSugerenciasSeen, removeHuella, removeSugerencia, setPedidoStatus, setServedStep } from "@/lib/vivo";
 import { COVER_VIAS, abrirTraspaso, cancelarTraspaso, cargarExtra, cerrarCuenta, desmarcarCover, getCuentas, marcarReserva, nuevoSalaCode, reabrirCuenta, resumen, saldarCover, setConsumoStatus, setCover, type CoverVia } from "@/lib/sala";
 import { setServicioAbierto } from "@/lib/hoy";
-import { CATEGORIA_ARQUEO, diferenciaArqueo } from "@/lib/caja-tipos";
+import { CATEGORIA_ARQUEO, CATEGORIA_TRASPASO, diferenciaArqueo } from "@/lib/caja-tipos";
 
 export type ActionState = { ok: boolean; message?: string } | null;
 
@@ -598,6 +598,32 @@ export async function arquearCajaAction(_prev: ActionState, formData: FormData):
   });
   revalidatePath("/admin/gastos");
   return { ok: true, message: falta ? `Faltaban ${formatPrice(-dif)}. Queda anotado.` : `Sobraban ${formatPrice(dif)}. Queda anotado.` };
+}
+
+/**
+ * Pasa plata de la cuenta al cajón: se saca del banco y se guarda como billete. No es una venta ni un
+ * gasto, así que se anota con su propio rubro y solo cambia de lugar dentro de la caja.
+ */
+export async function pasarAEfectivoAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const me = await whoAmI();
+  const monto = parseInt(String(formData.get("monto") ?? "").replace(/\D/g, ""), 10);
+  if (!Number.isFinite(monto) || monto <= 0) return { ok: false, message: "Poné cuánto pasaste." };
+  await prisma.ledgerEntry.create({
+    data: {
+      kind: "INCOME",
+      category: CATEGORIA_TRASPASO,
+      description: `Pasado de la cuenta al cajón por ${me.name}`.slice(0, 200),
+      amount: monto,
+      via: "efectivo",
+      day: argentinaDay(),
+      by: me.name,
+      fromPocket: false,
+      createdBy: me.name,
+    },
+  });
+  revalidatePath("/admin/gastos");
+  return { ok: true, message: `${formatPrice(monto)} pasados al cajón.` };
 }
 
 /** Genera el análisis con los números actuales y lo guarda (por reglas o con IA, según lo configurado). */
@@ -1234,13 +1260,19 @@ export async function cerrarSalaAction(formData: FormData): Promise<void> {
   const r = resumen(cuentas);
   const total = r.cobradoCena + r.cobradoConsumo;
   if (total <= 0) return;
-  const detalle = `Sala: ${r.personas} personas (${r.invitados} de la casa), cenas ${formatPrice(r.cobradoCena)}, barra ${formatPrice(r.cobradoConsumo)}`.slice(0, 200);
-  // Id fijo por cena: dos toques a la vez (o los dos dueños) actualizan el mismo asiento, no crean otro.
-  await prisma.ledgerEntry.upsert({
-    where: { id: `sala-${eventId}` },
-    update: { amount: total, description: detalle, updatedAt: new Date(), updatedBy: me.name, deletedAt: null },
-    create: { id: `sala-${eventId}`, eventId, kind: "INCOME", category: "cena", description: detalle, amount: total, day: argentinaDay(), by: me.name, fromPocket: false, createdBy: me.name },
-  });
+  // Un asiento por forma de pago: así la caja sabe qué quedó en billete y qué en la cuenta.
+  // Id fijo por cena y vía: dos toques a la vez (o los dos dueños) actualizan el mismo asiento.
+  const dia = argentinaDay();
+  for (const { via, total: monto } of r.porVia) {
+    const detalle = `Sala: ${r.personas} personas (${r.invitados} de la casa), cobrado en ${via}`.slice(0, 200);
+    await prisma.ledgerEntry.upsert({
+      where: { id: `sala-${eventId}-${via}` },
+      update: { amount: monto, description: detalle, via, updatedAt: new Date(), updatedBy: me.name, deletedAt: null },
+      create: { id: `sala-${eventId}-${via}`, eventId, kind: "INCOME", category: "cena", description: detalle, amount: monto, via, day: dia, by: me.name, fromPocket: false, createdBy: me.name },
+    });
+  }
+  // El asiento viejo juntaba todas las formas de pago en uno solo: se archiva para no contar doble.
+  await prisma.ledgerEntry.updateMany({ where: { id: `sala-${eventId}`, deletedAt: null }, data: { deletedAt: new Date(), deletedBy: me.name } });
   revalidatePath(`/admin/eventos/${eventId}/sala`);
   revalidatePath("/admin/gastos");
 }
@@ -1311,8 +1343,13 @@ export async function guardarInsumoAction(_prev: ActionState, formData: FormData
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   const d = parsed.data;
   const id = String(formData.get("id") ?? "");
-  if (id) await prisma.insumo.update({ where: { id }, data: d });
-  else await prisma.insumo.upsert({ where: { nombre: d.nombre }, update: d, create: d });
+  try {
+    if (id) await prisma.insumo.update({ where: { id }, data: d });
+    else await prisma.insumo.upsert({ where: { nombre: d.nombre }, update: d, create: d });
+  } catch {
+    // El nombre es único: renombrar un insumo al de otro choca. Mejor decirlo que tirar un error.
+    return { ok: false, message: `Ya hay un insumo que se llama "${d.nombre}".` };
+  }
   revalidatePath("/admin/recetas");
   return { ok: true, message: `${d.nombre} guardado.` };
 }
@@ -1369,11 +1406,16 @@ export async function guardarItemAction(_prev: ActionState, formData: FormData):
   if (!Number.isFinite(cantidad) || cantidad <= 0) return { ok: false, message: "Poné cuánto lleva." };
   const merma = mermaRaw === "" ? null : Math.min(99, Math.max(0, Math.round(Number(mermaRaw))));
   if (merma != null && !Number.isFinite(merma)) return { ok: false, message: "Merma inválida." };
-  await prisma.recetaItem.upsert({
-    where: { recetaId_insumoId: { recetaId, insumoId } },
-    update: { cantidad, merma },
-    create: { recetaId, insumoId, cantidad, merma },
-  });
+  try {
+    await prisma.recetaItem.upsert({
+      where: { recetaId_insumoId: { recetaId, insumoId } },
+      update: { cantidad, merma },
+      create: { recetaId, insumoId, cantidad, merma },
+    });
+  } catch {
+    // Puede pasar si borraron el insumo o la receta desde otra pantalla mientras tanto.
+    return { ok: false, message: "No se pudo sumar: fijate que el insumo y la receta sigan existiendo." };
+  }
   revalidatePath(`/admin/recetas/${recetaId}`);
   return { ok: true, message: "Listo." };
 }
@@ -1391,7 +1433,8 @@ export async function borrarItemAction(formData: FormData): Promise<void> {
 export async function borrarRecetaAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
-  await prisma.receta.delete({ where: { id } });
+  // deleteMany y no delete: si ya la borraron desde otra pantalla, no tiene que explotar.
+  await prisma.receta.deleteMany({ where: { id } });
   revalidatePath("/admin/recetas");
   redirect("/admin/recetas");
 }

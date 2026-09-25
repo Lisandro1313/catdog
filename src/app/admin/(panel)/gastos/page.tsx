@@ -1,14 +1,15 @@
 import { formatPrice } from "@/lib/config";
-import { formatDay, formatDayShort, formatShort, todayIso } from "@/lib/dates";
+import { formatDay, formatDayShort, formatShort, nowMs, todayIso } from "@/lib/dates";
 import { getNextEvent } from "@/lib/reservations";
 import { getSession } from "@/lib/admin-auth";
 import { getPartnerReport, getTrash, getWeeklyReport, type WeekReport } from "@/lib/admin-stats";
 import { getAnalysisMode, getStoredAnalysis, modeLabel } from "@/lib/ai-analysis";
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
-import { AnalysisButton, ArqueoForm, ReserveForm } from "@/components/admin/GastosForms";
+import { AnalysisButton, ArqueoForm, PasarAEfectivoForm, ReserveForm } from "@/components/admin/GastosForms";
 import { getSaldoCaja } from "@/lib/caja";
-import { ensureFixedEntries, getWeeklyFixedTotal } from "@/lib/fixed-expenses";
+import { diasHastaFinDeMes, planDeCaja } from "@/lib/plan-caja";
+import { ensureFixedEntries, getMonthlyFixedTotal, getWeeklyFixedTotal } from "@/lib/fixed-expenses";
 import Link from "next/link";
 
 export default async function GastosPage() {
@@ -22,7 +23,19 @@ export default async function GastosPage() {
     getTrash(),
     getSaldoCaja(),
   ]);
+  const monthlyFixed = await getMonthlyFixedTotal();
   const { current, total } = report;
+
+  // Qué hacer con la plata de la caja: primero lo que corre aunque no se cocine (alquiler, servicios),
+  // después la mercadería de la próxima fecha, y por último devolverles a los socios.
+  const plan = planDeCaja({
+    disponible: caja.total,
+    fijosMensuales: monthlyFixed,
+    diasHastaFijos: diasHastaFinDeMes(new Date(nowMs())),
+    // Lo que suele costar la mercadería de una fecha: el promedio de gastos de comida de las últimas semanas.
+    mercaderiaProxima: report.avgWeeklyExpenses ?? 0,
+    deudaSocios: partners.partners.reduce((n, p) => n + Math.max(0, p.owed), 0),
+  });
   const today = todayIso();
   const mode = getAnalysisMode();
   const sessionName = session?.role === "user" ? session.name : undefined;
@@ -32,33 +45,78 @@ export default async function GastosPage() {
 
   return (
     <>
-      {/* 0. La caja: lo primero que se ve, porque es la pregunta de todos los días ("¿cuánto hay?"). */}
+      {/* 0. La caja: la plata que el negocio tiene, separada en billete y cuenta. */}
       <section className="card p-5 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="eyebrow">En la caja, ahora</p>
-            <p className={`font-display text-5xl tabular-nums ${caja.saldo < 0 ? "text-danger" : ""}`}>{formatPrice(caja.saldo)}</p>
-            <p className="mt-1 text-sm text-muted">
-              Efectivo en el local: lo cobrado en mano menos lo que se pagó de la caja. No cuenta transferencias ni tarjeta.
-            </p>
-          </div>
-          <ArqueoForm esperado={caja.saldo} />
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-display text-2xl">La caja</h2>
+          <p className="text-sm text-muted">Toda la plata cobrada que todavía está</p>
         </div>
-        {caja.detalle.length > 0 && (
-          <details className="mt-4">
-            <summary className="cursor-pointer text-sm text-muted hover:text-ink">Cómo se llega a ese número</summary>
-            <ul className="mt-3 divide-y divide-line text-sm">
-              {caja.detalle.map((m) => (
-                <li key={m.concepto} className="flex items-center justify-between gap-3 py-2">
-                  <span className="text-muted">{m.concepto}</span>
-                  <span className={`tabular-nums ${m.monto < 0 ? "text-danger" : "text-ok"}`}>
-                    {m.monto < 0 ? "−" : "+"}
-                    {formatPrice(Math.abs(m.monto))}
-                  </span>
+
+        <div className="mt-5 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3">
+          <Caja titulo="Efectivo" valor={caja.efectivo} hint="billetes en el cajón" detalle={caja.detalleEfectivo} />
+          <Caja titulo="En la cuenta" valor={caja.virtual} hint="transferencias y tarjeta" detalle={caja.detalleVirtual} />
+          <div className="bg-surface-2 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted">Total</p>
+            <p className="mt-1 font-display text-3xl tabular-nums">{formatPrice(caja.total)}</p>
+            <p className="mt-0.5 text-xs text-muted">{formatPrice(caja.ventas)} vendidos hasta hoy</p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-4 border-t border-line pt-5">
+          <PasarAEfectivoForm disponible={caja.virtual} />
+          <ArqueoForm esperado={caja.efectivo} />
+        </div>
+      </section>
+
+      {/* 0b. Qué hacer con esa plata: primero lo que ya se debe, después lo que hay que comprar. */}
+      <section className="card p-5 sm:p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-display text-2xl">En qué usar la plata</h2>
+          <p className="text-sm text-muted">Por orden: primero lo que corre aunque no se cocine</p>
+        </div>
+        <p className={`mt-3 text-sm ${plan.falta > 0 ? "text-danger" : plan.libre > 0 ? "text-ok" : ""}`}>
+          {plan.falta > 0
+            ? `No alcanza: faltan ${formatPrice(plan.falta)} para cubrir lo que se viene.`
+            : plan.libre > 0
+              ? `Después de guardar lo necesario quedan ${formatPrice(plan.libre)} libres.`
+              : plan.disponible > 0
+                ? "La plata está justa para lo que se viene."
+                : "No hay plata en la caja."}
+        </p>
+
+        {plan.apartados.length > 0 ? (
+          <ul className="mt-4 grid gap-3">
+            {plan.apartados.map((a) => {
+              const completo = a.cubierto >= a.monto;
+              return (
+                <li key={a.concepto} className="rounded-xl border border-line bg-surface-2 p-4">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <p className="font-medium">{a.concepto}</p>
+                    <p className="tabular-nums">
+                      <span className={completo ? "text-ok" : "text-danger"}>{formatPrice(a.cubierto)}</span>
+                      <span className="text-muted"> de {formatPrice(a.monto)}</span>
+                    </p>
+                  </div>
+                  {/* Una barra sobria: cuánto de lo que hay que guardar ya está guardado. */}
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
+                    <div
+                      className={completo ? "h-full bg-ok" : "h-full bg-accent"}
+                      style={{ width: `${a.monto > 0 ? Math.round((a.cubierto / a.monto) * 100) : 0}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-muted">{a.porque}</p>
                 </li>
-              ))}
-            </ul>
-          </details>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-4 text-sm text-muted">
+            Cargá los gastos fijos en{" "}
+            <Link href="/admin/ajustes" className="underline underline-offset-4">
+              Ajustes
+            </Link>{" "}
+            para que esto sepa cuánto hay que guardar cada mes.
+          </p>
         )}
       </section>
 
@@ -72,7 +130,7 @@ export default async function GastosPage() {
         </div>
         <p className="mt-1 text-sm text-muted">Monto, rubro, guardar. Lo demás es opcional.</p>
         <div className="mt-5">
-          <LedgerForm today={today} sessionName={sessionName} enCaja={caja.saldo} />
+          <LedgerForm today={today} sessionName={sessionName} enCaja={caja.efectivo} />
         </div>
       </section>
 
@@ -343,6 +401,33 @@ function Num({ label, value, hint, tone, big }: { label: string; value: string; 
       <p className="text-xs text-muted">{label}</p>
       <p className={`font-display ${big ? "text-2xl" : "text-xl"} ${color}`}>{value}</p>
       {hint && <p className="text-xs text-muted">{hint}</p>}
+    </div>
+  );
+}
+
+/** Una de las dos cajas, con el detalle de cómo se llegó al número. */
+function Caja({ titulo, valor, hint, detalle }: { titulo: string; valor: number; hint: string; detalle: { concepto: string; monto: number }[] }) {
+  return (
+    <div className="bg-surface p-4">
+      <p className="text-xs uppercase tracking-wider text-muted">{titulo}</p>
+      <p className={`mt-1 font-display text-3xl tabular-nums ${valor < 0 ? "text-danger" : ""}`}>{formatPrice(valor)}</p>
+      <p className="mt-0.5 text-xs text-muted">{hint}</p>
+      {detalle.length > 0 && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-muted hover:text-ink">De dónde sale</summary>
+          <ul className="mt-2 grid gap-1 text-xs">
+            {detalle.map((m) => (
+              <li key={m.concepto} className="flex items-baseline justify-between gap-3">
+                <span className="text-muted">{m.concepto}</span>
+                <span className={`shrink-0 tabular-nums ${m.monto < 0 ? "text-danger" : "text-ok"}`}>
+                  {m.monto < 0 ? "−" : "+"}
+                  {formatPrice(Math.abs(m.monto))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { arquearCajaAction, runAnalysisAction, setReserveAction } from "@/app/admin/actions";
+import { arquearCajaAction, pasarAEfectivoAction, runAnalysisAction, setReserveAction } from "@/app/admin/actions";
 
 export function ReserveForm({ current }: { current: number }) {
   const [state, action, pending] = useActionState(setReserveAction, null);
@@ -66,6 +66,33 @@ export function ArqueoForm({ esperado }: { esperado: number }) {
       </label>
       <button className="btn btn-ghost btn-sm" type="submit" disabled={pending}>
         {pending ? "…" : "Cuadrar"}
+      </button>
+      {state?.message && <p className={`basis-full text-xs ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
+    </form>
+  );
+}
+
+/** Pasar plata de la cuenta al cajón: la misma plata, en otro lugar. */
+export function PasarAEfectivoForm({ disponible }: { disponible: number }) {
+  const [state, action, pending] = useActionState(pasarAEfectivoAction, null);
+  return (
+    <form action={action} className="flex flex-wrap items-end gap-2">
+      <label className="grid gap-1 text-xs text-muted">
+        Pasé de la cuenta al cajón
+        <div className="flex items-center gap-1 rounded-lg border border-line bg-surface-2 px-3">
+          <span className="text-muted">$</span>
+          <input
+            className="w-32 bg-transparent py-2 tabular-nums outline-none"
+            name="monto"
+            inputMode="numeric"
+            placeholder="0"
+            required
+            aria-label="Monto pasado a efectivo"
+          />
+        </div>
+      </label>
+      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending || disponible <= 0}>
+        {pending ? "…" : "Pasar"}
       </button>
       {state?.message && <p className={`basis-full text-xs ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
     </form>

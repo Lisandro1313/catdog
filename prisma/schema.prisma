@@ -201,6 +201,9 @@ model LedgerEntry {
   /// Quién lo cargó / lo pagó / lo aportó / lo retiró.
   by             String?
   /// Solo para gastos: true = lo pagó el socio de su bolsillo (el negocio se lo debe); false = salió de la caja.
+  /// Cómo entró o salió la plata: "efectivo" | "transferencia" | "tarjeta" | "mercadopago".
+  /// Sirve para saber qué parte de la caja es billete y qué parte está en la cuenta.
+  via            String?
   fromPocket     Boolean       @default(true)
   /// Foto del ticket / factura, guardada en Vercel Blob (privada).
   receiptUrl     String?

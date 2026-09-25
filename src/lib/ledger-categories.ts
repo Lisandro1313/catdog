@@ -20,8 +20,10 @@ export const LEDGER_CATEGORIES: Record<LedgerKind, Category[]> = {
     { value: "otros", label: "Otros", emoji: "📦" },
   ],
   INCOME: [
-    { value: "cena", label: "Cenas cobradas en la sala", emoji: "🍽️" },
+    { value: "cena", label: "Cenas", emoji: "🍽️" },
     { value: "barra", label: "Barra", emoji: "🍸" },
+    // Una venta puede pasar cualquier día, fuera del servicio: una botella un martes al mediodía.
+    { value: "mercaderia", label: "Mercadería", emoji: "📦" },
     { value: "otros", label: "Otros ingresos", emoji: "💵" },
   ],
 };
@@ -29,12 +31,15 @@ export const LEDGER_CATEGORIES: Record<LedgerKind, Category[]> = {
 export function categoryLabel(kind: AnyKind, value: string): string {
   if (kind === "CONTRIBUTION") return "Aporte de socio";
   if (kind === "WITHDRAWAL") return "Retiro de socio";
+  // El arqueo no es un rubro que se elija: lo escribe el sistema al cuadrar la caja.
+  if (value === "arqueo") return kind === "INCOME" ? "Sobraba en la caja" : "Faltaba en la caja";
   return LEDGER_CATEGORIES[kind].find((c) => c.value === value)?.label ?? value;
 }
 
 export function categoryEmoji(kind: AnyKind, value: string): string {
   if (kind === "CONTRIBUTION") return "🤝";
   if (kind === "WITHDRAWAL") return "👛";
+  if (value === "arqueo") return "⚖️";
   return LEDGER_CATEGORIES[kind].find((c) => c.value === value)?.emoji ?? (kind === "INCOME" ? "💵" : "📦");
 }
 
