@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteLedgerEntryAction, restoreLedgerEntryAction, updateLedgerEntryAction } from "@/app/admin/actions";
 import type { LedgerRow } from "@/lib/admin-stats";
-import { KIND_LABEL, LEDGER_CATEGORIES, PARTNERS, categoryEmoji, categoryLabel } from "@/lib/ledger-categories";
+import { KIND_LABEL, LEDGER_CATEGORIES, PARTNERS, categoryLabel } from "@/lib/ledger-categories";
 import { ReceiptInput } from "./ReceiptInput";
 
 function money(n: number): string {
@@ -22,6 +22,10 @@ function tone(kind: LedgerRow["kind"]): string {
 }
 function sign(kind: LedgerRow["kind"]): string {
   return kind === "INCOME" || kind === "CONTRIBUTION" ? "+" : "−";
+}
+/** El color de la barrita de cada movimiento, que reemplaza al emoji. */
+function barra(kind: LedgerRow["kind"]): string {
+  return kind === "INCOME" ? "bg-ok" : kind === "EXPENSE" ? "bg-danger" : "bg-accent";
 }
 
 type Props = {
@@ -53,22 +57,22 @@ export function MovementList({ rows, today, mode = "active", sessionName }: Prop
             <p className="mb-2 text-xs uppercase tracking-wider text-muted">{dayLabel(g.day, today)}</p>
             <ul className="grid gap-1">
               {g.rows.map((r) => (
-                <li key={r.id}>
+                // min-w-0: sin esto, un detalle largo estira la fila y empuja toda la página a lo ancho.
+                <li key={r.id} className="min-w-0">
                   <button
                     type="button"
                     onClick={() => setOpen(r)}
                     className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-surface-2"
                   >
-                    <span className="text-lg" aria-hidden="true">
-                      {categoryEmoji(r.kind, r.category)}
-                    </span>
+                    {/* Una barra de color por tipo de movimiento: se distingue de un vistazo, sin dibujitos. */}
+                    <span className={`h-8 w-0.5 shrink-0 rounded-full ${barra(r.kind)}`} aria-hidden="true" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm">
                         {categoryLabel(r.kind, r.category)}
                         {r.description && <span className="text-muted"> · {r.description}</span>}
                       </p>
                       <p className="text-xs text-muted">
-                        {[r.by, r.eventTitle, r.hasReceipt ? "📎 comprobante" : null].filter(Boolean).join(" · ")}
+                        {[r.by, r.eventTitle, r.hasReceipt ? "con comprobante" : null].filter(Boolean).join(" · ")}
                       </p>
                     </div>
                     <p className={`whitespace-nowrap font-display text-lg ${tone(r.kind)}`}>
@@ -143,9 +147,7 @@ function MovementDialog({
             <p className="text-xs uppercase tracking-wider text-muted">
               {KIND_LABEL[row.kind]} · {dayLabel(row.day, today)}
             </p>
-            <p className="mt-1 font-display text-2xl">
-              <span aria-hidden="true">{categoryEmoji(row.kind, row.category)}</span> {categoryLabel(row.kind, row.category)}
-            </p>
+            <p className="mt-1 font-display text-2xl">{categoryLabel(row.kind, row.category)}</p>
           </div>
           <p className={`font-display text-2xl ${tone(row.kind)}`}>
             {sign(row.kind)}

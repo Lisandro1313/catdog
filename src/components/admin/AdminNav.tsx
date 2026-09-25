@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
-  { href: "/admin/gastos", label: "Gastos", icon: "🧾" },
-  { href: "/admin", label: "Cenas", icon: "🍽️" },
-  { href: "/admin/recetas", label: "Recetas", icon: "📋" },
-  { href: "/admin/contactos", label: "Contactos", icon: "👥" },
-  { href: "/admin/premios", label: "Premios", icon: "🏆" },
-  { href: "/admin/huellas", label: "Huellas", icon: "✍️" },
-  { href: "/admin/sobremesa", label: "Charla", icon: "💬" },
-  { href: "/admin/ajustes", label: "Ajustes", icon: "⚙️" },
+  { href: "/admin/gastos", label: "Gastos" },
+  { href: "/admin", label: "Cenas" },
+  { href: "/admin/recetas", label: "Recetas" },
+  { href: "/admin/contactos", label: "Contactos" },
+  { href: "/admin/premios", label: "Premios" },
+  { href: "/admin/huellas", label: "Huellas" },
+  { href: "/admin/sobremesa", label: "Charla" },
+  { href: "/admin/ajustes", label: "Ajustes" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -41,20 +41,20 @@ export function AdminNav({ variant }: { variant: "top" | "bottom" }) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur sm:hidden" aria-label="Secciones del panel">
-      {/* Una columna por link: con menos, el último se desbordaba fuera de la pantalla. */}
-      <ul className="grid" style={{ paddingBottom: "env(safe-area-inset-bottom)", gridTemplateColumns: `repeat(${ITEMS.length}, minmax(0, 1fr))` }}>
+      {/* Se desliza a lo ancho: repartir ocho links en 375 px deja 46 px por cada uno y las palabras
+          no entran. Así cada link se lee entero y entran los que hagan falta. */}
+      <ul className="flex overflow-x-auto" style={{ paddingBottom: "env(safe-area-inset-bottom)", scrollbarWidth: "none" }}>
         {ITEMS.map((it) => {
           const on = isActive(pathname, it.href);
           return (
-            <li key={it.href}>
+            <li key={it.href} className="shrink-0">
               <Link
                 href={it.href}
-                className={`flex flex-col items-center gap-0.5 py-2.5 text-[0.7rem] ${on ? "text-accent" : "text-muted"}`}
+                className={`flex min-h-12 items-center border-t-2 px-4 text-sm ${
+                  on ? "border-accent text-accent" : "border-transparent text-muted"
+                }`}
                 aria-current={on ? "page" : undefined}
               >
-                <span className="text-xl leading-none" aria-hidden="true">
-                  {it.icon}
-                </span>
                 {it.label}
               </Link>
             </li>

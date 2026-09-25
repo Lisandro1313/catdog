@@ -203,8 +203,9 @@ function Fields({
       {/* Rubro */}
       {isMoney && (
         <div>
-          <p className="mb-2 text-xs text-muted">{kind === "EXPENSE" ? "¿En qué?" : "¿De dónde?"}</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="mb-2 text-xs uppercase tracking-wider text-muted">{kind === "EXPENSE" ? "En qué" : "De dónde"}</p>
+          {/* Una grilla pareja en vez de fichas sueltas: entra todo a la vista, sin globitos ni dibujos. */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {categories.map((c) => {
               const on = category === c.value;
               return (
@@ -213,11 +214,11 @@ function Fields({
                   type="button"
                   onClick={() => setCategory(c.value)}
                   aria-pressed={on}
-                  className={`rounded-full border px-3 py-2 text-sm transition-colors ${
-                    on ? "border-accent bg-accent text-[#1a150d] font-medium" : "border-line bg-surface-2 text-ink hover:border-accent/60"
+                  className={`min-h-11 rounded-lg border px-3 py-2 text-left text-sm leading-tight transition-colors ${
+                    on ? "border-accent bg-accent/15 font-medium text-accent" : "border-line bg-surface-2 text-muted hover:border-accent/50 hover:text-ink"
                   }`}
                 >
-                  <span aria-hidden="true">{c.emoji}</span> {c.label}
+                  {c.label}
                 </button>
               );
             })}
