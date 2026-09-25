@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState, useSyncExternalStore } from "react";
 import { addLedgerEntryAction } from "@/app/admin/actions";
 import { KIND_LABEL, LEDGER_CATEGORIES, PARTNERS, type AnyKind } from "@/lib/ledger-categories";
+import { formatPrice } from "@/lib/config";
 import { ReceiptInput } from "./ReceiptInput";
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
   compact?: boolean;
   /** Nombre del usuario logueado. Si viene, el movimiento se firma con él y no se pregunta quién. */
   sessionName?: string;
+  /** Lo que hay en la caja de efectivo, para verlo al elegir con qué plata se pagó. */
+  enCaja?: number;
 };
 
 // --- Quién carga: se recuerda en el teléfono -------------------------------
@@ -40,11 +43,36 @@ function writeWho(name: string) {
   listeners.forEach((l) => l());
 }
 
+// --- Con qué plata: se recuerda en el teléfono ----------------------------
+// El que hace las compras casi siempre paga de la misma forma: que no elija lo mismo todos los días.
+// La primera vez arranca en "de la caja", que es de donde sale la plata del día a día.
+const POCKET_KEY = "catdog:conque";
+const pocketListeners = new Set<() => void>();
+function subscribePocket(cb: () => void) {
+  pocketListeners.add(cb);
+  return () => pocketListeners.delete(cb);
+}
+function readPocket(): boolean {
+  try {
+    return localStorage.getItem(POCKET_KEY) === "si";
+  } catch {
+    return false;
+  }
+}
+function writePocket(v: boolean) {
+  try {
+    localStorage.setItem(POCKET_KEY, v ? "si" : "no");
+  } catch {
+    // sin localStorage: no se recuerda, nada más
+  }
+  pocketListeners.forEach((l) => l());
+}
+
 function formatThousands(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-export function LedgerForm({ eventId, today, defaultKind = "EXPENSE", compact = false, sessionName }: Props) {
+export function LedgerForm({ eventId, today, defaultKind = "EXPENSE", compact = false, sessionName, enCaja }: Props) {
   const [state, action, pending] = useActionState(addLedgerEntryAction, null);
   // Al guardar con éxito cambia la key y el form vuelve a los valores iniciales.
   const formKey = state?.ok ? state.savedAt : 0;
@@ -57,6 +85,7 @@ export function LedgerForm({ eventId, today, defaultKind = "EXPENSE", compact = 
         defaultKind={defaultKind}
         compact={compact}
         sessionName={sessionName}
+        enCaja={enCaja}
         action={action}
         pending={pending}
       />
@@ -76,13 +105,15 @@ function Fields({
   defaultKind,
   compact,
   sessionName,
+  enCaja,
   action,
   pending,
 }: Props & { defaultKind: AnyKind; action: (formData: FormData) => void; pending: boolean }) {
   const [kind, setKind] = useState<AnyKind>(defaultKind);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<string>("");
-  const [fromPocket, setFromPocket] = useState(true);
+  // Arranca en "de la caja" y después repite lo último que se usó en este teléfono.
+  const fromPocket = useSyncExternalStore(subscribePocket, readPocket, () => false);
   const stored = useSyncExternalStore(subscribeWho, readWho, () => "");
   // Con usuario propio, siempre firma él. Con la maestra, el que eligió (se recuerda en el teléfono).
   const who = sessionName ?? (PARTNERS.includes(stored) ? stored : (PARTNERS[0] ?? ""));
@@ -245,12 +276,12 @@ function Fields({
               <div className="flex gap-2">
                 {[
                   { v: true, label: "De mi bolsillo", hint: "el negocio me lo debe" },
-                  { v: false, label: "De la caja", hint: "plata del negocio" },
+                  { v: false, label: "De la caja", hint: enCaja != null ? `hay ${formatPrice(enCaja)}` : "plata del negocio" },
                 ].map((o) => (
                   <button
                     key={String(o.v)}
                     type="button"
-                    onClick={() => setFromPocket(o.v)}
+                    onClick={() => writePocket(o.v)}
                     aria-pressed={fromPocket === o.v}
                     className={`flex-1 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                       fromPocket === o.v ? "border-accent bg-accent/15 text-accent" : "border-line bg-surface-2 text-muted"

@@ -33,6 +33,7 @@ import { runAnalysis } from "@/lib/ai-analysis";
 import { approveHuella, markSugerenciasSeen, removeHuella, removeSugerencia, setPedidoStatus, setServedStep } from "@/lib/vivo";
 import { COVER_VIAS, abrirTraspaso, cancelarTraspaso, cargarExtra, cerrarCuenta, desmarcarCover, getCuentas, marcarReserva, nuevoSalaCode, reabrirCuenta, resumen, saldarCover, setConsumoStatus, setCover, type CoverVia } from "@/lib/sala";
 import { setServicioAbierto } from "@/lib/hoy";
+import { CATEGORIA_ARQUEO, diferenciaArqueo } from "@/lib/caja-tipos";
 
 export type ActionState = { ok: boolean; message?: string } | null;
 
@@ -566,6 +567,37 @@ export async function setReserveAction(_prev: ActionState, formData: FormData): 
   await prisma.setting.upsert({ where: { key: "reserve" }, update: { value: String(n) }, create: { key: "reserve", value: String(n) } });
   revalidatePath("/admin/gastos");
   return { ok: true, message: "Reserva guardada." };
+}
+
+/**
+ * Arqueo: se cuenta la plata del cajón y se compara con lo que debería haber. Si cuadra no escribe
+ * nada. Si no, deja anotada la diferencia (falta = gasto de la caja, sobra = ingreso), así el saldo
+ * vuelve a coincidir con la plata real y queda el rastro de cuándo y de cuánto fue.
+ */
+export async function arquearCajaAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const me = await whoAmI();
+  const contado = parseInt(String(formData.get("contado") ?? "").replace(/\D/g, ""), 10);
+  const esperado = parseInt(String(formData.get("esperado") ?? ""), 10);
+  if (!Number.isFinite(contado) || contado < 0) return { ok: false, message: "Poné cuánto contaste." };
+  if (!Number.isFinite(esperado)) return { ok: false, message: "No se pudo leer el saldo." };
+  const dif = diferenciaArqueo(contado, esperado);
+  if (dif === 0) return { ok: true, message: "La caja cuadra." };
+  const falta = dif < 0;
+  await prisma.ledgerEntry.create({
+    data: {
+      kind: falta ? "EXPENSE" : "INCOME",
+      category: CATEGORIA_ARQUEO,
+      description: `Arqueo: se contaron ${formatPrice(contado)} y había que tener ${formatPrice(esperado)}`.slice(0, 200),
+      amount: Math.abs(dif),
+      day: argentinaDay(),
+      by: me.name,
+      fromPocket: false,
+      createdBy: me.name,
+    },
+  });
+  revalidatePath("/admin/gastos");
+  return { ok: true, message: falta ? `Faltaban ${formatPrice(-dif)}. Queda anotado.` : `Sobraban ${formatPrice(dif)}. Queda anotado.` };
 }
 
 /** Genera el análisis con los números actuales y lo guarda (por reglas o con IA, según lo configurado). */

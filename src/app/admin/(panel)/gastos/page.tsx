@@ -6,7 +6,8 @@ import { getPartnerReport, getTrash, getWeeklyReport, type WeekReport } from "@/
 import { getAnalysisMode, getStoredAnalysis, modeLabel } from "@/lib/ai-analysis";
 import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
-import { AnalysisButton, ReserveForm } from "@/components/admin/GastosForms";
+import { AnalysisButton, ArqueoForm, ReserveForm } from "@/components/admin/GastosForms";
+import { getSaldoCaja } from "@/lib/caja";
 import { ensureFixedEntries, getWeeklyFixedTotal } from "@/lib/fixed-expenses";
 import Link from "next/link";
 
@@ -14,11 +15,12 @@ export default async function GastosPage() {
   // Los gastos fijos de la semana se cargan solos al abrir la pantalla.
   await ensureFixedEntries();
   const [nextEvent, session, weeklyFixed] = await Promise.all([getNextEvent(), getSession(), getWeeklyFixedTotal()]);
-  const [report, partners, stored, trash] = await Promise.all([
+  const [report, partners, stored, trash, caja] = await Promise.all([
     getWeeklyReport(8, nextEvent?.price),
     getPartnerReport(),
     getStoredAnalysis(),
     getTrash(),
+    getSaldoCaja(),
   ]);
   const { current, total } = report;
   const today = todayIso();
@@ -30,6 +32,36 @@ export default async function GastosPage() {
 
   return (
     <>
+      {/* 0. La caja: lo primero que se ve, porque es la pregunta de todos los días ("¿cuánto hay?"). */}
+      <section className="card p-5 sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="eyebrow">En la caja, ahora</p>
+            <p className={`font-display text-5xl tabular-nums ${caja.saldo < 0 ? "text-danger" : ""}`}>{formatPrice(caja.saldo)}</p>
+            <p className="mt-1 text-sm text-muted">
+              Efectivo en el local: lo cobrado en mano menos lo que se pagó de la caja. No cuenta transferencias ni tarjeta.
+            </p>
+          </div>
+          <ArqueoForm esperado={caja.saldo} />
+        </div>
+        {caja.detalle.length > 0 && (
+          <details className="mt-4">
+            <summary className="cursor-pointer text-sm text-muted hover:text-ink">Cómo se llega a ese número</summary>
+            <ul className="mt-3 divide-y divide-line text-sm">
+              {caja.detalle.map((m) => (
+                <li key={m.concepto} className="flex items-center justify-between gap-3 py-2">
+                  <span className="text-muted">{m.concepto}</span>
+                  <span className={`tabular-nums ${m.monto < 0 ? "text-danger" : "text-ok"}`}>
+                    {m.monto < 0 ? "−" : "+"}
+                    {formatPrice(Math.abs(m.monto))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </section>
+
       {/* 1. Carga rápida */}
       <section className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -40,7 +72,7 @@ export default async function GastosPage() {
         </div>
         <p className="mt-1 text-sm text-muted">Monto, rubro, guardar. Lo demás es opcional.</p>
         <div className="mt-5">
-          <LedgerForm today={today} sessionName={sessionName} />
+          <LedgerForm today={today} sessionName={sessionName} enCaja={caja.saldo} />
         </div>
       </section>
 
