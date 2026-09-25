@@ -7,6 +7,8 @@ import { getRecetas, precioSugerido, semaforoFoodCost } from "@/lib/recetas";
 import { categoryLabel } from "@/lib/ledger-categories";
 import { puntoDeEquilibrio, rankingGastos, rubrosQuePesan, serieSemanal } from "@/lib/estadisticas";
 import { BarraEquilibrio, BarrasRubros, BarrasSemana } from "@/components/admin/Graficos";
+import { getMatriz } from "@/lib/matriz-db";
+import { LUGAR_LABEL, LUGAR_QUE_HACER, resumenMatriz, type Lugar } from "@/lib/matriz";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +50,14 @@ export default async function EstadisticasPage() {
   const pesan = rubrosQuePesan(filas);
 
   const cubiertosSemana = ultima?.covers ?? 0;
+
+  // Qué conviene vender: las últimas ocho semanas, que es lo que ya se está mirando arriba.
+  const desde = semanas[0]?.start ?? new Date(0);
+  const matriz = await getMatriz(desde);
+  const resumen = resumenMatriz(matriz);
+  const porLugar = (l: Lugar) => matriz.filas.filter((f) => f.lugar === l);
+  const ORDEN: Lugar[] = ["perro", "caballo", "incognita", "estrella"];
+  const TONO: Record<Lugar, string> = { estrella: "text-ok", caballo: "text-accent", incognita: "text-accent", perro: "text-danger" };
 
   return (
     <>
@@ -104,6 +114,56 @@ export default async function EstadisticasPage() {
           )}
         </p>
         <BarrasRubros filas={filas} total={total} />
+      </section>
+
+      {/* Qué conviene vender */}
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">Qué conviene vender</h2>
+        <p className="mt-1 text-sm text-muted">
+          Cada cosa cae en un lugar según cuánto deja y cuánto se pide. Mover de lugar en la carta lo que ya cocinás es lo que más mueve la
+          ganancia, sin cambiar nada más.
+        </p>
+        {resumen && <p className="mt-3 text-sm">{resumen}</p>}
+
+        {matriz.filas.length === 0 ? (
+          <p className="mt-4 text-sm text-muted">
+            Todavía no alcanza para medir: hace falta que se haya vendido algo y que esas cosas tengan su receta cargada con el precio.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-4">
+            {ORDEN.filter((l) => porLugar(l).length > 0).map((l) => (
+              <div key={l} className="min-w-0 rounded-xl border border-line bg-surface-2 p-4">
+                <p className={"text-xs uppercase tracking-wider " + TONO[l]}>{LUGAR_LABEL[l]}</p>
+                <ul className="mt-2 grid gap-1.5">
+                  {porLugar(l).map((f) => (
+                    <li key={f.nombre} className="flex min-w-0 items-baseline justify-between gap-3 text-sm">
+                      <span className="min-w-0 truncate">{f.nombre}</span>
+                      <span className="shrink-0 whitespace-nowrap text-xs text-muted tabular-nums">
+                        {f.vendidos} vendidos · deja {formatPrice(f.margen)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-muted">{LUGAR_QUE_HACER[l]}</p>
+              </div>
+            ))}
+            <p className="text-xs text-muted">
+              La vara: se considera que algo “se pide” cuando se lleva más del {matriz.corteMix.toFixed(1)}% de lo pedido, y que “deja” cuando deja
+              más de {formatPrice(matriz.corteMargen)} por vez.
+            </p>
+          </div>
+        )}
+
+        {matriz.sinDatos.length > 0 && (
+          <p className="mt-3 text-xs text-muted">
+            Sin receta cargada, así que quedaron afuera: {matriz.sinDatos.slice(0, 8).join(", ")}
+            {matriz.sinDatos.length > 8 ? "…" : ""}.{" "}
+            <Link href="/admin/recetas" className="underline underline-offset-4">
+              Cargalas
+            </Link>{" "}
+            y entran solas.
+          </p>
+        )}
       </section>
 
       {/* Precios sugeridos */}
