@@ -9,6 +9,7 @@ import { categoryLabel } from "@/lib/ledger-categories";
 import { puntoDeEquilibrio, rankingGastos, rubrosQuePesan, serieSemanal } from "@/lib/estadisticas";
 import { BarraEquilibrio, BarrasRubros, BarrasSemana } from "@/components/admin/Graficos";
 import { getMatriz } from "@/lib/matriz-db";
+import { sinRomper } from "@/lib/sin-romper";
 import { LUGAR_LABEL, LUGAR_QUE_HACER, resumenMatriz, type Lugar } from "@/lib/matriz";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,10 @@ export default async function EstadisticasPage() {
   const semanas = report.weeks;
   const ultima = semanas[semanas.length - 1];
   const previa = semanas[semanas.length - 2];
-  const [visits, money] = await Promise.all([getVisitStats(), getFinancials()]);
+  const [visits, money] = await Promise.all([
+    sinRomper(getVisitStats(), { today: 0, last7: 0, last30: 0, daily: [], byPath: [] }, "las visitas"),
+    getFinancials(),
+  ]);
   const maxDaily = Math.max(1, ...visits.daily.map((d) => d.count));
 
   const vacio: Record<string, number> = {};
@@ -64,7 +68,7 @@ export default async function EstadisticasPage() {
 
   // Qué conviene vender: las últimas ocho semanas, que es lo que ya se está mirando arriba.
   const desde = semanas[0]?.start ?? new Date(0);
-  const matriz = await getMatriz(desde);
+  const matriz = await sinRomper(getMatriz(desde), { filas: [], total: 0, corteMix: 0, corteMargen: 0, sinDatos: [] }, "la matriz de la carta");
   const resumen = resumenMatriz(matriz);
   const porLugar = (l: Lugar) => matriz.filas.filter((f) => f.lugar === l);
   const ORDEN: Lugar[] = ["perro", "caballo", "incognita", "estrella"];

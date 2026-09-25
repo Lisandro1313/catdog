@@ -8,6 +8,7 @@ import { LedgerForm } from "@/components/admin/LedgerForm";
 import { MovementList } from "@/components/admin/MovementList";
 import { AnalysisButton, ArqueoForm, PasarAEfectivoForm, ReserveForm } from "@/components/admin/GastosForms";
 import { getSaldoCaja } from "@/lib/caja";
+import { sinRomper } from "@/lib/sin-romper";
 import { diasHastaFinDeMes, planDeCaja } from "@/lib/plan-caja";
 import { ensureFixedEntries, getMonthlyFixedTotal, getWeeklyFixedTotal } from "@/lib/fixed-expenses";
 import Link from "next/link";
@@ -19,7 +20,7 @@ export default async function GastosPage() {
   const [report, partners, stored, trash, caja] = await Promise.all([
     getWeeklyReport(8, nextEvent?.price),
     getPartnerReport(),
-    getStoredAnalysis(),
+    sinRomper(getStoredAnalysis(), null, "el último análisis"),
     getTrash(),
     getSaldoCaja(),
   ]);
