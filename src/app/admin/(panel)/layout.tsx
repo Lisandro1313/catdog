@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const servicio = await getServicioAbierto();
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="panel-legible flex flex-1 flex-col">
       <nav className="sticky top-0 z-20 border-b border-line bg-bg/95 backdrop-blur">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-5 py-3 sm:py-4">
           <Link href="/admin" className="font-display text-xl">

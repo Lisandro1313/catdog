@@ -2855,3 +2855,25 @@ details.faq > summary::-webkit-details-marker {
   font-style: normal;
   opacity: 0.85;
 }
+
+/* --- El panel, legible ---------------------------------------------------
+   El panel lo usan dos personas apuradas, de noche, con el teléfono en una mano.
+   El texto chico de Tailwind (12 px) no se lee así, y hay setenta usos repartidos por todas las
+   pantallas. En vez de tocarlos uno por uno, acá adentro esos tamaños suben: la letra más chica
+   queda en 13,6 px y la normal en 15,2 px, sin mover ninguna pantalla de lugar. */
+.panel-legible .text-xs {
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.panel-legible .text-sm {
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.panel-legible .text-\[0\.7rem\],
+.panel-legible .text-\[0\.68rem\] {
+  font-size: 0.82rem;
+}
+/* Los botones y campos, más altos: el dedo no acierta en 36 px. */
+.panel-legible .btn-sm {
+  min-height: 2.75rem;
+}

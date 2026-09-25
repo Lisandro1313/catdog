@@ -167,7 +167,7 @@ function Fields({
               setKind(k);
               setCategory("");
             }}
-            className={`rounded-lg py-2 font-medium transition-colors ${kind === k ? kindTone[k] : "text-muted"}`}
+            className={`min-h-11 rounded-lg font-medium transition-colors ${kind === k ? kindTone[k] : "text-muted"}`}
           >
             {KIND_LABEL[k]}
           </button>
