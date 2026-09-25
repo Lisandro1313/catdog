@@ -205,113 +205,106 @@ export default async function AdminEventPage({
         {event.reservations.length === 0 ? (
           <p className="mt-4 text-muted">Nadie reservó todavía.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted">
-                <tr>
-                  <th className="py-2 pr-3">Cant.</th>
-                  <th className="py-2 pr-3">Sillas</th>
-                  <th className="py-2 pr-3">Nombre</th>
-                  <th className="py-2 pr-3">Contacto</th>
-                  <th className="py-2 pr-3">Estado</th>
-                  <th className="py-2 pr-3">Monto</th>
-                  <th className="py-2"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {event.reservations.map((r) => {
-                  const expired = r.status === "PENDING" && r.expiresAt.getTime() < now;
-                  const inactive = expired || r.status === "CANCELLED";
-                  return (
-                    <tr key={r.id} className={inactive ? "opacity-50" : ""}>
-                      <td className="py-2 pr-3 font-display text-lg">{r.quantity}</td>
-                      <td className="py-2 pr-3">
-                        {r.status === "PAID" ? (
-                          <div className="flex flex-wrap items-center gap-2">
-                            {r.seats.length > 0 && (
-                              <span className="font-display text-lg text-accent">{r.seats.map((s) => s.number).join(", ")}</span>
-                            )}
-                            {r.seats.length === 0 && <span className="text-xs text-muted">sin elegir</span>}
-                            <AssignSeatsForm reservationId={r.id} current={r.seats.map((s) => s.number)} quantity={r.quantity} />
-                          </div>
-                        ) : (
-                          <span className="text-muted">—</span>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 font-medium">{r.name}</td>
-                      <td className="py-2 pr-3 text-muted">
-                        {r.email !== "sin-email@local" && (
-                          <a className="hover:text-ink" href={`mailto:${r.email}`}>
-                            {r.email}
-                          </a>
-                        )}
-                        {r.phone && (
-                          <>
-                            <br />
-                            <a className="hover:text-ink" href={whatsappUrl(r.phone)} target="_blank" rel="noopener noreferrer">
-                              {r.phone}
-                            </a>
-                          </>
-                        )}
-                        {r.notes && <p className="mt-1 max-w-[16rem] text-xs text-accent">“{r.notes}”</p>}
-                        {r.giftName && (
-                          <p className="mt-1 text-xs text-accent">
-                            🎁 Regalo para {r.giftName}
-                            {r.giftEmail ? ` (${r.giftEmail})` : ""}
-                          </p>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3">
-                        {r.status === "PAID" && (
-                          <span className="text-ok">
-                            Pagado · {r.paidVia}
-                            {r.paidAt && <span className="block text-xs text-muted">{formatShort(r.paidAt)}</span>}
-                            {r.confirmedAt ? (
-                              <span className="block text-xs text-ok">✓ confirmó que viene</span>
-                            ) : r.remindedAt ? (
-                              <span className="block text-xs text-muted">recordatorio enviado</span>
-                            ) : null}
-                          </span>
-                        )}
-                        {r.status === "PENDING" && !expired && (
-                          <span className="text-accent">
-                            {r.mpInitPoint ? "Pagando en MP" : "Espera transferencia"} · hasta {formatShort(r.expiresAt)}
-                          </span>
-                        )}
-                        {expired && <span className="text-muted">{r.mpInitPoint ? "Vencida" : "Sin comprobante (vencida)"}</span>}
-                        {r.status === "CANCELLED" && <span className="text-muted">Cancelada</span>}
-                      </td>
-                      <td className="py-2 pr-3">{formatPrice(r.amount)}</td>
-                      <td className="py-2 text-right whitespace-nowrap">
-                        <div className="inline-flex gap-2">
-                          {r.status === "PENDING" && (!expired || !r.mpInitPoint) && (
-                            <MarkPaidForm id={r.id} name={r.name} amount={formatPrice(r.amount)} via={r.mpInitPoint ? "efectivo" : "transferencia"} compact />
-                          )}
-                          {(r.status === "PAID" || r.status === "PENDING") && (
-                            <form action={cancelReservationAction}>
-                              <input type="hidden" name="id" value={r.id} />
-                              <ConfirmButton
-                                className="btn btn-ghost btn-sm"
-                                message={`¿Cancelar la reserva de ${r.name}? Se liberan sus lugares. La fila queda como cancelada.`}
-                              >
-                                Cancelar
-                              </ConfirmButton>
-                            </form>
-                          )}
-                          <form action={deleteReservationAction}>
-                            <input type="hidden" name="id" value={r.id} />
-                            <ConfirmButton message={`¿Borrar definitivamente la reserva de ${r.name}? No se puede deshacer.`}>
-                              Borrar
-                            </ConfirmButton>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ul className="mt-4 grid gap-3">
+            {event.reservations.map((r) => {
+              const expired = r.status === "PENDING" && r.expiresAt.getTime() < now;
+              const inactive = expired || r.status === "CANCELLED";
+              return (
+                <li key={r.id} className={`min-w-0 rounded-xl border border-line bg-surface-2/40 p-4 ${inactive ? "opacity-60" : ""}`}>
+                  {/* Quién y cuánto: lo primero que se busca al mirar la lista. */}
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="min-w-0 truncate font-display text-xl">{r.name}</p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        {r.quantity === 1 ? "1 lugar" : `${r.quantity} lugares`} · {formatPrice(r.amount)}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-right text-sm">
+                      {r.status === "PAID" && <span className="text-ok">Pagado</span>}
+                      {r.status === "PENDING" && !expired && <span className="text-accent">{r.mpInitPoint ? "Pagando" : "Falta pagar"}</span>}
+                      {expired && <span className="text-muted">Vencida</span>}
+                      {r.status === "CANCELLED" && <span className="text-muted">Cancelada</span>}
+                    </span>
+                  </div>
+
+                  {/* El detalle del estado, en palabras. */}
+                  <p className="mt-1 text-xs text-muted">
+                    {r.status === "PAID" && (
+                      <>
+                        {r.paidVia}
+                        {r.paidAt && ` · ${formatShort(r.paidAt)}`}
+                        {r.confirmedAt ? <span className="text-ok"> · confirmó que viene</span> : r.remindedAt ? " · recordatorio enviado" : ""}
+                      </>
+                    )}
+                    {r.status === "PENDING" && !expired && <>Se le guarda hasta el {formatShort(r.expiresAt)}</>}
+                    {expired && <>{r.mpInitPoint ? "No completó el pago" : "Nunca mandó el comprobante"}</>}
+                  </p>
+
+                  {/* Lo que avisó y si es un regalo: no puede quedar escondido. */}
+                  {r.notes && <p className="mt-2 rounded-lg bg-accent/10 p-2 text-sm text-accent">“{r.notes}”</p>}
+                  {r.giftName && (
+                    <p className="mt-2 text-sm text-accent">
+                      Es un regalo para {r.giftName}
+                      {r.giftEmail ? ` (${r.giftEmail})` : ""}
+                    </p>
+                  )}
+
+                  {/* Cómo ubicarlo */}
+                  {(r.email !== "sin-email@local" || r.phone) && (
+                    <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                      {r.email !== "sin-email@local" && (
+                        <a className="min-w-0 truncate text-muted hover:text-ink" href={`mailto:${r.email}`}>
+                          {r.email}
+                        </a>
+                      )}
+                      {r.phone && (
+                        <a className="text-muted hover:text-ink" href={whatsappUrl(r.phone)} target="_blank" rel="noopener noreferrer">
+                          WhatsApp {r.phone}
+                        </a>
+                      )}
+                    </p>
+                  )}
+
+                  {/* Las sillas, solo cuando ya pagó */}
+                  {r.status === "PAID" && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                      <span className="text-xs uppercase tracking-wider text-muted">Sillas</span>
+                      {r.seats.length > 0 ? (
+                        <span className="font-display text-lg text-accent">{r.seats.map((s) => s.number).join(", ")}</span>
+                      ) : (
+                        <span className="text-sm text-muted">sin elegir</span>
+                      )}
+                      <AssignSeatsForm reservationId={r.id} current={r.seats.map((s) => s.number)} quantity={r.quantity} />
+                    </div>
+                  )}
+
+                  {/* Las acciones, a lo ancho y abajo */}
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                    {r.status === "PENDING" && (!expired || !r.mpInitPoint) && (
+                      <MarkPaidForm id={r.id} name={r.name} amount={formatPrice(r.amount)} via={r.mpInitPoint ? "efectivo" : "transferencia"} compact />
+                    )}
+                    {(r.status === "PAID" || r.status === "PENDING") && (
+                      <form action={cancelReservationAction}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <ConfirmButton
+                          className="btn btn-ghost btn-sm"
+                          message={`¿Cancelar la reserva de ${r.name}? Se liberan sus lugares. Queda anotada como cancelada.`}
+                        >
+                          Cancelar
+                        </ConfirmButton>
+                      </form>
+                    )}
+                    <form action={deleteReservationAction}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <ConfirmButton className="btn btn-ghost btn-sm text-danger" message={`¿Borrar definitivamente la reserva de ${r.name}? No se puede deshacer.`}>
+                        Borrar
+                      </ConfirmButton>
+                    </form>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
 
         <div className="mt-6 border-t border-line pt-5">
