@@ -2877,3 +2877,48 @@ details.faq > summary::-webkit-details-marker {
 .panel-legible .btn-sm {
   min-height: 2.75rem;
 }
+
+/* --- La pantalla de la tele ---------------------------------------------
+   Esta no se mira en la mano: se mira desde la mesa, a dos o tres metros. En una tele de 1080p,
+   48 px de letra a esa distancia se leen como 12 px en el teléfono. Así que a partir de una pantalla
+   grande todo crece, y el contenido usa el ancho de verdad en vez de quedar en una columna angosta
+   con la mitad de la tele vacía. */
+@media (min-width: 1280px) {
+  .pantalla-tele {
+    font-size: 1.25rem;
+  }
+  .pantalla-tele .ap-display.text-5xl {
+    font-size: 4.5rem;
+  }
+  .pantalla-tele .font-display.text-2xl {
+    font-size: 2.25rem;
+  }
+  .pantalla-tele .text-sm {
+    font-size: 1.05rem;
+  }
+  .pantalla-tele .ap-eyebrow {
+    font-size: 1rem;
+  }
+}
+@media (min-width: 1920px) {
+  .pantalla-tele {
+    font-size: 1.5rem;
+  }
+  .pantalla-tele .ap-display.text-5xl {
+    font-size: 6rem;
+  }
+  .pantalla-tele .font-display.text-2xl {
+    font-size: 3rem;
+  }
+}
+/* El título de la cena acompaña; el plato que sale es el que manda. */
+@media (min-width: 1280px) {
+  .pantalla-tele .ap-display.text-4xl {
+    font-size: 2.75rem;
+  }
+}
+@media (min-width: 1920px) {
+  .pantalla-tele .ap-display.text-4xl {
+    font-size: 3.5rem;
+  }
+}

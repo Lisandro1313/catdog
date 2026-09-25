@@ -44,13 +44,13 @@ export default async function PantallaPage({ params }: { params: Promise<{ id: s
   const tops = GAMES.map((g) => ({ g, top: records[g]?.[0] })).filter((x) => x.top);
 
   return (
-    <div className="ap fixed inset-0 z-50 overflow-y-auto bg-bg px-10 py-10 text-ink">
+    <div className="ap pantalla-tele fixed inset-0 z-50 overflow-y-auto bg-bg px-10 py-10 text-ink">
       <AutoRefresh every={20000} />
       <ForceDark />
-      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.2fr_1fr]">
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.2fr_1fr] xl:max-w-[110rem] xl:gap-16">
         <div>
           <p className="ap-eyebrow">✦ {SITE_NAME} ✦</p>
-          <h1 className="ap-display mt-3 text-5xl">{event.title}</h1>
+          <h1 className="ap-display mt-3 text-4xl">{event.title}</h1>
           <section className="mt-10 rounded-3xl border border-accent/40 bg-surface/60 p-8">
             <p className="ap-eyebrow">{served ? "Ahora en la mesa" : "Esta noche"}</p>
             {served ? (
