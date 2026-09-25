@@ -224,40 +224,41 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
           <p className="mt-1 text-xs text-muted">Abrieron su cuenta y no pueden pedir hasta que marques cómo pagaron.</p>
           <ul className="mt-3 grid gap-3">
             {esperando.map((c) => (
-              <li key={c.id} className="rounded-xl border border-accent/40 p-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-display text-lg">
-                    {c.name}
-                    {c.table ? <span className="text-sm text-muted"> · mesa {c.table}</span> : null}
-                  </p>
-                  <p className="tabular-nums text-accent">{formatPrice(c.cover)}</p>
+              <li key={c.id} className="min-w-0 rounded-xl border border-accent/40 p-4">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <p className="min-w-0 truncate font-display text-lg">{c.name}</p>
+                  <p className="shrink-0 tabular-nums text-accent">{formatPrice(c.cover)}</p>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                {/* Botones en grilla pareja: al costado se salían de la pantalla del teléfono. */}
+                <p className="mt-3 text-xs uppercase tracking-wider text-muted">Cómo pagó</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
                   {(["efectivo", "tarjeta", "transferencia", "invitado"] as const).map((via) => (
-                    <form key={via} action={cobrarCenaAction}>
+                    <form key={via} action={cobrarCenaAction} className="min-w-0">
                       <input type="hidden" name="id" value={c.id} />
                       <input type="hidden" name="eventId" value={event.id} />
                       <input type="hidden" name="via" value={via} />
-                      <button className={`btn btn-sm ${via === "invitado" ? "btn-ghost" : "btn-primary"}`} type="submit">
-                        {via === "efectivo" ? "Efectivo" : via === "tarjeta" ? "Tarjeta" : via === "transferencia" ? "Transferencia" : "Invitado"}
+                      <button className={`btn btn-sm w-full ${via === "invitado" ? "btn-ghost" : "btn-primary"}`} type="submit">
+                        {via === "efectivo" ? "Efectivo" : via === "tarjeta" ? "Tarjeta" : via === "transferencia" ? "Transfer." : "Invitado"}
                       </button>
                     </form>
                   ))}
-                  <form action={setCoverAction} className="flex items-center gap-1">
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <form action={setCoverAction} className="min-w-0">
                     <input type="hidden" name="id" value={c.id} />
                     <input type="hidden" name="eventId" value={event.id} />
                     <input type="hidden" name="nota" value="2x1" />
                     <input type="hidden" name="monto" value={Math.round(event.price / 2)} />
-                    <button className="btn btn-ghost btn-sm" type="submit">
+                    <button className="btn btn-ghost btn-sm w-full" type="submit">
                       2x1 ({formatPrice(Math.round(event.price / 2))})
                     </button>
                   </form>
-                  <form action={setCoverAction} className="flex items-center gap-1">
+                  <form action={setCoverAction} className="flex min-w-0 gap-2">
                     <input type="hidden" name="id" value={c.id} />
                     <input type="hidden" name="eventId" value={event.id} />
-                    <input className="input h-11 w-28" name="monto" inputMode="numeric" placeholder="otro $" aria-label="Otro monto" />
+                    <input className="input h-11 min-w-0 flex-1" name="monto" inputMode="numeric" placeholder="otro $" aria-label="Otro monto" />
                     <input type="hidden" name="nota" value="a mano" />
-                    <button className="btn btn-ghost btn-sm" type="submit">
+                    <button className="btn btn-ghost btn-sm shrink-0" type="submit">
                       Poner
                     </button>
                   </form>
@@ -326,105 +327,152 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
   );
 }
 
+/**
+ * La tarjeta de una persona en el salón: quién es, cómo viene, qué lleva consumido y qué falta
+ * cobrarle. Pensada para el teléfono: una cosa abajo de la otra, nada al costado, botones grandes.
+ */
 function CuentaCard({ c, eventId, barPrice, qr }: { c: CuentaRow; eventId: string; barPrice: number | null; qr?: string | null }) {
   const items = c.consumos.filter((x) => x.kind === "trago" || x.kind === "extra").filter((x) => x.status !== "cancelado");
   const pasosListos = c.consumos.filter((x) => x.kind === "paso" && x.status === "listo").length;
+  const enCamino = c.consumos.filter((x) => x.status === "pendiente");
+  const cobrado = c.coverVia ? (VIA_LABEL[c.coverVia as keyof typeof VIA_LABEL] ?? c.coverVia) : null;
+
   return (
-    <li className="rounded-xl border border-line p-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-display text-lg">
-          {c.name}
-          {c.table ? <span className="text-sm text-muted"> · mesa {c.table}</span> : null}
-        </p>
-        <p className="text-sm text-muted">
-          cena {c.cover > 0 ? formatPrice(c.cover) : "—"}
-          {c.coverVia && <span className="ml-1">({VIA_LABEL[c.coverVia as keyof typeof VIA_LABEL] ?? c.coverVia})</span>}
-        </p>
+    <li className="min-w-0 rounded-xl border border-line bg-surface-2/40 p-4">
+      {/* Quién y cómo viene */}
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <p className="min-w-0 truncate font-display text-xl">{c.name}</p>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${enCamino.length > 0 ? "bg-accent text-bg" : "border border-line text-muted"}`}>
+          {enCamino.length > 0 ? `${enCamino.length} en camino` : "al día"}
+        </span>
       </div>
       <p className="mt-1 text-xs text-muted">
-        {pasosListos} paso{pasosListos === 1 ? "" : "s"} servido{pasosListos === 1 ? "" : "s"}
-        {items.length > 0 && ` · ${items.map((i) => `${i.qty > 1 ? `${i.qty} × ` : ""}${i.item}`).join(", ")}`}
+        {c.cover > 0 ? `Cena ${formatPrice(c.cover)}` : "Sin cubierto"}
+        {cobrado ? ` · ${cobrado}` : ""}
+        {pasosListos > 0 ? ` · ${pasosListos} paso${pasosListos === 1 ? "" : "s"} servido${pasosListos === 1 ? "" : "s"}` : ""}
       </p>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="font-display text-xl tabular-nums">
-          {formatPrice(c.extra)} <span className="text-xs font-sans text-muted">de barra</span>
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {(["efectivo", "tarjeta", "transferencia"] as const).map((via) => (
-            <form key={via} action={cerrarCuentaAction}>
-              <input type="hidden" name="id" value={c.id} />
-              <input type="hidden" name="eventId" value={eventId} />
-              <input type="hidden" name="via" value={via} />
-              <button className="btn btn-primary btn-sm" type="submit">
-                Cerrar {via === "efectivo" ? "efectivo" : via === "tarjeta" ? "tarjeta" : "transfer."}
-              </button>
-            </form>
+
+      {/* Qué lleva: una línea por cosa, con su precio a la derecha */}
+      {items.length > 0 && (
+        <ul className="mt-3 grid gap-1 border-t border-line pt-3 text-sm">
+          {items.map((i) => (
+            <li key={i.id} className="flex min-w-0 items-baseline justify-between gap-3">
+              {/* El nombre se recorta si es largo; el "en camino" va afuera para que no lo tape. */}
+              <span className="min-w-0 truncate">
+                {i.qty > 1 ? `${i.qty} × ` : ""}
+                {i.item}
+              </span>
+              <span className="flex shrink-0 items-baseline gap-2">
+                {i.status === "pendiente" && <span className="text-xs text-accent">en camino</span>}
+                <span className="tabular-nums text-muted">{formatPrice(i.qty * i.price)}</span>
+              </span>
+            </li>
           ))}
-        </div>
+        </ul>
+      )}
+
+      {/* Lo que falta cobrar */}
+      <div className="mt-3 flex items-baseline justify-between gap-3 border-t border-line pt-3">
+        <span className="text-xs uppercase tracking-wider text-muted">Lleva de barra</span>
+        <span className="font-display text-2xl tabular-nums">{formatPrice(c.extra)}</span>
       </div>
 
-      {c.traspasoCode ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 p-3">
-          {/* Se le muestra la pantalla y lo escanea: entra derecho a su cuenta, sin tipear. */}
-          {qr && <div className="w-28 shrink-0 rounded-lg bg-white p-2" dangerouslySetInnerHTML={{ __html: qr }} />}
-          <p className="min-w-0 text-sm">
-            Que escanee esto y vuelve a su cuenta.
-            <br />
-            <span className="text-muted">O que ponga el código</span>{" "}
-            <strong className="font-display text-2xl tabular-nums text-accent">{c.traspasoCode}</strong>
-            <br />
-            <span className="text-xs text-muted">vale 15 minutos, un solo uso</span>
-          </p>
-          <form action={cancelarTraspasoAction}>
+      {/* Cobrar y cerrar: a lo ancho, sin apretujar */}
+      <p className="mt-3 text-xs uppercase tracking-wider text-muted">Cerrar la cuenta</p>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        {(
+          [
+            { via: "efectivo", label: "Efectivo" },
+            { via: "tarjeta", label: "Tarjeta" },
+            { via: "transferencia", label: "Transfer." },
+          ] as const
+        ).map((o) => (
+          <form key={o.via} action={cerrarCuentaAction} className="min-w-0">
             <input type="hidden" name="id" value={c.id} />
             <input type="hidden" name="eventId" value={eventId} />
-            <button className="text-xs text-muted hover:text-ink" type="submit">
-              anular
+            <input type="hidden" name="via" value={o.via} />
+            <button className="btn btn-primary btn-sm w-full" type="submit">
+              {o.label}
             </button>
           </form>
-        </div>
-      ) : null}
+        ))}
+      </div>
 
-      <details className="mt-3">
-        <summary className="cursor-pointer text-xs text-muted">Más: extra, forma de pago, pasar a otro celu, trabar</summary>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <form action={cargarExtraAction} className="flex items-center gap-1">
-            <input type="hidden" name="id" value={c.id} />
-            <input type="hidden" name="eventId" value={eventId} />
-            <input className="input h-11 w-32" name="item" placeholder="extra" aria-label="Qué extra" />
-            <input className="input h-11 w-24" name="price" inputMode="numeric" placeholder="$" defaultValue={barPrice ?? undefined} aria-label="Precio" />
-            <button className="btn btn-ghost btn-sm" type="submit">
-              Cargar
-            </button>
-          </form>
-          {/* Si el código destrabó la cuenta quedó como efectivo: acá se corrige si en realidad fue tarjeta o transferencia. */}
-          {(["efectivo", "tarjeta", "transferencia"] as const).map((via) => (
-            <form key={`fix-${via}`} action={cobrarCenaAction}>
+      {/* Volver a entrar: el QR se muestra y se escanea */}
+      {c.traspasoCode ? (
+        <div className="mt-3 rounded-xl border border-accent/50 bg-accent/10 p-3">
+          <p className="text-sm">Que escanee esto y vuelve a su cuenta.</p>
+          {qr && <div className="mx-auto mt-3 w-40 max-w-full rounded-lg bg-white p-3" dangerouslySetInnerHTML={{ __html: qr }} />}
+          <p className="mt-3 text-center text-sm text-muted">
+            o el código <strong className="font-display text-2xl tabular-nums text-accent">{c.traspasoCode}</strong>
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted">
+            <span>Vale 15 minutos, un solo uso.</span>
+            <form action={cancelarTraspasoAction}>
               <input type="hidden" name="id" value={c.id} />
               <input type="hidden" name="eventId" value={eventId} />
-              <input type="hidden" name="via" value={via} />
-              <button className={`btn btn-sm ${c.coverVia === via ? "btn-primary" : "btn-ghost"}`} type="submit">
-                {via === "efectivo" ? "Pagó efectivo" : via === "tarjeta" ? "Pagó tarjeta" : "Pagó transfer."}
+              <button className="underline-offset-4 hover:text-ink hover:underline" type="submit">
+                anular
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : (
+        <form action={abrirTraspasoAction} className="mt-2">
+          <input type="hidden" name="id" value={c.id} />
+          <input type="hidden" name="eventId" value={eventId} />
+          <button className="btn btn-ghost btn-sm w-full" type="submit">
+            Se le cerró la app: darle el QR para volver
+          </button>
+        </form>
+      )}
+
+      {/* Lo que casi nunca se usa, guardado */}
+      <details className="mt-3">
+        <summary className="cursor-pointer text-xs text-muted">Cargar un extra, corregir cómo pagó, trabar</summary>
+
+        <form action={cargarExtraAction} className="mt-3 grid gap-2">
+          <input type="hidden" name="id" value={c.id} />
+          <input type="hidden" name="eventId" value={eventId} />
+          <div className="grid grid-cols-[1fr_7rem] gap-2">
+            <input className="input" name="item" placeholder="Una botella, una picada…" aria-label="Qué extra" />
+            <input className="input tabular-nums" name="price" inputMode="numeric" placeholder="$" defaultValue={barPrice ?? undefined} aria-label="Precio" />
+          </div>
+          <button className="btn btn-ghost btn-sm" type="submit">
+            Cargar a su cuenta
+          </button>
+        </form>
+
+        <p className="mt-4 text-xs uppercase tracking-wider text-muted">Cómo pagó la cena</p>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {(
+            [
+              { via: "efectivo", label: "Efectivo" },
+              { via: "tarjeta", label: "Tarjeta" },
+              { via: "transferencia", label: "Transfer." },
+            ] as const
+          ).map((o) => (
+            <form key={`fix-${o.via}`} action={cobrarCenaAction} className="min-w-0">
+              <input type="hidden" name="id" value={c.id} />
+              <input type="hidden" name="eventId" value={eventId} />
+              <input type="hidden" name="via" value={o.via} />
+              <button className={`btn btn-sm w-full ${c.coverVia === o.via ? "btn-primary" : "btn-ghost"}`} type="submit">
+                {o.label}
               </button>
             </form>
           ))}
-          {!c.traspasoCode && (
-            <form action={abrirTraspasoAction}>
-              <input type="hidden" name="id" value={c.id} />
-              <input type="hidden" name="eventId" value={eventId} />
-              <button className="btn btn-ghost btn-sm" type="submit">
-                Volver a entrar / pasar a otro celu
-              </button>
-            </form>
-          )}
-          <form action={desmarcarCenaAction}>
-            <input type="hidden" name="id" value={c.id} />
-            <input type="hidden" name="eventId" value={eventId} />
-            <ConfirmButton className="btn btn-ghost btn-sm text-danger" message={`¿Trabar la cuenta de ${c.name}? No va a poder pedir hasta que le vuelvas a cobrar.`}>
-              Trabar
-            </ConfirmButton>
-          </form>
         </div>
+
+        <form action={desmarcarCenaAction} className="mt-3">
+          <input type="hidden" name="id" value={c.id} />
+          <input type="hidden" name="eventId" value={eventId} />
+          <ConfirmButton
+            className="btn btn-ghost btn-sm w-full text-danger"
+            message={`¿Trabar la cuenta de ${c.name}? No va a poder pedir hasta que le vuelvas a cobrar.`}
+          >
+            Trabar la cuenta
+          </ConfirmButton>
+        </form>
       </details>
     </li>
   );
