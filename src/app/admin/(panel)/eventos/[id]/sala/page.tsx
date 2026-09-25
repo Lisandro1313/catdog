@@ -9,20 +9,7 @@ import { getServicioAbierto } from "@/lib/hoy";
 import { pushPublicKey } from "@/lib/push";
 import { getSession } from "@/lib/admin-auth";
 import { Avisos } from "@/components/admin/Avisos";
-import {
-  abrirServicioAction,
-  abrirTraspasoAction,
-  cancelarTraspasoAction,
-  cargarExtraAction,
-  cerrarCuentaAction,
-  cerrarSalaAction,
-  cobrarCenaAction,
-  consumoStatusAction,
-  desmarcarCenaAction,
-  nuevoSalaCodeAction,
-  reabrirCuentaAction,
-  setCoverAction,
-} from "../../../../actions";
+import { abrirServicioAction, abrirTraspasoAction, cancelarTraspasoAction, cargarExtraAction, cerrarCuentaAction, cerrarSalaAction, cobrarCenaAction, consumoStatusAction, desmarcarCenaAction, nuevoSalaCodeAction, reabrirCuentaAction, setCoverAction } from "../../../../actions/sala";
 import { AutoRefresh } from "@/components/admin/AutoRefresh";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { TitleBadge } from "@/components/admin/TitleBadge";

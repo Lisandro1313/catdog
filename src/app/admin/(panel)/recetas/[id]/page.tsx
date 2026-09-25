@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { formatPrice } from "@/lib/config";
 import { getInsumos, getReceta, precioSugerido, semaforoFoodCost, UNIDAD_LABEL } from "@/lib/recetas";
 import { ItemForm, RecetaForm } from "@/components/admin/RecetaForms";
-import { borrarItemAction, borrarRecetaAction } from "../../../actions";
+import { borrarItemAction, borrarRecetaAction } from "../../../actions/recetas";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 
 export const dynamic = "force-dynamic";

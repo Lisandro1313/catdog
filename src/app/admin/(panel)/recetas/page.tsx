@@ -3,7 +3,7 @@ import { formatPrice } from "@/lib/config";
 import { formatShort } from "@/lib/dates";
 import { getInsumos, getRecetas, costoPorUnidad, semaforoFoodCost, UNIDAD_LABEL } from "@/lib/recetas";
 import { InsumoForm, RecetaForm } from "@/components/admin/RecetaForms";
-import { borrarInsumoAction } from "../../actions";
+import { borrarInsumoAction } from "../../actions/recetas";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 
 export const dynamic = "force-dynamic";

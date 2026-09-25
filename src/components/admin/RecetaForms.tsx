@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { guardarInsumoAction, guardarItemAction, guardarRecetaAction } from "@/app/admin/actions";
+import { guardarInsumoAction, guardarItemAction, guardarRecetaAction } from "@/app/admin/actions/recetas";
 import { UNIDAD_LABEL, type Unidad } from "@/lib/escandallo";
 
 type InsumoRow = { id: string; nombre: string; unidad: Unidad; precio: number; cantidad: number; merma: number };

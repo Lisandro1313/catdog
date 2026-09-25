@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPendientes } from "@/lib/sala";
-import { consumoStatusAction } from "../../../../actions";
+import { consumoStatusAction } from "../../../../actions/sala";
 import { AutoRefresh } from "@/components/admin/AutoRefresh";
 import { TitleBadge } from "@/components/admin/TitleBadge";
 import { ForceDark } from "@/components/admin/ForceDark";

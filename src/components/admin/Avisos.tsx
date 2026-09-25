@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { suscribirAvisosAction, desuscribirAvisosAction } from "@/app/admin/actions";
+import { suscribirAvisosAction, desuscribirAvisosAction } from "@/app/admin/actions/recetas";
 
 /** La clave pública del servidor viene en base64url; el navegador la pide en bytes. */
 function aBytes(base64url: string): ArrayBuffer {
