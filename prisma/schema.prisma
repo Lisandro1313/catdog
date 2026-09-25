@@ -9,41 +9,41 @@ datasource db {
 
 /// Una cena. Solo se muestra en el home la próxima publicada.
 model Event {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  menu        String?
-  date        DateTime
+  id                 String    @id @default(cuid())
+  title              String
+  description        String?
+  menu               String?
+  date               DateTime
   /// Precio por persona en pesos argentinos (entero, sin centavos).
-  price       Int
-  capacity    Int      @default(15)
+  price              Int
+  capacity           Int       @default(15)
   /// Carta de barra: un trago por línea, "nombre | descripción".
-  bar         String?
+  bar                String?
   /// Precio de cada trago de barra, en pesos.
-  barPrice    Int?
+  barPrice           Int?
   /// Dirección exacta: solo se muestra a quien ya pagó.
-  address     String?
-  published   Boolean  @default(true)
+  address            String?
+  published          Boolean   @default(true)
   /// Cuándo se les avisó a los suscriptores (null = todavía no).
-  notifiedAt  DateTime?
+  notifiedAt         DateTime?
   /// Cuándo se mandó el pedido de opiniones (manual o automático), para no repetirlo.
   reviewsRequestedAt DateTime?
   /// Reservas cerradas a mano (p. ej. el día de la cena, para cerrar la lista): el público ve "reservas cerradas".
-  closedAt    DateTime?
+  closedAt           DateTime?
   /// Cena privada / a pedido: no aparece en el home ni en /fechas; se reserva solo con su link (/privada/[id]).
-  unlisted    Boolean  @default(false)
+  unlisted           Boolean   @default(false)
   /// Cuándo se mandó el mail "falta esto para el viernes" (una vez por cena).
-  missingNotifiedAt DateTime?
-  createdAt   DateTime @default(now())
+  missingNotifiedAt  DateTime?
+  createdAt          DateTime  @default(now())
 
   /// Cóctel de recepción (sin alcohol): "nombre | una frase". Es el Acto I del juego de las mesitas.
   welcomeDrink String?
 
   /// Carta en vivo: índice del último acto que salió a la mesa (null = todavía nada). Lo marca la cocina desde el panel.
-  servedStep Int?
-  servedAt   DateTime?
+  servedStep   Int?
+  servedAt     DateTime?
   /// Código de la noche (4 dígitos) para desbloquear una cuenta desde el celular del invitado, sin pasar por el panel.
-  salaCode   String?
+  salaCode     String?
   /// Receta de regalo (texto libre): se manda por mail al día siguiente a los que vinieron.
   recipeGift   String?
   recipeSentAt DateTime?
@@ -54,21 +54,21 @@ model Event {
   reviews      Review[]
   steps        EventStep[]
   guesses      Guess[]
-  waitlist Waitlist[]
-  barSales BarSale[]
-  huellas  Huella[]
-  votos    Voto[]
-  pedidos  Pedido[]
-  sugerencias Sugerencia[]
+  waitlist     Waitlist[]
+  barSales     BarSale[]
+  huellas      Huella[]
+  votos        Voto[]
+  pedidos      Pedido[]
+  sugerencias  Sugerencia[]
   temas        Tema[]
-  cuentas  Cuenta[]
+  cuentas      Cuenta[]
 }
 
 /// "Lo que no dice la carta": un secreto por acto del juego de las mesitas. index 0 = recepción, 1..n = pasos del menú.
 model EventStep {
-  id      String @id @default(cuid())
+  id      String  @id @default(cuid())
   eventId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
   index   Int
   /// El ingrediente que hay que adivinar.
   secret  String?
@@ -187,35 +187,35 @@ enum LedgerKind {
 /// Movimientos de caja: gastos del día a día y ventas de barra.
 /// Si tienen `eventId` pertenecen a una cena; si no, son gastos generales (alquiler, luz, verdulería...).
 model LedgerEntry {
-  id          String     @id @default(cuid())
-  eventId     String?
-  event       Event?     @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  kind        LedgerKind
+  id             String        @id @default(cuid())
+  eventId        String?
+  event          Event?        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  kind           LedgerKind
   /// Rubro: ver src/lib/ledger-categories.ts
-  category    String
-  description String?
+  category       String
+  description    String?
   /// Monto en pesos (entero).
-  amount      Int
+  amount         Int
   /// Día del movimiento (fecha argentina). Se usa para agrupar por semana.
-  day         DateTime   @default(dbgenerated("CURRENT_DATE")) @db.Date
+  day            DateTime      @default(dbgenerated("CURRENT_DATE")) @db.Date
   /// Quién lo cargó / lo pagó / lo aportó / lo retiró.
-  by          String?
+  by             String?
   /// Solo para gastos: true = lo pagó el socio de su bolsillo (el negocio se lo debe); false = salió de la caja.
-  fromPocket  Boolean    @default(true)
+  fromPocket     Boolean       @default(true)
   /// Foto del ticket / factura, guardada en Vercel Blob (privada).
-  receiptUrl  String?
+  receiptUrl     String?
   /// Auditoría: quién lo cargó, quién lo editó por última vez, quién lo borró.
-  createdBy   String?
-  updatedAt   DateTime?
-  updatedBy   String?
+  createdBy      String?
+  updatedAt      DateTime?
+  updatedBy      String?
   /// Borrado suave: los movimientos borrados no cuentan pero se pueden restaurar desde la papelera.
-  deletedAt   DateTime?
-  deletedBy   String?
+  deletedAt      DateTime?
+  deletedBy      String?
   /// Si lo generó un gasto fijo: cuál y para qué semana (lunes, "YYYY-MM-DD"). Evita duplicados.
   fixedExpenseId String?
   fixedExpense   FixedExpense? @relation(fields: [fixedExpenseId], references: [id], onDelete: SetNull)
   periodKey      String?
-  createdAt   DateTime   @default(now())
+  createdAt      DateTime      @default(now())
 
   @@unique([fixedExpenseId, periodKey])
   @@index([eventId])
@@ -402,34 +402,34 @@ model Sugerencia {
 
 /// La cuenta de una persona en una mesa, durante la cena. Se abre al escanear el QR de la mesa.
 model Cuenta {
-  id        String   @id @default(cuid())
-  eventId   String
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  eventId       String
+  event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   /// Mesa, si algún día se numeran. Hoy siempre 0: la cuenta es de la persona, no del lugar.
-  table     Int
-  name      String
+  table         Int
+  name          String
   /// Reserva de la que salió, si la eligió al abrir.
   reservationId String?
   /// El teléfono que la abrió: solo ese ve y usa la cuenta.
-  deviceKey String
+  deviceKey     String
   /// Lo que le toca pagar por la cena. 0 = invitado de la casa.
-  cover     Int
+  cover         Int
   /// Por qué ese monto: "entera" | "2x1" | "invitado" | "ya pago" (reservó y pagó antes) | "a mano".
-  coverNote String?
+  coverNote     String?
   /// Cuándo se saldó el cubierto (null = todavía debe la cena; hasta entonces la cuenta está trabada).
-  coverPaidAt DateTime?
+  coverPaidAt   DateTime?
   /// Cómo lo pagó: ver COVER_VIAS en src/lib/sala-tipos.ts.
-  coverVia  String?
-  openedAt  DateTime @default(now())
+  coverVia      String?
+  openedAt      DateTime  @default(now())
   /// Código de un solo uso que da la casa para pasar esta cuenta a otro teléfono, y hasta cuándo vale.
   traspasoCode  String?
   traspasoHasta DateTime?
   /// Cuándo se cerró la cuenta (se cobró todo lo consumido).
-  closedAt  DateTime?
+  closedAt      DateTime?
   /// Cómo pagó lo consumido al cerrar.
-  closedVia String?
+  closedVia     String?
 
-  consumos  Consumo[]
+  consumos Consumo[]
 
   @@index([eventId, table])
   @@index([eventId, deviceKey])
@@ -495,4 +495,61 @@ model Respuesta {
   createdAt  DateTime  @default(now())
 
   @@index([temaId, createdAt])
+}
+
+/// Un insumo que se compra: la harina, la cebolla, la botella de gin.
+/// El precio se carga como "tanto costó tanta cantidad", y de ahí sale el costo por unidad.
+model Insumo {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  /// "g" | "ml" | "u"
+  unidad    String   @default("g")
+  /// Lo que salió la última compra.
+  precio    Int
+  /// Cuánto trae esa compra, en la unidad del insumo (1 kg de harina = 1000 g).
+  cantidad  Float
+  /// Cuánto se pierde al limpiar o cocinar, de 0 a 100. La cebolla ronda 15; una botella, 0.
+  merma     Int      @default(0)
+  /// El rubro con el que se compra, para cruzarlo con los gastos.
+  category  String?
+  /// Cuándo se actualizó el precio por última vez: un costo viejo miente.
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  items RecetaItem[]
+}
+
+/// La ficha de un plato o un trago: qué lleva, cuántas porciones salen y a cuánto se vende.
+model Receta {
+  id          String   @id @default(cuid())
+  nombre      String
+  /// Cuántas porciones salen de la receta entera.
+  porciones   Int      @default(1)
+  /// A cuánto se vende la porción. Sin esto no hay margen ni food cost.
+  precioVenta Int?
+  notas       String?
+  /// Para cruzar la receta con lo que se vendió: el nombre tal cual figura en la carta.
+  cartaItem   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items RecetaItem[]
+
+  @@index([cartaItem])
+}
+
+/// Un ingrediente dentro de una receta, con la cantidad que va al plato (ya limpia).
+model RecetaItem {
+  id       String @id @default(cuid())
+  recetaId String
+  receta   Receta @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+  insumoId String
+  insumo   Insumo @relation(fields: [insumoId], references: [id], onDelete: Restrict)
+  /// Lo que va al plato, ya limpio, en la unidad del insumo.
+  cantidad Float
+  /// Merma propia de esta preparación. Si falta, vale la del insumo.
+  merma    Int?
+
+  @@unique([recetaId, insumoId])
+  @@index([recetaId])
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const ITEMS = [
   { href: "/admin/gastos", label: "Gastos", icon: "🧾" },
   { href: "/admin", label: "Cenas", icon: "🍽️" },
+  { href: "/admin/recetas", label: "Recetas", icon: "📋" },
   { href: "/admin/contactos", label: "Contactos", icon: "👥" },
   { href: "/admin/premios", label: "Premios", icon: "🏆" },
   { href: "/admin/huellas", label: "Huellas", icon: "✍️" },
@@ -40,7 +41,8 @@ export function AdminNav({ variant }: { variant: "top" | "bottom" }) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur sm:hidden" aria-label="Secciones del panel">
-      <ul className="grid grid-cols-6" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      {/* Una columna por link: con menos, el último se desbordaba fuera de la pantalla. */}
+      <ul className="grid" style={{ paddingBottom: "env(safe-area-inset-bottom)", gridTemplateColumns: `repeat(${ITEMS.length}, minmax(0, 1fr))` }}>
         {ITEMS.map((it) => {
           const on = isActive(pathname, it.href);
           return (
