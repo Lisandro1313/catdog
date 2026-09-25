@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatLong, formatTime } from "@/lib/dates";
+import { formatLong, formatTime, nowMs } from "@/lib/dates";
 import { formatPrice } from "@/lib/config";
 import { getCuentas, getSalaCode, resumen, VIA_LABEL, type CuentaRow } from "@/lib/sala";
+import { getServicioAbierto } from "@/lib/hoy";
 import {
+  abrirServicioAction,
   abrirTraspasoAction,
   cancelarTraspasoAction,
   cargarExtraAction,
@@ -35,8 +37,13 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const event = await prisma.event.findUnique({ where: { id }, select: { id: true, title: true, date: true, price: true, barPrice: true } });
   if (!event) notFound();
-  const [cuentas, code] = await Promise.all([getCuentas(id), getSalaCode(id)]);
+  const [cuentas, code, servicio] = await Promise.all([getCuentas(id), getSalaCode(id), getServicioAbierto()]);
   const r = resumen(cuentas);
+  const servicioAcaAbierto = servicio?.id === event.id;
+  const servicioOtro = servicio && servicio.id !== event.id ? servicio : null;
+  // La ventana de siempre: de 3 horas antes a 10 después. Sirve para decir si hace falta abrir a mano.
+  const desdeLaCena = nowMs() - event.date.getTime();
+  const enHorario = desdeLaCena > -3 * 60 * 60 * 1000 && desdeLaCena < 10 * 60 * 60 * 1000;
   const esperando = cuentas.filter((c) => !c.coverPaid && !c.closedAt);
   const abiertas = cuentas.filter((c) => c.abierta);
   const cerradas = cuentas.filter((c) => c.closedAt);
@@ -66,6 +73,46 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
           <OfflineBadge />
         </div>
       </div>
+
+      {/* La puerta del servicio: mientras está abierto, el QR de la casa trabaja con esta función
+          aunque no sea la noche de la cena (para probar, o para una jornada suelta). */}
+      <section className={`card p-5 ${servicioAcaAbierto ? "border-accent/60" : ""}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="eyebrow">El servicio</p>
+            <p className="mt-1 text-sm">
+              {servicioAcaAbierto ? (
+                <>
+                  <strong className="text-accent">Abierto.</strong> El QR de la casa abre cuentas de esta función, sea la hora que sea.
+                </>
+              ) : servicioOtro ? (
+                <>
+                  Hay otra función abierta: <strong>{servicioOtro.title}</strong>. Abrí esta para pasar el QR acá.
+                </>
+              ) : enHorario ? (
+                <>
+                  <strong>Es la noche.</strong> El QR ya abre cuentas solo. Podés abrirlo a mano igual, para que no se corte por horario.
+                </>
+              ) : (
+                <>Cerrado: el QR de la casa dice “Hoy no hay función”. Abrilo para atender ahora, cualquier día.</>
+              )}
+            </p>
+          </div>
+          <form action={abrirServicioAction} className="shrink-0">
+            <input type="hidden" name="eventId" value={event.id} />
+            <input type="hidden" name="abrir" value={servicioAcaAbierto ? "0" : "1"} />
+            {servicioAcaAbierto ? (
+              <ConfirmButton className="btn btn-ghost btn-sm" message="¿Cerrar el servicio? El QR deja de abrir cuentas nuevas.">
+                Cerrar el servicio
+              </ConfirmButton>
+            ) : (
+              <button className="btn btn-primary btn-sm" type="submit">
+                Abrir el servicio
+              </button>
+            )}
+          </form>
+        </div>
+      </section>
 
       {pendientes.length > 0 && (
         <section className="card border-accent/60 p-5">

@@ -32,6 +32,7 @@ import { ReservationError, cancelReservation, chooseSeats, createManualReservati
 import { runAnalysis } from "@/lib/ai-analysis";
 import { approveHuella, markSugerenciasSeen, removeHuella, removeSugerencia, setPedidoStatus, setServedStep } from "@/lib/vivo";
 import { COVER_VIAS, abrirTraspaso, cancelarTraspaso, cargarExtra, cerrarCuenta, desmarcarCover, getCuentas, marcarReserva, nuevoSalaCode, reabrirCuenta, resumen, saldarCover, setConsumoStatus, setCover, type CoverVia } from "@/lib/sala";
+import { setServicioAbierto } from "@/lib/hoy";
 
 export type ActionState = { ok: boolean; message?: string } | null;
 
@@ -1170,6 +1171,23 @@ export async function nuevoSalaCodeAction(formData: FormData) {
   const eventId = String(formData.get("eventId") ?? "");
   await nuevoSalaCode(eventId);
   revalidatePath(`/admin/eventos/${eventId}/sala`);
+}
+
+/**
+ * Abre o cierra el servicio a mano. Con el servicio abierto, el QR de la casa (`/mesa`) y las mesitas
+ * trabajan con esa función sin importar el día ni la hora: sirve para probar sin esperar a la noche y
+ * para abrir una jornada suelta. Al cerrarlo vuelve a mandar el reloj.
+ */
+export async function abrirServicioAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const eventId = String(formData.get("eventId") ?? "");
+  const abrir = formData.get("abrir") === "1";
+  if (abrir && !eventId) return;
+  await setServicioAbierto(abrir ? eventId : null);
+  revalidatePath(`/admin/eventos/${eventId}/sala`);
+  revalidatePath(`/admin/eventos/${eventId}`);
+  revalidatePath("/admin");
+  revalidatePath("/mesa");
 }
 
 /**

@@ -12,11 +12,31 @@ export { labelForStep };
 
 const H = 60 * 60 * 1000;
 
+/** Mientras está puesta, esa función está abierta a mano y manda sobre el reloj. */
+const ABIERTO = "servicio:abierto";
+
+/** Qué función abrió la casa a mano, si hay alguna. */
+export async function getServicioAbierto() {
+  const s = await prisma.setting.findUnique({ where: { key: ABIERTO } });
+  if (!s?.value) return null;
+  return prisma.event.findUnique({ where: { id: s.value }, include: { steps: true } });
+}
+
+/** Abre el servicio de esa función (cualquier día, sin esperar la hora) o lo cierra con null. */
+export async function setServicioAbierto(eventId: string | null) {
+  const value = eventId ?? "";
+  await prisma.setting.upsert({ where: { key: ABIERTO }, update: { value }, create: { key: ABIERTO, value } });
+}
+
 /**
- * La cena "en vivo": publicada, desde 3 horas antes de la hora de la cena hasta 10 horas después
- * (así la madrugada sigue siendo esa noche, y nadie destapa los secretos reales a la mañana).
+ * La función "en vivo". Manda lo que la casa abrió a mano desde el panel: sirve para probar cualquier
+ * día y para abrir una jornada suelta (un sábado de birra y sanguches) que no cae en el horario de una cena.
+ * Si no hay nada abierto, vale el reloj: publicada, desde 3 horas antes de la hora de la cena hasta 10
+ * horas después (así la madrugada sigue siendo esa noche, y nadie destapa los secretos reales a la mañana).
  */
 export async function getTonightEvent() {
+  const abierto = await getServicioAbierto();
+  if (abierto) return abierto;
   const now = Date.now();
   return prisma.event.findFirst({
     where: { published: true, date: { gt: new Date(now - 10 * H), lte: new Date(now + 3 * H) } },
