@@ -3,11 +3,10 @@ import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_CAPACITY, DEFAULT_PRICE, formatPrice, siteUrl, whatsappUrl } from "@/lib/config";
 import { MarkPaidForm } from "@/components/admin/ActionForms";
-import { formatDay, formatLong, formatShort, formatTime, nowMs, toDatetimeLocal } from "@/lib/dates";
+import { formatLong, formatShort, formatTime, nowMs, toDatetimeLocal } from "@/lib/dates";
 import { mercadoPagoMode } from "@/lib/mp";
 import { emailReachesEveryone, mailModeLabel } from "@/lib/mailer";
 import { getNextEvent } from "@/lib/reservations";
-import { getFinancials, getVisitStats } from "@/lib/admin-stats";
 import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos } from "@/lib/photos";
 import { getPaymentConfig } from "@/lib/payment";
 import { EventForm } from "@/components/admin/EventForm";
@@ -16,7 +15,7 @@ import { createEventAction } from "../actions";
 export default async function AdminHome() {
   const [photos, about, instagram, payment] = await Promise.all([getPhotos(), getAbout(), getInstagram(), getPaymentConfig()]);
   const byTransfer = payment.mode === "transferencia";
-  const [events, subscribers, nextEvent, visits, money, toConfirm] = await Promise.all([
+  const [events, subscribers, nextEvent, toConfirm] = await Promise.all([
     prisma.event.findMany({
       orderBy: { date: "desc" },
       include: {
@@ -26,8 +25,6 @@ export default async function AdminHome() {
     }),
     prisma.subscriber.count(),
     getNextEvent(),
-    getVisitStats(),
-    getFinancials(),
     // Transferencias esperando comprobante (o vencidas hace poco) de cenas que todavía no pasaron.
     prisma.reservation.findMany({
       where: { status: "PENDING", mpInitPoint: null, event: { date: { gt: new Date() } } },
@@ -52,7 +49,6 @@ export default async function AdminHome() {
     (n, e) => n + e.reservations.filter((r) => r.status === "PAID").reduce((m, r) => m + r.quantity, 0),
     0,
   );
-  const maxDaily = Math.max(1, ...visits.daily.map((d) => d.count));
 
   const nextStats = nextEvent
     ? (() => {
@@ -193,128 +189,8 @@ export default async function AdminHome() {
         </section>
       )}
 
-      {/* Estado + números generales */}
-      <section className="grid gap-4 sm:grid-cols-4">
-        {byTransfer ? (
-          <Status ok={Boolean(payment.alias)} label="Cobro" hint="alias en Ajustes" okLabel={`Transferencia · ${payment.alias}`} badLabel="Falta el alias" />
-        ) : (
-          <Status
-            ok={mercadoPagoMode() === "produccion"}
-            label="Mercado Pago"
-            hint={mercadoPagoMode() === "prueba" ? "token de PRUEBA (TEST-)" : "MP_ACCESS_TOKEN"}
-            okLabel="Producción"
-            badLabel={mercadoPagoMode() === "prueba" ? "Modo prueba" : "Falta"}
-          />
-        )}
-        <Status ok={emailReachesEveryone()} label="Emails" hint={mailModeLabel()} />
-        <div className="card p-4">
-          <p className="text-xs text-muted">Suscriptores</p>
-          <p className="font-display text-3xl">{subscribers}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs text-muted">Cubiertos vendidos (total)</p>
-          <p className="font-display text-3xl">{totalPaidSeats}</p>
-        </div>
-      </section>
 
-      {/* Visitas */}
-      <section className="card p-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="font-display text-2xl">Visitas al sitio</h2>
-          <p className="text-xs text-muted">Una por persona y sesión de navegador. No cuenta el panel.</p>
-        </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-[repeat(3,120px)_1fr] items-end">
-          <Num label="hoy" value={String(visits.today)} big />
-          <Num label="últimos 7 días" value={String(visits.last7)} big />
-          <Num label="últimos 30 días" value={String(visits.last30)} big />
-          <div>
-            <div className="flex h-20 items-end gap-1">
-              {visits.daily.map((d) => (
-                <div
-                  key={d.day.toISOString()}
-                  className="flex-1 flex flex-col items-center justify-end gap-1"
-                  title={`${formatDay(d.day)}: ${d.count}`}
-                >
-                  <div className="w-full rounded-t bg-accent/70" style={{ height: `${Math.max(2, (d.count / maxDaily) * 64)}px` }} />
-                </div>
-              ))}
-            </div>
-            <div className="mt-1 flex justify-between text-[0.6rem] text-muted">
-              <span>{formatDay(visits.daily[0].day)}</span>
-              <span>hoy</span>
-            </div>
-          </div>
-        </div>
-        {(() => {
-          const home = visits.byPath.find((p) => p.path === "/")?.count ?? 0;
-          const tries = visits.byPath.find((p) => p.path === "/reservar")?.count ?? 0;
-          return home > 0 ? (
-            <p className="mt-4 text-sm text-muted">
-              Embudo (30 días): <strong className="text-ink">{home}</strong> visitas al inicio →{" "}
-              <strong className="text-ink">{tries}</strong> empezaron a reservar
-              {tries > 0 && <span> ({Math.round((tries / home) * 100)}%)</span>}. Los pagos están arriba, en la próxima cena.
-            </p>
-          ) : null;
-        })()}
-        {(() => {
-          const LABEL: Record<string, string> = { wa: "WhatsApp", ig: "Instagram", afiche: "Afiche", qr: "QR impreso", mail: "Mail" };
-          const origins = visits.byPath.filter((p) => p.path.startsWith("/?de=")).map((p) => ({ key: p.path.slice(5), count: p.count }));
-          return origins.length > 0 ? (
-            <p className="mt-3 text-sm text-muted">
-              De dónde llegan (30 días):{" "}
-              {origins.map((o, i) => (
-                <span key={o.key}>
-                  {i > 0 && " · "}
-                  {LABEL[o.key] ?? o.key} <strong className="text-ink">{o.count}</strong>
-                </span>
-              ))}
-              . <span className="text-xs">Agregá <code>?de=ig</code> al link en Instagram, <code>?de=wa</code> en WhatsApp (el mensaje ya lo trae).</span>
-            </p>
-          ) : null;
-        })()}
-        {visits.byPath.length > 0 && (
-          <ul className="mt-4 flex flex-wrap gap-2 text-xs">
-            {visits.byPath.filter((p) => !p.path.startsWith("/?de=")).map((p) => (
-              <li key={p.path} className="rounded-full border border-line px-3 py-1 text-muted">
-                {p.path === "/reservar" ? (
-                  <span>intentos de reserva</span>
-                ) : (
-                  <a href={p.path} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
-                    {p.path}
-                  </a>
-                )}
-                <span className="text-ink"> {p.count}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
-      {/* Plata */}
-      <section className="card p-6">
-        <h2 className="font-display text-2xl">Rendimiento (todas las cenas)</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-4">
-          <Num label="Reservas cobradas" value={formatPrice(money.reservations)} big />
-          <Num label="Barra y otros ingresos" value={formatPrice(money.otherIncome)} big />
-          <Num label="Gastos" value={formatPrice(money.expenses)} big tone="danger" />
-          <Num label="Resultado" value={formatPrice(money.result)} big tone={money.result >= 0 ? "ok" : "danger"} />
-        </div>
-        <p className="mt-3 text-xs text-muted">
-          <Link href="/admin/gastos" className="text-accent hover:text-accent-strong">
-            Cargar gastos y ver semana a semana →
-          </Link>
-          {nextEvent && (
-            <>
-              {" "}
-              · La barra de la cena se carga en{" "}
-              <Link href={`/admin/eventos/${nextEvent.id}#caja`} className="text-accent hover:text-accent-strong">
-                su caja
-              </Link>
-              .
-            </>
-          )}
-        </p>
-      </section>
 
       {/* Lista de cenas */}
       <section className="card p-6">
@@ -370,8 +246,16 @@ export default async function AdminHome() {
         )}
       </section>
 
-      <section className="card p-6">
-        <h2 className="font-display text-2xl">Nueva cena</h2>
+
+
+      {/* Crear una fecha se hace de vez en cuando: va plegado, para que no tape lo del día. */}
+      <details className="card p-5 sm:p-6">
+        <summary className="cursor-pointer font-display text-2xl">Crear una fecha nueva</summary>
+        <div className="mt-5 grid gap-8">
+          <div>
+            <h3 className="font-display text-xl">Una cena</h3>
+            <p className="mt-1 text-sm text-muted">Con cubierto: la gente reserva, paga y elige su silla.</p>
+            <div className="mt-4">
         <div className="mt-4">
           <EventForm
             action={createEventAction}
@@ -390,16 +274,15 @@ export default async function AdminHome() {
             }}
           />
         </div>
-      </section>
-
-      {/* Una jornada es una fecha sin cubierto: no se reserva ni se paga entrada, se cobra lo que cada
-          uno consume. Un sábado de cerveza y sanguches. Va con precio 0 y la lista con precio por producto. */}
-      <section className="card p-6">
-        <h2 className="font-display text-2xl">Nueva jornada</h2>
-        <p className="mt-2 text-sm text-muted">
-          Una fecha sin cubierto: nadie reserva ni paga entrada, cada uno abre su cuenta con el QR y paga lo que consume. Poné cada cosa con su
-          precio (<span className="text-ink">Cerveza | pinta tirada | 4500</span>) y después, desde la sala, tocá <span className="text-ink">Abrir el servicio</span>.
-        </p>
+            </div>
+          </div>
+          <div className="border-t border-line pt-6">
+            <h3 className="font-display text-xl">Una jornada</h3>
+            <p className="mt-1 text-sm text-muted">
+              Sin cubierto: nadie reserva ni paga entrada, cada uno abre su cuenta con el QR y paga lo que consume. Poné cada cosa con su precio
+              (<span className="text-ink">Cerveza | pinta tirada | 4500</span>) y después, desde la sala, tocá <span className="text-ink">Abrir el servicio</span>.
+            </p>
+            <div className="mt-4">
         <div className="mt-4">
           <EventForm
             action={createEventAction}
@@ -418,8 +301,34 @@ export default async function AdminHome() {
             }}
           />
         </div>
-      </section>
+            </div>
+          </div>
+        </div>
+      </details>
 
+      {/* Cómo está configurada la casa: se mira de vez en cuando, va al final. */}
+      <section className="grid gap-4 sm:grid-cols-4">
+        {byTransfer ? (
+          <Status ok={Boolean(payment.alias)} label="Cobro" hint="alias en Ajustes" okLabel={`Transferencia · ${payment.alias}`} badLabel="Falta el alias" />
+        ) : (
+          <Status
+            ok={mercadoPagoMode() === "produccion"}
+            label="Mercado Pago"
+            hint={mercadoPagoMode() === "prueba" ? "token de PRUEBA (TEST-)" : "MP_ACCESS_TOKEN"}
+            okLabel="Producción"
+            badLabel={mercadoPagoMode() === "prueba" ? "Modo prueba" : "Falta"}
+          />
+        )}
+        <Status ok={emailReachesEveryone()} label="Emails" hint={mailModeLabel()} />
+        <div className="card p-4">
+          <p className="text-xs text-muted">Suscriptores</p>
+          <p className="font-display text-3xl">{subscribers}</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-xs text-muted">Cubiertos vendidos (total)</p>
+          <p className="font-display text-3xl">{totalPaidSeats}</p>
+        </div>
+      </section>
       <section className="card p-6 flex flex-col sm:flex-row gap-6 items-center">
         <div className="w-40 shrink-0 rounded-xl overflow-hidden" dangerouslySetInnerHTML={{ __html: qr }} />
         <div>

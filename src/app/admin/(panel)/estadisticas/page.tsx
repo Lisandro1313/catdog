@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { formatPrice } from "@/lib/config";
+import { formatDay } from "@/lib/dates";
 import { getNextEvent } from "@/lib/reservations";
-import { getGastosPorRubro, getWeeklyReport } from "@/lib/admin-stats";
+import { getFinancials, getGastosPorRubro, getVisitStats, getWeeklyReport } from "@/lib/admin-stats";
 import { getWeeklyFixedTotal } from "@/lib/fixed-expenses";
 import { getInsumos, getRecetas, precioSugerido, semaforoFoodCost } from "@/lib/recetas";
 import { categoryLabel } from "@/lib/ledger-categories";
@@ -42,6 +43,9 @@ export default async function EstadisticasPage() {
   const semanas = report.weeks;
   const ultima = semanas[semanas.length - 1];
   const previa = semanas[semanas.length - 2];
+  const [visits, money] = await Promise.all([getVisitStats(), getFinancials()]);
+  const maxDaily = Math.max(1, ...visits.daily.map((d) => d.count));
+
   const vacio: Record<string, number> = {};
   const [deEsta, deLaPrevia] = await Promise.all([
     ultima ? getGastosPorRubro(ultima.start, ultima.end) : Promise.resolve(vacio),
@@ -183,6 +187,105 @@ export default async function EstadisticasPage() {
         )}
       </section>
 
+      {/* Visitas: cuánta gente llega al sitio y cuántos terminan reservando. */}
+      <section className="card p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-display text-2xl">Visitas al sitio</h2>
+          <p className="text-xs text-muted">Una por persona y sesión de navegador. No cuenta el panel.</p>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-[repeat(3,120px)_1fr] items-end">
+          <Dato2 label="hoy" value={String(visits.today)} big />
+          <Dato2 label="últimos 7 días" value={String(visits.last7)} big />
+          <Dato2 label="últimos 30 días" value={String(visits.last30)} big />
+          <div>
+            <div className="flex h-20 items-end gap-1">
+              {visits.daily.map((d) => (
+                <div
+                  key={d.day.toISOString()}
+                  className="flex-1 flex flex-col items-center justify-end gap-1"
+                  title={`${formatDay(d.day)}: ${d.count}`}
+                >
+                  <div className="w-full rounded-t bg-accent/70" style={{ height: `${Math.max(2, (d.count / maxDaily) * 64)}px` }} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-1 flex justify-between text-[0.6rem] text-muted">
+              <span>{formatDay(visits.daily[0].day)}</span>
+              <span>hoy</span>
+            </div>
+          </div>
+        </div>
+        {(() => {
+          const home = visits.byPath.find((p) => p.path === "/")?.count ?? 0;
+          const tries = visits.byPath.find((p) => p.path === "/reservar")?.count ?? 0;
+          return home > 0 ? (
+            <p className="mt-4 text-sm text-muted">
+              Embudo (30 días): <strong className="text-ink">{home}</strong> visitas al inicio →{" "}
+              <strong className="text-ink">{tries}</strong> empezaron a reservar
+              {tries > 0 && <span> ({Math.round((tries / home) * 100)}%)</span>}. Los pagos están arriba, en la próxima cena.
+            </p>
+          ) : null;
+        })()}
+        {(() => {
+          const LABEL: Record<string, string> = { wa: "WhatsApp", ig: "Instagram", afiche: "Afiche", qr: "QR impreso", mail: "Mail" };
+          const origins = visits.byPath.filter((p) => p.path.startsWith("/?de=")).map((p) => ({ key: p.path.slice(5), count: p.count }));
+          return origins.length > 0 ? (
+            <p className="mt-3 text-sm text-muted">
+              De dónde llegan (30 días):{" "}
+              {origins.map((o, i) => (
+                <span key={o.key}>
+                  {i > 0 && " · "}
+                  {LABEL[o.key] ?? o.key} <strong className="text-ink">{o.count}</strong>
+                </span>
+              ))}
+              . <span className="text-xs">Agregá <code>?de=ig</code> al link en Instagram, <code>?de=wa</code> en WhatsApp (el mensaje ya lo trae).</span>
+            </p>
+          ) : null;
+        })()}
+        {visits.byPath.length > 0 && (
+          <ul className="mt-4 flex flex-wrap gap-2 text-xs">
+            {visits.byPath.filter((p) => !p.path.startsWith("/?de=")).map((p) => (
+              <li key={p.path} className="rounded-full border border-line px-3 py-1 text-muted">
+                {p.path === "/reservar" ? (
+                  <span>intentos de reserva</span>
+                ) : (
+                  <a href={p.path} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
+                    {p.path}
+                  </a>
+                )}
+                <span className="text-ink"> {p.count}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Plata */}
+      <section className="card p-6">
+        <h2 className="font-display text-2xl">Rendimiento (todas las cenas)</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-4">
+          <Dato2 label="Reservas cobradas" value={formatPrice(money.reservations)} big />
+          <Dato2 label="Barra y otros ingresos" value={formatPrice(money.otherIncome)} big />
+          <Dato2 label="Gastos" value={formatPrice(money.expenses)} big tone="danger" />
+          <Dato2 label="Resultado" value={formatPrice(money.result)} big tone={money.result >= 0 ? "ok" : "danger"} />
+        </div>
+        <p className="mt-3 text-xs text-muted">
+          <Link href="/admin/gastos" className="text-accent hover:text-accent-strong">
+            Cargar gastos y ver semana a semana →
+          </Link>
+          {nextEvent && (
+            <>
+              {" "}
+              · La barra de la cena se carga en{" "}
+              <Link href={`/admin/eventos/${nextEvent.id}#caja`} className="text-accent hover:text-accent-strong">
+                su caja
+              </Link>
+              .
+            </>
+          )}
+        </p>
+      </section>
+
       {/* Precios sugeridos */}
       <section className="card p-5 sm:p-6">
         <h2 className="font-display text-2xl">Precios para revisar</h2>
@@ -241,4 +344,15 @@ function Dato({ label, valor, hint }: { label: string; valor: string; hint?: str
 /** "1/9": el lunes de esa semana, corto para que entre debajo de la barra. */
 function etiquetaSemana(start: Date): string {
   return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "numeric", timeZone: "America/Argentina/Buenos_Aires" }).format(start);
+}
+
+/** Un número suelto, como en la pantalla de Cenas. */
+function Dato2({ label, value, big, tone }: { label: string; value: string; big?: boolean; tone?: "ok" | "danger" }) {
+  const color = tone === "ok" ? "text-ok" : tone === "danger" ? "text-danger" : "";
+  return (
+    <div>
+      <p className={`font-display tabular-nums ${big ? "text-3xl" : "text-2xl"} ${color}`}>{value}</p>
+      <p className="text-xs text-muted">{label}</p>
+    </div>
+  );
 }
