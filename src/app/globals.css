@@ -2922,3 +2922,102 @@ details.faq > summary::-webkit-details-marker {
     font-size: 3.5rem;
   }
 }
+
+/* --- Brasas y chispas del afiche ----------------------------------------
+   "Fuego lento": el rescoldo de la parrilla abajo del afiche, con chispas que suben y se apagan.
+   El intento anterior se sacó porque no se veía; acá el rescoldo llega a 0.55 de opacidad y las
+   chispas a 0.9 en su punto más alto, que es lo que hace falta sobre un fondo casi negro.
+   Solo se anima transform y opacity, que el teléfono resuelve sin repintar nada. */
+.ap-brasas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* El rescoldo: la panza de calor abajo de todo, que respira. */
+.ap-brasas::before {
+  content: "";
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  /* Pegado al borde de abajo: antes estaba a -18% y quedaba casi todo fuera de la pantalla. */
+  bottom: 0;
+  height: 38%;
+  background:
+    radial-gradient(ellipse 40% 95% at 28% 100%, rgba(232, 97, 60, 0.62), transparent 68%),
+    radial-gradient(ellipse 50% 95% at 66% 100%, rgba(255, 140, 66, 0.55), transparent 70%),
+    radial-gradient(ellipse 85% 90% at 50% 100%, rgba(201, 169, 110, 0.34), transparent 76%);
+  filter: blur(10px);
+  animation: ap-rescoldo 7s ease-in-out infinite alternate;
+}
+
+@keyframes ap-rescoldo {
+  from {
+    opacity: 0.55;
+    transform: translateY(2%) scaleY(0.97);
+  }
+  to {
+    opacity: 0.78;
+    transform: translateY(0) scaleY(1.03);
+  }
+}
+
+/* La línea de carbón del fondo: apenas un filo más caliente, para que el borde no se corte plano. */
+.ap-brasas::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10%;
+  background: linear-gradient(0deg, rgba(232, 97, 60, 0.4), transparent);
+  filter: blur(8px);
+  animation: ap-rescoldo 9s ease-in-out infinite alternate-reverse;
+}
+
+/* Cada chispa nace abajo, sube en diagonal y se apaga. La posición, el tamaño, la demora y lo que
+   tarda vienen del marcado, así ninguna repite el camino de otra. */
+.ap-chispa {
+  position: absolute;
+  bottom: 2%;
+  left: var(--x);
+  width: var(--tam);
+  height: var(--tam);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 228, 186, 1), rgba(255, 150, 70, 0.85) 42%, rgba(232, 97, 60, 0) 70%);
+  box-shadow: 0 0 6px rgba(255, 150, 70, 0.55);
+  opacity: 0;
+  animation: ap-chispa var(--dura) linear var(--demora) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes ap-chispa {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.7);
+  }
+  12% {
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.5;
+  }
+  100% {
+    /* Sube toda la altura del afiche y deriva de costado, como el aire caliente. */
+    opacity: 0;
+    transform: translate3d(var(--deriva), -75vh, 0) scale(1.15);
+  }
+}
+
+/* Si el teléfono pide menos movimiento: queda el calor, se van las chispas. */
+@media (prefers-reduced-motion: reduce) {
+  .ap-brasas::before {
+    animation: none;
+    opacity: 0.5;
+  }
+  .ap-chispa {
+    display: none;
+  }
+}
