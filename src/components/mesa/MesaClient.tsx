@@ -27,6 +27,8 @@ type Props = {
   price: number;
   menu: string | null;
   bar: BarItem[];
+  /** Viene del QR que muestra la casa: cuenta y código para volver a entrar sin tipear. */
+  reingreso?: { cuentaId: string; code: string } | null;
   barPrice: number | null;
   initial: CuentaRow[];
 };
@@ -50,7 +52,7 @@ function marca(e: EstadoPedido): string {
  * cobre la cena, y ya adentro pedir los pasos a su ritmo y los tragos, viendo lo que lleva.
  * Un teléfono puede llevar más de una cuenta: si a alguien se le apaga el celular, otro toma la suya.
  */
-export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar, barPrice, initial }: Props) {
+export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar, barPrice, initial, reingreso }: Props) {
   const [cuentas, setCuentas] = useState<CuentaRow[]>(initial);
   const [focoId, setFocoId] = useState<string | null>(initial[0]?.id ?? null);
   const [name, setName] = useState("");
@@ -136,6 +138,24 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
     if (ok) decir(ok);
     return true;
   }
+
+  // Si entró por el QR que le mostró la casa, la cuenta se toma sola: no hay nada que tipear.
+  const yaProbo = useRef(false);
+  useEffect(() => {
+    if (!reingreso || yaProbo.current) return;
+    yaProbo.current = true;
+    correr("tomar", () => tomarCuentaAction({ eventId, cuentaId: reingreso.cuentaId, code: reingreso.code }), "Volviste a tu cuenta").then((ok) => {
+      if (!ok) setModo("tomar");
+      // La dirección lleva el código: se limpia para que no quede dando vueltas en el historial.
+      try {
+        window.history.replaceState(null, "", "/mesa");
+      } catch {
+        // si el navegador no deja, no pasa nada
+      }
+    });
+    // Corre una sola vez, con lo que vino del QR.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reingreso]);
 
   async function verAjenas() {
     setError(null);

@@ -21,7 +21,10 @@ export const metadata: Metadata = {
  * El QR de la casa apunta acá: uno solo para todos. La cuenta es de cada persona y se abre con el
  * nombre; la casa la autoriza (con el código o desde el panel) y desde ahí pide a su ritmo.
  */
-export default async function MesaPage() {
+export default async function MesaPage({ searchParams }: { searchParams: Promise<{ tomar?: string; code?: string }> }) {
+  // El QR que muestra la casa trae la cuenta y su código: se vuelve a entrar sin tipear nada.
+  const q = await searchParams;
+  const reingreso = q.tomar && /^d{4}$/.test(q.code ?? "") ? { cuentaId: q.tomar, code: q.code as string } : null;
   const event = await getTonightEvent();
 
   if (!event) {
@@ -54,6 +57,7 @@ export default async function MesaPage() {
         bar={parseBar(event.bar)}
         barPrice={event.barPrice}
         initial={cuentas}
+        reingreso={reingreso}
       />
     </>
   );

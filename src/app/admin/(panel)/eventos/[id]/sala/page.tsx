@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatLong, formatTime, nowMs } from "@/lib/dates";
-import { formatPrice } from "@/lib/config";
+import { formatPrice, siteUrl } from "@/lib/config";
+import QRCode from "qrcode";
 import { getCuentas, getSalaCode, resumen, VIA_LABEL, type CuentaRow } from "@/lib/sala";
 import { getServicioAbierto } from "@/lib/hoy";
 import { pushPublicKey } from "@/lib/push";
@@ -52,6 +53,17 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
   const abiertas = cuentas.filter((c) => c.abierta);
   const cerradas = cuentas.filter((c) => c.closedAt);
   const pendientes = cuentas.flatMap((c) => c.consumos.filter((x) => x.status === "pendiente"));
+
+  // Un QR por cuenta habilitada para volver a entrar: la casa lo muestra y el invitado lo escanea.
+  const qrs: Record<string, string> = {};
+  for (const c of cuentas) {
+    if (!c.traspasoCode) continue;
+    qrs[c.id] = await QRCode.toString(`${siteUrl()}/mesa?tomar=${c.id}&code=${c.traspasoCode}`, {
+      type: "svg",
+      margin: 0,
+      color: { dark: "#000000", light: "#ffffff" },
+    });
+  }
 
   return (
     <div className="contents">
@@ -263,7 +275,7 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
         ) : (
           <ul className="mt-3 grid gap-3">
             {abiertas.map((c) => (
-              <CuentaCard key={c.id} c={c} eventId={event.id} barPrice={event.barPrice} />
+              <CuentaCard key={c.id} c={c} eventId={event.id} barPrice={event.barPrice} qr={qrs[c.id]} />
             ))}
           </ul>
         )}
@@ -314,7 +326,7 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
   );
 }
 
-function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; barPrice: number | null }) {
+function CuentaCard({ c, eventId, barPrice, qr }: { c: CuentaRow; eventId: string; barPrice: number | null; qr?: string | null }) {
   const items = c.consumos.filter((x) => x.kind === "trago" || x.kind === "extra").filter((x) => x.status !== "cancelado");
   const pasosListos = c.consumos.filter((x) => x.kind === "paso" && x.status === "listo").length;
   return (
@@ -353,9 +365,15 @@ function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; b
 
       {c.traspasoCode ? (
         <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 p-3">
-          <p className="text-sm">
-            Código para pasar la cuenta: <strong className="font-display text-2xl tabular-nums text-accent">{c.traspasoCode}</strong>
-            <span className="ml-2 text-xs text-muted">vale 15 minutos, un solo uso</span>
+          {/* Se le muestra la pantalla y lo escanea: entra derecho a su cuenta, sin tipear. */}
+          {qr && <div className="w-28 shrink-0 rounded-lg bg-white p-2" dangerouslySetInnerHTML={{ __html: qr }} />}
+          <p className="min-w-0 text-sm">
+            Que escanee esto y vuelve a su cuenta.
+            <br />
+            <span className="text-muted">O que ponga el código</span>{" "}
+            <strong className="font-display text-2xl tabular-nums text-accent">{c.traspasoCode}</strong>
+            <br />
+            <span className="text-xs text-muted">vale 15 minutos, un solo uso</span>
           </p>
           <form action={cancelarTraspasoAction}>
             <input type="hidden" name="id" value={c.id} />
@@ -395,7 +413,7 @@ function CuentaCard({ c, eventId, barPrice }: { c: CuentaRow; eventId: string; b
               <input type="hidden" name="id" value={c.id} />
               <input type="hidden" name="eventId" value={eventId} />
               <button className="btn btn-ghost btn-sm" type="submit">
-                Pasar a otro celu
+                Volver a entrar / pasar a otro celu
               </button>
             </form>
           )}
