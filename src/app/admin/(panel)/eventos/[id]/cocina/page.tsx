@@ -48,24 +48,20 @@ export default async function CocinaPage({ params }: { params: Promise<{ id: str
               const mins = Math.floor((ahora - p.createdAt.getTime()) / 60000);
               return (
                 <li key={p.id} className={`rounded-2xl border p-5 ${mins >= 10 ? "border-danger bg-danger/10" : mins >= 5 ? "border-accent bg-accent/10" : "border-line bg-surface/60"}`}>
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-sm uppercase tracking-[0.2em] text-muted">
-                        {p.name}
-                        {p.table ? ` · mesa ${p.table}` : ""} · {HORA.format(p.createdAt)} hs
-                        {mins >= 5 && <span className="ml-2 text-accent">hace {mins} min</span>}
-                      </p>
-                      <p className="ap-display mt-2 text-4xl leading-tight">{p.item}</p>
-                    </div>
-                    <form action={consumoStatusAction} className="shrink-0">
-                      <input type="hidden" name="id" value={p.id} />
-                      <input type="hidden" name="eventId" value={event.id} />
-                      <input type="hidden" name="status" value="listo" />
-                      <button className="btn btn-primary px-8 py-4 text-lg" type="submit">
-                        Salió
-                      </button>
-                    </form>
-                  </div>
+                  <p className="text-sm uppercase tracking-[0.2em] text-muted">
+                    {p.name}
+                    {p.table ? ` · mesa ${p.table}` : ""} · {HORA.format(p.createdAt)} hs
+                    {mins >= 5 && <span className="ml-2 text-accent">hace {mins} min</span>}
+                  </p>
+                  <p className="ap-display mt-2 text-4xl leading-tight">{p.item}</p>
+                  <form action={consumoStatusAction} className="mt-4">
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="eventId" value={event.id} />
+                    <input type="hidden" name="status" value="listo" />
+                    <button className="btn btn-primary w-full py-4 text-lg" type="submit">
+                      Salió
+                    </button>
+                  </form>
                 </li>
               );
             })}

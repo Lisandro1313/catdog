@@ -131,7 +131,12 @@ export default async function NochePage({ params }: { params: Promise<{ id: stri
                   </a>
                 )}
               </p>
-              {r.notes && <p className="mt-1 text-sm text-accent">⚠ {r.notes}</p>}
+              {/* Lo que avisó, con su propio recuadro: en la puerta esto se lee antes que nada. */}
+              {r.notes && (
+                <p className="mt-1 rounded-lg bg-accent/10 px-2 py-1 text-sm text-accent">
+                  <span className="uppercase tracking-wider">Ojo:</span> {r.notes}
+                </p>
+              )}
             </div>
             <form action={toggleArrivedAction} className="print:hidden">
               <input type="hidden" name="id" value={r.id} />
