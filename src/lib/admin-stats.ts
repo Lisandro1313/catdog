@@ -433,3 +433,19 @@ export async function getPartnerReport(): Promise<PartnerReport> {
     shortfall: Math.max(0, totalOwed - available),
   };
 }
+
+/**
+ * Los gastos de un tramo, sumados por rubro. Sirve para ver en qué se va la plata y comparar contra
+ * el tramo anterior. Los prorrateos de gastos fijos entran igual: son gasto del negocio, aunque no
+ * muevan la caja ese día.
+ */
+export async function getGastosPorRubro(desde: Date, hasta: Date): Promise<Record<string, number>> {
+  const filas = await prisma.ledgerEntry.groupBy({
+    by: ["category"],
+    where: { kind: "EXPENSE", deletedAt: null, day: { gte: desde, lte: hasta } },
+    _sum: { amount: true },
+  });
+  const out: Record<string, number> = {};
+  for (const f of filas) out[f.category] = f._sum.amount ?? 0;
+  return out;
+}

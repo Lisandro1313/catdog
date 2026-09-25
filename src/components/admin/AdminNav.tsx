@@ -10,6 +10,7 @@ const PRINCIPALES = [
   { href: "/admin/gastos", label: "Gastos" },
   { href: "/admin", label: "Cenas" },
   { href: "/admin/recetas", label: "Recetas" },
+  { href: "/admin/estadisticas", label: "Números" },
 ];
 
 /** Lo que se mira de vez en cuando: detrás de "Más", para que la barra no sea un tren. */
@@ -18,11 +19,14 @@ const SECUNDARIOS = [
   { href: "/admin/premios", label: "Premios" },
   { href: "/admin/huellas", label: "Huellas" },
   { href: "/admin/sobremesa", label: "Charla" },
-  { href: "/admin/mesitas", label: "QR de las mesas" },
+  { href: "/admin/mesitas", label: "QR" },
   { href: "/admin/ajustes", label: "Ajustes" },
 ];
 
-const TODOS = [...PRINCIPALES, ...SECUNDARIOS];
+
+function enSecundario(pathname: string): boolean {
+  return SECUNDARIOS.some((s) => isActive(pathname, s.href));
+}
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/admin") return pathname === "/admin" || pathname.startsWith("/admin/eventos");
@@ -35,18 +39,46 @@ export function AdminNav({ variant }: { variant: "top" | "bottom" }) {
   const [abierto, setAbierto] = useState(false);
 
   if (variant === "top") {
+    // Diez links no entran en la barra: se parten en varios renglones y queda todo desprolijo.
+    // Van los de todos los días, y el resto se despliega.
     return (
       <>
-        {TODOS.map((it) => (
-          <Link key={it.href} href={it.href} className={isActive(pathname, it.href) ? "text-ink font-medium" : "text-muted hover:text-ink"}>
+        {PRINCIPALES.map((it) => (
+          <Link
+            key={it.href}
+            href={it.href}
+            className={`whitespace-nowrap ${isActive(pathname, it.href) ? "text-ink font-medium" : "text-muted hover:text-ink"}`}
+          >
             {it.label}
           </Link>
         ))}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setAbierto((v) => !v)}
+            aria-expanded={abierto}
+            className={`whitespace-nowrap ${abierto || enSecundario(pathname) ? "text-ink font-medium" : "text-muted hover:text-ink"}`}
+          >
+            Más ▾
+          </button>
+          {abierto && (
+            <div className="absolute right-0 top-full z-40 mt-2 w-48 overflow-hidden rounded-xl border border-line bg-surface shadow-xl">
+              {SECUNDARIOS.map((it) => (
+                <Link
+                  key={it.href}
+                  href={it.href}
+                  onClick={() => setAbierto(false)}
+                  className={`block px-4 py-2.5 text-sm hover:bg-surface-2 ${isActive(pathname, it.href) ? "text-accent" : "text-muted"}`}
+                >
+                  {it.label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </>
     );
   }
-
-  const enSecundario = SECUNDARIOS.some((s) => isActive(pathname, s.href));
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur sm:hidden" aria-label="Secciones del panel">
@@ -67,7 +99,7 @@ export function AdminNav({ variant }: { variant: "top" | "bottom" }) {
           ))}
         </ul>
       )}
-      <ul className="grid grid-cols-5" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <ul className="grid grid-cols-6" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {PRINCIPALES.map((it) => {
           const on = isActive(pathname, it.href);
           return (
@@ -91,7 +123,7 @@ export function AdminNav({ variant }: { variant: "top" | "bottom" }) {
             onClick={() => setAbierto((v) => !v)}
             aria-expanded={abierto}
             className={`flex min-h-12 w-full items-center justify-center border-t-2 px-1 text-[0.8rem] ${
-              abierto || enSecundario ? "border-accent text-accent" : "border-transparent text-muted"
+              abierto || enSecundario(pathname) ? "border-accent text-accent" : "border-transparent text-muted"
             }`}
           >
             Más
