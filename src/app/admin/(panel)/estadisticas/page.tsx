@@ -3,7 +3,7 @@ import { formatPrice } from "@/lib/config";
 import { getNextEvent } from "@/lib/reservations";
 import { getGastosPorRubro, getWeeklyReport } from "@/lib/admin-stats";
 import { getWeeklyFixedTotal } from "@/lib/fixed-expenses";
-import { getRecetas, precioSugerido, semaforoFoodCost } from "@/lib/recetas";
+import { getInsumos, getRecetas, precioSugerido, semaforoFoodCost } from "@/lib/recetas";
 import { categoryLabel } from "@/lib/ledger-categories";
 import { puntoDeEquilibrio, rankingGastos, rubrosQuePesan, serieSemanal } from "@/lib/estadisticas";
 import { BarraEquilibrio, BarrasRubros, BarrasSemana } from "@/components/admin/Graficos";
@@ -18,7 +18,14 @@ export const dynamic = "force-dynamic";
  */
 export default async function EstadisticasPage() {
   const nextEvent = await getNextEvent();
-  const [report, fijosSemanales, recetas] = await Promise.all([getWeeklyReport(8, nextEvent?.price), getWeeklyFixedTotal(), getRecetas()]);
+  const [report, fijosSemanales, recetas, insumos] = await Promise.all([
+    getWeeklyReport(8, nextEvent?.price),
+    getWeeklyFixedTotal(),
+    getRecetas(),
+    getInsumos(),
+  ]);
+  // Todo lo que cuelga de un precio sin confirmar es una estimación, y eso hay que decirlo.
+  const estimados = insumos.filter((i) => i.estimado).length;
 
   // El costo de la materia prima por cubierto sale de las recetas cargadas; sin recetas no se puede
   // saber, y decirlo es mejor que inventar un número.
@@ -61,6 +68,16 @@ export default async function EstadisticasPage() {
 
   return (
     <>
+      {estimados > 0 && (
+        <p className="rounded-xl border border-accent/50 bg-accent/10 p-4 text-sm">
+          <strong className="text-accent">Estos números son una estimación.</strong> Hay {estimados} insumos con precio puesto a ojo, así que todo lo
+          que sale de ahí —el costo de los platos, el punto de equilibrio y la matriz— es aproximado.{" "}
+          <Link href="/admin/recetas" className="underline underline-offset-4">
+            Confirmá los precios
+          </Link>{" "}
+          y pasan a ser plata real.
+        </p>
+      )}
       <section className="card p-5 sm:p-6">
         <h2 className="font-display text-2xl">Cómo venimos</h2>
         <p className="mt-1 text-sm text-muted">Lo que quedó cada semana: arriba de la línea ganaste, abajo perdiste.</p>

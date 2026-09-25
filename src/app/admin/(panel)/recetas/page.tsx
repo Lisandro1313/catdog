@@ -16,6 +16,8 @@ export const dynamic = "force-dynamic";
  */
 export default async function RecetasPage() {
   const [insumos, recetas] = await Promise.all([getInsumos(), getRecetas()]);
+  // Un precio que nadie confirmó vuelve fantasía a todo lo que cuelga de él: hay que decirlo fuerte.
+  const estimados = insumos.filter((i) => i.estimado).length;
 
   const conPrecio = recetas.filter((r) => r.costo.foodCost != null);
   const promedio = conPrecio.length > 0 ? conPrecio.reduce((n, r) => n + (r.costo.foodCost ?? 0), 0) / conPrecio.length : null;
@@ -31,6 +33,13 @@ export default async function RecetasPage() {
           de cebolla limpia, hay que comprar 200 porque pelarla se lleva el 15%. Eso es la merma, y es lo que hace que un plato parezca más barato de
           lo que es.
         </p>
+        {estimados > 0 && (
+          <p className="mt-4 rounded-xl border border-accent/50 bg-accent/10 p-3 text-sm">
+            <strong className="text-accent">Ojo:</strong> {estimados} {estimados === 1 ? "insumo tiene" : "insumos tienen"} precio estimado, puesto a
+            ojo para arrancar. Hasta que los confirmes contra un ticket, los costos de abajo no son plata real. Tocá cada uno y guardalo con el precio
+            que pagaste.
+          </p>
+        )}
         {promedio != null && (
           <p className="mt-4 text-sm">
             Food cost promedio de tus platos:{" "}
@@ -102,7 +111,10 @@ export default async function RecetasPage() {
           <ul className="mt-5 divide-y divide-line">
             {insumos.map((i) => (
               <li key={i.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-sm">
-                <span className="font-medium">{i.nombre}</span>
+                <span className="font-medium">
+                  {i.nombre}
+                  {i.estimado && <span className="ml-2 text-xs text-accent">precio estimado</span>}
+                </span>
                 <span className="text-muted tabular-nums">
                   {formatPrice(i.precio)} por {i.cantidad} {UNIDAD_LABEL[i.unidad]}
                   {i.merma > 0 && <span className="text-accent"> · merma {i.merma}%</span>}

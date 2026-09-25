@@ -515,6 +515,9 @@ model Insumo {
   merma     Int      @default(0)
   /// El rubro con el que se compra, para cruzarlo con los gastos.
   category  String?
+  /// true = el precio lo puso el sistema a ojo y todavía nadie lo confirmó contra un ticket.
+  /// Mientras esté así, los costos que salen de este insumo no son plata real.
+  estimado  Boolean  @default(false)
   /// Cuándo se actualizó el precio por última vez: un costo viejo miente.
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())

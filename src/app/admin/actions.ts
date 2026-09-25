@@ -1345,8 +1345,10 @@ export async function guardarInsumoAction(_prev: ActionState, formData: FormData
   const d = parsed.data;
   const id = String(formData.get("id") ?? "");
   try {
-    if (id) await prisma.insumo.update({ where: { id }, data: d });
-    else await prisma.insumo.upsert({ where: { nombre: d.nombre }, update: d, create: d });
+    // Si alguien lo guarda a mano, es porque miró el precio: deja de ser estimado.
+    const datos = { ...d, estimado: false };
+    if (id) await prisma.insumo.update({ where: { id }, data: datos });
+    else await prisma.insumo.upsert({ where: { nombre: d.nombre }, update: datos, create: datos });
   } catch {
     // El nombre es único: renombrar un insumo al de otro choca. Mejor decirlo que tirar un error.
     return { ok: false, message: `Ya hay un insumo que se llama "${d.nombre}".` };

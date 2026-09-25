@@ -10,7 +10,7 @@ function armarInsumo(row: { id: string; nombre: string; unidad: string; precio: 
 
 export async function getInsumos() {
   const rows = await prisma.insumo.findMany({ orderBy: { nombre: "asc" } });
-  return rows.map((r) => ({ ...armarInsumo(r), category: r.category, updatedAt: r.updatedAt }));
+  return rows.map((r) => ({ ...armarInsumo(r), category: r.category, updatedAt: r.updatedAt, estimado: r.estimado }));
 }
 
 export type RecetaConCosto = Receta & { costo: CostoReceta; cartaItem: string | null; actualizada: Date };
