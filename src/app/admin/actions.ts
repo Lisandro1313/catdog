@@ -34,6 +34,7 @@ import { approveHuella, markSugerenciasSeen, removeHuella, removeSugerencia, set
 import { COVER_VIAS, abrirTraspaso, cancelarTraspaso, cargarExtra, cerrarCuenta, desmarcarCover, getCuentas, marcarReserva, nuevoSalaCode, reabrirCuenta, resumen, saldarCover, setConsumoStatus, setCover, type CoverVia } from "@/lib/sala";
 import { setServicioAbierto } from "@/lib/hoy";
 import { CATEGORIA_ARQUEO, CATEGORIA_TRASPASO, diferenciaArqueo } from "@/lib/caja-tipos";
+import { avisar, borrarSuscripcion, guardarSuscripcion } from "@/lib/push";
 
 export type ActionState = { ok: boolean; message?: string } | null;
 
@@ -1437,4 +1438,43 @@ export async function borrarRecetaAction(formData: FormData): Promise<void> {
   await prisma.receta.deleteMany({ where: { id } });
   revalidatePath("/admin/recetas");
   redirect("/admin/recetas");
+}
+
+// ---------------------------------------------------------------------------
+// Avisos al teléfono
+// ---------------------------------------------------------------------------
+
+/** Anota este teléfono para que le lleguen los pedidos del salón. */
+export async function suscribirAvisosAction(input: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  who: string | null;
+  quiere: "todo" | "barra" | "cocina";
+}): Promise<ActionState> {
+  await requireAdmin();
+  if (!input?.endpoint || !input.p256dh || !input.auth) return { ok: false, message: "El navegador no dio los datos del aviso." };
+  const quiere = ["todo", "barra", "cocina"].includes(input.quiere) ? input.quiere : "todo";
+  await guardarSuscripcion({ endpoint: input.endpoint, p256dh: input.p256dh, auth: input.auth, who: input.who, quiere });
+  return { ok: true, message: "Avisos activados." };
+}
+
+/** Da de baja este teléfono. */
+export async function desuscribirAvisosAction(endpoint: string): Promise<void> {
+  await requireAdmin();
+  if (endpoint) await borrarSuscripcion(endpoint);
+}
+
+/** Manda un aviso de prueba a los teléfonos anotados, para ver que llegue de verdad. */
+export async function probarAvisoAction(): Promise<ActionState> {
+  await requireAdmin();
+  const me = await whoAmI();
+  const r = await avisar({
+    titulo: "Prueba de aviso",
+    cuerpo: `Si ves esto, los avisos andan. Lo mandó ${me.name}.`,
+    url: "/admin/salon",
+    tipo: "casa",
+  });
+  if (r.enviados === 0) return { ok: false, message: "No hay ningún teléfono activado todavía." };
+  return { ok: true, message: `Mandado a ${r.enviados} ${r.enviados === 1 ? "teléfono" : "teléfonos"}.` };
 }

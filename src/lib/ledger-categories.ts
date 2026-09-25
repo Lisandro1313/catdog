@@ -3,28 +3,28 @@
 export type LedgerKind = "INCOME" | "EXPENSE";
 export type AnyKind = "INCOME" | "EXPENSE" | "CONTRIBUTION" | "WITHDRAWAL";
 
-export type Category = { value: string; label: string; emoji: string };
+export type Category = { value: string; label: string };
 
 export const LEDGER_CATEGORIES: Record<LedgerKind, Category[]> = {
   EXPENSE: [
-    { value: "verduleria", label: "Verdulería", emoji: "🥬" },
-    { value: "carniceria", label: "Carnicería", emoji: "🥩" },
-    { value: "almacen", label: "Almacén", emoji: "🧺" },
-    { value: "bebidas", label: "Bebidas", emoji: "🍾" },
-    { value: "insumos", label: "Insumos", emoji: "🧂" },
-    { value: "vajilla", label: "Vajilla y equipo", emoji: "🍽️" },
-    { value: "alquiler", label: "Alquiler", emoji: "🏠" },
-    { value: "servicios", label: "Luz, gas, internet", emoji: "💡" },
-    { value: "viaticos", label: "Viáticos", emoji: "🚕" },
-    { value: "personal", label: "Personal", emoji: "🧑‍🍳" },
-    { value: "otros", label: "Otros", emoji: "📦" },
+    { value: "verduleria", label: "Verdulería" },
+    { value: "carniceria", label: "Carnicería" },
+    { value: "almacen", label: "Almacén" },
+    { value: "bebidas", label: "Bebidas" },
+    { value: "insumos", label: "Insumos" },
+    { value: "vajilla", label: "Vajilla y equipo" },
+    { value: "alquiler", label: "Alquiler" },
+    { value: "servicios", label: "Luz, gas, internet" },
+    { value: "viaticos", label: "Viáticos" },
+    { value: "personal", label: "Personal" },
+    { value: "otros", label: "Otros" },
   ],
   INCOME: [
-    { value: "cena", label: "Cenas", emoji: "🍽️" },
-    { value: "barra", label: "Barra", emoji: "🍸" },
+    { value: "cena", label: "Cenas" },
+    { value: "barra", label: "Barra" },
     // Una venta puede pasar cualquier día, fuera del servicio: una botella un martes al mediodía.
-    { value: "mercaderia", label: "Mercadería", emoji: "📦" },
-    { value: "otros", label: "Otros ingresos", emoji: "💵" },
+    { value: "mercaderia", label: "Mercadería" },
+    { value: "otros", label: "Otros ingresos" },
   ],
 };
 
@@ -34,13 +34,6 @@ export function categoryLabel(kind: AnyKind, value: string): string {
   // El arqueo no es un rubro que se elija: lo escribe el sistema al cuadrar la caja.
   if (value === "arqueo") return kind === "INCOME" ? "Sobraba en la caja" : "Faltaba en la caja";
   return LEDGER_CATEGORIES[kind].find((c) => c.value === value)?.label ?? value;
-}
-
-export function categoryEmoji(kind: AnyKind, value: string): string {
-  if (kind === "CONTRIBUTION") return "🤝";
-  if (kind === "WITHDRAWAL") return "👛";
-  if (value === "arqueo") return "⚖️";
-  return LEDGER_CATEGORIES[kind].find((c) => c.value === value)?.emoji ?? (kind === "INCOME" ? "💵" : "📦");
 }
 
 /** Socios que cargan gastos. Configurable con NEXT_PUBLIC_PARTNERS="Nombre1,Nombre2". */

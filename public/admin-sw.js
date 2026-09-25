@@ -36,3 +36,45 @@ self.addEventListener("fetch", (event) => {
       }),
   );
 });
+
+// --- Avisos al teléfono -----------------------------------------------------
+// Cuando alguien pide algo en el salón, el servidor empuja un mensaje y esto lo muestra como
+// notificación, aunque la app esté cerrada.
+
+self.addEventListener("push", (event) => {
+  let datos = { titulo: "CatDog", cuerpo: "Novedad en el salón", url: "/admin/salon" };
+  try {
+    if (event.data) datos = { ...datos, ...event.data.json() };
+  } catch {
+    // Si el mensaje viniera mal armado, igual mostramos algo antes que nada.
+  }
+  event.waitUntil(
+    self.registration.showNotification(datos.titulo, {
+      body: datos.cuerpo,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      // Vibra como un mensaje, para reconocerlo sin mirar.
+      vibrate: [40, 60, 40],
+      data: { url: datos.url },
+      // Cada pedido es su propio aviso: no se pisan entre ellos.
+      tag: datos.url + ":" + Date.now(),
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const destino = (event.notification.data && event.notification.data.url) || "/admin/salon";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((lista) => {
+      // Si el panel ya está abierto, lo traemos al frente en vez de abrir otra pestaña.
+      for (const c of lista) {
+        if (c.url.includes("/admin") && "focus" in c) {
+          c.navigate(destino).catch(() => {});
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(destino);
+    }),
+  );
+});

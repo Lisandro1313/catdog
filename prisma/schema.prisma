@@ -200,10 +200,10 @@ model LedgerEntry {
   day            DateTime      @default(dbgenerated("CURRENT_DATE")) @db.Date
   /// Quién lo cargó / lo pagó / lo aportó / lo retiró.
   by             String?
-  /// Solo para gastos: true = lo pagó el socio de su bolsillo (el negocio se lo debe); false = salió de la caja.
   /// Cómo entró o salió la plata: "efectivo" | "transferencia" | "tarjeta" | "mercadopago".
   /// Sirve para saber qué parte de la caja es billete y qué parte está en la cuenta.
   via            String?
+  /// Solo para gastos: true = lo pagó el socio de su bolsillo (el negocio se lo debe); false = salió de la caja.
   fromPocket     Boolean       @default(true)
   /// Foto del ticket / factura, guardada en Vercel Blob (privada).
   receiptUrl     String?
@@ -555,4 +555,20 @@ model RecetaItem {
 
   @@unique([recetaId, insumoId])
   @@index([recetaId])
+}
+
+/// Un teléfono que pidió que le avisemos. Uno por navegador; si se desinstala o se limpia, se da de baja solo.
+model PushSub {
+  id        String    @id @default(cuid())
+  /// La dirección que da el navegador para empujarle el aviso.
+  endpoint  String    @unique
+  p256dh    String
+  auth      String
+  /// Quién lo activó, para saber a quién le llega qué.
+  who       String?
+  /// Qué avisos quiere: "barra" (tragos), "cocina" (platos), "todo".
+  quiere    String    @default("todo")
+  createdAt DateTime  @default(now())
+  /// Última vez que el navegador aceptó un aviso: sirve para limpiar los muertos.
+  lastOkAt  DateTime?
 }

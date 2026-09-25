@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { avisar } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 import { ensureSalaKey, readSalaKey } from "@/lib/device";
 import { getTonightEvent } from "@/lib/hoy";
@@ -138,7 +139,9 @@ export async function pedirPasoAction(input: unknown): Promise<MesaResult> {
   } catch (err) {
     return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo pedir." };
   }
-  return { ok: true, cuentas: await getMisCuentas(eventId, mine.key), foco: cuentaId };
+  const cuentas = await getMisCuentas(eventId, mine.key);
+  await avisarDelPedido(eventId, cuentaId, cuentas, que === "trago" ? "barra" : "cocina");
+  return { ok: true, cuentas, foco: cuentaId };
 }
 
 const tragoSchema = z.object({ eventId: z.string().min(1), cuentaId: z.string().min(1), item: z.string().trim().min(1).max(120), qty: z.number().int().min(1).max(4).optional() });
@@ -156,7 +159,9 @@ export async function pedirTragoAction(input: unknown): Promise<MesaResult> {
   } catch (err) {
     return { ok: false, error: err instanceof SalaError ? err.message : "No se pudo pedir." };
   }
-  return { ok: true, cuentas: await getMisCuentas(eventId, mine.key), foco: cuentaId };
+  const cuentas = await getMisCuentas(eventId, mine.key);
+  await avisarDelPedido(eventId, cuentaId, cuentas, "barra", item);
+  return { ok: true, cuentas, foco: cuentaId };
 }
 
 export async function cancelarConsumoAction(eventId: string, consumoId: string): Promise<MesaResult> {
@@ -165,4 +170,31 @@ export async function cancelarConsumoAction(eventId: string, consumoId: string):
   if (!allowKey(`cancel:${key}`, 40)) return { ok: false, error: "Esperá un momento." };
   await cancelarMiConsumo(consumoId, key);
   return { ok: true, cuentas: await getMisCuentas(eventId, key) };
+}
+
+/**
+ * Le avisa al teléfono de la casa que alguien pidió algo: "Lucas pidió Gin Bill".
+ * Nunca hace fallar el pedido: si el aviso no sale, el pedido ya está hecho igual.
+ */
+async function avisarDelPedido(
+  eventId: string,
+  cuentaId: string,
+  cuentas: Awaited<ReturnType<typeof getMisCuentas>>,
+  tipo: "barra" | "cocina",
+  item?: string,
+) {
+  try {
+    const cuenta = cuentas.find((c) => c.id === cuentaId);
+    if (!cuenta) return;
+    // Sin item (un paso de la carta) se toma lo último que entró, que es lo que se acaba de pedir.
+    const ultimo = item ?? cuenta.consumos.filter((c) => c.status === "pendiente").at(-1)?.item;
+    await avisar({
+      titulo: tipo === "barra" ? "Pedido para la barra" : "Pedido para la cocina",
+      cuerpo: ultimo ? `${cuenta.name} pidió ${ultimo}` : `${cuenta.name} hizo un pedido`,
+      url: `/admin/eventos/${eventId}/sala`,
+      tipo,
+    });
+  } catch {
+    // Que no salga el aviso no puede voltear un pedido.
+  }
 }

@@ -266,7 +266,7 @@ function MovementDialog({
                 <select className="input" name="category" defaultValue={row.category}>
                   {LEDGER_CATEGORIES[row.kind as "INCOME" | "EXPENSE"].map((c) => (
                     <option key={c.value} value={c.value}>
-                      {c.emoji} {c.label}
+                      {c.label}
                     </option>
                   ))}
                 </select>

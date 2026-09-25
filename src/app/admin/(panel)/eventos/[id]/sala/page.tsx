@@ -5,6 +5,9 @@ import { formatLong, formatTime, nowMs } from "@/lib/dates";
 import { formatPrice } from "@/lib/config";
 import { getCuentas, getSalaCode, resumen, VIA_LABEL, type CuentaRow } from "@/lib/sala";
 import { getServicioAbierto } from "@/lib/hoy";
+import { pushPublicKey } from "@/lib/push";
+import { getSession } from "@/lib/admin-auth";
+import { Avisos } from "@/components/admin/Avisos";
 import {
   abrirServicioAction,
   abrirTraspasoAction,
@@ -37,7 +40,8 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const event = await prisma.event.findUnique({ where: { id }, select: { id: true, title: true, date: true, price: true, barPrice: true } });
   if (!event) notFound();
-  const [cuentas, code, servicio] = await Promise.all([getCuentas(id), getSalaCode(id), getServicioAbierto()]);
+  const [cuentas, code, servicio, session] = await Promise.all([getCuentas(id), getSalaCode(id), getServicioAbierto(), getSession()]);
+  const quien = session?.role === "user" ? session.name : undefined;
   const r = resumen(cuentas);
   const servicioAcaAbierto = servicio?.id === event.id;
   const servicioOtro = servicio && servicio.id !== event.id ? servicio : null;
@@ -111,6 +115,9 @@ export default async function SalaPage({ params }: { params: Promise<{ id: strin
               </button>
             )}
           </form>
+        </div>
+        <div className="mt-4">
+          <Avisos publicKey={pushPublicKey()} who={quien} />
         </div>
       </section>
 

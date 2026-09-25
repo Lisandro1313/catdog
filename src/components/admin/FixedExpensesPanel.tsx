@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createFixedExpenseAction, toggleFixedExpenseAction, updateFixedExpenseAction } from "@/app/admin/actions";
-import { LEDGER_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/ledger-categories";
+import { LEDGER_CATEGORIES, categoryLabel } from "@/lib/ledger-categories";
 import type { FixedExpenseRow } from "@/lib/fixed-expenses";
 
 function money(n: number): string {
@@ -32,9 +32,6 @@ export function FixedExpensesPanel({ items }: { items: FixedExpenseRow[] }) {
           {items.map((f) => (
             <li key={f.id} className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 ${f.active ? "" : "opacity-50"}`}>
               <div className="flex items-center gap-3">
-                <span className="text-lg" aria-hidden="true">
-                  {categoryEmoji("EXPENSE", f.category)}
-                </span>
                 <div>
                   <p className="font-medium">
                     {f.name} {!f.active && <span className="text-xs text-muted">(dado de baja)</span>}
@@ -114,7 +111,7 @@ function FormDialog({ item, onClose }: { item?: FixedExpenseRow; onClose: () => 
             <select className="input" name="category" defaultValue={item?.category ?? "alquiler"}>
               {LEDGER_CATEGORIES.EXPENSE.map((c) => (
                 <option key={c.value} value={c.value}>
-                  {c.emoji} {c.label}
+                  {c.label}
                 </option>
               ))}
             </select>
