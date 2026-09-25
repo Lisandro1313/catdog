@@ -43,6 +43,9 @@ export default async function AdminHome() {
   const nextFriday = new Date();
   nextFriday.setDate(nextFriday.getDate() + ((5 - nextFriday.getDay() + 7) % 7 || 7));
   nextFriday.setHours(21, 0, 0, 0);
+  const nextSaturday = new Date();
+  nextSaturday.setDate(nextSaturday.getDate() + ((6 - nextSaturday.getDay() + 7) % 7 || 7));
+  nextSaturday.setHours(20, 0, 0, 0);
 
   const now = nowMs();
   const totalPaidSeats = events.reduce(
@@ -384,6 +387,34 @@ export default async function AdminHome() {
               barPrice: "",
               address: "",
               published: true,
+            }}
+          />
+        </div>
+      </section>
+
+      {/* Una jornada es una fecha sin cubierto: no se reserva ni se paga entrada, se cobra lo que cada
+          uno consume. Un sábado de cerveza y sanguches. Va con precio 0 y la lista con precio por producto. */}
+      <section className="card p-6">
+        <h2 className="font-display text-2xl">Nueva jornada</h2>
+        <p className="mt-2 text-sm text-muted">
+          Una fecha sin cubierto: nadie reserva ni paga entrada, cada uno abre su cuenta con el QR y paga lo que consume. Poné cada cosa con su
+          precio (<span className="text-ink">Cerveza | pinta tirada | 4500</span>) y después, desde la sala, tocá <span className="text-ink">Abrir el servicio</span>.
+        </p>
+        <div className="mt-4">
+          <EventForm
+            action={createEventAction}
+            submitLabel="Crear jornada"
+            initial={{
+              title: "Sábado de cerveza y sanguches",
+              date: toDatetimeLocal(nextSaturday),
+              price: 0,
+              capacity: DEFAULT_CAPACITY,
+              description: "",
+              menu: "",
+              bar: "Cerveza | pinta tirada | 4500\nSanguche de bondiola | con chimi | 12500",
+              barPrice: "",
+              address: "",
+              published: false,
             }}
           />
         </div>

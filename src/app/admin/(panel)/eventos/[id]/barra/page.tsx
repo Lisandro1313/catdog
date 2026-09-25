@@ -15,7 +15,7 @@ export default async function BarraPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const [event, sales] = await Promise.all([prisma.event.findUnique({ where: { id } }), prisma.barSale.findMany({ where: { eventId: id } })]);
   if (!event) notFound();
-  const items = parseBar(event.bar).map((b) => ({ name: b.name, price: event.barPrice ?? 0 }));
+  const items = parseBar(event.bar).map((b) => ({ name: b.name, price: b.price ?? event.barPrice ?? 0 }));
   const settled = sales.length > 0 && sales.every((s) => s.settledAt);
 
   return (

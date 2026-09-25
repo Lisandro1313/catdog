@@ -64,7 +64,7 @@ export function EventForm({ action, initial, submitLabel }: Props) {
       </label>
       <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
         <label className="grid gap-1 text-sm">
-          <span className="text-muted">La barra (uno por línea: trago | descripción)</span>
+          <span className="text-muted">La barra (uno por línea: trago | descripción, y si sale distinto: | precio)</span>
           <textarea
             className="input"
             name="bar"
@@ -76,6 +76,7 @@ export function EventForm({ action, initial, submitLabel }: Props) {
         <label className="grid gap-1 text-sm">
           <span className="text-muted">Precio por trago ($)</span>
           <input className="input" type="number" name="barPrice" min={0} step={500} defaultValue={initial.barPrice} placeholder="5000" />
+          <span className="text-xs text-muted">El que vale para los que no tienen precio propio en la lista.</span>
         </label>
       </div>
       <label className="grid gap-1 text-sm">

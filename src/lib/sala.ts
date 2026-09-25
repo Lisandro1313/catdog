@@ -184,8 +184,19 @@ export async function abrirCuenta(input: { eventId: string; table: number; name:
   // Un tope duro por noche: que nadie pueda llenar el panel de cuentas basura.
   const enLaNoche = await prisma.cuenta.count({ where: { eventId: input.eventId } });
   if (enLaNoche >= 60) throw new SalaError("Hay demasiadas cuentas abiertas; avisale a la casa.");
+  // Una jornada no tiene cubierto (se paga lo que se consume): la cuenta nace destrabada y pide de una.
+  // La cena sí: queda trabada hasta que la casa cobre en la puerta.
+  const sinCubierto = input.price <= 0;
   const row = await prisma.cuenta.create({
-    data: { eventId: input.eventId, table: input.table, name: input.name, deviceKey: input.deviceKey, cover: input.price, coverNote: "entera" },
+    data: {
+      eventId: input.eventId,
+      table: input.table,
+      name: input.name,
+      deviceKey: input.deviceKey,
+      cover: sinCubierto ? 0 : input.price,
+      coverNote: sinCubierto ? "sin cubierto" : "entera",
+      coverPaidAt: sinCubierto ? new Date() : null,
+    },
     include,
   });
   return armar(row);
@@ -240,10 +251,13 @@ export async function pedirPaso(cuentaId: string, stepIndex: number, que: "plato
 /** Pide un trago de la barra: se suma a la cuenta y le llega a la barra. */
 export async function pedirTrago(cuentaId: string, item: string, qty = 1) {
   await conCuentaBloqueada(cuentaId, async (tx, cuenta) => {
-    if (!parseBar(cuenta.event.bar).some((b) => b.name === item)) throw new SalaError("Eso no está en la barra de hoy.");
+    const enCarta = parseBar(cuenta.event.bar).find((b) => b.name === item);
+    if (!enCarta) throw new SalaError("Eso no está en la barra de hoy.");
     const enCamino = cuenta.consumos.filter((c) => c.kind === "trago" && c.status === "pendiente").length;
     if (enCamino >= 3) throw new SalaError("Ya tenés tragos en camino; esperá a que lleguen.");
-    await tx.consumo.create({ data: { cuentaId, kind: "trago", item, qty: Math.min(4, Math.max(1, qty)), price: cuenta.event.barPrice ?? 0 } });
+    // El precio se toma de la carta, no de lo que mande el teléfono: cada producto puede salir distinto.
+    const price = enCarta.price ?? cuenta.event.barPrice ?? 0;
+    await tx.consumo.create({ data: { cuentaId, kind: "trago", item, qty: Math.min(4, Math.max(1, qty)), price } });
   });
 }
 

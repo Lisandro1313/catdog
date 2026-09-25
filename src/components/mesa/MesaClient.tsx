@@ -444,13 +444,17 @@ export function MesaClient({ eventId, title, dateLabel, table, price, menu, bar,
 
       {bar.length > 0 && (
         <section className="mt-8 text-left">
-          <p className="ap-eyebrow">La barra{barPrice ? ` · ${formatPrice(barPrice)}` : ""}</p>
+          {/* Con precio único va en el título; si cada cosa sale distinto, el precio va pegado a cada una. */}
+          <p className="ap-eyebrow">La barra{barPrice && bar.every((b) => b.price == null) ? ` · ${formatPrice(barPrice)}` : ""}</p>
           <p className="mt-1 text-xs text-muted">Se suma a tu cuenta y lo pagás al final.</p>
           <ul className="mt-3 space-y-3">
             {bar.map((b) => (
               <li key={b.name} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-display text-lg leading-tight">{b.name}</p>
+                  <p className="font-display text-lg leading-tight">
+                    {b.name}
+                    {b.price != null && <span className="ml-2 text-sm text-muted tabular-nums">{formatPrice(b.price)}</span>}
+                  </p>
                   {b.description && <p className="text-xs leading-relaxed text-muted">{b.description}</p>}
                 </div>
                 <button

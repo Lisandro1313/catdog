@@ -109,7 +109,9 @@ export function resumen(cuentas: CuentaRow[]): Resumen {
       cobradoCena += c.cover;
       porVia.set(c.coverVia, (porVia.get(c.coverVia) ?? 0) + c.cover);
     }
-    if (c.coverVia === "invitado" || (c.cover === 0 && c.coverVia !== "reserva")) invitados += 1;
+    // En una jornada nadie paga cubierto: eso no los vuelve invitados de la casa.
+    const sinCubierto = c.coverNote === "sin cubierto";
+    if (!sinCubierto && (c.coverVia === "invitado" || (c.cover === 0 && c.coverVia !== "reserva"))) invitados += 1;
     // Lo de la barra entra a la caja cuando la cuenta se cierra, salvo que se haya regalado.
     if (c.closedAt && c.closedVia !== "invitado") {
       cobradoConsumo += c.extra;
