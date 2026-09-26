@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema } from "@/lib/foro";
+import { parseOpciones, setBarra } from "@/lib/barra";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
@@ -1133,4 +1134,29 @@ export async function foroBorrarAction(formData: FormData) {
   await borrarTemaDefinitivo(id);
   revalidatePath("/admin/sobremesa");
   revalidatePath("/sobremesa");
+}
+
+// ---------- formato barra ----------
+
+/** Los días fijos, los precios y lo que se sirve. Lo edita la casa desde Ajustes. */
+export async function setBarraAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const texto = (k: string) => String(formData.get(k) ?? "");
+  const opciones = texto("opciones");
+  if (parseOpciones(opciones).length === 0) {
+    return { ok: false, message: 'Poné al menos un precio, con el formato "Con cerveza | 10000".' };
+  }
+  await setBarra({
+    activa: formData.get("activa") === "on",
+    dias: texto("dias"),
+    horario: texto("horario"),
+    opciones,
+    incluye: texto("incluye"),
+    hoy: texto("hoy"),
+    lunes: texto("lunes"),
+    direccion: texto("direccion"),
+  });
+  revalidatePath("/");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: "Guardado." };
 }

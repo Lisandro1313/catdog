@@ -13,13 +13,15 @@ import { FixedExpensesPanel } from "@/components/admin/FixedExpensesPanel";
 import { getFixedExpenses } from "@/lib/fixed-expenses";
 import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos, getVideo } from "@/lib/photos";
 import { AboutPanel, InstagramPanel, PhotosPanel, VideoPanel } from "@/components/admin/HomeContentPanel";
+import { getBarra, getOpcionesRaw } from "@/lib/barra";
+import { BarraPanel } from "@/components/admin/BarraPanel";
 import { PaymentForm, TestMailForm } from "@/components/admin/ActionForms";
 import { getPaymentConfig } from "@/lib/payment";
 import { logoutAction, toggleHoyAction } from "../../actions";
 import { isHoyOff } from "@/lib/hoy";
 
 export default async function AjustesPage() {
-  const [session, users, fixed, photos, about, instagram, payment, hoyOff, video] = await Promise.all([
+  const [session, users, fixed, photos, about, instagram, payment, hoyOff, video, barra, opcionesRaw] = await Promise.all([
     getSession(),
     prisma.user.findMany({ select: { name: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     getFixedExpenses(),
@@ -29,6 +31,8 @@ export default async function AjustesPage() {
     getPaymentConfig(),
     isHoyOff(),
     getVideo(),
+    getBarra(),
+    getOpcionesRaw(),
   ]);
   const me = session?.role === "user" ? session.name : null;
   const missing = PARTNERS.filter((p) => !users.some((u) => u.name === p));
@@ -50,6 +54,7 @@ export default async function AjustesPage() {
           <div>
             <p className="text-xs uppercase tracking-wider text-muted">El sitio</p>
             <ul className="mt-1 grid gap-1">
+              <li><a href="#como-abrimos" className="text-sm underline-offset-4 hover:text-accent hover:underline">Cómo abrimos</a></li>
               <li><a href="#fotos-del-lugar" className="text-sm underline-offset-4 hover:text-accent hover:underline">Fotos del lugar</a></li>
               <li><a href="#quienes-somos" className="text-sm underline-offset-4 hover:text-accent hover:underline">Quiénes somos</a></li>
               <li><a href="#los-mails-que-salen" className="text-sm underline-offset-4 hover:text-accent hover:underline">Los mails que salen</a></li>
@@ -76,6 +81,24 @@ export default async function AjustesPage() {
         <p className="eyebrow">La plata</p>
         <p className="mt-1 text-sm text-muted">Cómo entra y qué se paga todos los meses.</p>
       </div>
+
+      <section id="como-abrimos" className="scroll-mt-24 card card-gold p-5 sm:p-6">
+        <h2 className="font-display text-2xl">Cómo abrimos</h2>
+        <p className="mt-1 text-sm text-muted">
+          Los días fijos, los precios y lo que se sirve. Con esto prendido el home deja de pedir reservas y pasa a ser el cartel de
+          la casa; las cenas de varios pasos siguen funcionando por su link privado.
+        </p>
+        <BarraPanel
+          activa={barra.activa}
+          dias={barra.dias}
+          horario={barra.horario}
+          opciones={opcionesRaw}
+          incluye={barra.incluye}
+          hoy={barra.hoy}
+          lunes={barra.lunes}
+          direccion={barra.direccion}
+        />
+      </section>
 
       <section id="como-se-cobra" className="scroll-mt-24 card card-gold p-5 sm:p-6">
         <h2 className="font-display text-2xl">Cómo se cobra</h2>

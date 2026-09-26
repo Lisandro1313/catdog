@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getBarra } from "@/lib/barra";
 import { SITE_NAME, formatPrice } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday } from "@/lib/dates";
 import { getUpcomingEvents } from "@/lib/reservations";
@@ -16,6 +18,8 @@ export const metadata: Metadata = {
 
 /** Todas las fechas publicadas, la más cercana primero. Sin cupos ni mesa: solo "pocos lugares" / "agotado". */
 export default async function FechasPage() {
+  // En formato barra no hay fechas que listar: la casa abre dias fijos y se entra sin reservar.
+  if ((await getBarra()).activa) redirect("/");
   const events = await getUpcomingEvents(12);
 
   return (

@@ -25,6 +25,8 @@ import { foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
+import { getBarra } from "@/lib/barra";
+import { BarraHero, LunesGastronomico } from "@/components/home/BarraHero";
 
 /**
  * El home se genera y se guarda un minuto (ISR): responde al instante y los metadatos
@@ -39,6 +41,19 @@ const ZONE = "Calle 66, entre 2 y 3 · La Plata";
 const MAP_CENTER = "-34.9218,-57.9306";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const barra = await getBarra();
+  if (barra.activa) {
+    const desde = barra.opciones.reduce((min, o) => Math.min(min, o.precio), Infinity);
+    const title = `${SITE_NAME} · ${barra.dias} en una casa de La Plata`;
+    const description = `${barra.incluye} Desde ${formatPrice(desde)}, sin reserva. ${barra.dias}, ${barra.horario.toLowerCase()}.`;
+    const image = { url: "/opengraph-image?v=barra", width: 1200, height: 630, alt: `${SITE_NAME} en La Plata` };
+    return {
+      title,
+      description,
+      openGraph: { title, description, type: "website", images: [image] },
+      twitter: { card: "summary_large_image", title, description, images: [image.url] },
+    };
+  }
   const [event] = await getUpcomingEvents(1);
   const weekday = event ? formatWeekday(event.date) : "";
   const title = event
@@ -78,6 +93,9 @@ export default async function HomePage() {
   const nextOpen = upcoming.find((e) => e.free > 0) ?? null;
   const soldOut = Boolean(event) && free <= 0;
   const soldOutLabel = event?.closedAt ? "Reservas cerradas" : "Agotado";
+  // Modo barra: la casa abre dias fijos, sin reserva y sin cupo. El home deja de ser un embudo de reservas.
+  const barra = await getBarra();
+  const modoBarra = barra.activa;
   // Si la próxima cena todavía no tiene carta, se muestra la de la última cena como anticipo, aclarándolo.
   const ownSteps = parseMenu(event?.menu);
   const previous =
@@ -124,7 +142,52 @@ export default async function HomePage() {
     : null;
 
 
-  const faqs = [
+  const faqsBarra = [
+    {
+      q: "¿Hay que reservar?",
+      a: "No. Se abre y el que cae, entra. Mientras haya, hay: no guardamos lugares ni tomamos lista.",
+    },
+    {
+      q: "¿Qué entra por ese precio?",
+      a: `${barra.incluye} Si querés otra cosa de la barra, va aparte.`,
+    },
+    {
+      q: "¿Qué días abren?",
+      a: `${barra.dias}. ${barra.horario}.`,
+    },
+    {
+      q: "¿Por qué los lunes?",
+      a: "Porque el que trabaja en gastronomía labura de martes a domingo, justo cuando el resto sale. El lunes abrimos para eso.",
+    },
+    {
+      q: "¿Dónde es exactamente?",
+      a: barra.direccion
+        ? `${barra.direccion}. Es una casa sin cartel: se entra por un portón y un pasillo.`
+        : `${ZONE}. Es una casa sin cartel: escribinos y te pasamos el número exacto.`,
+    },
+    {
+      q: "¿Cómo se paga?",
+      a: "En la barra, cuando pedís. Efectivo o transferencia.",
+    },
+    {
+      q: "¿Comés distinto? ¿Alergias?",
+      a: "Avisanos al pedir y vemos qué tenemos esa noche.",
+    },
+    {
+      q: "¿Y las cenas de varios pasos?",
+      a: "Las seguimos haciendo para grupos que las piden: se arma la fecha, la carta y su cóctel para cada plato. Escribinos y lo vemos.",
+    },
+    ...(contactEmail()
+      ? [
+          {
+            q: "¿Tenés otra duda?",
+            a: `Escribinos a ${contactEmail()} y te respondemos nosotros.`,
+          },
+        ]
+      : []),
+  ];
+
+  const faqsCena = [
     {
       q: "¿Qué incluye el precio?",
       a: "El cóctel sin alcohol de recepción, los pasos de la cena con el cóctel de autor que acompaña a cada uno, y agua en la mesa. Lo que quieras tomar además, de la barra, va aparte.",
@@ -168,6 +231,7 @@ export default async function HomePage() {
         ]
       : []),
   ];
+  const faqs = modoBarra ? faqsBarra : faqsCena;
 
   const aboutParagraphs = about.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
 
@@ -190,7 +254,7 @@ export default async function HomePage() {
       <AnchorNav
         brand={SITE_NAME}
         items={[
-          { href: "#carta", label: "La carta" },
+          ...(modoBarra ? [{ href: "#lunes", label: "Los lunes" }] : [{ href: "#carta", label: "La carta" }]),
           { href: "#nosotros", label: "Quiénes somos" },
           ...(reviews.length > 0 ? [{ href: "#opiniones", label: "Opiniones" }] : []),
           { href: "#sobremesa", label: "La sobremesa" },
@@ -199,7 +263,13 @@ export default async function HomePage() {
         ]}
       />
 
-      {/* Afiche */}
+      {/* Afiche: el cartel de la barra, o la cena de la fecha. */}
+      {modoBarra ? (
+        <>
+          <BarraHero barra={barra} foto={photos[0]} />
+          <LunesGastronomico texto={barra.lunes} />
+        </>
+      ) : (
       <section id="inicio" className="relative flex min-h-[92dvh] items-center overflow-hidden px-6 py-20 sm:min-h-[88dvh]">
         {photos[0] && (
           <div className="ap-photo" aria-hidden="true">
@@ -321,8 +391,9 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+      )}
 
-      {event && (
+      {!modoBarra && event && (
         <>
           {/* La carta */}
           {steps.length > 0 && (
@@ -501,19 +572,35 @@ export default async function HomePage() {
               <div>
                 <p className="ap-eyebrow">Dónde</p>
                 <p className="mt-3 font-display text-2xl sm:text-3xl">{ZONE}</p>
-                <p className="mt-3 text-sm leading-relaxed text-muted">
-                  Una casa sin cartel en el casco de La Plata. Se entra por un portón y un pasillo. El número exacto te llega con la
-                  confirmación de la reserva.
-                </p>
-                <p className="mt-3 text-sm text-muted">
-                  {event ? (
-                    <>
-                      Llegá <span className="text-ink">{formatTime(event.date)} hs</span>. Se recibe de pie con un cóctel sin alcohol de la casa.
-                    </>
-                  ) : (
-                    <>Se recibe de pie con un cóctel sin alcohol de la casa.</>
-                  )}
-                </p>
+                {modoBarra ? (
+                  <>
+                    <p className="mt-3 text-sm leading-relaxed text-muted">
+                      {barra.direccion
+                        ? "Una casa sin cartel en el casco de La Plata. Se entra por un portón y un pasillo."
+                        : "Una casa sin cartel en el casco de La Plata. Se entra por un portón y un pasillo; escribinos y te pasamos el número exacto."}
+                    </p>
+                    {barra.direccion && <p className="mt-3 font-display text-lg text-ink">{barra.direccion}</p>}
+                    <p className="mt-3 text-sm text-muted">
+                      {barra.dias}, {barra.horario.toLowerCase()}. Sin reserva.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-3 text-sm leading-relaxed text-muted">
+                      Una casa sin cartel en el casco de La Plata. Se entra por un portón y un pasillo. El número exacto te llega con la
+                      confirmación de la reserva.
+                    </p>
+                    <p className="mt-3 text-sm text-muted">
+                      {event ? (
+                        <>
+                          Llegá <span className="text-ink">{formatTime(event.date)} hs</span>. Se recibe de pie con un cóctel sin alcohol de la casa.
+                        </>
+                      ) : (
+                        <>Se recibe de pie con un cóctel sin alcohol de la casa.</>
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
               <MapFacade center={MAP_CENTER} title="Mapa de la zona" />
             </div>
@@ -542,7 +629,7 @@ export default async function HomePage() {
 
       </>
 
-      {event && (
+      {!modoBarra && event && (
         <>
           {/* Reserva */}
           <section id="reservar" className="mx-auto w-full max-w-xl scroll-mt-8 px-6 py-16 sm:py-24">
@@ -666,7 +753,7 @@ export default async function HomePage() {
       </footer>
 
       {/* Barra fija en el celular */}
-      {event && nextOpen && (
+      {!modoBarra && event && nextOpen && (
         <StickyCta
           price={formatPrice(nextOpen.price)}
           scarcity={scarcity}

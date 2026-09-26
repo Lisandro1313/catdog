@@ -3021,3 +3021,34 @@ details.faq > summary::-webkit-details-marker {
     display: none;
   }
 }
+
+/* Los precios del cartel de barra: qué te tomás, un filete de puntos, y el número. Como una carta. */
+.ap-precio {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.05rem;
+}
+.ap-precio .que {
+  white-space: nowrap;
+}
+.ap-precio .linea {
+  flex: 1;
+  border-bottom: 1px dotted rgba(201, 169, 110, 0.35);
+  transform: translateY(-0.25rem);
+}
+.ap-precio .valor {
+  color: var(--ap-gold);
+  font-size: 1.5rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 640px) {
+  .ap-precio {
+    font-size: 1.15rem;
+  }
+  .ap-precio .valor {
+    font-size: 1.75rem;
+  }
+}
