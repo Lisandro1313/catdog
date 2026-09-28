@@ -26,6 +26,7 @@ import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
 import { getBarra } from "@/lib/barra";
+import { getConfigEventos } from "@/lib/eventos-privados";
 import { BarraHero, NocheConNombre } from "@/components/home/BarraHero";
 
 /**
@@ -96,6 +97,7 @@ export default async function HomePage() {
   // Modo barra: la casa abre dias fijos, sin reserva y sin cupo. El home deja de ser un embudo de reservas.
   const barra = await getBarra();
   const modoBarra = barra.activa;
+  const eventos = await getConfigEventos();
   // Si la próxima cena todavía no tiene carta, se muestra la de la última cena como anticipo, aclarándolo.
   const ownSteps = parseMenu(event?.menu);
   const previous =
@@ -258,6 +260,7 @@ export default async function HomePage() {
           ...(modoBarra ? [{ href: "#lunes", label: "Los lunes" }] : [{ href: "#carta", label: "La carta" }]),
           { href: "#nosotros", label: "Quiénes somos" },
           ...(reviews.length > 0 ? [{ href: "#opiniones", label: "Opiniones" }] : []),
+          ...(modoBarra ? [{ href: "#tu-evento", label: "Tu evento" }] : []),
           { href: "#sobremesa", label: "La sobremesa" },
           { href: "#donde", label: "Dónde" },
           { href: "#preguntas", label: "Preguntas" },
@@ -548,6 +551,25 @@ export default async function HomePage() {
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+
+          {/* Tu evento */}
+          {eventos.activos && (
+            <section id="tu-evento" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
+              <div className="text-center">
+                <p className="ap-ornament mb-3">✦</p>
+                <h2 className="ap-eyebrow">Tu evento</h2>
+                <p className="mx-auto mt-4 max-w-md leading-relaxed text-muted">
+                  ¿Querés hacer tu cumpleaños o una juntada acá? Cerramos la casa para tu grupo: tapeo, la barra andando y el lugar
+                  entero. Escribinos y te pasamos el presupuesto.
+                </p>
+                <p className="mt-6">
+                  <Link className="btn btn-primary px-8" href="/eventos">
+                    Pedir presupuesto
+                  </Link>
+                </p>
+              </div>
             </section>
           )}
 

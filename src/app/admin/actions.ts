@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema } from "@/lib/foro";
 import { parseOpciones, setBarra } from "@/lib/barra";
 import { parseProductos, setConfigCaja } from "@/lib/caja-rapida";
+import { borrarPedido, ESTADOS, setEstadoPedido, type Estado } from "@/lib/eventos-privados";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
@@ -1180,4 +1181,28 @@ export async function setCajaConfigAction(_prev: ActionState, formData: FormData
   revalidatePath("/admin/caja");
   revalidatePath("/admin/ajustes");
   return { ok: true, message: "Guardado." };
+}
+
+// ---------- eventos privados ----------
+
+/** Contestar una consulta: en qué anda, cuánto se presupuestó y si la seña entró. */
+export async function estadoPedidoAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const estado = String(formData.get("estado") ?? "");
+  if (!id || !ESTADOS.includes(estado as Estado)) return;
+  const numero = (k: string) => {
+    const crudo = String(formData.get(k) ?? "").replace(/\D/gu, "");
+    return crudo ? Number(crudo) : null;
+  };
+  await setEstadoPedido(id, estado as Estado, { presupuesto: numero("presupuesto"), sena: numero("sena") });
+  revalidatePath("/admin/fiestas");
+}
+
+export async function borrarPedidoAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await borrarPedido(id);
+  revalidatePath("/admin/fiestas");
 }

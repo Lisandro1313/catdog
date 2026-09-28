@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>CatDog · Los números para arrancar</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; color: #1a1613; background: #fff;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 10.5pt; line-height: 1.5; }
+  h1, h2, h3, .cifra, .tapa-fecha { font-family: Georgia, "Times New Roman", serif; }
+  .tapa { border-bottom: 2px solid #c9a96e; padding-bottom: 8mm; margin-bottom: 8mm; }
+  .tapa-marca { font-size: 11pt; letter-spacing: .32em; text-transform: uppercase; margin: 0; }
+  h1 { font-size: 26pt; font-weight: 400; margin: 3mm 0 0; line-height: 1.1; }
+  .tapa-fecha { color: #6b625a; font-size: 10pt; margin: 2mm 0 0; }
+  h2 { font-size: 15pt; font-weight: 400; margin: 9mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 1px solid #e3ddd3; }
+  h3 { font-size: 11.5pt; font-weight: 400; margin: 6mm 0 2mm; }
+  p { margin: 0 0 3mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.5mm; }
+  strong { color: #000; }
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9.5pt; }
+  th { text-align: left; font-weight: 600; font-size: 8pt; letter-spacing: .1em; text-transform: uppercase;
+       color: #6b625a; border-bottom: 1px solid #c9a96e; padding: 2mm 2mm 1.5mm; }
+  td { padding: 2mm; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+  td.n, th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tr.destaca td { background: #faf6ee; font-weight: 600; }
+  .caja { border: 1px solid #e3ddd3; border-left: 3px solid #c9a96e; padding: 4mm 5mm; margin: 4mm 0; background: #fdfbf7; }
+  .caja p:last-child { margin-bottom: 0; }
+  .grande { display: flex; gap: 6mm; margin: 4mm 0; }
+  .grande > div { flex: 1; border: 1px solid #e3ddd3; border-radius: 3mm; padding: 4mm; text-align: center; }
+  .cifra { font-size: 20pt; display: block; line-height: 1.1; }
+  .rotulo { font-size: 8pt; letter-spacing: .1em; text-transform: uppercase; color: #6b625a; }
+  .pie { margin-top: 10mm; padding-top: 3mm; border-top: 1px solid #e3ddd3; font-size: 8.5pt; color: #6b625a; }
+  .salto { page-break-before: always; }
+  .nota { font-size: 9pt; color: #6b625a; }
+</style>
+</head>
+<body>
+
+<header class="tapa">
+  <p class="tapa-marca">CatDog</p>
+  <h1>Los números para arrancar</h1>
+  <p class="tapa-fecha">La Plata · 27 de septiembre de 2026 · Lisandro y Agustín</p>
+</header>
+
+<p>Este informe sale de lo que está cargado en el sistema (compras, gastos fijos y precios) más los precios de
+compra que conseguimos. Lo que es estimación está marcado como tal.</p>
+
+<h2>1. De dónde venimos</h2>
+
+<table>
+  <tr><td>Entró en las últimas 3 semanas</td><td class="n">$125.000</td></tr>
+  <tr><td>Gastos fijos devengados (alquiler + servicios)</td><td class="n">$436.155</td></tr>
+  <tr><td>Compras de mercadería y equipamiento</td><td class="n">$481.500</td></tr>
+  <tr class="destaca"><td>Resultado</td><td class="n">−$792.655</td></tr>
+</table>
+
+<p>Son <strong>unos $264.000 de pérdida por semana</strong>. No fue un problema de precio: con 15 lugares a $40.000
+había que llenar sí o sí, y no se llenó (la Cena II quedó sin reservas pagas). El modelo nuevo cambia el problema:
+en vez de depender de llenar una noche cara, depende de que entre gente tres o cuatro noches por semana.</p>
+
+<p class="nota">De los $481.500 de compras, unos $115.000 fueron vajilla e insumos de arranque: eso no se repite
+todos los meses.</p>
+
+<h2>2. Qué cuesta cada cosa</h2>
+
+<table>
+  <thead><tr><th>Insumo</th><th class="n">Costo</th><th>De dónde sale el dato</th></tr></thead>
+  <tbody>
+    <tr><td>Bondiola</td><td class="n">$11.800 / kg</td><td>Compras cargadas: $34.000 los 3,5 kg y $25.000 los 1,5 kg</td></tr>
+    <tr><td>Cerveza (porrón Budweiser o lata Schneider)</td><td class="n">$1.300</td><td>Precio que conseguimos</td></tr>
+    <tr><td>Agua chica</td><td class="n">$1.000</td><td>Precio que conseguimos</td></tr>
+    <tr><td>Gin (medida de 60 ml)</td><td class="n">~$1.440</td><td>Botella de $18.000 cargada en el sistema</td></tr>
+    <tr><td>Chorizo</td><td class="n">~$10.000 / kg</td><td><em>Estimado — falta el precio real de la carnicería</em></td></tr>
+  </tbody>
+</table>
+
+<h2>3. Cuánto deja cada venta</h2>
+
+<table>
+  <thead><tr><th>Qué se vende</th><th class="n">Cuesta</th><th class="n">Se cobra</th><th class="n">Queda</th><th class="n">Margen</th></tr></thead>
+  <tbody>
+    <tr class="destaca"><td>Combo cerveza + choripán</td><td class="n">$3.700</td><td class="n">$10.000</td><td class="n">$6.300</td><td class="n">63%</td></tr>
+    <tr><td>Combo cerveza + braseado</td><td class="n">$4.900</td><td class="n">$10.000</td><td class="n">$5.100</td><td class="n">51%</td></tr>
+    <tr class="destaca"><td>Combo trago + choripán</td><td class="n">$4.600</td><td class="n">$11.000</td><td class="n">$6.400</td><td class="n">58%</td></tr>
+    <tr><td>Combo trago + braseado</td><td class="n">$5.800</td><td class="n">$11.000</td><td class="n">$5.200</td><td class="n">47%</td></tr>
+    <tr><td>Combo sin alcohol + choripán</td><td class="n">$3.200</td><td class="n">$9.000</td><td class="n">$5.800</td><td class="n">64%</td></tr>
+    <tr class="destaca"><td>Cerveza suelta</td><td class="n">$1.300</td><td class="n">$4.000</td><td class="n">$2.700</td><td class="n">67%</td></tr>
+    <tr><td>Agua</td><td class="n">$1.000</td><td class="n">$2.000</td><td class="n">$1.000</td><td class="n">50%</td></tr>
+    <tr class="destaca"><td>La mesa, por hora</td><td class="n">$0</td><td class="n">$6.000</td><td class="n">$6.000</td><td class="n">100%</td></tr>
+  </tbody>
+</table>
+
+<div class="caja">
+  <p><strong>Lo más importante de todo el informe:</strong> un combo deja $6.300. Un combo más dos cervezas sueltas
+  deja <strong>$11.700</strong>. La segunda y la tercera cerveza no cuestan difusión, ni cocina, ni espacio: solo
+  dependen de que la persona se quede un rato más.</p>
+  <p>El negocio no está en que entre más gente. Está en que <strong>la que entra se quede</strong>. Por eso la mesa
+  y el cine no son entretenimiento: son las dos herramientas que tenemos para estirar la noche.</p>
+</div>
+
+<p>El choripán deja <strong>$1.200 más que el braseado</strong> en cada venta y sale en la mitad de tiempo. La
+bondiola pierde cerca del 35% al brasearse: de un kilo salen unos 5 sánguches, no 8.</p>
+
+<h2 class="salto">4. Cuánta gente necesitamos</h2>
+
+<p>El piso de la semana son <strong>$145.385</strong>: alquiler ($115.385) más luz, gas e internet ($30.000).
+Con cuatro noches (lunes, jueves, viernes y sábado) se reparte mejor que con tres.</p>
+
+<table>
+  <thead><tr><th>Objetivo</th><th class="n">Personas por semana</th><th class="n">Por noche (4 días)</th></tr></thead>
+  <tbody>
+    <tr><td>No perder plata</td><td class="n">26</td><td class="n">7</td></tr>
+    <tr><td>Cubrir todo y sacar $200.000 semanales entre los dos</td><td class="n">63</td><td class="n">16</td></tr>
+    <tr class="destaca"><td>Que cada uno se lleve unos $400.000 por mes</td><td class="n">90</td><td class="n">23</td></tr>
+  </tbody>
+</table>
+
+<div class="grande">
+  <div><span class="rotulo">Para no perder</span><span class="cifra">7</span><span class="rotulo">personas por noche</span></div>
+  <div><span class="rotulo">Para vivir de esto</span><span class="cifra">23</span><span class="rotulo">personas por noche</span></div>
+</div>
+
+<p>Abrir el jueves baja el número de 9 a 7 personas por noche, y casi no cuesta: el alquiler ya está pagado, la luz
+y el gas de una noche son monedas, y lo que no se vende el jueves se vende el viernes.</p>
+
+<h2>5. La mesa</h2>
+
+<p>Una sola mesa (pool y ping pong en la misma), a $6.000 la hora, sin costo de mercadería.</p>
+
+<table>
+  <tr><td>Con 3 horas ocupadas por noche</td><td class="n">$18.000</td><td class="n">$72.000 por semana</td></tr>
+  <tr><td>Con 5 horas ocupadas por noche</td><td class="n">$30.000</td><td class="n">$120.000 por semana</td></tr>
+</table>
+
+<p>Es decir: <strong>entre el 50% y el 80% del alquiler y los servicios, pagados con una mesa</strong> que ya tenemos
+y que no consume mercadería. Si se llena seguido, la segunda mesa se paga sola.</p>
+
+<p>Una idea: cuando la mesa está libre no cuesta nada regalar los primeros quince minutos. El que juega, toma.</p>
+
+<h2>6. La noche de cine (jueves)</h2>
+
+<p><strong>A favor:</strong> es el formato que más tiempo retiene. Dos horas de gente sentada consumiendo sin que
+haya que hacer nada. Con diez personas tomando dos cervezas cada una son <strong>$54.000 de margen</strong> en una
+noche floja.</p>
+
+<p><strong>En contra:</strong> mientras se proyecta no se vende, nadie se levanta a pedir en el medio, y compite con
+la mesa por el ruido.</p>
+
+<h3>Cómo conviene armarla</h3>
+<ul>
+  <li><strong>Puerta a las 20:00, película 21:30.</strong> Esa hora y media de barra previa es donde se vende.</li>
+  <li><strong>Se avisa boca en boca y por Instagram</strong>, como todo lo demas: el que viene ya sabe adonde va.</li>
+  <li><strong>Corte en el medio</strong>, o película corta. El intervalo es una ronda entera.</li>
+  <li><strong>La mesa se apaga</strong> durante la proyección y se reabre al final.</li>
+  <li><strong>Sin entrada.</strong> Se cobra consumo. Con entrada, la gente calcula el total antes de salir de la casa
+      y no viene; sin entrada la barrera es cero y termina gastando mas. Ademas, cobrar entrada convertiria una
+      reunion privada en una funcion paga, que es otra cosa.</li>
+</ul>
+
+<p class="nota">Proyectar cine comercial en un local abierto al público requiere licencia. Para lo que estamos
+armando conviene ir por cine de dominio público, clásicos con derechos vencidos, cortos o documentales
+independientes: además le da mejor identidad a la noche que pasar un estreno.</p>
+
+<h2>7. Qué haría</h2>
+<ol>
+  <li><strong>Empujar el choripán</strong> como plato principal y dejar el braseado como el plato de la casa, en
+      menos cantidad. Mejor margen, más rápido, menos riesgo de que sobre.</li>
+  <li><strong>Vender la segunda cerveza.</strong> Es la venta más fácil y más rentable de la noche. Todo lo que
+      haga que alguien se quede media hora más vale más que un cliente nuevo.</li>
+  <li><strong>La mesa, siempre ocupada.</strong> Es el único producto con margen del 100%.</li>
+  <li><strong>El lunes del gastronómico es el diferencial.</strong> Ningún otro lugar abre pensando en ellos, y es
+      gente que gasta y que vuelve.</li>
+  <li><strong>Cargar todo en la caja del sistema.</strong> Cobrar desde ahí toma dos toques y deja el número real de
+      cada noche, sin tener que acordarse de nada al cierre.</li>
+</ol>
+
+<h2>8. Lo que falta para cerrar los números</h2>
+<ul>
+  <li><strong>El precio del chorizo por kilo</strong> en la carnicería. Todo el cálculo del choripán está hecho con
+      un estimado de $10.000.</li>
+  <li><strong>El roast beef</strong> quedó cargado como $20.000 sin el peso, así que no tiene precio por kilo.</li>
+  <li><strong>Si el posnet cobra comisión</strong>, cuánto: hay que contemplarlo en el precio con tarjeta.</li>
+</ul>
+
+<p class="pie">Informe hecho sobre los datos cargados en el sistema al 27 de septiembre de 2026. Los costos marcados
+como estimados se recalculan apenas estén los precios reales.</p>
+
+</body>
+</html>

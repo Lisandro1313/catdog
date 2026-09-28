@@ -592,3 +592,30 @@ model PartidaMesa {
 
   @@index([closedAt])
 }
+
+/// Una consulta para un evento privado: cumpleaños, juntada, lo que sea.
+/// Se pide con anticipación desde /eventos y se presupuesta a mano.
+model PedidoEvento {
+  id          String    @id @default(cuid())
+  name        String
+  /// WhatsApp o como prefiera que lo contacten.
+  contacto    String
+  email       String?
+  /// La fecha que pide, tal cual la escribió (puede ser "el finde del 12" o una fecha exacta).
+  fecha       String
+  personas    Int
+  /// Qué paquete eligió, si eligió alguno.
+  paquete     String?
+  conMesa     Boolean   @default(false)
+  mensaje     String?
+  /// "consulta" | "presupuestado" | "confirmado" | "hecho" | "cancelado"
+  estado      String    @default("consulta")
+  presupuesto Int?
+  sena        Int?
+  notas       String?
+  ipHash      String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+
+  @@index([estado, createdAt])
+}

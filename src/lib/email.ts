@@ -470,3 +470,37 @@ export async function sendAdminMissing(input: { event: EventLike & { id: string 
   const { error } = await sendMail({ to: adminEmail, subject: `Falta esto para ${input.event.title}: ${input.missing.length} cosa${input.missing.length === 1 ? "" : "s"}`, html, text: toText(html) });
   if (error) console.error("[email] aviso de faltantes falló", error);
 }
+
+/** Aviso a la casa: entro una consulta de evento privado. Sin esto, se pierde entre los mensajes. */
+export async function sendAdminEvento(input: {
+  name: string;
+  contacto: string;
+  fecha: string;
+  personas: number;
+  paquete: string | null;
+  conMesa: boolean;
+  mensaje: string | null;
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!isEmailConfigured() || !adminEmail) return;
+  const html = layout(
+    "Consulta para un evento",
+    `<p><strong>${esc(input.name)}</strong> quiere armar algo para <strong>${input.personas} personas</strong>.</p>
+     <ul>
+       <li>Cuando: ${esc(input.fecha)}</li>
+       <li>Contacto: ${esc(input.contacto)}</li>
+       ${input.paquete ? `<li>Paquete: ${esc(input.paquete)}</li>` : ""}
+       ${input.conMesa ? "<li>Quiere la mesa para todo el evento</li>" : ""}
+     </ul>
+     ${input.mensaje ? `<p style="white-space:pre-line">${esc(input.mensaje)}</p>` : ""}
+     <p><a href="${siteUrl()}/admin/fiestas" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#c9a96e;color:#141210;text-decoration:none;font-weight:bold">Verla en el panel</a></p>`,
+    "La fecha se toma recien cuando pagan la sena.",
+  );
+  const { error } = await sendMail({
+    to: adminEmail,
+    subject: `Evento: ${input.name}, ${input.personas} personas, ${input.fecha}`,
+    html,
+    text: toText(html),
+  });
+  if (error) console.error("[email] aviso de evento fallo", error);
+}

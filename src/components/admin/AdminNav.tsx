@@ -23,7 +23,10 @@ export const GRUPOS: Grupo[] = [
   },
   {
     label: "Cenas",
-    pantallas: [{ href: "/admin", label: "Las fechas" }],
+    pantallas: [
+      { href: "/admin/fiestas", label: "Fiestas y juntadas" },
+      { href: "/admin", label: "Las fechas" },
+    ],
   },
   {
     label: "Plata",

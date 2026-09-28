@@ -11,6 +11,7 @@ describe("grupoDe", () => {
       "/admin/salon": "Salón",
       "/admin/mesitas": "Salón",
       "/admin": "Cenas",
+      "/admin/fiestas": "Cenas",
       "/admin/gastos": "Plata",
       "/admin/estadisticas": "Plata",
       "/admin/recetas": "Plata",
