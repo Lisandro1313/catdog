@@ -15,13 +15,15 @@ import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos, getVideo } from "@/li
 import { AboutPanel, InstagramPanel, PhotosPanel, VideoPanel } from "@/components/admin/HomeContentPanel";
 import { getBarra, getOpcionesRaw } from "@/lib/barra";
 import { BarraPanel } from "@/components/admin/BarraPanel";
+import { CajaConfigPanel } from "@/components/admin/CajaConfigPanel";
+import { getConfigCaja } from "@/lib/caja-rapida";
 import { PaymentForm, TestMailForm } from "@/components/admin/ActionForms";
 import { getPaymentConfig } from "@/lib/payment";
 import { logoutAction, toggleHoyAction } from "../../actions";
 import { isHoyOff } from "@/lib/hoy";
 
 export default async function AjustesPage() {
-  const [session, users, fixed, photos, about, instagram, payment, hoyOff, video, barra, opcionesRaw] = await Promise.all([
+  const [session, users, fixed, photos, about, instagram, payment, hoyOff, video, barra, opcionesRaw, caja] = await Promise.all([
     getSession(),
     prisma.user.findMany({ select: { name: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     getFixedExpenses(),
@@ -33,6 +35,7 @@ export default async function AjustesPage() {
     getVideo(),
     getBarra(),
     getOpcionesRaw(),
+    getConfigCaja(),
   ]);
   const me = session?.role === "user" ? session.name : null;
   const missing = PARTNERS.filter((p) => !users.some((u) => u.name === p));
@@ -54,6 +57,7 @@ export default async function AjustesPage() {
           <div>
             <p className="text-xs uppercase tracking-wider text-muted">El sitio</p>
             <ul className="mt-1 grid gap-1">
+              <li><a href="#la-caja" className="text-sm underline-offset-4 hover:text-accent hover:underline">La caja</a></li>
               <li><a href="#como-abrimos" className="text-sm underline-offset-4 hover:text-accent hover:underline">Cómo abrimos</a></li>
               <li><a href="#fotos-del-lugar" className="text-sm underline-offset-4 hover:text-accent hover:underline">Fotos del lugar</a></li>
               <li><a href="#quienes-somos" className="text-sm underline-offset-4 hover:text-accent hover:underline">Quiénes somos</a></li>
@@ -97,6 +101,20 @@ export default async function AjustesPage() {
           hoy={barra.hoy}
           lunes={barra.lunes}
           direccion={barra.direccion}
+        />
+      </section>
+
+      <section id="la-caja" className="scroll-mt-24 card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">La caja</h2>
+        <p className="mt-1 text-sm text-muted">
+          Los botones que ves al cobrar y cuánto sale cada cosa. Si tenés mesa de juegos, cuántas hay y a cuánto se cobra la hora o
+          el partido.
+        </p>
+        <CajaConfigPanel
+          productos={caja.productosRaw}
+          mesas={caja.mesas}
+          tarifaHora={caja.tarifaHora}
+          tarifaPartido={caja.tarifaPartido}
         />
       </section>
 

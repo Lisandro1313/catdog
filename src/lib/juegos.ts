@@ -8,30 +8,36 @@ export const PREMIO_MINIMO = 9;
 export const GAMES = ["maridaje", "servicio", "gato", "ritmo", "memoria", "chef", "lisandro", "copa", "simon", "mimica", "trivia"] as const;
 export type GameId = (typeof GAMES)[number];
 
-/** Lo que hay que lograr en cada juego para el premio. Difícil a propósito. */
+/**
+ * Lo que hay que lograr en cada juego para el premio. Difícil a propósito.
+ * Recalibrado el 2026-09-27 con las marcas reales de las primeras noches: donde el promedio de la
+ * gente ya rozaba o pasaba la meta, la meta subió. Los que nadie alcanzó (servicio, maridaje) quedaron
+ * como estaban: no hacía falta que fueran más duros, hacía falta que los otros no fueran un trámite.
+ */
 export const METAS: Record<GameId, number> = {
-  /** Maridaje: racha de aciertos seguidos (los platos vuelven con otros señuelos; el reloj se acelera). */
+  /** Maridaje: racha de aciertos seguidos (los platos vuelven con otros señuelos; el reloj se acelera).
+   *  Sin tocar: de cuatro que jugaron, uno solo llegó a 8. */
   maridaje: 8,
-  /** Servicio: pedidos entregados antes de que se vayan tres clientes. */
+  /** Servicio: pedidos entregados antes de que se vayan tres clientes. Sin tocar: el mejor hizo 7. */
   servicio: 10,
-  /** El gato de la casa (snake): ingredientes comidos. */
-  gato: 15,
-  /** Ritmo de la casa: puntos (notas + bonus de racha) en una canción. */
-  ritmo: 40,
-  /** Memotest de 8 pares en 20 movimientos o menos. */
-  memoria: 20,
-  /** Atrapá al chef: puntos en 30 segundos. */
-  chef: 30,
-  /** Los de la casa: puntos en 30 segundos (topo con toda la familia). */
-  lisandro: 30,
-  /** Llená la copa: puntos sobre 500 (cinco copas). */
-  copa: 360,
-  /** Simón de la barra: ronda alcanzada. */
-  simon: 8,
-  /** Mímica: acertadas en 60 segundos. */
-  mimica: 6,
-  /** Trivia: racha de aciertos seguidos (con reloj). */
-  trivia: 10,
+  /** El gato de la casa (snake): ingredientes comidos. Mejor marca real 29, promedio 12. */
+  gato: 22,
+  /** Ritmo de la casa: puntos en una canción. Era 40 y el promedio ya daba 44: lo lograba cualquiera. */
+  ritmo: 62,
+  /** Memotest de 8 pares, en movimientos (menos es mejor). Con 20 entraban todos; el mejor hizo 13. */
+  memoria: 15,
+  /** Atrapá al chef: puntos en 30 segundos. Mejor marca real 38. */
+  chef: 38,
+  /** Los de la casa: puntos en 30 segundos (topo con toda la familia). Mejor marca real 41. */
+  lisandro: 38,
+  /** Llená la copa: puntos sobre 500. Era 360 con un promedio de 359: la mitad lo sacaba de una. */
+  copa: 430,
+  /** Simón de la barra: ronda alcanzada. Mejor marca real 10. */
+  simon: 10,
+  /** Mímica: acertadas en 60 segundos. Se juega de a varios, así que sube poco. */
+  mimica: 8,
+  /** Trivia: racha de aciertos seguidos (con reloj). Mejor marca real 12. */
+  trivia: 12,
 };
 
 /** En memoria gana el número más bajo; en el resto, el más alto. */

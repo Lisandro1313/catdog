@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema } from "@/lib/foro";
 import { parseOpciones, setBarra } from "@/lib/barra";
+import { parseProductos, setConfigCaja } from "@/lib/caja-rapida";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
@@ -1157,6 +1158,25 @@ export async function setBarraAction(_prev: ActionState, formData: FormData): Pr
     direccion: texto("direccion"),
   });
   revalidatePath("/");
+  revalidatePath("/admin/ajustes");
+  return { ok: true, message: "Guardado." };
+}
+
+/** Qué se vende y a cuánto, más la mesa de juegos: lo que toca la caja de la barra. */
+export async function setCajaConfigAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const productos = String(formData.get("productos") ?? "");
+  if (parseProductos(productos).length === 0) {
+    return { ok: false, message: 'Poné al menos un producto, con el formato "Cerveza | 6000".' };
+  }
+  const numero = (k: string) => Number(String(formData.get(k) ?? "").replace(/\D/gu, "")) || 0;
+  await setConfigCaja({
+    productos,
+    mesas: numero("mesas"),
+    tarifaHora: numero("tarifaHora"),
+    tarifaPartido: numero("tarifaPartido"),
+  });
+  revalidatePath("/admin/caja");
   revalidatePath("/admin/ajustes");
   return { ok: true, message: "Guardado." };
 }

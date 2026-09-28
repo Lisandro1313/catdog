@@ -575,3 +575,20 @@ model PushSub {
   /// Última vez que el navegador aceptó un aviso: sirve para limpiar los muertos.
   lastOkAt  DateTime?
 }
+
+/// Una partida en la mesa de juegos: se abre cuando arrancan y se cierra cuando se cobra.
+/// Queda guardada aunque se recargue la pantalla o se cambie de teléfono.
+model PartidaMesa {
+  id        String    @id @default(cuid())
+  mesa      Int
+  startedAt DateTime  @default(now())
+  closedAt  DateTime?
+  /// Cómo se cobró: "hora" (por tiempo) o "partido" (precio fijo).
+  modo      String?
+  minutos   Int?
+  amount    Int?
+  via       String?
+  by        String?
+
+  @@index([closedAt])
+}
