@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { formatPrice } from "@/lib/config";
-import { VIA_LABEL, VIAS, type Item, type Producto, type Via } from "@/lib/caja-rapida-tipos";
+import { VIA_CORTO, VIA_LABEL, VIAS, type Item, type Producto, type Via } from "@/lib/caja-rapida-tipos";
 import { abrirMesaAction, anularCobroAction, cancelarMesaAction, cerrarMesaAction, cobrarAction } from "@/app/admin/(panel)/caja/actions";
 
 type Partida = { id: string; mesa: number; desde: number };
@@ -10,7 +10,7 @@ type Cobro = { id: string; description: string | null; amount: number; via: stri
 
 /**
  * La caja de la barra: tocás lo que se lleva, tocás cómo paga y listo.
- * Pensada para usarse parado y con una mano, con la gente esperando del otro lado del mostrador.
+ * En el celular el ticket vive pegado abajo, al alcance del pulgar: cobrar no puede depender de scrollear.
  */
 export function CajaRapida({
   productos,
@@ -30,11 +30,13 @@ export function CajaRapida({
   ultimos: Cobro[];
 }) {
   const [items, setItems] = useState<Item[]>([]);
+  const [abierto, setAbierto] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const total = items.reduce((n, i) => n + i.precio * i.cantidad, 0);
+  const cuantos = items.reduce((n, i) => n + i.cantidad, 0);
 
   function sumar(nombre: string, precio: number) {
     setError(null);
@@ -61,47 +63,46 @@ export function CajaRapida({
         return;
       }
       setItems([]);
+      setAbierto(false);
       setAviso(`Cobrado ${formatPrice(r.total ?? 0)} · ${VIA_LABEL[via]}`);
-      setTimeout(() => setAviso(null), 2500);
     });
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+    <div className="grid gap-4 pb-40 lg:grid-cols-[1.5fr_1fr] lg:items-start lg:pb-0">
       {/* Lo que se vende */}
-      <section className="card p-4 sm:p-5">
-        <p className="eyebrow">Tocá lo que se lleva</p>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {productos.map((p) => (
-            <button
-              key={`${p.nombre}-${p.precio}`}
-              type="button"
-              onClick={() => sumar(p.nombre, p.precio)}
-              className="rounded-xl border border-line bg-card px-3 py-4 text-left transition active:scale-[0.98] hover:border-accent"
-            >
-              <span className="block text-sm leading-tight">{p.nombre}</span>
-              <span className="mt-1 block font-display text-lg text-accent">{formatPrice(p.precio)}</span>
-            </button>
-          ))}
-        </div>
+      <div className="grid gap-4">
+        <section className="card p-4 sm:p-5">
+          <p className="eyebrow">Tocá lo que se lleva</p>
+          <div className="caja-grilla mt-3">
+            {productos.map((p) => (
+              <button key={`${p.nombre}-${p.precio}`} type="button" onClick={() => sumar(p.nombre, p.precio)} className="caja-tecla">
+                <span className="nombre">{p.nombre}</span>
+                <span className="precio">{formatPrice(p.precio)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
 
         {mesas > 0 && (
-          <div className="mt-6 border-t border-line pt-4">
-            <p className="eyebrow">La mesa</p>
-            <p className="mt-1 text-xs text-muted">
-              Por hora {formatPrice(tarifaHora)} (mínimo 15 min) · Por partido {formatPrice(tarifaPartido)}
-            </p>
+          <section className="card p-4 sm:p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="eyebrow">La mesa</p>
+              <p className="text-xs text-muted">
+                Hora {formatPrice(tarifaHora)} · Partido {formatPrice(tarifaPartido)}
+              </p>
+            </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {Array.from({ length: mesas }, (_, i) => i + 1).map((n) => {
                 const abierta = partidas.find((p) => p.mesa === n);
                 return (
-                  <div key={n} className={`rounded-xl border p-3 ${abierta ? "border-accent" : "border-line"}`}>
+                  <div key={n} className={`caja-mesa ${abierta ? "is-on" : ""}`}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-display text-lg">Mesa {n}</span>
                       {abierta ? <Reloj desde={abierta.desde} /> : <span className="text-xs text-muted">libre</span>}
                     </div>
                     {abierta ? (
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <button
                           className="btn btn-primary btn-sm"
                           type="button"
@@ -114,7 +115,7 @@ export function CajaRapida({
                             })
                           }
                         >
-                          Cerrar por tiempo
+                          Cobrar tiempo
                         </button>
                         <button
                           className="btn btn-ghost btn-sm"
@@ -128,20 +129,18 @@ export function CajaRapida({
                             })
                           }
                         >
-                          Por partido
+                          Partido
                         </button>
                         <button
-                          className="text-xs text-muted hover:text-danger"
+                          className="ml-auto text-xs text-muted hover:text-danger"
                           type="button"
                           disabled={pending}
                           onClick={() => {
                             if (!confirm("¿Cancelar esta mesa sin cobrar?")) return;
-                            startTransition(async () => {
-                              await cancelarMesaAction(abierta.id);
-                            });
+                            startTransition(async () => void (await cancelarMesaAction(abierta.id)));
                           }}
                         >
-                          Cancelar
+                          cancelar
                         </button>
                       </div>
                     ) : (
@@ -158,75 +157,32 @@ export function CajaRapida({
                 );
               })}
             </div>
+          </section>
+        )}
+
+        {/* Lo de hoy: en el celular va abajo de todo, que es donde se mira con calma */}
+        <section className="card p-4 sm:p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="eyebrow">Entró hoy</p>
+            <p className="font-display text-2xl text-accent tabular-nums">{formatPrice(hoy.total)}</p>
           </div>
-        )}
-      </section>
-
-      {/* El ticket */}
-      <section className="card flex flex-col p-4 sm:p-5">
-        <p className="eyebrow">Lo que va</p>
-        {items.length === 0 ? (
-          <p className="mt-3 flex-1 text-sm text-muted">Nada todavía. Tocá lo que se lleva y aparece acá.</p>
-        ) : (
-          <ul className="mt-3 flex-1 grid content-start gap-2">
-            {items.map((i, n) => (
-              <li key={`${i.nombre}-${n}`} className="flex items-center justify-between gap-2 text-sm">
-                <button type="button" className="text-left hover:text-danger" onClick={() => restar(n)} title="Sacar uno">
-                  {i.cantidad > 1 && <span className="text-accent">{i.cantidad}× </span>}
-                  {i.nombre}
-                </button>
-                <span className="tabular-nums">{formatPrice(i.precio * i.cantidad)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <p className="mt-4 flex items-baseline justify-between border-t border-line pt-3">
-          <span className="eyebrow">Total</span>
-          <span className="font-display text-3xl text-accent tabular-nums">{formatPrice(total)}</span>
-        </p>
-
-        <div className="mt-3 grid gap-2">
-          {VIAS.map((via) => (
-            <button key={via} className="btn btn-primary" type="button" disabled={pending || items.length === 0} onClick={() => cobrarCon(via)}>
-              Cobrar · {VIA_LABEL[via]}
-            </button>
-          ))}
-          {items.length > 0 && (
-            <button className="btn btn-ghost btn-sm" type="button" onClick={() => setItems([])} disabled={pending}>
-              Vaciar
-            </button>
-          )}
-        </div>
-
-        {aviso && <p className="mt-3 text-sm text-ok">{aviso}</p>}
-        {error && (
-          <p className="mt-3 text-sm text-danger" role="alert">
-            {error}
-          </p>
-        )}
-
-        <div className="mt-5 border-t border-line pt-4">
-          <p className="eyebrow">Hoy</p>
-          <p className="mt-1 font-display text-2xl">{formatPrice(hoy.total)}</p>
-          <p className="text-xs text-muted">
+          <p className="mt-1 text-xs text-muted">
             {hoy.cobros} {hoy.cobros === 1 ? "cobro" : "cobros"}
             {hoy.porVia.length > 0 && " · "}
             {hoy.porVia.map((v) => `${VIA_LABEL[v.via as Via] ?? v.via} ${formatPrice(v.monto)}`).join(" · ")}
           </p>
-
           {ultimos.length > 0 && (
-            <ul className="mt-3 grid gap-1 text-xs text-muted">
+            <ul className="mt-3 grid gap-1.5 text-xs">
               {ultimos.map((u) => (
-                <li key={u.id} className="flex items-center justify-between gap-2">
+                <li key={u.id} className="flex items-center justify-between gap-2 text-muted">
                   <span className="truncate">
-                    {u.hora} · {u.description}
+                    <span className="text-ink">{u.hora}</span> · {u.description}
                   </span>
-                  <span className="flex items-center gap-2">
+                  <span className="flex shrink-0 items-center gap-2">
                     <span className="tabular-nums">{formatPrice(u.amount)}</span>
                     <button
                       type="button"
-                      className="hover:text-danger"
+                      className="underline-offset-2 hover:text-danger hover:underline"
                       disabled={pending}
                       onClick={() => {
                         if (!confirm(`¿Anular el cobro de ${formatPrice(u.amount)}?`)) return;
@@ -240,17 +196,78 @@ export function CajaRapida({
               ))}
             </ul>
           )}
+        </section>
+      </div>
+
+      {/* El ticket: columna a la derecha en la tablet, cajón pegado abajo en el celular */}
+      <section className={`caja-ticket ${abierto ? "is-open" : ""}`}>
+        <button type="button" className="caja-ticket-cabecera" onClick={() => setAbierto((v) => !v)}>
+          <span className="eyebrow">
+            {cuantos === 0 ? "Lo que va" : `${cuantos} ${cuantos === 1 ? "cosa" : "cosas"}`}
+            {cuantos > 0 && <span className="lg:hidden"> · ver</span>}
+          </span>
+          <span className="font-display text-3xl text-accent tabular-nums">{formatPrice(total)}</span>
+        </button>
+
+        <div className="caja-ticket-lista">
+          {items.length === 0 ? (
+            <p className="py-2 text-sm text-muted">Nada todavía. Tocá lo que se lleva y aparece acá.</p>
+          ) : (
+            <ul className="grid gap-2 py-2">
+              {items.map((i, n) => (
+                <li key={`${i.nombre}-${n}`} className="flex items-center justify-between gap-2 text-sm">
+                  <button type="button" className="truncate text-left hover:text-danger" onClick={() => restar(n)} title="Sacar uno">
+                    {i.cantidad > 1 && <span className="text-accent">{i.cantidad}× </span>}
+                    {i.nombre}
+                  </button>
+                  <span className="shrink-0 tabular-nums">{formatPrice(i.precio * i.cantidad)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
+
+        {items.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">Tocá lo que se lleva y acá aparece el total.</p>
+        ) : (
+          <>
+            <div className="caja-ticket-pie">
+              {VIAS.map((via) => (
+                <button key={via} className="btn btn-primary" type="button" disabled={pending} onClick={() => cobrarCon(via)}>
+                  {VIA_CORTO[via]}
+                </button>
+              ))}
+            </div>
+            <button className="mt-2 text-xs text-muted hover:text-danger" type="button" onClick={() => setItems([])} disabled={pending}>
+              Vaciar
+            </button>
+          </>
+        )}
+
+        {aviso && <Aviso texto={aviso} alCerrar={() => setAviso(null)} />}
+        {error && (
+          <p className="mt-2 text-sm text-danger" role="alert">
+            {error}
+          </p>
+        )}
       </section>
     </div>
   );
 }
 
-/** Cuánto hace que está abierta la mesa. Se actualiza solo, sin pedirle nada al servidor. */
+/** El "cobrado" se va solo a los tres segundos, sin que haya que tocarlo. */
+function Aviso({ texto, alCerrar }: { texto: string; alCerrar: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(alCerrar, 3000);
+    return () => clearTimeout(t);
+  }, [alCerrar]);
+  return <p className="mt-2 text-sm text-ok">{texto}</p>;
+}
+
+/** Cuánto hace que está abierta la mesa. El minuto corre en el teléfono, sin molestar al servidor. */
 function Reloj({ desde }: { desde: number }) {
   const [ahora, setAhora] = useState(() => Date.now());
   useEffect(() => {
-    // El minuto corre en el teléfono: no hace falta molestar al servidor para mostrar el reloj.
     const t = setInterval(() => setAhora(Date.now()), 30000);
     return () => clearInterval(t);
   }, []);

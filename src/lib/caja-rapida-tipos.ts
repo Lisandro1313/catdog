@@ -12,6 +12,13 @@ export const VIA_LABEL: Record<Via, string> = {
   transferencia: "Transferencia",
 };
 
+/** Para los botones del celular, donde "Transferencia" no entra. */
+export const VIA_CORTO: Record<Via, string> = {
+  efectivo: "Efectivo",
+  tarjeta: "Posnet",
+  transferencia: "Transfer.",
+};
+
 export type Producto = { nombre: string; precio: number };
 export type Item = { nombre: string; precio: number; cantidad: number };
 
