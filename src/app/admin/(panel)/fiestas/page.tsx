@@ -3,12 +3,14 @@ import { formatPrice } from "@/lib/config";
 import { ESTADO_LABEL, ESTADOS, getConfigEventos, getPedidos, paqueteParaS, presupuestoBase, SENA_PORCENTAJE, type Estado } from "@/lib/eventos-privados";
 import { borrarPedidoAction, estadoPedidoAction } from "../../actions";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { MandarPresupuesto } from "@/components/admin/MandarPresupuesto";
+import { getPaymentConfig } from "@/lib/payment";
 
 export const dynamic = "force-dynamic";
 
 /** Las consultas de eventos privados: contestar, presupuestar y marcar cuando la seña entró. */
 export default async function FiestasPage() {
-  const [pedidos, config] = await Promise.all([getPedidos(), getConfigEventos()]);
+  const [pedidos, config, pago] = await Promise.all([getPedidos(), getConfigEventos(), getPaymentConfig()]);
   const abiertas = pedidos.filter((p) => p.estado === "consulta" || p.estado === "presupuestado");
   const resto = pedidos.filter((p) => !abiertas.includes(p));
 
@@ -38,6 +40,20 @@ export default async function FiestasPage() {
             {paquete && paquete.precio > 0 && <span className="text-muted"> ({formatPrice(paquete.precio)} por cabeza)</span>}
             <span className="text-muted"> · seña sugerida {formatPrice(sena)}</span>
           </p>
+        )}
+        {(p.estado === "consulta" || p.estado === "presupuestado") && (
+          <MandarPresupuesto
+            nombre={p.name}
+            contacto={p.contacto}
+            personas={p.personas}
+            fecha={p.fecha}
+            paquete={paquete?.nombre ?? null}
+            incluye={[...(paquete?.incluye ?? []), ...(p.conMesa ? ["La mesa de pool y ping pong para toda la noche"] : [])]}
+            total={p.presupuesto ?? sugerido}
+            sena={p.presupuesto ? Math.round((p.presupuesto * SENA_PORCENTAJE) / 100 / 1000) * 1000 : sena}
+            alias={pago.alias}
+            titular={pago.holder}
+          />
         )}
         {p.presupuesto ? (
           <p className="mt-1 text-sm">
