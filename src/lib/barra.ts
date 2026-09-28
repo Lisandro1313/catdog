@@ -15,6 +15,7 @@ const KEYS = {
   incluye: "barra:incluye",
   hoy: "barra:hoy",
   lunes: "barra:lunes",
+  jueves: "barra:jueves",
   direccion: "barra:direccion",
 } as const;
 
@@ -33,6 +34,8 @@ export type Barra = {
   hoy: string;
   /** El texto del lunes del gastronómico. Vacío = no se muestra ese bloque. */
   lunes: string;
+  /** El texto de la noche de cine. Vacío = no se muestra ese bloque. */
+  jueves: string;
   /** Dirección completa para el público. Vacío = solo la zona, como en las cenas a puertas cerradas. */
   direccion: string;
 };
@@ -46,6 +49,8 @@ export const BARRA_DEFAULT = {
   incluye: "El sánguche va en los tres precios: braseado, chori o lo que salga esa noche.",
   lunes:
     "¿Sos gastronómico? Laburás de martes a domingo, justo cuando el resto sale. Los lunes abrimos para vos: vení, sentate del otro lado del mostrador y que te atiendan. Nosotros lo trabajamos.",
+  jueves:
+    "Se apagan las luces y se proyecta una. Venís, pedís algo, te sentás y la mirás con gente que no conocés. Sin entrada: se paga lo que tomás y comés.",
 };
 
 /** "Con cerveza | 10000" por línea. Mismo formato que la carta de la barra, para no aprender otro. */
@@ -74,6 +79,7 @@ export async function getBarra(): Promise<Barra> {
     hoy: v(KEYS.hoy) ?? "",
     // El lunes se puede vaciar a propósito: por eso se distingue "sin cargar" de "cargado vacío".
     lunes: v(KEYS.lunes) ?? BARRA_DEFAULT.lunes,
+    jueves: v(KEYS.jueves) ?? BARRA_DEFAULT.jueves,
     direccion: v(KEYS.direccion) ?? "",
   };
 }
@@ -87,6 +93,7 @@ export async function setBarra(input: {
   incluye?: string;
   hoy?: string;
   lunes?: string;
+  jueves?: string;
   direccion?: string;
 }): Promise<void> {
   const pares: [string, string][] = [];
@@ -97,6 +104,7 @@ export async function setBarra(input: {
   if (input.incluye !== undefined) pares.push([KEYS.incluye, input.incluye.trim().slice(0, 300)]);
   if (input.hoy !== undefined) pares.push([KEYS.hoy, input.hoy.trim().slice(0, 200)]);
   if (input.lunes !== undefined) pares.push([KEYS.lunes, input.lunes.trim().slice(0, 500)]);
+  if (input.jueves !== undefined) pares.push([KEYS.jueves, input.jueves.trim().slice(0, 500)]);
   if (input.direccion !== undefined) pares.push([KEYS.direccion, input.direccion.trim().slice(0, 120)]);
   await prisma.$transaction(
     pares.map(([key, value]) => prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } })),

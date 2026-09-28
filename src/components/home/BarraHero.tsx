@@ -61,14 +61,17 @@ export function BarraHero({ barra, foto }: { barra: Barra; foto?: { url: string 
   );
 }
 
-/** El lunes tiene su propio motivo: es el único día libre del que trabaja en gastronomía. */
-export function LunesGastronomico({ texto }: { texto: string }) {
+/**
+ * Un día con motivo propio: el lunes del gastronómico, el jueves de cine.
+ * Los días sueltos no necesitan explicación; estos sí, porque son la razón para venir.
+ */
+export function NocheConNombre({ id, eyebrow, titulo, texto }: { id: string; eyebrow: string; titulo: string; texto: string }) {
   if (!texto) return null;
   return (
-    <section id="lunes" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
+    <section id={id} className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-10 sm:py-14">
       <div className="card card-gold p-6 text-center sm:p-8">
-        <p className="ap-eyebrow">Los lunes</p>
-        <p className="mt-3 font-display text-2xl sm:text-3xl">El día del gastronómico</p>
+        <p className="ap-eyebrow">{eyebrow}</p>
+        <p className="mt-3 font-display text-2xl sm:text-3xl">{titulo}</p>
         <p className="mx-auto mt-4 max-w-lg leading-relaxed text-muted">{texto}</p>
       </div>
     </section>

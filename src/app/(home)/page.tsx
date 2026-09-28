@@ -26,7 +26,7 @@ import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
 import { getBarra } from "@/lib/barra";
-import { BarraHero, LunesGastronomico } from "@/components/home/BarraHero";
+import { BarraHero, NocheConNombre } from "@/components/home/BarraHero";
 
 /**
  * El home se genera y se guarda un minuto (ISR): responde al instante y los metadatos
@@ -159,6 +159,7 @@ export default async function HomePage() {
       q: "¿Por qué los lunes?",
       a: "Porque el que trabaja en gastronomía labura de martes a domingo, justo cuando el resto sale. El lunes abrimos para eso.",
     },
+    ...(barra.jueves ? [{ q: "¿Qué es la noche de cine?", a: barra.jueves }] : []),
     {
       q: "¿Dónde es exactamente?",
       a: barra.direccion
@@ -267,7 +268,8 @@ export default async function HomePage() {
       {modoBarra ? (
         <>
           <BarraHero barra={barra} foto={photos[0]} />
-          <LunesGastronomico texto={barra.lunes} />
+          <NocheConNombre id="lunes" eyebrow="Los lunes" titulo="El día del gastronómico" texto={barra.lunes} />
+          <NocheConNombre id="jueves" eyebrow="Los jueves" titulo="Noche de cine" texto={barra.jueves} />
         </>
       ) : (
       <section id="inicio" className="relative flex min-h-[92dvh] items-center overflow-hidden px-6 py-20 sm:min-h-[88dvh]">

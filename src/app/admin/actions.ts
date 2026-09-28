@@ -1155,6 +1155,7 @@ export async function setBarraAction(_prev: ActionState, formData: FormData): Pr
     incluye: texto("incluye"),
     hoy: texto("hoy"),
     lunes: texto("lunes"),
+    jueves: texto("jueves"),
     direccion: texto("direccion"),
   });
   revalidatePath("/");

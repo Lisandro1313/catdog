@@ -100,6 +100,7 @@ export default async function AjustesPage() {
           incluye={barra.incluye}
           hoy={barra.hoy}
           lunes={barra.lunes}
+          jueves={barra.jueves}
           direccion={barra.direccion}
         />
       </section>

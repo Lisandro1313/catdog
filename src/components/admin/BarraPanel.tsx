@@ -12,6 +12,7 @@ export function BarraPanel({
   incluye,
   hoy,
   lunes,
+  jueves,
   direccion,
 }: {
   activa: boolean;
@@ -21,6 +22,7 @@ export function BarraPanel({
   incluye: string;
   hoy: string;
   lunes: string;
+  jueves: string;
   direccion: string;
 }) {
   const [state, action, pending] = useActionState(setBarraAction, null);
@@ -67,6 +69,11 @@ export function BarraPanel({
       <label className="grid gap-1 text-xs text-muted">
         El bloque de los lunes (vacío = no se muestra)
         <textarea className="input" name="lunes" rows={4} defaultValue={lunes} maxLength={500} />
+      </label>
+
+      <label className="grid gap-1 text-xs text-muted">
+        El bloque de los jueves, la noche de cine (vacío = no se muestra)
+        <textarea className="input" name="jueves" rows={4} defaultValue={jueves} maxLength={500} />
       </label>
 
       <label className="grid gap-1 text-xs text-muted">
