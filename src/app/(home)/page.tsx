@@ -27,7 +27,8 @@ import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
 import { getBarra } from "@/lib/barra";
 import { getConfigEventos } from "@/lib/eventos-privados";
-import { BarraHero, NocheConNombre } from "@/components/home/BarraHero";
+import { BarraHero, CartaBarra, LaSemana, TuEvento } from "@/components/home/BarraHero";
+import { getConfigCaja } from "@/lib/caja-rapida";
 
 /**
  * El home se genera y se guarda un minuto (ISR): responde al instante y los metadatos
@@ -98,6 +99,7 @@ export default async function HomePage() {
   const barra = await getBarra();
   const modoBarra = barra.activa;
   const eventos = await getConfigEventos();
+  const caja = modoBarra ? await getConfigCaja() : null;
   // Si la próxima cena todavía no tiene carta, se muestra la de la última cena como anticipo, aclarándolo.
   const ownSteps = parseMenu(event?.menu);
   const previous =
@@ -256,11 +258,16 @@ export default async function HomePage() {
       {/* Nav de anclas (escritorio) */}
       <AnchorNav
         brand={SITE_NAME}
+        cta={modoBarra ? (eventos.activos ? { href: "/eventos", label: "Tu evento" } : null) : undefined}
         items={[
-          ...(modoBarra ? [{ href: "#lunes", label: "Los lunes" }] : [{ href: "#carta", label: "La carta" }]),
+          ...(modoBarra
+            ? [
+                { href: "#la-semana", label: "La semana" },
+                { href: "#la-carta", label: "La carta" },
+              ]
+            : [{ href: "#carta", label: "La carta" }]),
           { href: "#nosotros", label: "Quiénes somos" },
           ...(reviews.length > 0 ? [{ href: "#opiniones", label: "Opiniones" }] : []),
-          ...(modoBarra ? [{ href: "#tu-evento", label: "Tu evento" }] : []),
           { href: "#sobremesa", label: "La sobremesa" },
           { href: "#donde", label: "Dónde" },
           { href: "#preguntas", label: "Preguntas" },
@@ -270,9 +277,10 @@ export default async function HomePage() {
       {/* Afiche: el cartel de la barra, o la cena de la fecha. */}
       {modoBarra ? (
         <>
-          <BarraHero barra={barra} foto={photos[0]} />
-          <NocheConNombre id="lunes" eyebrow="Los lunes" titulo="El día del gastronómico" texto={barra.lunes} />
-          <NocheConNombre id="jueves" eyebrow="Los jueves" titulo="Noche de cine" texto={barra.jueves} />
+          <BarraHero barra={barra} foto={photos[0]} conEventos={eventos.activos} />
+          <LaSemana barra={barra} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
+          <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
+          {eventos.activos && <TuEvento />}
         </>
       ) : (
       <section id="inicio" className="relative flex min-h-[92dvh] items-center overflow-hidden px-6 py-20 sm:min-h-[88dvh]">
@@ -555,7 +563,7 @@ export default async function HomePage() {
           )}
 
           {/* Tu evento */}
-          {eventos.activos && (
+          {!modoBarra && eventos.activos && (
             <section id="tu-evento" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-24">
               <div className="text-center">
                 <p className="ap-ornament mb-3">✦</p>

@@ -3164,3 +3164,199 @@ details.faq > summary::-webkit-details-marker {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ---------- Home en formato barra ---------- */
+
+/* Los días como fichas: se leen de un vistazo, sin la frase larga. */
+.dias-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  list-style: none;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+}
+.dias-chips li {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid rgba(201, 169, 110, 0.45);
+  border-radius: 999px;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1rem;
+  color: var(--ink);
+  background: rgba(20, 18, 16, 0.35);
+}
+@media (min-width: 640px) {
+  .dias-chips li {
+    padding: 0.45rem 1.1rem;
+    font-size: 1.15rem;
+  }
+}
+
+.semana-grilla {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .semana-grilla {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.semana-noche {
+  position: relative;
+  padding: 1.75rem 1.5rem 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: linear-gradient(180deg, rgba(201, 169, 110, 0.06), transparent 60%);
+}
+.semana-noche::before {
+  content: "";
+  position: absolute;
+  left: 1.5rem;
+  right: 1.5rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.7), transparent);
+}
+.semana-noche .dia {
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ap-gold);
+}
+.semana-noche .titulo {
+  margin-top: 0.6rem;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.55rem;
+  line-height: 1.15;
+}
+.semana-noche .texto {
+  margin-top: 0.8rem;
+  font-size: 0.93rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* La carta: una hoja, con márgenes de papel y el precio chico al costado. */
+.hoja-carta {
+  padding: 2.5rem 1.5rem 2rem;
+  border: 1px solid rgba(201, 169, 110, 0.28);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201, 169, 110, 0.08), transparent 70%),
+    rgba(255, 255, 255, 0.015);
+}
+@media (min-width: 640px) {
+  .hoja-carta {
+    padding: 3rem 3rem 2.5rem;
+  }
+}
+.carta-bloque {
+  margin-top: 2.5rem;
+}
+.carta-columnas {
+  display: grid;
+  gap: 0 3rem;
+}
+@media (min-width: 640px) {
+  .carta-columnas {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.carta-titulo {
+  font-size: 0.7rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ap-gold);
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(201, 169, 110, 0.25);
+}
+.carta-bajada {
+  margin-top: 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.carta-lista {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+.carta-lista li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.carta-lista .nombre {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.1rem;
+}
+.carta-lista .relleno {
+  flex: 1;
+  border-bottom: 1px dotted rgba(243, 236, 225, 0.18);
+  transform: translateY(-0.3rem);
+}
+.carta-lista .precio {
+  font-size: 0.95rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.carta-pie {
+  margin-top: 2.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Tu evento: lo que más deja, con su propio aire. */
+.evento-bloque {
+  padding: 2.75rem 1.5rem;
+  text-align: center;
+  border-radius: 1.4rem;
+  border: 1px solid rgba(201, 169, 110, 0.5);
+  background:
+    radial-gradient(ellipse 70% 80% at 50% 110%, rgba(201, 169, 110, 0.16), transparent 70%),
+    linear-gradient(180deg, rgba(201, 169, 110, 0.06), rgba(20, 18, 16, 0.2));
+}
+.evento-pasos {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+  text-align: left;
+}
+@media (min-width: 640px) {
+  .evento-pasos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    text-align: center;
+  }
+}
+.evento-pasos > div {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+@media (min-width: 640px) {
+  .evento-pasos > div {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+}
+.evento-pasos .n {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.6rem;
+  color: var(--ap-gold);
+  line-height: 1;
+}
+.evento-pasos p {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink);
+}

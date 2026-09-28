@@ -4,8 +4,19 @@ import { useEffect, useState } from "react";
 
 type Item = { href: string; label: string };
 
-/** Menú de anclas para escritorio: marca la sección que está a la vista. */
-export function AnchorNav({ items, brand }: { items: Item[]; brand: string }) {
+/**
+ * Menú de anclas para escritorio: marca la sección que está a la vista.
+ * El botón de la derecha cambia con el formato: en las cenas es "Reservar"; en la barra, "Tu evento".
+ */
+export function AnchorNav({
+  items,
+  brand,
+  cta = { href: "#reservar", label: "Reservar" },
+}: {
+  items: Item[];
+  brand: string;
+  cta?: Item | null;
+}) {
   const [active, setActive] = useState<string>("");
 
   useEffect(() => {
@@ -35,9 +46,11 @@ export function AnchorNav({ items, brand }: { items: Item[]; brand: string }) {
               {i.label}
             </a>
           ))}
-          <a href="#reservar" className="btn btn-primary btn-sm">
-            Reservar
-          </a>
+          {cta && (
+            <a href={cta.href} className="btn btn-primary btn-sm">
+              {cta.label}
+            </a>
+          )}
         </div>
       </div>
     </nav>
