@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>CatDog · Eventos privados</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; color: #1a1613; background: #fff;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 10.5pt; line-height: 1.5; }
+  h1, h2, h3, .cifra, .tapa-fecha { font-family: Georgia, "Times New Roman", serif; }
+  .tapa { border-bottom: 2px solid #c9a96e; padding-bottom: 8mm; margin-bottom: 8mm; }
+  .tapa-marca { font-size: 11pt; letter-spacing: .32em; text-transform: uppercase; margin: 0; }
+  h1 { font-size: 26pt; font-weight: 400; margin: 3mm 0 0; line-height: 1.1; }
+  .tapa-fecha { color: #6b625a; font-size: 10pt; margin: 2mm 0 0; }
+  h2 { font-size: 15pt; font-weight: 400; margin: 9mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 1px solid #e3ddd3; }
+  h3 { font-size: 11.5pt; font-weight: 400; margin: 5mm 0 2mm; }
+  p { margin: 0 0 3mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.5mm; }
+  strong { color: #000; }
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9.5pt; }
+  th { text-align: left; font-weight: 600; font-size: 8pt; letter-spacing: .1em; text-transform: uppercase;
+       color: #6b625a; border-bottom: 1px solid #c9a96e; padding: 2mm 2mm 1.5mm; }
+  td { padding: 2mm; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+  td.n, th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tr.destaca td { background: #faf6ee; font-weight: 600; }
+  .caja { border: 1px solid #e3ddd3; border-left: 3px solid #c9a96e; padding: 4mm 5mm; margin: 4mm 0; background: #fdfbf7; }
+  .caja p:last-child { margin-bottom: 0; }
+  .pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 4mm 0; }
+  .paso { border: 1px solid #e3ddd3; border-radius: 3mm; padding: 3.5mm; }
+  .paso .num { font-family: Georgia, serif; font-size: 18pt; color: #b08d4f; line-height: 1; }
+  .paso p { font-size: 9pt; margin: 2mm 0 0; line-height: 1.4; }
+  .mensaje { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; white-space: pre-line; background: #f4f1ec;
+             border-radius: 3mm; padding: 4mm 5mm; font-size: 9.5pt; line-height: 1.55; }
+  .nota { font-size: 9pt; color: #6b625a; }
+  .pie { margin-top: 10mm; padding-top: 3mm; border-top: 1px solid #e3ddd3; font-size: 8.5pt; color: #6b625a; }
+  .salto { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<header class="tapa">
+  <p class="tapa-marca">CatDog</p>
+  <h1>Eventos privados</h1>
+  <p class="tapa-fecha">Cómo se venden, cuánto se cobra y cuánto queda · 28 de septiembre de 2026</p>
+</header>
+
+<p>Cumpleaños, cierres de año, juntadas: cerramos la casa para un grupo, con tapeo para compartir, la barra andando
+y el lugar entero. La regla que ordena todo: <strong>la fecha se toma con la seña, y con esa seña se compra</strong>.
+Si no hay seña, no se compra nada y no se arriesga un peso.</p>
+
+<h2>1. Cómo funciona</h2>
+
+<div class="pasos">
+  <div class="paso"><span class="num">1</span><p>Entran a <strong>/eventos</strong>, eligen cuántos son y dejan fecha y contacto.</p></div>
+  <div class="paso"><span class="num">2</span><p>Llega un mail y la consulta aparece en el panel: <strong>Cenas → Fiestas y juntadas</strong>.</p></div>
+  <div class="paso"><span class="num">3</span><p>Desde ahí se manda el presupuesto por WhatsApp con un toque, ya escrito.</p></div>
+  <div class="paso"><span class="num">4</span><p>Transfieren la <strong>seña (50%)</strong>, se marca como confirmado y se compra.</p></div>
+</div>
+
+<p>En la página no se publican precios: dice <em>"presupuesto a medida"</em> y el número se pasa por mensaje. Los
+precios de abajo están cargados en el sistema como referencia, y el panel los calcula solo según cuántos son.</p>
+
+<h2>2. Precios por persona</h2>
+
+<p>Hay <strong>dos líneas</strong>: el grupo elige primero qué quiere comer y después cuántos son. Así, al que le
+queda caro el tapeo se le puede ofrecer algo en vez de perder la consulta.</p>
+
+<h3>Con tapeo</h3>
+
+<table>
+  <thead><tr><th>Paquete</th><th>Tamaño</th><th class="n">Por persona</th><th>Qué incluye</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Los pocos</strong></td><td>hasta 7</td><td class="n">$32.000</td><td>Tapeo para compartir, dos bebidas por cabeza, la casa para ustedes</td></tr>
+    <tr><td><strong>La juntada</strong></td><td>hasta 12</td><td class="n">$28.000</td><td>Lo mismo, más música a pedido</td></tr>
+    <tr><td><strong>El grupo grande</strong></td><td>hasta 17</td><td class="n">$26.000</td><td>Tapeo y algo dulce, dos bebidas, música a pedido</td></tr>
+    <tr><td><strong>La casa entera</strong></td><td>hasta 25</td><td class="n">$24.000</td><td>Tapeo y algo dulce, dos bebidas, música a pedido</td></tr>
+  </tbody>
+</table>
+
+<h3>Con sánguches (la más barata)</h3>
+
+<table>
+  <thead><tr><th>Paquete</th><th>Tamaño</th><th class="n">Por persona</th><th>Qué incluye</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Los pocos</strong></td><td>hasta 7</td><td class="n">$19.000</td><td>Un sánguche por cabeza, dos bebidas por cabeza, la casa para ustedes</td></tr>
+    <tr><td><strong>La juntada</strong></td><td>hasta 12</td><td class="n">$17.000</td><td>Lo mismo, más música a pedido</td></tr>
+    <tr><td><strong>El grupo grande</strong></td><td>hasta 17</td><td class="n">$16.000</td><td>Lo mismo, más música a pedido</td></tr>
+    <tr><td><strong>La casa entera</strong></td><td>hasta 25</td><td class="n">$15.000</td><td>Lo mismo, más música a pedido</td></tr>
+  </tbody>
+</table>
+
+<p>Las bebidas incluidas son cerveza, trago o sin alcohol, a elección de cada uno. Lo que tomen de más se paga en la
+barra al precio de siempre.</p>
+
+<h2>3. Cuánto queda</h2>
+
+<p>El costo de un evento tiene una parte fija (la botella que se abre, verdura, pan, hielo, carbón, gas: se gasta
+igual sean 5 o 20) y una parte por persona.</p>
+
+<h3>Con tapeo</h3>
+<p>Unos $9.000 por persona entre tapeo y dos bebidas, más la parte fija del evento.</p>
+
+<table>
+  <thead><tr><th>Son</th><th class="n">Por persona</th><th class="n">Cobrás</th><th class="n">Seña (50%)</th><th class="n">Costo</th><th class="n">Queda</th></tr></thead>
+  <tbody>
+    <tr><td>5</td><td class="n">$32.000</td><td class="n">$160.000</td><td class="n">$80.000</td><td class="n">$70.000</td><td class="n">$90.000</td></tr>
+    <tr><td>10</td><td class="n">$28.000</td><td class="n">$280.000</td><td class="n">$140.000</td><td class="n">$115.000</td><td class="n">$165.000</td></tr>
+    <tr class="destaca"><td>15</td><td class="n">$26.000</td><td class="n">$390.000</td><td class="n">$195.000</td><td class="n">$160.000</td><td class="n">$230.000</td></tr>
+    <tr><td>20</td><td class="n">$24.000</td><td class="n">$480.000</td><td class="n">$240.000</td><td class="n">$205.000</td><td class="n">$275.000</td></tr>
+  </tbody>
+</table>
+
+<h3>Con sánguches</h3>
+<p>Costo más bajo: menos parte fija (una sola cocción) y unos $6.000 por persona entre sánguche y dos bebidas.
+Estimado hasta tener el precio real del chorizo.</p>
+
+<table>
+  <thead><tr><th>Son</th><th class="n">Por persona</th><th class="n">Cobrás</th><th class="n">Seña (50%)</th><th class="n">Costo</th><th class="n">Queda</th></tr></thead>
+  <tbody>
+    <tr><td>5</td><td class="n">$19.000</td><td class="n">$95.000</td><td class="n">$48.000</td><td class="n">$45.000</td><td class="n">$50.000</td></tr>
+    <tr><td>10</td><td class="n">$17.000</td><td class="n">$170.000</td><td class="n">$85.000</td><td class="n">$75.000</td><td class="n">$95.000</td></tr>
+    <tr class="destaca"><td>15</td><td class="n">$16.000</td><td class="n">$240.000</td><td class="n">$120.000</td><td class="n">$105.000</td><td class="n">$135.000</td></tr>
+    <tr><td>20</td><td class="n">$15.000</td><td class="n">$300.000</td><td class="n">$150.000</td><td class="n">$135.000</td><td class="n">$165.000</td></tr>
+  </tbody>
+</table>
+
+<div class="caja">
+  <p><strong>En todos los casos, de las dos líneas, la seña cubre la compra entera.</strong> Con 10 personas entran $140.000 de seña y la
+  compra es de $115.000: se cocina con plata del cliente, no de la casa.</p>
+  <p><strong>Un evento de 15 personas paga la semana entera</strong> (alquiler y servicios son $145.385 por semana).</p>
+</div>
+
+<p>El precio por cabeza baja cuanto más grande es el grupo, pero la ganancia sube, porque el costo fijo se reparte
+entre más gente. Sirve como argumento: <em>"cuantos más sean, más barato les sale"</em>.</p>
+
+<h2 class="salto">4. Lo que se suma esa noche</h2>
+
+<p>Todo lo que pasa durante el evento por fuera de lo incluido es margen extra sobre un costo que ya está cubierto.</p>
+
+<table>
+  <thead><tr><th>Extra</th><th class="n">Precio</th><th class="n">Costo</th><th class="n">Queda</th></tr></thead>
+  <tbody>
+    <tr><td>La mesa de pool y ping pong, toda la noche</td><td class="n">$50.000</td><td class="n">$0</td><td class="n">$50.000</td></tr>
+    <tr><td>La mesa por hora, si la piden en el momento</td><td class="n">$6.000</td><td class="n">$0</td><td class="n">$6.000</td></tr>
+    <tr><td>Cerveza de más</td><td class="n">$4.000</td><td class="n">$1.300</td><td class="n">$2.700</td></tr>
+    <tr><td>Trago de más</td><td class="n">$7.000</td><td class="n">~$2.200</td><td class="n">~$4.800</td></tr>
+    <tr><td>Agua</td><td class="n">$2.000</td><td class="n">$1.000</td><td class="n">$1.000</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Ejemplo:</strong> un evento de 15 personas deja $230.000. Si alquilan la mesa ($50.000) y se toman 20
+cervezas de más ($54.000), esa noche deja <strong>$334.000</strong>.</p>
+
+<h2>5. Reglas para no perder plata</h2>
+<ul>
+  <li><strong>Sin seña no hay fecha.</strong> Si alguien pregunta por la misma noche, la fecha es del que señó primero.</li>
+  <li><strong>Un mínimo por evento</strong>: con tapeo, $160.000 (lo que salen 5); con sánguches, $95.000. Un grupo de
+      3 o 4 que paga menos que eso no cierra.</li>
+  <li><strong>El resto se cobra el día del evento</strong>, antes de empezar o al llegar.</li>
+  <li><strong>Cantidad cerrada unos días antes.</strong> Si confirman 15 y vienen 12, se cobra por 15: la compra ya está hecha.</li>
+  <li><strong>Si cancelan con poco tiempo, la seña no se devuelve</strong>, porque ya se gastó en la compra. Conviene
+      decirlo en el mismo mensaje del presupuesto.</li>
+</ul>
+
+<h2>6. El mensaje que se manda</h2>
+
+<p>El panel lo arma solo con los datos de cada consulta. Se puede retocar antes de mandarlo:</p>
+
+<div class="mensaje">¡Hola Martina! Te paso el presupuesto para 10 personas (sábado 14 de noviembre):
+
+• Tapeo para compartir
+• Dos bebidas por cabeza
+• La casa para ustedes
+• Música a pedido
+
+Total: $280.000 ($28.000 por persona).
+Lo que tomen de más se paga en la barra, al precio de siempre.
+
+Para tomar la fecha, la seña es de $140.000.
+Alias: lisandroetc (a nombre de Lisandro Etcheverry)
+Mandame el comprobante por acá y queda confirmado.</div>
+
+<h2>7. Lo que falta cerrar</h2>
+<ul>
+  <li><strong>El precio real del chorizo por kilo.</strong> El costo del tapeo está calculado con un estimado de $10.000/kg.</li>
+  <li><strong>Qué entra exactamente en "tapeo para compartir"</strong> en cada tamaño: cuántos bocados por persona y cuáles.
+      Con eso el costo por persona deja de ser estimado.</li>
+  <li><strong>La política de cancelación</strong>: con cuántos días de anticipación se devuelve la seña, si es que se devuelve.</li>
+</ul>
+
+<p class="pie">Hecho sobre los datos cargados en el sistema al 28 de septiembre de 2026. Los precios se cambian en el
+panel (Ajustes) y el cálculo del presupuesto se actualiza solo.</p>
+
+</body>
+</html>
