@@ -31,6 +31,7 @@ export const GRUPOS: Grupo[] = [
   {
     label: "Plata",
     pantallas: [
+      { href: "/admin/dia", label: "Cerrar el día" },
       { href: "/admin/caja", label: "Cobrar" },
       { href: "/admin/gastos", label: "Caja y gastos" },
       { href: "/admin/estadisticas", label: "Números" },
