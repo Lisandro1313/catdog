@@ -1,9 +1,9 @@
 export const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME ?? "CatDog";
 export const SITE_TAGLINE =
-  process.env.NEXT_PUBLIC_SITE_TAGLINE ?? "Cena a puertas cerradas · La Plata";
+  process.env.NEXT_PUBLIC_SITE_TAGLINE ?? "Una casa abierta en La Plata";
 export const SITE_INTRO =
   process.env.NEXT_PUBLIC_SITE_INTRO ??
-  "Una experiencia de sabores para tu fin de semana: un recorrido gourmet en pasos, cada plato con su trago pensado al lado. Una salida distinta, a puertas cerradas.";
+  "Una casa abierta en La Plata: sánguche y algo para tomar, sin reserva. Y si querés la casa para tu grupo, se cierra para ustedes.";
 
 /** Teléfonos de consulta. Solo se muestran a quien ya pagó (página de reserva y mail). */
 export const CONTACT_PHONES = (process.env.NEXT_PUBLIC_CONTACT_PHONES ?? "2215654325,2214388852")

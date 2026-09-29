@@ -3,8 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { allowRequest } from "@/lib/rate-limit";
 import { argentinaDay } from "@/lib/dates";
 
-/** Rutas que se cuentan (las que llevan TrackVisit o el embudo de la reserva). Cualquier otra se ignora. */
-const KNOWN = new Set(["/", "/fechas", "/hoy", "/hoy/jugar", "/reservar"]);
+/**
+ * Rutas que se cuentan (las que llevan TrackVisit o el embudo de la reserva). Cualquier otra se ignora.
+ * /precios queda afuera a propósito: es el cartel de la tablet de la casa y contarlo inflaría todo.
+ */
+const KNOWN = new Set(["/", "/fechas", "/hoy", "/hoy/jugar", "/reservar", "/eventos"]);
 
 /** Cuenta una visita. Sin cookies ni datos personales: solo día + ruta. */
 export async function POST(req: NextRequest) {

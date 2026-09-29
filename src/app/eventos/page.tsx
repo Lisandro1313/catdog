@@ -8,9 +8,17 @@ import { TrackVisit } from "@/components/TrackVisit";
 
 export const dynamic = "force-dynamic";
 
+const DESCRIPCION = "Cerramos la casa para tu grupo: para comer, la barra andando y el lugar entero. Cumpleaños y juntadas, con la fecha tomada con la seña.";
+
+// Con su propio texto al compartir: si no, hereda el del sitio y habla de otra cosa.
 export const metadata: Metadata = {
   title: `Tu evento en la casa · ${SITE_NAME}`,
-  description: "Cerramos la casa para tu grupo: tapeo, barra y el lugar entero. Cumpleaños y juntadas, con fecha reservada.",
+  description: DESCRIPCION,
+  openGraph: {
+    title: `Tu evento en la casa · ${SITE_NAME}`,
+    description: DESCRIPCION,
+    type: "website",
+  },
 };
 
 export default async function EventosPage() {

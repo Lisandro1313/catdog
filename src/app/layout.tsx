@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
-import { SITE_NAME, SITE_TAGLINE, siteUrl } from "@/lib/config";
+import { SITE_INTRO, SITE_NAME, SITE_TAGLINE, siteUrl } from "@/lib/config";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -9,10 +9,10 @@ const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["lati
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: `${SITE_NAME} · ${SITE_TAGLINE}`,
-  description: `${SITE_TAGLINE}. Pocos lugares. Reservá el tuyo.`,
+  description: SITE_INTRO,
   openGraph: {
     title: `${SITE_NAME} · ${SITE_TAGLINE}`,
-    description: `${SITE_TAGLINE}. Pocos lugares. Reservá el tuyo.`,
+    description: SITE_INTRO,
     type: "website",
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
