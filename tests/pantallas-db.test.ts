@@ -90,6 +90,31 @@ describe.skipIf(!url)("las pantallas del panel traen sus datos", { timeout: 6000
     }
   });
 
+  it("Caja de la barra, incluidas las mesas colgadas", async () => {
+    const { getConfigCaja, getHoy, getPartidasAbiertas, getPartidasSinCobrar, getUltimosCobros } = await import("../src/lib/caja-rapida");
+    const [config, abiertas, colgadas, hoy, ultimos] = await Promise.all([
+      getConfigCaja(),
+      getPartidasAbiertas(),
+      getPartidasSinCobrar(),
+      getHoy(),
+      getUltimosCobros(),
+    ]);
+    expect(Array.isArray(config.productos)).toBe(true);
+    expect(Array.isArray(abiertas)).toBe(true);
+    expect(Array.isArray(colgadas)).toBe(true);
+    // Una partida colgada siempre tiene plata: si no, no habría nada que recuperar.
+    expect(colgadas.every((p) => (p.amount ?? 0) > 0)).toBe(true);
+    expect(Number.isFinite(hoy.total)).toBe(true);
+    expect(Array.isArray(ultimos)).toBe(true);
+  });
+
+  it("Fiestas", async () => {
+    const { getConfigEventos, getPedidos } = await import("../src/lib/eventos-privados");
+    const [pedidos, config] = await Promise.all([getPedidos(), getConfigEventos()]);
+    expect(Array.isArray(pedidos)).toBe(true);
+    expect(Array.isArray(config.paquetes)).toBe(true);
+  });
+
   it("Contactos, Charla y Ajustes", async () => {
     const { getContacts } = await import("../src/lib/admin-stats");
     const { getTemasAdmin } = await import("../src/lib/foro");

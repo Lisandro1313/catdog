@@ -20,7 +20,8 @@ export const VIA_CORTO: Record<Via, string> = {
 };
 
 export type Producto = { nombre: string; precio: number };
-export type Item = { nombre: string; precio: number; cantidad: number };
+/** `partidaId` solo lo traen las líneas que salen de la mesa de juegos: sirve para marcarla cobrada. */
+export type Item = { nombre: string; precio: number; cantidad: number; partidaId?: string };
 
 /** "Nombre | precio" por linea, igual que la carta y los precios del cartel. */
 export function parseProductos(raw: string): Producto[] {

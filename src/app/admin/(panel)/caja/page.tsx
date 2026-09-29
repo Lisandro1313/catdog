@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getConfigCaja, getHoy, getPartidasAbiertas, getUltimosCobros } from "@/lib/caja-rapida";
+import { getConfigCaja, getHoy, getPartidasAbiertas, getPartidasSinCobrar, getUltimosCobros } from "@/lib/caja-rapida";
 import { CajaRapida } from "@/components/admin/CajaRapida";
 import { formatTime } from "@/lib/dates";
 
@@ -7,9 +7,10 @@ export const dynamic = "force-dynamic";
 
 /** La caja de la barra: cobrar en dos toques y ver cuánto entró hoy. */
 export default async function CajaPage() {
-  const [config, partidas, hoy, ultimos] = await Promise.all([
+  const [config, partidas, sinCobrar, hoy, ultimos] = await Promise.all([
     getConfigCaja(),
     getPartidasAbiertas(),
+    getPartidasSinCobrar(),
     getHoy(),
     getUltimosCobros(),
   ]);
@@ -36,6 +37,13 @@ export default async function CajaPage() {
         productos={config.productos}
         mesas={config.mesas}
         partidas={partidas.map((p) => ({ id: p.id, mesa: p.mesa, desde: p.startedAt.getTime() }))}
+        sinCobrar={sinCobrar.map((p) => ({
+          id: p.id,
+          mesa: p.mesa,
+          amount: p.amount ?? 0,
+          detalle: p.modo === "partido" ? "partido" : `${p.minutos ?? 0} min`,
+          hora: p.closedAt ? formatTime(p.closedAt) : "",
+        }))}
         tarifaHora={config.tarifaHora}
         tarifaPartido={config.tarifaPartido}
         hoy={hoy}

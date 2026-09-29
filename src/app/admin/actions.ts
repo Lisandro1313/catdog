@@ -1195,7 +1195,8 @@ export async function estadoPedidoAction(formData: FormData) {
     const crudo = String(formData.get(k) ?? "").replace(/\D/gu, "");
     return crudo ? Number(crudo) : null;
   };
-  await setEstadoPedido(id, estado as Estado, { presupuesto: numero("presupuesto"), sena: numero("sena") });
+  const notas = String(formData.get("notas") ?? "").trim().slice(0, 2000);
+  await setEstadoPedido(id, estado as Estado, { presupuesto: numero("presupuesto"), sena: numero("sena"), notas: notas || null });
   revalidatePath("/admin/fiestas");
 }
 

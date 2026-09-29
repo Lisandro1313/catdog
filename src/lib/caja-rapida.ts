@@ -81,6 +81,12 @@ export async function cobrar(input: { items: Item[]; via: Via; by: string | null
       createdBy: input.by,
     },
   });
+  // Las partidas que entraron en este ticket quedan marcadas como cobradas. Es lo que las saca de
+  // la lista de pendientes: una partida cerrada sin cobrar es plata que se hizo y no figura.
+  const partidas = [...new Set(limpios.map((i) => i.partidaId).filter((id): id is string => !!id))];
+  if (partidas.length > 0) {
+    await prisma.partidaMesa.updateMany({ where: { id: { in: partidas }, via: null }, data: { via: input.via } });
+  }
   return total;
 }
 
@@ -136,6 +142,11 @@ export function precioPartida(modo: "hora" | "partido", minutos: number, tarifaH
   return Math.round((tarifaHora * cobrables) / 60 / 100) * 100;
 }
 
+/** Cómo se llama la partida en el ticket. */
+function nombrePartida(p: { mesa: number; modo: string | null; minutos: number | null }): string {
+  return p.modo === "partido" ? `Mesa ${p.mesa} (partido)` : `Mesa ${p.mesa} (${p.minutos ?? 0} min)`;
+}
+
 /** Cierra la partida y devuelve el ítem para sumar al ticket (todavía no cobra). */
 export async function cerrarMesa(input: { id: string; modo: "hora" | "partido"; by: string | null }): Promise<Item> {
   const p = await prisma.partidaMesa.findUnique({ where: { id: input.id } });
@@ -147,11 +158,32 @@ export async function cerrarMesa(input: { id: string; modo: "hora" | "partido"; 
     where: { id: p.id },
     data: { closedAt: new Date(), modo: input.modo, minutos, amount: precio, by: input.by },
   });
-  return {
-    nombre: input.modo === "partido" ? `Mesa ${p.mesa} (partido)` : `Mesa ${p.mesa} (${minutos} min)`,
-    precio,
-    cantidad: 1,
-  };
+  return { nombre: nombrePartida({ mesa: p.mesa, modo: input.modo, minutos }), precio, cantidad: 1, partidaId: p.id };
+}
+
+/**
+ * Partidas cerradas con un monto que nunca pasaron por el cobro. Pasa si la pantalla se recarga
+ * entre cerrar la mesa y cobrar el ticket: la partida queda cerrada, con plata, y sin ninguna
+ * línea en el libro. Acá se ven para volver a ponerlas en el ticket o darlas de baja a mano.
+ */
+export async function getPartidasSinCobrar() {
+  return prisma.partidaMesa.findMany({
+    where: { closedAt: { not: null }, via: null, amount: { gt: 0 } },
+    orderBy: { closedAt: "desc" },
+    take: 12,
+  });
+}
+
+/** Vuelve a poner en el ticket una partida que quedó colgada. */
+export async function recuperarPartida(id: string): Promise<Item> {
+  const p = await prisma.partidaMesa.findUnique({ where: { id } });
+  if (!p || !p.closedAt || p.via || !p.amount) throw new Error("Esa partida ya no está esperando cobro.");
+  return { nombre: nombrePartida(p), precio: p.amount, cantidad: 1, partidaId: p.id };
+}
+
+/** No se va a cobrar (se regaló, se arregló por afuera): deja de figurar como pendiente. */
+export async function descartarPartida(id: string, quien: string | null) {
+  await prisma.partidaMesa.updateMany({ where: { id, via: null }, data: { via: "descartada", by: quien } });
 }
 
 /** Una partida que se abrió por error: se borra sin cobrar. */

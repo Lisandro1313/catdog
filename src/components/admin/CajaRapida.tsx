@@ -3,9 +3,18 @@
 import { useEffect, useState, useTransition } from "react";
 import { formatPrice } from "@/lib/config";
 import { VIA_CORTO, VIA_LABEL, VIAS, type Item, type Producto, type Via } from "@/lib/caja-rapida-tipos";
-import { abrirMesaAction, anularCobroAction, cancelarMesaAction, cerrarMesaAction, cobrarAction } from "@/app/admin/(panel)/caja/actions";
+import {
+  abrirMesaAction,
+  anularCobroAction,
+  cancelarMesaAction,
+  cerrarMesaAction,
+  cobrarAction,
+  descartarPartidaAction,
+  recuperarPartidaAction,
+} from "@/app/admin/(panel)/caja/actions";
 
 type Partida = { id: string; mesa: number; desde: number };
+type Colgada = { id: string; mesa: number; amount: number; detalle: string; hora: string };
 type Cobro = { id: string; description: string | null; amount: number; via: string | null; hora: string };
 
 /**
@@ -16,6 +25,7 @@ export function CajaRapida({
   productos,
   mesas,
   partidas,
+  sinCobrar,
   tarifaHora,
   tarifaPartido,
   hoy,
@@ -24,6 +34,7 @@ export function CajaRapida({
   productos: Producto[];
   mesas: number;
   partidas: Partida[];
+  sinCobrar: Colgada[];
   tarifaHora: number;
   tarifaPartido: number;
   hoy: { total: number; porVia: { via: string; monto: number }[]; cobros: number };
@@ -38,10 +49,12 @@ export function CajaRapida({
   const total = items.reduce((n, i) => n + i.precio * i.cantidad, 0);
   const cuantos = items.reduce((n, i) => n + i.cantidad, 0);
 
-  function sumar(nombre: string, precio: number) {
+  function sumar(nombre: string, precio: number, partidaId?: string) {
     setError(null);
     setItems((prev) => {
-      const i = prev.findIndex((x) => x.nombre === nombre && x.precio === precio);
+      // Una partida no se junta con nada: cada una lleva su id para quedar marcada al cobrar.
+      if (partidaId) return [...prev, { nombre, precio, cantidad: 1, partidaId }];
+      const i = prev.findIndex((x) => x.nombre === nombre && x.precio === precio && !x.partidaId);
       if (i < 0) return [...prev, { nombre, precio, cantidad: 1 }];
       const copia = [...prev];
       copia[i] = { ...copia[i], cantidad: copia[i].cantidad + 1 };
@@ -110,7 +123,7 @@ export function CajaRapida({
                           onClick={() =>
                             startTransition(async () => {
                               const r = await cerrarMesaAction(abierta.id, "hora");
-                              if (r.ok && r.item) sumar(r.item.nombre, r.item.precio);
+                              if (r.ok && r.item) sumar(r.item.nombre, r.item.precio, r.item.partidaId);
                               else if (!r.ok) setError(r.error);
                             })
                           }
@@ -124,7 +137,7 @@ export function CajaRapida({
                           onClick={() =>
                             startTransition(async () => {
                               const r = await cerrarMesaAction(abierta.id, "partido");
-                              if (r.ok && r.item) sumar(r.item.nombre, r.item.precio);
+                              if (r.ok && r.item) sumar(r.item.nombre, r.item.precio, r.item.partidaId);
                               else if (!r.ok) setError(r.error);
                             })
                           }
@@ -157,6 +170,56 @@ export function CajaRapida({
                 );
               })}
             </div>
+          </section>
+        )}
+
+{/* Mesas que se cerraron con plata y nunca pasaron por el cobro: si la pantalla se recarga
+            entre cerrar y cobrar, el ticket se pierde y esa plata no queda en ningún lado. */}
+        {sinCobrar.length > 0 && (
+          <section className="card p-4 sm:p-5">
+            <p className="eyebrow text-danger">Se cerraron sin cobrar</p>
+            <p className="mt-1 text-sm text-muted">
+              Estas mesas se cerraron con un monto y nunca se cobraron. Ponelas de nuevo en el ticket, o descartalas si ya se
+              arregló por afuera.
+            </p>
+            <ul className="mt-3 grid gap-2 text-sm">
+              {sinCobrar.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-muted">
+                    <span className="text-ink">Mesa {p.mesa}</span> · {p.detalle}
+                    {p.hora && ` · ${p.hora}`}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <span className="tabular-nums">{formatPrice(p.amount)}</span>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      type="button"
+                      disabled={pending}
+                      onClick={() =>
+                        startTransition(async () => {
+                          const r = await recuperarPartidaAction(p.id);
+                          if (r.ok && r.item) sumar(r.item.nombre, r.item.precio, r.item.partidaId);
+                          else if (!r.ok) setError(r.error);
+                        })
+                      }
+                    >
+                      Al ticket
+                    </button>
+                    <button
+                      className="text-xs text-muted hover:text-danger"
+                      type="button"
+                      disabled={pending}
+                      onClick={() => {
+                        if (!confirm(`¿Descartar la mesa ${p.mesa} sin cobrar ${formatPrice(p.amount)}?`)) return;
+                        startTransition(async () => void (await descartarPartidaAction(p.id)));
+                      }}
+                    >
+                      descartar
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 

@@ -747,7 +747,7 @@ export default async function HomePage() {
       <footer className="border-t border-line py-10 text-center text-xs text-muted">
         <p className="ap-ornament mb-4">✦</p>
         <p className="font-display text-base text-ink">{SITE_NAME}</p>
-        <p className="mt-1">Cena a puertas cerradas · {ZONE}</p>
+        <p className="mt-1">{modoBarra ? `${barra.dias} · ${ZONE}` : `Cena a puertas cerradas · ${ZONE}`}</p>
         {instagram && (
           <a
             href={`https://instagram.com/${instagram}`}
@@ -759,9 +759,17 @@ export default async function HomePage() {
           </a>
         )}
         <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
-          <Link href="/fechas" className="hover:text-ink">
-            Ver todas las fechas
-          </Link>
+          {modoBarra ? (
+            eventos.activos ? (
+              <Link href="/eventos" className="hover:text-ink">
+                Tu evento en la casa
+              </Link>
+            ) : null
+          ) : (
+            <Link href="/fechas" className="hover:text-ink">
+              Ver todas las fechas
+            </Link>
+          )}
           <Link href="/hoy/jugar" className="hover:text-ink">
             Juegos de la mesa
           </Link>

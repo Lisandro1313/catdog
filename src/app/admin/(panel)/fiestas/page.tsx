@@ -87,6 +87,19 @@ export default async function FiestasPage() {
           <button className="btn btn-primary btn-sm" type="submit">
             Guardar
           </button>
+
+          {/* Lo que se habló: "quiere torta propia", "pregunta por el proyector", "la fecha es tentativa".
+              Sin esto hay que acordarse de memoria de cada consulta. */}
+          <label className="grid gap-1 text-xs text-muted sm:col-span-4">
+            Notas nuestras (no las ve el cliente)
+            <textarea
+              className="input min-h-20"
+              name="notas"
+              defaultValue={p.notas ?? ""}
+              maxLength={2000}
+              placeholder="Lo que hablaron, lo que pidió, lo que hay que tener en cuenta…"
+            />
+          </label>
         </form>
 
         <form action={borrarPedidoAction} className="mt-2">
