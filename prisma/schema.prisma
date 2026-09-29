@@ -619,3 +619,23 @@ model PedidoEvento {
 
   @@index([estado, createdAt])
 }
+
+/// Alguien que entró con Google a jugar. Guardamos lo justo para saber quién viene y cuántas veces:
+/// el identificador que da Google, su nombre y su foto. El mail se guarda solo como identidad, no
+/// para escribirle.
+model Jugador {
+  id        String   @id @default(cuid())
+  /// El id que da Google (no cambia aunque cambie el mail).
+  googleSub String   @unique
+  email     String
+  nombre    String
+  foto      String?
+  /// Cuántas noches distintas vino a jugar.
+  noches    Int      @default(0)
+  /// La última noche que jugó ("YYYY-MM-DD" argentino), para no contar dos veces la misma.
+  ultimaDia String?
+  primeraAt DateTime @default(now())
+  ultimaAt  DateTime @updatedAt
+
+  @@index([ultimaAt])
+}

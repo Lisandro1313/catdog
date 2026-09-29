@@ -9,7 +9,10 @@ import { PREMIO_MINIMO, getMarcas, getRecords, issuePrizeIfEarned, logrosParaPre
 import { JugarHub } from "@/components/jugar/JugarHub";
 import { TrackVisit } from "@/components/TrackVisit";
 
+import { jugadorActual } from "@/lib/entrar";
+import { Puerta } from "@/components/jugar/Puerta";
 export const dynamic = "force-dynamic";
+
 
 export const metadata: Metadata = {
   title: `Entretenimiento · ${SITE_NAME}`,
@@ -18,7 +21,14 @@ export const metadata: Metadata = {
 };
 
 /** Los juegos sueltos de las mesitas. Las marcas y el premio viven en el servidor, atados a la cookie del teléfono. */
-export default async function JugarPage() {
+export default async function JugarPage({ searchParams }: { searchParams: Promise<{ entrar?: string }> }) {
+  // Para jugar hay que entrar con Google: así las marcas quedan atadas a la persona y no al teléfono.
+  const [q, jugador] = await Promise.all([searchParams, jugadorActual()]);
+  if (!jugador) {
+    const error = q.entrar === "no" ? "no" : q.entrar === "error" ? "error" : undefined;
+    return <Puerta error={error} />;
+  }
+
   const deviceKey = await readDeviceKey();
   const [photos, event, marcasIniciales, records] = await Promise.all([
     getPhotos(),
@@ -32,6 +42,8 @@ export default async function JugarPage() {
     await issuePrizeIfEarned(deviceKey);
     marcas = await getMarcas(deviceKey);
   }
+  marcas = { ...marcas, name: jugador.nombre };
+
   const steps = event ? parseMenu(event.menu) : [];
   const dishes = steps.map((s) => s.dish);
   const drinks = event ? [...steps.map((s) => s.drink).filter((d): d is string => Boolean(d)), ...parseBar(event.bar).map((b) => b.name)] : [];
@@ -44,6 +56,13 @@ export default async function JugarPage() {
   return (
     <>
       <TrackVisit path="/hoy/jugar" />
+      {/* Quién está jugando, con la salida a mano: el teléfono puede pasar de mano en mano. */}
+      <p className="mt-6 text-center text-xs text-muted">
+        Jugás como <span className="text-ink">{jugador.nombre}</span>.{" "}
+        <a href="/api/entrar/salir" className="underline underline-offset-4 hover:text-ink">
+          ¿No sos vos?
+        </a>
+      </p>
       <JugarHub photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} />
     </>
   );

@@ -41,6 +41,7 @@ export const GRUPOS: Grupo[] = [
   {
     label: "La gente",
     pantallas: [
+      { href: "/admin/jugadores", label: "Quién viene" },
       { href: "/admin/contactos", label: "Contactos" },
       { href: "/admin/huellas", label: "Huellas" },
       { href: "/admin/sobremesa", label: "Charla" },
