@@ -18,17 +18,23 @@ export type Paquete = {
   precio: number;
   /** Qué entra, separado por punto y coma. */
   incluye: string[];
+  /** De qué línea es: la de tapeo, la simple… Vacío = la de siempre. */
+  linea: string;
 };
 
+/** El nombre de la línea cuando no se escribió: lo que había antes de que hubiera dos. */
+export const LINEA_POR_DEFECTO = "Con tapeo";
+
 /**
- * "Nombre | hasta | precio por persona | lo que incluye; separado; por punto y coma" por línea.
- * Mismo formato de siempre, para no aprender otro.
+ * "Nombre | hasta | precio por persona | lo que incluye; separado; por punto y coma | línea"
+ * por renglón. La línea es opcional y sirve para ofrecerle dos cosas distintas al mismo grupo: la de
+ * tapeo y una más barata. Sin escribirla, el paquete cae en la de siempre.
  */
 export function parsePaquetes(raw: string): Paquete[] {
   return raw
     .split("\n")
-    .map((linea) => {
-      const [nombre, hasta, precio, incluye] = linea.split("|");
+    .map((renglon) => {
+      const [nombre, hasta, precio, incluye, linea] = renglon.split("|");
       return {
         nombre: (nombre ?? "").trim(),
         hasta: Number((hasta ?? "").replace(/\D/gu, "")),
@@ -37,15 +43,46 @@ export function parsePaquetes(raw: string): Paquete[] {
           .split(";")
           .map((x) => x.trim())
           .filter(Boolean),
+        linea: (linea ?? "").trim() || LINEA_POR_DEFECTO,
       };
     })
     .filter((p) => p.nombre.length > 0 && p.hasta > 0)
     .sort((a, b) => a.hasta - b.hasta);
 }
 
-/** El paquete que le toca a un grupo de N personas: el primero que los cubra. */
-export function paqueteParaS(paquetes: Paquete[], personas: number): Paquete | null {
-  return paquetes.find((p) => personas <= p.hasta) ?? paquetes[paquetes.length - 1] ?? null;
+/** Las líneas que hay, en el orden en que aparecen. Con una sola, no hay nada que elegir. */
+export function lineasDe(paquetes: Paquete[]): string[] {
+  const vistas: string[] = [];
+  for (const p of paquetes) if (!vistas.includes(p.linea)) vistas.push(p.linea);
+  return vistas;
+}
+
+/**
+ * El paquete que le toca a un grupo de N personas: el primero de esa línea que los cubra. Si el
+ * grupo es más grande que todos, va el más grande de la línea.
+ */
+export function paqueteParaS(paquetes: Paquete[], personas: number, linea?: string): Paquete | null {
+  const deLaLinea = linea ? paquetes.filter((p) => p.linea === linea) : paquetes;
+  const lista = deLaLinea.length > 0 ? deLaLinea : paquetes;
+  return lista.find((p) => personas <= p.hasta) ?? lista[lista.length - 1] ?? null;
+}
+
+/**
+ * Cómo se anota un paquete en un pedido. Lleva la línea adelante porque las dos líneas usan los
+ * mismos nombres de grupo ("Los pocos" con tapeo y "Los pocos" con sánguches): sin la línea no se
+ * sabría cuál eligió, y se le terminaría cotizando el precio del otro.
+ */
+export function claveDe(p: Paquete): string {
+  return `${p.linea} · ${p.nombre}`;
+}
+
+/** El paquete que quedó anotado en un pedido. Entiende la clave nueva y el nombre suelto de antes. */
+export function paquetePorNombre(paquetes: Paquete[], anotado: string | null): Paquete | null {
+  if (!anotado) return null;
+  const porClave = paquetes.find((p) => claveDe(p) === anotado);
+  if (porClave) return porClave;
+  // Pedidos viejos, de cuando había una sola línea: ahí el nombre alcanzaba.
+  return paquetes.find((p) => p.nombre === anotado) ?? null;
 }
 
 /** Lo que sale el evento con ese paquete, sin la mesa ni lo que consuman de más. */

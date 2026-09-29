@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { pedirEventoAction } from "@/app/eventos/actions";
 import { formatPrice } from "@/lib/config";
-import { MAX_MENSAJE, MAX_PERSONAS, MIN_PERSONAS, paqueteParaS, presupuestoBase, type Paquete } from "@/lib/eventos-tipos";
+import { MAX_MENSAJE, MAX_PERSONAS, MIN_PERSONAS, claveDe, lineasDe, paqueteParaS, presupuestoBase, type Paquete } from "@/lib/eventos-tipos";
 
 /**
  * Elegís cuántos son y ves lo que sale, antes de escribir nada.
@@ -31,7 +31,10 @@ export function PedirEvento({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const paquete = paqueteParaS(paquetes, personas);
+  // Si hay más de una línea (la de tapeo y una más simple), el grupo elige con cuál quiere.
+  const lineas = lineasDe(paquetes);
+  const [linea, setLinea] = useState(lineas[0] ?? "");
+  const paquete = paqueteParaS(paquetes, personas, linea);
   // Si la casa no publica precios, acá no se inventa ninguno: el presupuesto se pasa por mensaje.
   const conPrecio = publicarPrecios && Boolean(paquete && paquete.precio > 0);
   const total = presupuestoBase(paquete, personas) + (conMesa && mesa > 0 ? mesa : 0);
@@ -58,7 +61,7 @@ export function PedirEvento({
         contacto,
         fecha,
         personas,
-        paquete: paquete?.nombre ?? "",
+        paquete: paquete ? claveDe(paquete) : "",
         conMesa,
         mensaje,
         web,
@@ -70,6 +73,34 @@ export function PedirEvento({
 
   return (
     <form onSubmit={enviar} className="card p-5 sm:p-6">
+      {lineas.length > 1 && (
+        <>
+          <p className="ap-eyebrow">¿Qué quieren comer?</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {lineas.map((l) => {
+              const muestra = paqueteParaS(paquetes, personas, l);
+              return (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLinea(l)}
+                  aria-pressed={linea === l}
+                  className={`min-h-12 rounded-xl border px-4 py-3 text-left transition-colors ${
+                    linea === l ? "border-accent bg-accent/10 text-ink" : "border-line text-muted hover:border-accent/50"
+                  }`}
+                >
+                  <span className="block font-display text-lg">{l}</span>
+                  {publicarPrecios && muestra && muestra.precio > 0 && (
+                    <span className="block text-sm text-muted">desde {formatPrice(muestra.precio)} por persona</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-6" />
+        </>
+      )}
+
       <p className="ap-eyebrow">¿Cuántos son?</p>
       <div className="mt-3 flex items-center gap-4">
         <input

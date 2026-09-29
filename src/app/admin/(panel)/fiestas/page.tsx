@@ -1,6 +1,6 @@
 import { formatShort } from "@/lib/dates";
 import { formatPrice } from "@/lib/config";
-import { ESTADO_LABEL, ESTADOS, getConfigEventos, getPedidos, paqueteParaS, presupuestoBase, SENA_PORCENTAJE, type Estado } from "@/lib/eventos-privados";
+import { ESTADO_LABEL, ESTADOS, getConfigEventos, getPedidos, paquetePorNombre, paqueteParaS, presupuestoBase, SENA_PORCENTAJE, type Estado } from "@/lib/eventos-privados";
 import { borrarPedidoAction, estadoPedidoAction } from "../../actions";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { MandarPresupuesto } from "@/components/admin/MandarPresupuesto";
@@ -15,7 +15,9 @@ export default async function FiestasPage() {
   const resto = pedidos.filter((p) => !abiertas.includes(p));
 
   const fila = (p: (typeof pedidos)[number]) => {
-    const paquete = paqueteParaS(config.paquetes, p.personas);
+    // Manda lo que eligió el grupo: con dos líneas, deducirlo del tamaño le cotizaría la cara al
+    // que pidió la barata. Si el pedido es viejo y no guardó cuál, se deduce como antes.
+    const paquete = paquetePorNombre(config.paquetes, p.paquete) ?? paqueteParaS(config.paquetes, p.personas);
     const sugerido = presupuestoBase(paquete, p.personas) + (p.conMesa ? config.mesa : 0);
     const sena = Math.round((sugerido * SENA_PORCENTAJE) / 100 / 1000) * 1000;
     return (
