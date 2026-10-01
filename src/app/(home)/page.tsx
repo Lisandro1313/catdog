@@ -310,6 +310,7 @@ export default async function HomePage() {
           ...(modoBarra
             ? [
                 { href: "#la-semana", label: "La semana" },
+                ...(photos.length > 0 ? [{ href: "#fotos-barra", label: "Fotos" }] : []),
                 { href: "#la-carta", label: "La carta" },
               ]
             : [{ href: "#carta", label: "La carta" }]),
@@ -333,6 +334,44 @@ export default async function HomePage() {
             estado={<EstadoCasa dias={diasAbre} hora={horaAbre} inicial={estadoInicial} excepcion={excepcion} />}
           />
           <LaSemana barra={barra} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
+          {/* Las fotos van entre lo que pasa cada noche y lo que sale: primero qué es esto, después
+              cómo es, y recién ahí cuánto cuesta. Es el orden en que alguien decide si viene.
+              Varias son de las cenas de pasos, así que el título no promete que sea lo de esta noche. */}
+          {photos.length > 0 && (
+            <section id="fotos-barra" className="reveal scroll-mt-16 py-12 sm:py-16">
+              <div className="mx-auto max-w-2xl px-6 text-center">
+                <p className="ap-ornament mb-3">✦</p>
+                <p className="ap-eyebrow">La casa</p>
+                <h2 className="mt-3 font-display text-3xl sm:text-4xl">Cómo es esto</h2>
+                <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted">
+                  La casa, la barra y algo de lo que salió de esta cocina.
+                </p>
+              </div>
+              <div className="mt-8">
+                <PhotoStrip photos={photos} />
+              </div>
+              {video && (
+                <div className="mx-auto mt-8 max-w-2xl px-6">
+                  <VideoEmbed url={video} />
+                </div>
+              )}
+              {instagram && (
+                <p className="mt-8 text-center text-sm text-muted">
+                  Hay más, y más seguido, en{" "}
+                  <a
+                    className="text-accent underline-offset-4 hover:underline"
+                    href={`https://instagram.com/${instagram}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-mide="instagram"
+                  >
+                    @{instagram}
+                  </a>
+                </p>
+              )}
+            </section>
+          )}
+
           <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
           {/* Lo único que queda del que entra, mira la carta y se va. Sin esto, cada semana se
               empieza de cero: no hay a quién avisarle que el jueves se proyecta algo. */}
