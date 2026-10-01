@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { Barra } from "@/lib/barra";
+import { FORMAS_DE_PAGO, type Barra } from "@/lib/barra";
 import type { Producto } from "@/lib/caja-rapida-tipos";
 import { formatPrice } from "@/lib/config";
 import { Brasas } from "./Brasas";
@@ -213,7 +213,7 @@ export function CartaBarra({
           </div>
         </div>
 
-        <p className="carta-pie">Se pide y se paga en la barra · efectivo, tarjeta o transferencia</p>
+        <p className="carta-pie">Se pide y se paga en la barra · {FORMAS_DE_PAGO}</p>
       </div>
     </section>
   );

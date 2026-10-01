@@ -46,6 +46,9 @@ export type Barra = {
   direccion: string;
 };
 
+/** Cómo se paga. Lo dicen la carta y las preguntas, así que vive en un solo lado. */
+export const FORMAS_DE_PAGO = "efectivo, tarjeta o transferencia";
+
 const OPCIONES_DEFAULT = "Con cerveza | 10000\nCon trago | 11000\nCon trago sin alcohol | 9000";
 
 export const BARRA_DEFAULT = {

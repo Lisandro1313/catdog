@@ -26,7 +26,7 @@ import { barJsonLd, foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
-import { getBarra, getExcepcion } from "@/lib/barra";
+import { FORMAS_DE_PAGO, getBarra, getExcepcion } from "@/lib/barra";
 import { getConfigEventos } from "@/lib/eventos-privados";
 import { BarraHero, CartaBarra, LaSemana, TuEvento } from "@/components/home/BarraHero";
 import { Brasas } from "@/components/home/Brasas";
@@ -171,7 +171,10 @@ export default async function HomePage() {
   const waEvento = casaWhatsapp("Hola! Los vi en la página, quería preguntar por un evento en la casa.");
   const waPie = casaWhatsapp("Hola! Los vi en la página.");
 
-  const faqsBarra = [
+  // Algunas preguntas terminan en "escribinos": esas llevan el botón, no sólo el texto.
+  type Faq = { q: string; a: string; cta?: { href: string; label: string } | null };
+
+  const faqsBarra: Faq[] = [
     {
       q: "¿Hay que reservar?",
       a: "No. Se abre y el que cae, entra. Mientras haya, hay: no guardamos lugares ni tomamos lista.",
@@ -194,10 +197,12 @@ export default async function HomePage() {
       a: barra.direccion
         ? `${barra.direccion}. Es una casa sin cartel: se entra por un portón y un pasillo.`
         : `${ZONE}. Es una casa sin cartel: escribinos y te pasamos el número exacto.`,
+      // Decir "escribinos" sin dar por dónde es dejar a la persona con el teléfono en la mano.
+      cta: waDireccion ? { href: waDireccion, label: "Escribinos por WhatsApp" } : null,
     },
     {
       q: "¿Cómo se paga?",
-      a: "En la barra, cuando pedís. Efectivo o transferencia.",
+      a: `En la barra, cuando pedís: ${FORMAS_DE_PAGO}.`,
     },
     {
       q: "¿Comés distinto? ¿Alergias?",
@@ -206,6 +211,7 @@ export default async function HomePage() {
     {
       q: "¿Y las cenas de varios pasos?",
       a: "Las seguimos haciendo para grupos que las piden: se arma la fecha, la carta y su cóctel para cada plato. Escribinos y lo vemos.",
+      cta: waEvento ? { href: waEvento, label: "Escribinos por WhatsApp" } : null,
     },
     ...(contactEmail()
       ? [
@@ -217,7 +223,7 @@ export default async function HomePage() {
       : []),
   ];
 
-  const faqsCena = [
+  const faqsCena: Faq[] = [
     {
       q: "¿Qué incluye el precio?",
       a: "El cóctel sin alcohol de recepción, los pasos de la cena con el cóctel de autor que acompaña a cada uno, y agua en la mesa. Lo que quieras tomar además, de la barra, va aparte.",
@@ -759,6 +765,11 @@ export default async function HomePage() {
                     </span>
                   </summary>
                   <p className="mt-2 text-sm leading-relaxed text-muted">{f.a}</p>
+                  {f.cta && (
+                    <a className="btn btn-ghost btn-sm mt-3" href={f.cta.href} target="_blank" rel="noopener noreferrer" data-mide="wa">
+                      {f.cta.label}
+                    </a>
+                  )}
                 </details>
               ))}
             </div>

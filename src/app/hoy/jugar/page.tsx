@@ -9,7 +9,7 @@ import { PREMIO_MINIMO, getMarcas, getRecords, issuePrizeIfEarned, logrosParaPre
 import { JugarHub } from "@/components/jugar/JugarHub";
 import { TrackVisit } from "@/components/TrackVisit";
 
-import { jugadorActual } from "@/lib/entrar";
+import { googleConfigurado, jugadorActual } from "@/lib/entrar";
 import { Puerta } from "@/components/jugar/Puerta";
 export const dynamic = "force-dynamic";
 
@@ -22,10 +22,16 @@ export const metadata: Metadata = {
 
 /** Los juegos sueltos de las mesitas. Las marcas y el premio viven en el servidor, atados a la cookie del teléfono. */
 export default async function JugarPage({ searchParams }: { searchParams: Promise<{ entrar?: string }> }) {
-  // Para jugar hay que entrar con Google: así las marcas quedan atadas a la persona y no al teléfono.
+  // Para jugar se entra con Google: así las marcas quedan atadas a la persona y no al teléfono.
+  //
+  // Pero la puerta sólo se pone si existe la llave. Sin las credenciales cargadas, pedir que entren
+  // es mandar a alguien que escaneó el QR de la mesa a un cartel de error: se juega sin cuenta, como
+  // antes de que existiera la puerta, y las marcas quedan atadas al teléfono. En cuanto estén las
+  // credenciales, la puerta vuelve sola.
   const [q, jugador] = await Promise.all([searchParams, jugadorActual()]);
-  if (!jugador) {
-    const error = q.entrar === "no" ? "no" : q.entrar === "error" ? "error" : undefined;
+  const conGoogle = googleConfigurado();
+  if (!jugador && conGoogle) {
+    const error = q.entrar === "error" ? "error" : undefined;
     return <Puerta error={error} />;
   }
 
@@ -42,7 +48,7 @@ export default async function JugarPage({ searchParams }: { searchParams: Promis
     await issuePrizeIfEarned(deviceKey);
     marcas = await getMarcas(deviceKey);
   }
-  marcas = { ...marcas, name: jugador.nombre };
+  if (jugador) marcas = { ...marcas, name: jugador.nombre };
 
   const steps = event ? parseMenu(event.menu) : [];
   const dishes = steps.map((s) => s.dish);
@@ -57,12 +63,14 @@ export default async function JugarPage({ searchParams }: { searchParams: Promis
     <>
       <TrackVisit path="/hoy/jugar" />
       {/* Quién está jugando, con la salida a mano: el teléfono puede pasar de mano en mano. */}
-      <p className="mt-6 text-center text-xs text-muted">
-        Jugás como <span className="text-ink">{jugador.nombre}</span>.{" "}
-        <a href="/api/entrar/salir" className="underline underline-offset-4 hover:text-ink">
-          ¿No sos vos?
-        </a>
-      </p>
+      {jugador && (
+        <p className="mt-6 text-center text-xs text-muted">
+          Jugás como <span className="text-ink">{jugador.nombre}</span>.{" "}
+          <a href="/api/entrar/salir" className="underline underline-offset-4 hover:text-ink">
+            ¿No sos vos?
+          </a>
+        </p>
+      )}
       <JugarHub photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} />
     </>
   );
