@@ -11,9 +11,20 @@ import { DEFAULT_ABOUT, getAbout, getInstagram, getPhotos } from "@/lib/photos";
 import { getPaymentConfig } from "@/lib/payment";
 import { EventForm } from "@/components/admin/EventForm";
 import { createEventAction } from "../actions";
+import { getBarra, getExcepcion } from "@/lib/barra";
+import { DiaSuelto } from "@/components/admin/DiaSuelto";
+import { diasQueAbre, estadoAhora, horaDeApertura, textoDeEstado } from "@/lib/horario";
+import { todayIso } from "@/lib/dates";
 
 export default async function AdminHome() {
-  const [photos, about, instagram, payment] = await Promise.all([getPhotos(), getAbout(), getInstagram(), getPaymentConfig()]);
+  const [photos, about, instagram, payment, barra, excepcion] = await Promise.all([
+    getPhotos(),
+    getAbout(),
+    getInstagram(),
+    getPaymentConfig(),
+    getBarra(),
+    getExcepcion(),
+  ]);
   const byTransfer = payment.mode === "transferencia";
   const [events, subscribers, nextEvent, toConfirm] = await Promise.all([
     prisma.event.findMany({
@@ -64,6 +75,15 @@ export default async function AdminHome() {
 
   return (
     <>
+      {/* Con la casa abierta, lo que se toca cada semana es esto: qué día abrimos. Va arriba de todo. */}
+      {barra.activa && (
+        <DiaSuelto
+          excepcion={excepcion}
+          hoyIso={todayIso()}
+          dice={textoDeEstado(estadoAhora(diasQueAbre(barra.dias), horaDeApertura(barra.horario) ?? 20, new Date(), excepcion))}
+        />
+      )}
+
       {toConfirm.length > 0 && (
         <section className="card card-gold p-5 sm:p-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">

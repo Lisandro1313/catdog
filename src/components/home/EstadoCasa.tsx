@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { estadoAhora, textoDeEstado } from "@/lib/horario";
+import { estadoAhora, textoDeEstado, type Excepcion } from "@/lib/horario";
 
 /**
  * El cartel de "abierto ahora".
@@ -16,10 +16,23 @@ function suscribir(avisar: () => void) {
   return () => clearInterval(t);
 }
 
-export function EstadoCasa({ dias, hora, inicial, className = "" }: { dias: number[]; hora: number; inicial: string; className?: string }) {
+export function EstadoCasa({
+  dias,
+  hora,
+  inicial,
+  excepcion = null,
+  className = "",
+}: {
+  dias: number[];
+  hora: number;
+  inicial: string;
+  /** El día suelto que se abrió (o cerró) a mano desde el panel. */
+  excepcion?: Excepcion | null;
+  className?: string;
+}) {
   const texto = useSyncExternalStore(
     suscribir,
-    () => textoDeEstado(estadoAhora(dias, hora)),
+    () => textoDeEstado(estadoAhora(dias, hora, new Date(), excepcion)),
     () => inicial,
   );
   if (!texto) return null;

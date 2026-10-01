@@ -117,3 +117,73 @@ describe("horarioSchema", () => {
     expect(horarioSchema([], 20)).toBeNull();
   });
 });
+
+/**
+ * La excepción de un día: "este martes abrimos de 20 a 3", "el feriado no abrimos".
+ * Es lo que pasa de verdad en una casa, y es lo que la gente viene a consultar a la página.
+ */
+describe("la excepción de un día", () => {
+  const abrirMartes = { fecha: "2026-10-06", abre: true, desde: 20, hasta: 3 };
+
+  it("un martes que normalmente está cerrado, abierto porque se abrió a mano", () => {
+    const e = estadoAhora(DIAS, 20, ar("2026-10-06", "22:00"), abrirMartes);
+    expect(e.abierto).toBe(true);
+    expect(textoDeEstado(e)).toBe("Abierto hasta las 3");
+  });
+
+  it("antes de la hora, el martes dice de cuándo a cuándo", () => {
+    const e = estadoAhora(DIAS, 20, ar("2026-10-06", "15:00"), abrirMartes);
+    expect(e.abierto).toBe(false);
+    expect(textoDeEstado(e)).toBe("Hoy abre de 20 a 3");
+  });
+
+  it("el miércoles a las 2 de la mañana sigue la noche del martes", () => {
+    expect(estadoAhora(DIAS, 20, ar("2026-10-07", "02:00"), abrirMartes).abierto).toBe(true);
+  });
+
+  it("el miércoles a las 3:30 ya cerró: esa noche terminaba a las 3", () => {
+    expect(estadoAhora(DIAS, 20, ar("2026-10-07", "03:30"), abrirMartes).abierto).toBe(false);
+  });
+
+  it("desde antes se anuncia el día suelto, que cae antes que el próximo de siempre", () => {
+    // Martes al mediodía: la casa está cerrada y lo próximo de siempre sería el jueves,
+    // pero se abrió el miércoles a mano, así que es eso lo que hay que anunciar.
+    const abrirMiercoles = { fecha: "2026-10-07", abre: true, desde: 20, hasta: 3 };
+    const e = estadoAhora(DIAS, 20, ar("2026-10-06", "12:00"), abrirMiercoles);
+    expect(textoDeEstado(e)).toBe("Abre el miércoles de 20 a 3");
+  });
+
+  it("un día suelto más lejos que el próximo de siempre no se adelanta", () => {
+    // Domingo: el lunes abre igual, así que no tiene sentido anunciar el martes.
+    const e = estadoAhora(DIAS, 20, ar("2026-10-04", "12:00"), abrirMartes);
+    expect(textoDeEstado(e)).toBe("Abre el lunes a las 20");
+  });
+
+  it("una excepción vieja no se aplica nunca más", () => {
+    const vieja = { fecha: "2020-01-01", abre: true, desde: 20, hasta: 3 };
+    expect(estadoAhora(DIAS, 20, ar("2026-10-07", "22:00"), vieja).abierto).toBe(false);
+  });
+
+  it("cerrar un viernes deja la casa cerrada aunque toque abrir", () => {
+    const feriado = { fecha: "2026-10-02", abre: false, desde: 20, hasta: null };
+    const e = estadoAhora(DIAS, 20, ar("2026-10-02", "23:00"), feriado);
+    expect(e.abierto).toBe(false);
+    expect(textoDeEstado(e)).toBe("Abre el sábado a las 20");
+  });
+
+  it("el sábado a las 2, después de un viernes cerrado a mano, no está abierto", () => {
+    const feriado = { fecha: "2026-10-02", abre: false, desde: 20, hasta: null };
+    expect(estadoAhora(DIAS, 20, ar("2026-10-03", "02:00"), feriado).abierto).toBe(false);
+  });
+
+  it("cerrar un día no arrastra al siguiente", () => {
+    const feriado = { fecha: "2026-10-02", abre: false, desde: 20, hasta: null };
+    expect(estadoAhora(DIAS, 20, ar("2026-10-03", "22:00"), feriado).abierto).toBe(true);
+  });
+
+  it("sin hora de cierre se comporta como una noche cualquiera", () => {
+    const suelto = { fecha: "2026-10-06", abre: true, desde: 21, hasta: null };
+    const e = estadoAhora(DIAS, 20, ar("2026-10-06", "22:00"), suelto);
+    expect(textoDeEstado(e)).toBe("Abierto ahora");
+  });
+});

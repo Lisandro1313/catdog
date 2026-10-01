@@ -25,9 +25,10 @@ import { barJsonLd, foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
-import { getBarra } from "@/lib/barra";
+import { getBarra, getExcepcion } from "@/lib/barra";
 import { getConfigEventos } from "@/lib/eventos-privados";
 import { BarraHero, CartaBarra, LaSemana, TuEvento } from "@/components/home/BarraHero";
+import { Brasas } from "@/components/home/Brasas";
 import { AvisameForm } from "@/components/AvisameForm";
 import { EstadoCasa } from "@/components/home/EstadoCasa";
 import { BarraFija } from "@/components/home/BarraFija";
@@ -152,9 +153,10 @@ export default async function HomePage() {
 
   // Qué días y a qué hora abre, leídos del texto que se carga en Ajustes. Con eso sale el cartel
   // de "abierto ahora" y el horario que publicamos para Google, sin cargar lo mismo dos veces.
+  const excepcion = modoBarra ? await getExcepcion() : null;
   const diasAbre = diasQueAbre(barra.dias);
   const horaAbre = horaDeApertura(barra.horario) ?? 20;
-  const estadoInicial = textoDeEstado(estadoAhora(diasAbre, horaAbre));
+  const estadoInicial = textoDeEstado(estadoAhora(diasAbre, horaAbre, new Date(), excepcion));
   // "Cómo llegar", no "ver el mapa": abre el navegador con el camino desde donde esté la persona.
   const mapa = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(MAP_CENTER)}`;
 
@@ -326,7 +328,7 @@ export default async function HomePage() {
             conEventos={eventos.activos}
             zona={ZONE}
             mapa={mapa}
-            estado={<EstadoCasa dias={diasAbre} hora={horaAbre} inicial={estadoInicial} />}
+            estado={<EstadoCasa dias={diasAbre} hora={horaAbre} inicial={estadoInicial} excepcion={excepcion} />}
           />
           <LaSemana barra={barra} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
           <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
@@ -355,25 +357,7 @@ export default async function HomePage() {
             <Image src={photos[0].url} alt="" fill sizes="100vw" priority className="object-cover" />
           </div>
         )}
-        {/* Brasas: el rescoldo abajo y las chispas que suben. Va antes del grano para que la textura
-            de afiche impreso quede por encima y no se note el degradado. */}
-        <div className="ap-brasas" aria-hidden="true">
-          {CHISPAS.map((c, i) => (
-            <span
-              key={i}
-              className="ap-chispa"
-              style={
-                {
-                  "--x": c.x,
-                  "--tam": c.tam,
-                  "--demora": c.demora,
-                  "--dura": c.dura,
-                  "--deriva": c.deriva,
-                } as React.CSSProperties
-              }
-            />
-          ))}
-        </div>
+        <Brasas />
         <div className="ap-grain" aria-hidden="true" />
         <div className="ap-frame" aria-hidden="true" />
         {cinta.length > 0 && (
@@ -682,7 +666,7 @@ export default async function HomePage() {
                       {barra.dias}, {barra.horario.toLowerCase()}. Sin reserva.
                     </p>
                     <p className="mt-3">
-                      <EstadoCasa dias={diasAbre} hora={horaAbre} inicial={estadoInicial} />
+                      <EstadoCasa dias={diasAbre} hora={horaAbre} inicial={estadoInicial} excepcion={excepcion} />
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <a className="btn btn-ghost btn-sm" href={mapa} target="_blank" rel="noopener noreferrer">
@@ -940,30 +924,3 @@ function Fact({ label, value }: { label: string; value: string }) {
  * dejan huecos, y en una pantalla quieta eso se nota. Cada una arranca en otro lado, tarda distinto
  * y deriva para su lado, así el ojo nunca encuentra el patrón.
  */
-const CHISPAS = [
-  { x: "4%", tam: "3px", demora: "0s", dura: "11s", deriva: "18px" },
-  { x: "9%", tam: "5px", demora: "6.5s", dura: "9s", deriva: "26px" },
-  { x: "14%", tam: "2px", demora: "3.2s", dura: "16s", deriva: "-14px" },
-  { x: "19%", tam: "3px", demora: "9.8s", dura: "12s", deriva: "12px" },
-  { x: "24%", tam: "5px", demora: "5.1s", dura: "9.5s", deriva: "24px" },
-  { x: "29%", tam: "2px", demora: "12.4s", dura: "15s", deriva: "-22px" },
-  { x: "33%", tam: "3px", demora: "1.3s", dura: "13s", deriva: "-20px" },
-  { x: "38%", tam: "4px", demora: "7.9s", dura: "10s", deriva: "16px" },
-  { x: "43%", tam: "2px", demora: "4.6s", dura: "17s", deriva: "-28px" },
-  { x: "47%", tam: "3px", demora: "10.7s", dura: "11s", deriva: "14px" },
-  { x: "52%", tam: "5px", demora: "2.4s", dura: "8.5s", deriva: "22px" },
-  { x: "57%", tam: "2px", demora: "8.1s", dura: "14s", deriva: "-16px" },
-  { x: "61%", tam: "3px", demora: "13.6s", dura: "12.5s", deriva: "20px" },
-  { x: "66%", tam: "4px", demora: "0.9s", dura: "10.5s", deriva: "-24px" },
-  { x: "70%", tam: "2px", demora: "6.2s", dura: "16.5s", deriva: "10px" },
-  { x: "75%", tam: "5px", demora: "11.3s", dura: "9s", deriva: "28px" },
-  { x: "79%", tam: "3px", demora: "3.7s", dura: "13.5s", deriva: "-18px" },
-  { x: "84%", tam: "2px", demora: "14.9s", dura: "15.5s", deriva: "16px" },
-  { x: "88%", tam: "4px", demora: "5.8s", dura: "10s", deriva: "-26px" },
-  { x: "92%", tam: "3px", demora: "9.1s", dura: "12s", deriva: "24px" },
-  { x: "96%", tam: "2px", demora: "2.8s", dura: "17.5s", deriva: "-12px" },
-  /* Tres bien chiquitas y lentas: las que parecen estar más lejos, atrás del fuego. */
-  { x: "21%", tam: "2px", demora: "15.7s", dura: "19s", deriva: "8px" },
-  { x: "55%", tam: "2px", demora: "17.2s", dura: "20s", deriva: "-9px" },
-  { x: "83%", tam: "2px", demora: "16.4s", dura: "18.5s", deriva: "11px" },
-];

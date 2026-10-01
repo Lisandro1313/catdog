@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import type { Excepcion } from "./horario";
 
 /**
  * El formato de barra: los días fijos que abrimos, sin reserva y sin cupo.
@@ -17,6 +18,11 @@ const KEYS = {
   lunes: "barra:lunes",
   jueves: "barra:jueves",
   direccion: "barra:direccion",
+  // El día suelto: "este martes abrimos de 20 a 3", o "el feriado no abrimos".
+  dia: "barra:dia",
+  diaAbre: "barra:dia_abre",
+  diaDesde: "barra:dia_desde",
+  diaHasta: "barra:dia_hasta",
 } as const;
 
 /** Cada forma de pagar la noche: qué te tomás y cuánto sale (el sánguche entra en todas). */
@@ -106,6 +112,47 @@ export async function setBarra(input: {
   if (input.lunes !== undefined) pares.push([KEYS.lunes, input.lunes.trim().slice(0, 500)]);
   if (input.jueves !== undefined) pares.push([KEYS.jueves, input.jueves.trim().slice(0, 500)]);
   if (input.direccion !== undefined) pares.push([KEYS.direccion, input.direccion.trim().slice(0, 120)]);
+  await prisma.$transaction(
+    pares.map(([key, value]) => prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } })),
+  );
+}
+
+/**
+ * El día suelto que no sigue la semana de siempre.
+ * Vive en Setting y no en una tabla porque es uno solo a la vez: se carga el de esta semana y
+ * cuando pasa deja de aplicarse solo, sin que haya que ir a borrarlo.
+ */
+export async function getExcepcion(): Promise<Excepcion | null> {
+  const claves = [KEYS.dia, KEYS.diaAbre, KEYS.diaDesde, KEYS.diaHasta];
+  const rows = await prisma.setting.findMany({ where: { key: { in: claves } } });
+  const v = (k: string) => rows.find((r) => r.key === k)?.value?.trim() ?? "";
+  const fecha = v(KEYS.dia);
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(fecha)) return null;
+  const num = (s: string) => {
+    const n = Number(s);
+    return Number.isFinite(n) && n >= 0 && n <= 23 ? n : null;
+  };
+  return {
+    fecha,
+    abre: v(KEYS.diaAbre) !== "no",
+    desde: num(v(KEYS.diaDesde)) ?? 20,
+    hasta: num(v(KEYS.diaHasta)),
+  };
+}
+
+/** Guardar el día suelto. `fecha` vacía lo borra y vuelve a mandar la semana de siempre. */
+export async function setExcepcion(input: { fecha: string; abre: boolean; desde: string; hasta: string }): Promise<void> {
+  const fecha = /^\d{4}-\d{2}-\d{2}$/u.test(input.fecha.trim()) ? input.fecha.trim() : "";
+  const hora = (s: string) => {
+    const n = Number(String(s).replace(/\D/gu, ""));
+    return Number.isFinite(n) && n >= 0 && n <= 23 ? String(n) : "";
+  };
+  const pares: [string, string][] = [
+    [KEYS.dia, fecha],
+    [KEYS.diaAbre, input.abre ? "si" : "no"],
+    [KEYS.diaDesde, hora(input.desde)],
+    [KEYS.diaHasta, hora(input.hasta)],
+  ];
   await prisma.$transaction(
     pares.map(([key, value]) => prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } })),
   );

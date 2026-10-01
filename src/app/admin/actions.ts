@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema } from "@/lib/foro";
-import { parseOpciones, setBarra } from "@/lib/barra";
+import { parseOpciones, setBarra, setExcepcion } from "@/lib/barra";
 import { parseProductos, setConfigCaja } from "@/lib/caja-rapida";
 import { borrarPedido, ESTADOS, setEstadoPedido, type Estado } from "@/lib/eventos-privados";
 import { darDeBaja } from "@/lib/avisos";
@@ -1182,6 +1182,29 @@ export async function setCajaConfigAction(_prev: ActionState, formData: FormData
   revalidatePath("/admin/caja");
   revalidatePath("/admin/ajustes");
   return { ok: true, message: "Guardado." };
+}
+
+// ---------- el día suelto ----------
+
+/** Abrir un día que no es de los de siempre, o cerrar uno que sí lo es. */
+export async function diaSueltoAction(formData: FormData) {
+  await requireAdmin();
+  await setExcepcion({
+    fecha: String(formData.get("fecha") ?? ""),
+    abre: String(formData.get("abre") ?? "si") !== "no",
+    desde: String(formData.get("desde") ?? ""),
+    hasta: String(formData.get("hasta") ?? ""),
+  });
+  revalidatePath("/admin");
+  revalidatePath("/");
+}
+
+/** Volver a los días de siempre. */
+export async function quitarDiaSueltoAction() {
+  await requireAdmin();
+  await setExcepcion({ fecha: "", abre: true, desde: "", hasta: "" });
+  revalidatePath("/admin");
+  revalidatePath("/");
 }
 
 // ---------- la lista de avisos ----------

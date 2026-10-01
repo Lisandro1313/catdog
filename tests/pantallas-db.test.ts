@@ -108,6 +108,15 @@ describe.skipIf(!url)("las pantallas del panel traen sus datos", { timeout: 6000
     expect(Array.isArray(ultimos)).toBe(true);
   });
 
+  it("El día suelto que se abre a mano", async () => {
+    const { getBarra, getExcepcion } = await import("../src/lib/barra");
+    const [barra, exc] = await Promise.all([getBarra(), getExcepcion()]);
+    expect(typeof barra.dias).toBe("string");
+    // O no hay ninguno cargado, o tiene una fecha que se entiende: con una fecha rota el cartel
+    // de la página diría cualquier cosa.
+    expect(exc === null || /^\d{4}-\d{2}-\d{2}$/u.test(exc.fecha)).toBe(true);
+  });
+
   it("La lista de avisos", async () => {
     const { contarAvisados, getAvisados } = await import("../src/lib/avisos");
     const [lista, cuantos] = await Promise.all([getAvisados(), contarAvisados()]);

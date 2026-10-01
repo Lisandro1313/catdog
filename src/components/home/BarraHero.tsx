@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Barra } from "@/lib/barra";
 import type { Producto } from "@/lib/caja-rapida-tipos";
 import { formatPrice } from "@/lib/config";
+import { Brasas } from "./Brasas";
 
 /**
  * El afiche de la casa en formato barra. Nada de precios acá arriba: la primera impresión es el lugar,
@@ -24,13 +25,6 @@ export function BarraHero({
   zona: string;
   mapa: string;
 }) {
-  // "Lunes, jueves, viernes y sábados" → fichas parejas: Lunes · Jueves · Viernes · Sábado.
-  const dias = barra.dias
-    .split(/,|\sy\s/u)
-    .map((d) => d.trim().replace(/(ado|ingo)s$/iu, "$1"))
-    .filter(Boolean)
-    .map((d) => d.charAt(0).toUpperCase() + d.slice(1));
-
   return (
     <section id="inicio" className="relative flex min-h-[92dvh] items-center overflow-hidden px-6 py-20 sm:min-h-[88dvh]">
       {foto && (
@@ -38,6 +32,9 @@ export function BarraHero({
           <Image src={foto.url} alt="" fill sizes="100vw" priority className="object-cover" />
         </div>
       )}
+      {/* El rescoldo y las chispas van antes del grano, para que la textura de afiche impreso
+          quede por encima y no se note el degradado. */}
+      <Brasas />
       <div className="ap-grain" aria-hidden="true" />
       <div className="ap-frame" aria-hidden="true" />
 
@@ -50,15 +47,9 @@ export function BarraHero({
         </h1>
         <hr className="ap-rule-gold mx-auto mt-8 w-40" />
 
-        <ul className="dias-chips mt-8" aria-label="Días que abrimos">
-          {dias.map((d) => (
-            <li key={d}>{d}</li>
-          ))}
-        </ul>
-        <p className="mt-4 text-sm tracking-[0.2em] uppercase text-muted">{barra.horario}</p>
-        {/* Lo que busca el que entra a las once de la noche: si está abierto, y dónde queda.
-            Antes la dirección estaba en la pantalla 6 de 8. */}
-        {estado && <p className="mt-5">{estado}</p>}
+        {/* La lista de días estaba acá y no es lo que se viene a buscar: el que entra quiere saber
+            si está abierto ahora. Los días siguen estando en La semana, en Dónde y en el pie. */}
+        {estado && <p className="mt-8">{estado}</p>}
         <p className="mt-4 text-sm text-muted">
           {barra.direccion || zona} ·{" "}
           <a className="text-accent underline-offset-4 hover:underline" href={mapa} target="_blank" rel="noopener noreferrer">
