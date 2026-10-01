@@ -157,10 +157,11 @@ export function CartaBarra({
             <p className="carta-bajada">{barra.incluye}</p>
             <ul className="carta-lista">
               {barra.opciones.map((o) => (
-                <li key={o.que}>
+                <li key={o.que} className={o.desc ? "con-nota" : ""}>
                   <span className="nombre">Sánguche {o.que.toLowerCase()}</span>
                   <span className="relleno" aria-hidden="true" />
                   <span className="precio">{formatPrice(o.precio)}</span>
+                  {o.desc && <span className="nota">{o.desc}</span>}
                 </li>
               ))}
             </ul>

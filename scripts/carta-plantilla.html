@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>CatDog · La carta</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #111; }
+  body { font-family: Georgia, "Times New Roman", serif; }
+  .hoja { width: 210mm; height: 297mm; padding: 18mm 20mm 16mm; display: flex; flex-direction: column; page-break-after: always; }
+  .hoja:last-child { page-break-after: auto; }
+  header { text-align: center; }
+  .logo { width: 22mm; height: auto; border-radius: 2mm; display: block; margin: 0 auto 4mm; }
+  .marca { font-size: 22pt; letter-spacing: .34em; text-transform: uppercase; margin: 0; }
+  .sub { font-family: system-ui, sans-serif; font-size: 7.5pt; letter-spacing: .22em; text-transform: uppercase; color: #555; margin: 2mm 0 0; }
+  .filete { width: 30mm; height: 0; border-top: 1px solid #111; margin: 6mm auto 0; }
+  main { flex: 1; margin-top: 9mm; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12mm; }
+  section { margin-bottom: 8mm; break-inside: avoid; }
+  h2 { font-family: system-ui, sans-serif; font-weight: 600; font-size: 7.5pt; letter-spacing: .26em; text-transform: uppercase;
+       margin: 0 0 3mm; padding-bottom: 1.8mm; border-bottom: 1px solid #111; }
+  .bajada { font-family: system-ui, sans-serif; font-size: 8pt; color: #444; line-height: 1.45; margin: 0 0 3mm; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2.6mm; }
+  .fila { display: flex; align-items: baseline; gap: 2mm; }
+  .n { font-size: 12pt; }
+  .r { flex: 1; border-bottom: 1px dotted #999; transform: translateY(-1mm); }
+  .p { font-family: system-ui, sans-serif; font-size: 9.5pt; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .nota { font-family: system-ui, sans-serif; font-size: 7.5pt; color: #555; margin: .6mm 0 0; line-height: 1.35; }
+  .destacado { border: 1px solid #111; padding: 5mm 6mm; margin-bottom: 8mm; }
+  .destacado h2 { border: 0; padding: 0; text-align: center; }
+  .plato { text-align: center; font-size: 15pt; margin: 1mm 0 0; }
+  .plato-nota { text-align: center; font-family: system-ui, sans-serif; font-size: 8pt; color: #444; margin: 2mm 0 0; }
+  .linea-escribir { border-bottom: 1px solid #111; height: 9mm; margin: 2mm 8mm 0; }
+  .juegos { display: flex; align-items: center; gap: 7mm; border: 1px solid #111; padding: 6mm 7mm; margin-top: 10mm; }
+  .juegos .qr { width: 30mm; flex: none; }
+  .juegos .qr svg { width: 100%; height: auto; display: block; }
+  .juegos h2 { border: 0; padding: 0; margin-bottom: 2mm; }
+  .juegos .bajada { margin: 0; font-size: 8.5pt; }
+  .juegos .nota { margin: 2mm 0 0; }
+  footer { text-align: center; font-family: system-ui, sans-serif; font-size: 7.5pt; letter-spacing: .14em; text-transform: uppercase; color: #444; }
+  footer p { margin: 1mm 0; }
+</style>
+</head>
+<body>
+{{HOJAS}}
+</body>
+</html>

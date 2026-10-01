@@ -26,7 +26,7 @@ const KEYS = {
 } as const;
 
 /** Cada forma de pagar la noche: qué te tomás y cuánto sale (el sánguche entra en todas). */
-export type Opcion = { que: string; precio: number };
+export type Opcion = { que: string; precio: number; desc: string };
 
 export type Barra = {
   activa: boolean;
@@ -62,14 +62,17 @@ export const BARRA_DEFAULT = {
     "Se apagan las luces y se proyecta una. Venís, pedís algo, te sentás y la mirás con gente que no conocés. Sin entrada: se paga lo que tomás y comés.",
 };
 
-/** "Con cerveza | 10000" por línea. Mismo formato que la carta de la barra, para no aprender otro. */
+/**
+ * "Con cerveza | 10000 | Ternera braseada…" por línea. La descripción es opcional, así lo que ya
+ * estaba cargado sigue andando. Mismo formato que la carta de la barra, para no aprender otro.
+ */
 export function parseOpciones(raw: string): Opcion[] {
   return raw
     .split("\n")
     .map((linea) => {
-      const [que, precio] = linea.split("|");
+      const [que, precio, desc] = linea.split("|");
       const n = Number((precio ?? "").replace(/\D/gu, ""));
-      return { que: (que ?? "").trim(), precio: n };
+      return { que: (que ?? "").trim(), precio: n, desc: (desc ?? "").trim() };
     })
     .filter((o) => o.que.length > 0 && o.precio > 0);
 }
