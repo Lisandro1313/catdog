@@ -20,7 +20,7 @@ import { AnchorNav } from "@/components/AnchorNav";
 import { Countdown } from "@/components/Countdown";
 import { MapFacade } from "@/components/MapFacade";
 import { ShareButton } from "@/components/ShareButton";
-import { contactEmail, siteUrl } from "@/lib/config";
+import { casaWhatsapp, contactEmail, siteUrl } from "@/lib/config";
 import { foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
@@ -146,6 +146,16 @@ export default async function HomePage() {
     : null;
 
 
+  // Un link de WhatsApp por sitio, cada uno con el mensaje que corresponde: así sabemos de dónde
+  // salió la consulta sin preguntarle nada a la persona.
+  const waDireccion = casaWhatsapp(
+    barra.direccion
+      ? "Hola! Los vi en la página. Una consulta:"
+      : "Hola! Los vi en la página. ¿Me pasan la dirección exacta?",
+  );
+  const waEvento = casaWhatsapp("Hola! Los vi en la página, quería preguntar por un evento en la casa.");
+  const waPie = casaWhatsapp("Hola! Los vi en la página.");
+
   const faqsBarra = [
     {
       q: "¿Hay que reservar?",
@@ -251,8 +261,9 @@ export default async function HomePage() {
         />
       )}
 
-      <a href="#reservar" className="skip-link">
-        Ir a reservar
+{/* Con la casa abierta no hay nada que reservar: el salto lleva a la carta, que es lo que se viene a ver. */}
+      <a href={modoBarra ? "#la-carta" : "#reservar"} className="skip-link">
+        {modoBarra ? "Ir a la carta" : "Ir a reservar"}
       </a>
 
       {/* Nav de anclas (escritorio) */}
@@ -280,7 +291,7 @@ export default async function HomePage() {
           <BarraHero barra={barra} foto={photos[0]} conEventos={eventos.activos} />
           <LaSemana barra={barra} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
           <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
-          {eventos.activos && <TuEvento />}
+          {eventos.activos && <TuEvento wa={waEvento} />}
         </>
       ) : (
       <section id="inicio" className="relative flex min-h-[92dvh] items-center overflow-hidden px-6 py-20 sm:min-h-[88dvh]">
@@ -615,6 +626,11 @@ export default async function HomePage() {
                     <p className="mt-3 text-sm text-muted">
                       {barra.dias}, {barra.horario.toLowerCase()}. Sin reserva.
                     </p>
+                    {waDireccion && (
+                      <a className="btn btn-primary btn-sm mt-4" href={waDireccion} target="_blank" rel="noopener noreferrer">
+                        Escribinos por WhatsApp
+                      </a>
+                    )}
                   </>
                 ) : (
                   <>
@@ -748,16 +764,23 @@ export default async function HomePage() {
         <p className="ap-ornament mb-4">✦</p>
         <p className="font-display text-base text-ink">{SITE_NAME}</p>
         <p className="mt-1">{modoBarra ? `${barra.dias} · ${ZONE}` : `Cena a puertas cerradas · ${ZONE}`}</p>
-        {instagram && (
-          <a
-            href={`https://instagram.com/${instagram}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-1.5 hover:text-ink"
-          >
-            <InstagramIcon /> @{instagram}
-          </a>
-        )}
+        <span className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          {instagram && (
+            <a
+              href={`https://instagram.com/${instagram}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 hover:text-ink"
+            >
+              <InstagramIcon /> @{instagram}
+            </a>
+          )}
+          {waPie && (
+            <a href={waPie} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-ink">
+              <WhatsAppIcon /> Escribinos
+            </a>
+          )}
+        </span>
         <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
           {modoBarra ? (
             eventos.activos ? (
@@ -808,6 +831,15 @@ function spellOut(n: number): string {
   const words = ["cero", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
   const w = words[n] ?? String(n);
   return w.charAt(0).toUpperCase() + w.slice(1);
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.7-5.2A8.5 8.5 0 1 1 21 11.5Z" strokeLinejoin="round" />
+      <path d="M8.8 8.3c.2-.5.4-.5.7-.5h.5c.2 0 .4 0 .6.5l.7 1.6c.1.3 0 .5-.1.7l-.4.4c-.2.2-.2.4 0 .7.3.5 1 1.3 1.9 1.8.3.2.5.1.7 0l.5-.5c.2-.2.4-.2.6-.1l1.5.8c.3.2.4.3.4.5 0 .3-.1.9-.4 1.2-.4.4-1 .6-1.6.5-1-.1-2.4-.7-3.7-2-1.3-1.3-2-2.7-2.1-3.7-.1-.6.1-1.3.5-1.6Z" />
+    </svg>
+  );
 }
 
 function InstagramIcon() {

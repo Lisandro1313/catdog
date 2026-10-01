@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { SITE_NAME, formatPrice } from "@/lib/config";
+import { SITE_NAME, casaWhatsapp, formatPrice } from "@/lib/config";
 import { getConfigEventos, lineasDe, SENA_PORCENTAJE } from "@/lib/eventos-privados";
 import { PedirEvento } from "@/components/eventos/PedirEvento";
 import { TrackVisit } from "@/components/TrackVisit";
@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 export default async function EventosPage() {
   const config = await getConfigEventos();
   if (!config.activos) notFound();
+  const wa = casaWhatsapp("Hola! Los vi en la página, quería preguntar por un evento en la casa.");
 
   return (
     <div className="ap mx-auto w-full max-w-2xl px-6 py-14 sm:py-20">
@@ -91,6 +92,16 @@ export default async function EventosPage() {
           publicarPrecios={config.publicarPrecios}
         />
       </div>
+
+      {/* El que no llena el formulario escribe. Que no se vaya de la página sin una forma de hacerlo. */}
+      {wa && (
+        <p className="mt-6 text-center text-sm text-muted">
+          ¿Preferís escribirnos?{" "}
+          <a className="text-accent underline-offset-2 hover:underline" href={wa} target="_blank" rel="noopener noreferrer">
+            Mandanos un WhatsApp
+          </a>
+        </p>
+      )}
 
       <p className="mt-10 text-center text-xs text-muted">
         <Link href="/" className="text-accent">

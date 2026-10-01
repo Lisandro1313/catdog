@@ -205,7 +205,7 @@ export function CartaBarra({
 }
 
 /** Los eventos privados: lo que más deja, así que se muestra como algo aparte y cuidado. */
-export function TuEvento() {
+export function TuEvento({ wa }: { wa: string | null }) {
   return (
     <section id="tu-evento" className="reveal mx-auto w-full max-w-3xl scroll-mt-16 px-6 py-16 sm:py-24">
       <div className="evento-bloque">
@@ -229,9 +229,17 @@ export function TuEvento() {
             <p>Con la seña, la fecha es tuya</p>
           </div>
         </div>
-        <Link className="btn btn-primary mt-8 px-8" href="/eventos">
-          Pedir presupuesto
-        </Link>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link className="btn btn-primary px-8" href="/eventos">
+            Pedir presupuesto
+          </Link>
+          {/* Mucha gente no llena un formulario pero sí manda un mensaje. */}
+          {wa && (
+            <a className="btn btn-ghost" href={wa} target="_blank" rel="noopener noreferrer">
+              O escribinos
+            </a>
+          )}
+        </div>
       </div>
     </section>
   );

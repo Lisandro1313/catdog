@@ -24,6 +24,20 @@ export function whatsappUrl(raw: string, text?: string): string {
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
 
+/**
+ * El teléfono que se muestra al público: el primero de la lista. Vacío = no se muestra el botón.
+ * La página decía "escribinos" sin dar por dónde: el número ya estaba, faltaba mostrarlo.
+ */
+export function contactPhone(): string {
+  return CONTACT_PHONES[0] ?? "";
+}
+
+/** El link de WhatsApp de la casa, con el mensaje ya escrito. Null si no hay número. */
+export function casaWhatsapp(texto: string): string | null {
+  const tel = contactPhone();
+  return tel ? whatsappUrl(tel, texto) : null;
+}
+
 /** Mail de contacto público: la misma casilla desde la que salen los mails (o una explícita). Vacío = no se muestra. */
 export function contactEmail(): string {
   return (process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? process.env.GMAIL_USER ?? "").trim();
