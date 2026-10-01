@@ -20,8 +20,8 @@ import { AnchorNav } from "@/components/AnchorNav";
 import { Countdown } from "@/components/Countdown";
 import { MapFacade } from "@/components/MapFacade";
 import { ShareButton } from "@/components/ShareButton";
-import { casaWhatsapp, contactEmail, siteUrl } from "@/lib/config";
-import { foodEventJsonLd } from "@/lib/structured-data";
+import { casaWhatsapp, contactEmail, contactPhone, siteUrl } from "@/lib/config";
+import { barJsonLd, foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
@@ -29,6 +29,9 @@ import { getBarra } from "@/lib/barra";
 import { getConfigEventos } from "@/lib/eventos-privados";
 import { BarraHero, CartaBarra, LaSemana, TuEvento } from "@/components/home/BarraHero";
 import { AvisameForm } from "@/components/AvisameForm";
+import { EstadoCasa } from "@/components/home/EstadoCasa";
+import { BarraFija } from "@/components/home/BarraFija";
+import { diasQueAbre, estadoAhora, horaDeApertura, horarioSchema, textoDeEstado } from "@/lib/horario";
 import { getConfigCaja } from "@/lib/caja-rapida";
 
 /**
@@ -146,6 +149,14 @@ export default async function HomePage() {
       })()
     : null;
 
+
+  // Qué días y a qué hora abre, leídos del texto que se carga en Ajustes. Con eso sale el cartel
+  // de "abierto ahora" y el horario que publicamos para Google, sin cargar lo mismo dos veces.
+  const diasAbre = diasQueAbre(barra.dias);
+  const horaAbre = horaDeApertura(barra.horario) ?? 20;
+  const estadoInicial = textoDeEstado(estadoAhora(diasAbre, horaAbre));
+  // "Cómo llegar", no "ver el mapa": abre el navegador con el camino desde donde esté la persona.
+  const mapa = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(MAP_CENTER)}`;
 
   // Un link de WhatsApp por sitio, cada uno con el mensaje que corresponde: así sabemos de dónde
   // salió la consulta sin preguntarle nada a la persona.
@@ -267,6 +278,26 @@ export default async function HomePage() {
         {modoBarra ? "Ir a la carta" : "Ir a reservar"}
       </a>
 
+      {/* El lugar en sí: dirección y horario para que Google los muestre. Con la casa abierta la
+          página no publicaba ningún dato estructurado, así que no había de dónde sacarlos. */}
+      {modoBarra && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              barJsonLd({
+                direccion: barra.direccion || ZONE,
+                geo: MAP_CENTER,
+                telefono: contactPhone(),
+                instagram,
+                horario: horarioSchema(diasAbre, horaAbre),
+                fotos: photos.slice(0, 3).map((p) => (p.url.startsWith("/") ? `${siteUrl()}${p.url}` : p.url)),
+              }),
+            ).replace(/</g, "\\u003c"),
+          }}
+        />
+      )}
+
       {/* Nav de anclas (escritorio) */}
       <AnchorNav
         brand={SITE_NAME}
@@ -289,7 +320,14 @@ export default async function HomePage() {
       {/* Afiche: el cartel de la barra, o la cena de la fecha. */}
       {modoBarra ? (
         <>
-          <BarraHero barra={barra} foto={photos[0]} conEventos={eventos.activos} />
+          <BarraHero
+            barra={barra}
+            foto={photos[0]}
+            conEventos={eventos.activos}
+            zona={ZONE}
+            mapa={mapa}
+            estado={<EstadoCasa dias={diasAbre} hora={horaAbre} inicial={estadoInicial} />}
+          />
           <LaSemana barra={barra} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
           <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
           {/* Lo único que queda del que entra, mira la carta y se va. Sin esto, cada semana se
@@ -643,11 +681,19 @@ export default async function HomePage() {
                     <p className="mt-3 text-sm text-muted">
                       {barra.dias}, {barra.horario.toLowerCase()}. Sin reserva.
                     </p>
-                    {waDireccion && (
-                      <a className="btn btn-primary btn-sm mt-4" href={waDireccion} target="_blank" rel="noopener noreferrer">
-                        Escribinos por WhatsApp
+                    <p className="mt-3">
+                      <EstadoCasa dias={diasAbre} hora={horaAbre} inicial={estadoInicial} />
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <a className="btn btn-ghost btn-sm" href={mapa} target="_blank" rel="noopener noreferrer">
+                        Cómo llegar
                       </a>
-                    )}
+                      {waDireccion && (
+                        <a className="btn btn-primary btn-sm" href={waDireccion} target="_blank" rel="noopener noreferrer">
+                          Escribinos por WhatsApp
+                        </a>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <>
@@ -781,7 +827,7 @@ export default async function HomePage() {
         <p className="ap-ornament mb-4">✦</p>
         <p className="font-display text-base text-ink">{SITE_NAME}</p>
         <p className="mt-1">{modoBarra ? `${barra.dias} · ${ZONE}` : `Cena a puertas cerradas · ${ZONE}`}</p>
-        <span className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+        <span className="pie-links mt-2 flex flex-wrap items-center justify-center gap-x-4">
           {instagram && (
             <a
               href={`https://instagram.com/${instagram}`}
@@ -798,7 +844,7 @@ export default async function HomePage() {
             </a>
           )}
         </span>
-        <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
+        <p className="pie-links mt-3 flex flex-wrap items-center justify-center gap-x-4">
           {modoBarra ? (
             eventos.activos ? (
               <Link href="/eventos" className="hover:text-ink">
@@ -825,7 +871,7 @@ export default async function HomePage() {
           </p>
         )}
         <p className="mt-4">Hecho en La Plata · {new Date().getFullYear()}</p>
-        <p className="mt-2">
+        <p className="pie-links mt-2">
           <Link href="/condiciones" className="hover:text-ink">
             Condiciones y privacidad
           </Link>
@@ -833,6 +879,8 @@ export default async function HomePage() {
       </footer>
 
       {/* Barra fija en el celular */}
+      {modoBarra && <BarraFija mapa={mapa} wa={waDireccion} />}
+
       {!modoBarra && event && nextOpen && (
         <StickyCta
           price={formatPrice(nextOpen.price)}

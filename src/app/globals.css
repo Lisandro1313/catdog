@@ -3360,3 +3360,92 @@ details.faq > summary::-webkit-details-marker {
   line-height: 1.45;
   color: var(--ink);
 }
+
+/* "Abierto ahora" / "Abre el jueves a las 20": lo primero que mira el que entra a la noche. */
+.estado-casa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.estado-casa .punto {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.6;
+}
+.estado-casa.is-abierto {
+  border-color: rgba(126, 183, 125, 0.55);
+  color: var(--ok);
+}
+.estado-casa.is-abierto .punto {
+  opacity: 1;
+  /* Late despacio: es un cartel de "estamos acá", no una alarma. */
+  animation: estado-latido 2.4s ease-in-out infinite;
+}
+@keyframes estado-latido {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .estado-casa.is-abierto .punto {
+    animation: none;
+  }
+}
+
+/* Barra fija del celular con la casa abierta: cómo llegar y escribirnos, siempre a mano. */
+.barra-fija {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom));
+  background: rgba(20, 18, 16, 0.94);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border);
+  transition:
+    transform 0.25s ease,
+    opacity 0.25s ease;
+}
+.barra-fija.is-oculta {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (min-width: 640px) {
+  .barra-fija {
+    display: none;
+  }
+}
+@media print {
+  .barra-fija {
+    display: none !important;
+  }
+}
+
+/* Los links del pie eran de 15 px de alto: imposibles de pegarle con el pulgar. */
+.pie-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+}

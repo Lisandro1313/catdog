@@ -8,7 +8,22 @@ import { formatPrice } from "@/lib/config";
  * El afiche de la casa en formato barra. Nada de precios acá arriba: la primera impresión es el lugar,
  * no una lista. Qué días, a qué hora, y dos puertas: venir un día cualquiera o armar lo tuyo.
  */
-export function BarraHero({ barra, foto, conEventos }: { barra: Barra; foto?: { url: string }; conEventos: boolean }) {
+export function BarraHero({
+  barra,
+  foto,
+  conEventos,
+  estado,
+  zona,
+  mapa,
+}: {
+  barra: Barra;
+  foto?: { url: string };
+  conEventos: boolean;
+  /** El cartel de "abierto ahora". Viene armado de afuera porque se recalcula en el navegador. */
+  estado?: React.ReactNode;
+  zona: string;
+  mapa: string;
+}) {
   // "Lunes, jueves, viernes y sábados" → fichas parejas: Lunes · Jueves · Viernes · Sábado.
   const dias = barra.dias
     .split(/,|\sy\s/u)
@@ -41,6 +56,15 @@ export function BarraHero({ barra, foto, conEventos }: { barra: Barra; foto?: { 
           ))}
         </ul>
         <p className="mt-4 text-sm tracking-[0.2em] uppercase text-muted">{barra.horario}</p>
+        {/* Lo que busca el que entra a las once de la noche: si está abierto, y dónde queda.
+            Antes la dirección estaba en la pantalla 6 de 8. */}
+        {estado && <p className="mt-5">{estado}</p>}
+        <p className="mt-4 text-sm text-muted">
+          {barra.direccion || zona} ·{" "}
+          <a className="text-accent underline-offset-4 hover:underline" href={mapa} target="_blank" rel="noopener noreferrer">
+            Cómo llegar
+          </a>
+        </p>
 
         <p className="mx-auto mt-8 max-w-md leading-relaxed text-muted">
           Algo para tomar, un sánguche de lo que salga esa noche, una mesa de pool y la casa andando. Sin reserva: caés, te sentás y
