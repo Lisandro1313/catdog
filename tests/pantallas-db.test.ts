@@ -108,6 +108,15 @@ describe.skipIf(!url)("las pantallas del panel traen sus datos", { timeout: 6000
     expect(Array.isArray(ultimos)).toBe(true);
   });
 
+  it("La lista de avisos", async () => {
+    const { contarAvisados, getAvisados } = await import("../src/lib/avisos");
+    const [lista, cuantos] = await Promise.all([getAvisados(), contarAvisados()]);
+    expect(Array.isArray(lista)).toBe(true);
+    expect(Number.isFinite(cuantos)).toBe(true);
+    // Los dados de baja no tienen que aparecer: si aparecen, le escribimos a quien pidió que no.
+    expect(lista.every((a) => a.bajaAt === null)).toBe(true);
+  });
+
   it("Fiestas", async () => {
     const { getConfigEventos, getPedidos } = await import("../src/lib/eventos-privados");
     const [pedidos, config] = await Promise.all([getPedidos(), getConfigEventos()]);

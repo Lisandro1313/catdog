@@ -1,12 +1,16 @@
 import { nowMs } from "@/lib/dates";
-import { whatsappUrl } from "@/lib/config";
+import { formatPhone, whatsappUrl } from "@/lib/config";
 import Link from "next/link";
 import { getContacts } from "@/lib/admin-stats";
+import { getAvisados } from "@/lib/avisos";
+import { bajaAvisoAction } from "../../actions";
+import { CopyButton } from "@/components/CopyButton";
+import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { formatPrice } from "@/lib/config";
 import { formatShort } from "@/lib/dates";
 
 export default async function ContactsPage() {
-  const contacts = await getContacts();
+  const [contacts, avisados] = await Promise.all([getContacts(), getAvisados()]);
   const habitues = contacts.filter((c) => c.dinners >= 2);
   const DAY = 24 * 60 * 60 * 1000;
   const since = (d: Date) => {
@@ -21,10 +25,58 @@ export default async function ContactsPage() {
         </Link>
       </div>
 
+      {/* La lista de avisos: los que dejaron el WhatsApp en la página. Van primero porque son los
+          que se usan todas las semanas; los de abajo son de las cenas de antes. */}
       <section className="card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-display text-2xl">Contactos</h2>
+            <h2 className="font-display text-2xl">La lista de avisos</h2>
+            <p className="mt-1 text-sm text-muted">
+              {avisados.length === 0
+                ? "Todavía nadie dejó su WhatsApp en la página."
+                : `${avisados.length} ${avisados.length === 1 ? "persona dejó" : "personas dejaron"} su WhatsApp para que les contemos qué hay.`}
+            </p>
+          </div>
+          {avisados.length > 0 && (
+            <CopyButton
+              text={avisados.map((a) => `+549${a.phone}`).join("\n")}
+              label="Copiar todos los números"
+            />
+          )}
+        </div>
+
+        {avisados.length > 0 && (
+          <ul className="mt-4 grid gap-2 text-sm">
+            {avisados.map((a) => (
+              <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2 last:border-0">
+                <span className="min-w-0">
+                  <span className="text-ink">{a.nombre || "Sin nombre"}</span>{" "}
+                  <a className="text-accent" href={whatsappUrl(a.phone)} target="_blank" rel="noopener noreferrer">
+                    {formatPhone(a.phone)}
+                  </a>
+                </span>
+                <span className="flex shrink-0 items-center gap-3 text-xs text-muted">
+                  <span>
+                    {formatShort(a.createdAt).slice(0, 10)}
+                    {a.de && ` · ${a.de}`}
+                  </span>
+                  <form action={bajaAvisoAction}>
+                    <input type="hidden" name="id" value={a.id} />
+                    <ConfirmButton className="text-xs text-muted hover:text-danger" message={`¿Sacar a ${a.nombre || formatPhone(a.phone)} de la lista?`}>
+                      dar de baja
+                    </ConfirmButton>
+                  </form>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl">Contactos de las cenas</h2>
             <p className="mt-1 text-sm text-muted">
               {contacts.length} persona{contacts.length === 1 ? "" : "s"} que pagaron al menos una vez. Una fila por email.
               {habitues.length > 0 && (

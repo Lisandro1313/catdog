@@ -14,6 +14,8 @@ import { ReservationError, chooseSeats, createHoldAndCheckout, transferReservati
 import { MAX_SEATS_PER_RESERVATION, normalizeArPhone } from "@/lib/config";
 import { canReview } from "@/lib/reviews";
 import { sendAdminNewReview } from "@/lib/email";
+import { anotarse } from "@/lib/avisos";
+import { normalizarTelefono } from "@/lib/avisos-tipos";
 
 const reserveSchema = z.object({
   eventId: z.string().min(1),
@@ -95,6 +97,27 @@ export async function subscribeAction(_prev: SubscribeResult | null, formData: F
     });
   } catch (err) {
     console.error("[subscribe]", err);
+    return { ok: false, error: "No pudimos anotarte ahora. Probá de nuevo en un momento." };
+  }
+  return { ok: true };
+}
+
+/**
+ * Dejar el WhatsApp para que le avisemos qué hay esta semana.
+ * Devuelve "ok" también cuando el número ya estaba: que alguien se entere de quién está anotado
+ * probando números de a uno no nos sirve de nada, y al que se anota dos veces no hay que retarlo.
+ */
+export async function avisameAction(_prev: SubscribeResult | null, formData: FormData): Promise<SubscribeResult> {
+  const phone = String(formData.get("phone") ?? "");
+  if (!normalizarTelefono(phone)) {
+    return { ok: false, error: "Ese número no parece un celular. Poné código de área y número, sin el 15." };
+  }
+  if (!(await allowRequest("avisame", 5))) return { ok: false, error: "Demasiados intentos. Probá en un rato." };
+  try {
+    const r = await anotarse({ phone, nombre: String(formData.get("nombre") ?? ""), de: String(formData.get("de") ?? "") });
+    if (r === "invalido") return { ok: false, error: "Ese número no parece un celular." };
+  } catch (err) {
+    console.error("[avisame]", err);
     return { ok: false, error: "No pudimos anotarte ahora. Probá de nuevo en un momento." };
   }
   return { ok: true };

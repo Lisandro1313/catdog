@@ -159,6 +159,23 @@ model Seat {
   @@unique([eventId, number])
 }
 
+/// Alguien que dejó su WhatsApp para que le contemos qué hay esta semana.
+/// Va aparte de Subscriber (que son mails de las cenas) y de Reservation: acá no hay reserva de
+/// por medio, es la lista para mandar un mensaje el jueves a la tarde.
+model Avisado {
+  id        String    @id @default(cuid())
+  /// Diez dígitos, sin 0, sin 15 y sin 54: como lo deja normalizarTelefono().
+  phone     String    @unique
+  nombre    String    @default("")
+  /// De qué parte de la página salió ("home", "juegos"), para saber qué trae gente.
+  de        String    @default("")
+  createdAt DateTime  @default(now())
+  /// Se dio de baja. No se borra: si vuelve a anotarse queremos saber que ya había estado.
+  bajaAt    DateTime?
+
+  @@index([createdAt])
+}
+
 model Subscriber {
   id        String   @id @default(cuid())
   email     String   @unique

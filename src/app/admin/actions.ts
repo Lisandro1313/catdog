@@ -6,6 +6,7 @@ import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema } from "
 import { parseOpciones, setBarra } from "@/lib/barra";
 import { parseProductos, setConfigCaja } from "@/lib/caja-rapida";
 import { borrarPedido, ESTADOS, setEstadoPedido, type Estado } from "@/lib/eventos-privados";
+import { darDeBaja } from "@/lib/avisos";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
@@ -1181,6 +1182,17 @@ export async function setCajaConfigAction(_prev: ActionState, formData: FormData
   revalidatePath("/admin/caja");
   revalidatePath("/admin/ajustes");
   return { ok: true, message: "Guardado." };
+}
+
+// ---------- la lista de avisos ----------
+
+/** Alguien pidió que no le escribamos más. */
+export async function bajaAvisoAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await darDeBaja(id);
+  revalidatePath("/admin/contactos");
 }
 
 // ---------- eventos privados ----------

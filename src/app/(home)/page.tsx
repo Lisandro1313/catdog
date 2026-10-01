@@ -28,6 +28,7 @@ import { getPaymentConfig } from "@/lib/payment";
 import { getBarra } from "@/lib/barra";
 import { getConfigEventos } from "@/lib/eventos-privados";
 import { BarraHero, CartaBarra, LaSemana, TuEvento } from "@/components/home/BarraHero";
+import { AvisameForm } from "@/components/AvisameForm";
 import { getConfigCaja } from "@/lib/caja-rapida";
 
 /**
@@ -291,6 +292,22 @@ export default async function HomePage() {
           <BarraHero barra={barra} foto={photos[0]} conEventos={eventos.activos} />
           <LaSemana barra={barra} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
           <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
+          {/* Lo único que queda del que entra, mira la carta y se va. Sin esto, cada semana se
+              empieza de cero: no hay a quién avisarle que el jueves se proyecta algo. */}
+          <section id="avisame" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-20">
+            <div className="card p-6 text-center sm:p-8">
+              <p className="ap-eyebrow">La semana que viene</p>
+              <p className="mt-3 font-display text-2xl sm:text-3xl">¿Te avisamos?</p>
+              <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted">
+                Dejanos tu WhatsApp y te contamos qué hay cada semana: qué sale de la parrilla, qué se proyecta el jueves. Un mensaje
+                y nada más. Te damos de baja cuando lo pidas.
+              </p>
+              <div className="mx-auto mt-2 max-w-lg text-left">
+                <AvisameForm de="home" />
+              </div>
+            </div>
+          </section>
+
           {eventos.activos && <TuEvento wa={waEvento} />}
         </>
       ) : (
