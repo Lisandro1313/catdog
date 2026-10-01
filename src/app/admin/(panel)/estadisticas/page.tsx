@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatPrice } from "@/lib/config";
+import { formatPrice, siteUrl } from "@/lib/config";
 import { formatDay } from "@/lib/dates";
 import { getNextEvent } from "@/lib/reservations";
 import { getFinancials, getGastosPorRubro, getVisitStats, getWeeklyReport } from "@/lib/admin-stats";
@@ -11,6 +11,8 @@ import { BarraEquilibrio, BarrasRubros, BarrasSemana } from "@/components/admin/
 import { getMatriz } from "@/lib/matriz-db";
 import { sinRomper } from "@/lib/sin-romper";
 import { LUGAR_LABEL, LUGAR_QUE_HACER, resumenMatriz, type Lugar } from "@/lib/matriz";
+import { DeDondeViene } from "@/components/admin/DeDondeViene";
+import { avisadosPorOrigen } from "@/lib/avisos";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +22,12 @@ export const dynamic = "force-dynamic";
  */
 export default async function EstadisticasPage() {
   const nextEvent = await getNextEvent();
-  const [report, fijosSemanales, recetas, insumos] = await Promise.all([
+  const [report, fijosSemanales, recetas, insumos, avisados] = await Promise.all([
     getWeeklyReport(8, nextEvent?.price),
     getWeeklyFixedTotal(),
     getRecetas(),
     getInsumos(),
+    avisadosPorOrigen(),
   ]);
   // Todo lo que cuelga de un precio sin confirmar es una estimación, y eso hay que decirlo.
   const estimados = insumos.filter((i) => i.estimado).length;
@@ -230,25 +233,9 @@ export default async function EstadisticasPage() {
             </p>
           ) : null;
         })()}
-        {(() => {
-          const LABEL: Record<string, string> = { wa: "WhatsApp", ig: "Instagram", afiche: "Afiche", qr: "QR impreso", mail: "Mail" };
-          const origins = visits.byPath.filter((p) => p.path.startsWith("/?de=")).map((p) => ({ key: p.path.slice(5), count: p.count }));
-          return origins.length > 0 ? (
-            <p className="mt-3 text-sm text-muted">
-              De dónde llegan (30 días):{" "}
-              {origins.map((o, i) => (
-                <span key={o.key}>
-                  {i > 0 && " · "}
-                  {LABEL[o.key] ?? o.key} <strong className="text-ink">{o.count}</strong>
-                </span>
-              ))}
-              . <span className="text-xs">Agregá <code>?de=ig</code> al link en Instagram, <code>?de=wa</code> en WhatsApp (el mensaje ya lo trae).</span>
-            </p>
-          ) : null;
-        })()}
         {visits.byPath.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-2 text-xs">
-            {visits.byPath.filter((p) => !p.path.startsWith("/?de=")).map((p) => (
+            {visits.byPath.filter((p) => !p.path.includes("?de=") && !p.path.startsWith("/clic/")).map((p) => (
               <li key={p.path} className="rounded-full border border-line px-3 py-1 text-muted">
                 {p.path === "/reservar" ? (
                   <span>intentos de reserva</span>
@@ -263,6 +250,8 @@ export default async function EstadisticasPage() {
           </ul>
         )}
       </section>
+
+      <DeDondeViene url={siteUrl()} visitas={visits.byPath} avisados={avisados} />
 
       {/* Plata */}
       <section className="card p-6">

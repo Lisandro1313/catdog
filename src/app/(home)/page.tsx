@@ -13,6 +13,7 @@ import { ReserveForm, type ReservableEvent } from "@/components/ReserveForm";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { TrackVisit } from "@/components/TrackVisit";
+import { MedirClics } from "@/components/MedirClics";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { StickyCta } from "@/components/StickyCta";
 import { Reveal } from "@/components/Reveal";
@@ -267,6 +268,7 @@ export default async function HomePage() {
   return (
     <div className="ap flex flex-1 flex-col pb-24 sm:pb-0">
       <TrackVisit path="/" />
+      <MedirClics />
       <Reveal />
       {event && (
         <script
@@ -573,6 +575,7 @@ export default async function HomePage() {
               <p className="mt-6 text-center">
                 <a
                   href={`https://instagram.com/${instagram}`}
+              data-mide="instagram"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink"
@@ -669,11 +672,11 @@ export default async function HomePage() {
                       <EstadoCasa dias={diasAbre} hora={horaAbre} inicial={estadoInicial} excepcion={excepcion} />
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <a className="btn btn-ghost btn-sm" href={mapa} target="_blank" rel="noopener noreferrer">
+                      <a className="btn btn-ghost btn-sm" href={mapa} target="_blank" rel="noopener noreferrer" data-mide="mapa">
                         Cómo llegar
                       </a>
                       {waDireccion && (
-                        <a className="btn btn-primary btn-sm" href={waDireccion} target="_blank" rel="noopener noreferrer">
+                        <a className="btn btn-primary btn-sm" href={waDireccion} target="_blank" rel="noopener noreferrer" data-mide="wa">
                           Escribinos por WhatsApp
                         </a>
                       )}
@@ -815,6 +818,7 @@ export default async function HomePage() {
           {instagram && (
             <a
               href={`https://instagram.com/${instagram}`}
+              data-mide="instagram"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 hover:text-ink"
@@ -823,7 +827,7 @@ export default async function HomePage() {
             </a>
           )}
           {waPie && (
-            <a href={waPie} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-ink">
+            <a href={waPie} target="_blank" rel="noopener noreferrer" data-mide="wa" className="inline-flex items-center gap-1.5 hover:text-ink">
               <WhatsAppIcon /> Escribinos
             </a>
           )}

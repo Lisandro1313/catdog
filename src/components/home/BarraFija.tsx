@@ -24,11 +24,11 @@ export function BarraFija({ mapa, wa }: { mapa: string; wa: string | null }) {
 
   return (
     <div className={`barra-fija ${oculta ? "is-oculta" : ""}`}>
-      <a className="btn btn-ghost btn-sm flex-1" href={mapa} target="_blank" rel="noopener noreferrer">
+      <a className="btn btn-ghost btn-sm flex-1" href={mapa} target="_blank" rel="noopener noreferrer" data-mide="mapa">
         Cómo llegar
       </a>
       {wa && (
-        <a className="btn btn-primary btn-sm flex-1" href={wa} target="_blank" rel="noopener noreferrer">
+        <a className="btn btn-primary btn-sm flex-1" href={wa} target="_blank" rel="noopener noreferrer" data-mide="wa">
           Escribinos
         </a>
       )}

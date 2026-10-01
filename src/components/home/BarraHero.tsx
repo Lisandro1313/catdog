@@ -52,7 +52,7 @@ export function BarraHero({
         {estado && <p className="mt-8">{estado}</p>}
         <p className="mt-4 text-sm text-muted">
           {barra.direccion || zona} ·{" "}
-          <a className="text-accent underline-offset-4 hover:underline" href={mapa} target="_blank" rel="noopener noreferrer">
+          <a className="text-accent underline-offset-4 hover:underline" href={mapa} target="_blank" rel="noopener noreferrer" data-mide="mapa">
             Cómo llegar
           </a>
         </p>

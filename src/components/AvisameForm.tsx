@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { avisameAction } from "@/app/actions";
+import { origenGuardado } from "./TrackVisit";
 
 /**
  * Dejar el WhatsApp para que te avisen qué hay esta semana.
@@ -15,8 +16,15 @@ export function AvisameForm({ de = "home" }: { de?: string }) {
   }
 
   return (
-    <form action={action} className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-      <input type="hidden" name="de" value={de} />
+    // De dónde llegó se agrega al mandar, no al pintar: en el servidor no se sabe, y cuando se
+    // monta el formulario todavía no está guardado (eso pasa en el efecto de TrackVisit).
+    <form
+      action={(datos) => {
+        datos.set("de", origenGuardado() || de);
+        return action(datos);
+      }}
+      className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+    >
       <input className="input" type="text" name="nombre" aria-label="Tu nombre" placeholder="Tu nombre" maxLength={60} autoComplete="given-name" />
       <input
         className="input"

@@ -43,3 +43,18 @@ export async function contarAvisados(): Promise<number> {
 export async function darDeBaja(id: string): Promise<void> {
   await prisma.avisado.updateMany({ where: { id, bajaAt: null }, data: { bajaAt: new Date() } });
 }
+
+/**
+ * Cuántos dejaron el WhatsApp desde cada lado. Es la segunda mitad del embudo: las visitas dicen
+ * cuánta gente llegó desde Instagram, esto dice cuántos de esos dejaron algo.
+ */
+export async function avisadosPorOrigen(): Promise<{ de: string; cuantos: number }[]> {
+  const filas = await prisma.avisado.groupBy({
+    by: ["de"],
+    where: { bajaAt: null },
+    _count: { _all: true },
+  });
+  return filas
+    .map((f) => ({ de: f.de || "directo", cuantos: f._count._all }))
+    .sort((a, b) => b.cuantos - a.cuantos);
+}

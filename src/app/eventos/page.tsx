@@ -5,6 +5,7 @@ import { SITE_NAME, casaWhatsapp, formatPrice } from "@/lib/config";
 import { getConfigEventos, lineasDe, SENA_PORCENTAJE } from "@/lib/eventos-privados";
 import { PedirEvento } from "@/components/eventos/PedirEvento";
 import { TrackVisit } from "@/components/TrackVisit";
+import { MedirClics } from "@/components/MedirClics";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export default async function EventosPage() {
   return (
     <div className="ap mx-auto w-full max-w-2xl px-6 py-14 sm:py-20">
       <TrackVisit path="/eventos" />
+      <MedirClics />
 
       <div className="text-center">
         <p className="ap-eyebrow">{SITE_NAME} · La Plata</p>
@@ -97,7 +99,7 @@ export default async function EventosPage() {
       {wa && (
         <p className="mt-6 text-center text-sm text-muted">
           ¿Preferís escribirnos?{" "}
-          <a className="text-accent underline-offset-2 hover:underline" href={wa} target="_blank" rel="noopener noreferrer">
+          <a className="text-accent underline-offset-2 hover:underline" href={wa} target="_blank" rel="noopener noreferrer" data-mide="wa">
             Mandanos un WhatsApp
           </a>
         </p>

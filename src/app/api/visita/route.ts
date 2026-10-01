@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { allowRequest } from "@/lib/rate-limit";
 import { argentinaDay } from "@/lib/dates";
+import { deDeLaRuta, esRutaDeAccion } from "@/lib/origen";
 
 /**
  * Rutas que se cuentan (las que llevan TrackVisit o el embudo de la reserva). Cualquier otra se ignora.
@@ -9,12 +10,23 @@ import { argentinaDay } from "@/lib/dates";
  */
 const KNOWN = new Set(["/", "/fechas", "/hoy", "/hoy/jugar", "/reservar", "/eventos"]);
 
+/**
+ * Qué se cuenta: una ruta conocida, esa misma ruta con su `?de=` (de dónde llegó), o un clic
+ * de los que se miden. Cualquier otra cosa se ignora: el cuerpo lo escribe el navegador.
+ */
+function aceptada(ruta: string): boolean {
+  if (esRutaDeAccion(ruta)) return true;
+  const de = deDeLaRuta(ruta);
+  if (!de) return KNOWN.has(ruta);
+  return KNOWN.has(ruta.slice(0, ruta.indexOf("?de=")));
+}
+
 /** Cuenta una visita. Sin cookies ni datos personales: solo día + ruta. */
 export async function POST(req: NextRequest) {
   let path = "/";
   try {
     const body = (await req.json()) as { path?: string };
-    if (typeof body.path === "string" && (KNOWN.has(body.path) || /^\/\?de=[a-z0-9-]{1,16}$/.test(body.path))) path = body.path;
+    if (typeof body.path === "string" && aceptada(body.path)) path = body.path;
     else if (typeof body.path === "string") return NextResponse.json({ ok: true });
   } catch {
     // sin body: cuenta como home
