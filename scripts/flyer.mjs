@@ -92,6 +92,7 @@ const html = `<!doctype html>
   .dentro{position:relative;z-index:2;width:100%}
   .logo{width:190px;border-radius:18px;display:block;margin:0 auto 56px}
   .eyebrow{font-size:30px;letter-spacing:.42em;text-transform:uppercase;color:#c9a96e}
+  .marca-chica{font-size:44px;letter-spacing:.46em;text-transform:uppercase;color:#c9a96e}
   h1{font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:118px;line-height:1.02;margin-top:30px}
   .filete{width:200px;height:2px;background:rgba(201,169,110,.55);margin:44px auto}
   .dias{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
@@ -138,13 +139,13 @@ const html = `<!doctype html>
       <small>y te pasamos la dirección exacta.</small>
     </div>
     <p class="sin-reserva">${esc(dias.join(" · "))}<br />${esc(horario)} · Sin reserva</p>`
-        : `<p class="eyebrow">Una casa en La Plata</p>
+        : `<p class="marca-chica">CatDog</p>
     <h1>La casa<br />está abierta</h1>
     <div class="filete"></div>
     <div class="dias">${dias.map((d) => `<span>${esc(d)}</span>`).join("")}</div>
     <p class="horario">${esc(horario)}</p>
     ${desde > 0 ? `<p class="gancho">Sánguche y algo para tomar<br /><b>desde ${plata(desde)}</b></p>` : ""}
-    <p class="sin-reserva">Barra, parrilla y mesa de pool. Sin reserva.</p>
+    <p class="sin-reserva">Barra, parrilla y mesa de pool / ping pong.<br />Sin reserva.</p>
     <div class="pregunta">
       <p>${esc(zona)}</p>
       <small>Una casa sin cartel: se entra por el portón.</small>
