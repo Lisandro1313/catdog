@@ -84,11 +84,27 @@ const html = `<!doctype html>
         padding:${formato === "chat" ? 90 : SEGURO_ARRIBA}px 90px ${formato === "chat" ? 90 : SEGURO_ABAJO}px}
   ${fondo ? `.foto{position:absolute;inset:0;background:url('${fondo}') center/cover;opacity:.3;filter:grayscale(.3)}` : ""}
   /* El marco fino: lo mismo que tiene el afiche de la página. */
+  /* El grano de papel impreso, igual que el afiche de la página: es lo que saca al negro de parecer
+     una diapositiva. Va por encima de todo menos del texto. */
+  .grano{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.12;
+         background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+         background-size:220px 220px}
+  /* Viñeta: oscurece los bordes para que el ojo caiga en el centro. */
+  .vineta{position:absolute;inset:0;z-index:1;pointer-events:none;
+          background:radial-gradient(ellipse 72% 55% at 50% 46%, transparent 40%, rgba(0,0,0,.55) 100%)}
+
   /* Pegados a la franja que se ve, no a la hoja: si no, la interfaz de WhatsApp los corta al medio. */
-  .marco{position:absolute;left:44px;right:44px;border:2px solid rgba(201,169,110,.32);
+  /* Por encima de la viñeta: si no, el degradado apaga justo las esquinas, que es lo que se mira. */
+  .marco{position:absolute;z-index:2;left:44px;right:44px;border:2px solid rgba(201,169,110,.3);
          top:${formato === "chat" ? 44 : SEGURO_ARRIBA - 36}px;bottom:${formato === "chat" ? 44 : SEGURO_ABAJO - 36}px}
+  .marco span{position:absolute;width:42px;height:42px;border:3px solid rgba(201,169,110,.75)}
+  .marco span:nth-child(1){left:-3px;top:-3px;border-width:3px 0 0 3px}
+  .marco span:nth-child(2){right:-3px;top:-3px;border-width:3px 3px 0 0}
+  .marco span:nth-child(3){left:-3px;bottom:-3px;border-width:0 0 3px 3px}
+  .marco span:nth-child(4){right:-3px;bottom:-3px;border-width:0 3px 3px 0}
   /* El rescoldo de abajo, como en la página. */
-  .brasas{position:absolute;left:0;right:0;bottom:${formato === "chat" ? 0 : SEGURO_ABAJO - 36}px;height:520px;
+  /* Encima de la viñeta, si no el degradado se come el rescoldo justo donde tiene que estar. */
+  .brasas{position:absolute;z-index:2;left:0;right:0;bottom:${formato === "chat" ? 0 : SEGURO_ABAJO - 36}px;height:520px;
           background:radial-gradient(ellipse 70% 100% at 50% 118%, rgba(201,169,110,.30), transparent 70%)}
   .dentro{position:relative;z-index:2;width:100%}
   .logo{width:190px;border-radius:18px;display:block;margin:0 auto 56px}
@@ -104,14 +120,22 @@ const html = `<!doctype html>
   .gancho b{color:#e0c283;font-weight:500}
   .sin-reserva{margin-top:30px;font-size:34px;color:#9a9187;line-height:1.5}
   .pregunta{margin-top:58px;border:2px solid rgba(201,169,110,.45);border-radius:28px;padding:44px 48px}
+  .secreto .pedido{margin-top:66px}
+  .secreto .pedido p{font-family:'Playfair Display',Georgia,serif;font-size:50px;line-height:1.26}
+  .secreto .pedido small{display:block;margin-top:18px;font-size:33px;color:#9a9187}
   .pregunta p{font-family:'Playfair Display',Georgia,serif;font-size:46px;line-height:1.3}
   .pregunta small{display:block;margin-top:22px;font-size:34px;color:#9a9187;letter-spacing:.04em}
   /* El flyer de la contraseña: casi vacío a propósito. Lo que no se cuenta es lo que hace preguntar. */
   .secreto{justify-content:center}
-  .secreto .brasas{height:620px;background:radial-gradient(ellipse 65% 100% at 50% 120%, rgba(201,169,110,.22), transparent 72%)}
+  .secreto .brasas{height:660px;background:radial-gradient(ellipse 62% 100% at 50% 122%, rgba(201,169,110,.30), transparent 70%)}
   h1.chico{font-size:112px;margin-top:28px}
-  .susurro{margin-top:72px;font-size:32px;letter-spacing:.38em;text-transform:uppercase;color:#9a9187}
-  .palabra{margin-top:30px;font-family:'Playfair Display',Georgia,serif;font-size:124px;line-height:1.06;color:#e0c283}
+  .placa{margin-top:76px;padding:14px 0 30px;border-top:1px solid rgba(201,169,110,.45);border-bottom:1px solid rgba(201,169,110,.45)}
+  .susurro{font-size:27px;letter-spacing:.46em;text-transform:uppercase;color:#9a9187}
+  .palabra{margin-top:16px;font-family:'Playfair Display',Georgia,serif;font-size:128px;line-height:1.04;color:#e0c283;
+           text-shadow:0 0 70px rgba(201,169,110,.28)}
+  /* El adorno de la página, que acá separa la marca de lo que viene. */
+  .adorno{display:flex;align-items:center;justify-content:center;gap:26px;margin-top:26px;color:rgba(201,169,110,.65);font-size:26px}
+  .adorno i{display:block;width:110px;height:1px;background:rgba(201,169,110,.5)}
   .secreto .pregunta{margin-top:80px}
   .secreto .sin-reserva{margin-top:64px;font-size:34px;letter-spacing:.14em;text-transform:uppercase}
   /* Dentro del flujo y no pegado abajo: ahí lo tapa la barra de responder de WhatsApp. */
@@ -125,16 +149,20 @@ const html = `<!doctype html>
 <div class="hoja ${tipo === "contrasena" ? "secreto" : ""}">
   ${fondo ? '<div class="foto"></div>' : ""}
   <div class="brasas"></div>
-  <div class="marco"></div>
+  <div class="marco"><span></span><span></span><span></span><span></span></div>
+  <div class="grano"></div>
+  <div class="vineta"></div>
   ${guias && formato !== "chat" ? '<div class="guia arriba"></div><div class="guia abajo"></div>' : ""}
   <div class="dentro">
     ${
       tipo === "contrasena"
         ? `<p class="marca-chica">CatDog</p>
-    <div class="filete"></div>
-    <p class="susurro">La contraseña de esta semana</p>
-    <p class="palabra">${esc(palabra)}</p>
-    <div class="pregunta">
+    <div class="adorno"><i></i>✦<i></i></div>
+    <div class="placa">
+      <p class="susurro">La contraseña de esta semana</p>
+      <p class="palabra">${esc(palabra)}</p>
+    </div>
+    <div class="pedido">
       <p>Mandanos la contraseña por mensaje</p>
       <small>y te pasamos la dirección exacta.</small>
     </div>
