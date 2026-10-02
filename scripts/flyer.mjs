@@ -111,7 +111,7 @@ const html = `<!doctype html>
   .secreto .brasas{height:620px;background:radial-gradient(ellipse 65% 100% at 50% 120%, rgba(201,169,110,.22), transparent 72%)}
   h1.chico{font-size:112px;margin-top:28px}
   .susurro{margin-top:72px;font-size:32px;letter-spacing:.38em;text-transform:uppercase;color:#9a9187}
-  .palabra{margin-top:26px;font-family:'Playfair Display',Georgia,serif;font-size:116px;line-height:1.08;color:#e0c283}
+  .palabra{margin-top:30px;font-family:'Playfair Display',Georgia,serif;font-size:124px;line-height:1.06;color:#e0c283}
   .secreto .pregunta{margin-top:80px}
   .secreto .sin-reserva{margin-top:64px;font-size:34px;letter-spacing:.14em;text-transform:uppercase}
   /* Dentro del flujo y no pegado abajo: ahí lo tapa la barra de responder de WhatsApp. */
@@ -130,8 +130,7 @@ const html = `<!doctype html>
   <div class="dentro">
     ${
       tipo === "contrasena"
-        ? `<p class="eyebrow">La casa no tiene cartel</p>
-    <h1 class="chico">¿Sabés<br />dónde es?</h1>
+        ? `<p class="marca-chica">CatDog</p>
     <div class="filete"></div>
     <p class="susurro">La contraseña de esta semana</p>
     <p class="palabra">${esc(palabra)}</p>
