@@ -51,6 +51,9 @@ const desde = precios.length ? Math.min(...precios) : 0;
 const zona = v("barra:direccion") || "Calle 66, entre 2 y 3 · La Plata";
 const logo = readFileSync(resolve(root, "scripts/carta-logo.txt"), "utf8").trim();
 const foto = arg("foto");
+const tipo = arg("tipo") ?? "abierta";
+// La contraseña de la semana: el nombre de uno de los tragos de la casa, que ya suena a password.
+const palabra = (arg("palabra") ?? "Hormiga Negra").trim();
 const fondo = foto && existsSync(resolve(root, foto)) ? `data:image/jpeg;base64,${readFileSync(resolve(root, foto)).toString("base64")}` : null;
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const plata = (n) => "$" + new Intl.NumberFormat("es-AR").format(n);
@@ -87,17 +90,37 @@ const html = `<!doctype html>
   .pregunta{margin-top:84px;border:2px solid rgba(201,169,110,.45);border-radius:28px;padding:44px 48px}
   .pregunta p{font-family:'Playfair Display',Georgia,serif;font-size:46px;line-height:1.3}
   .pregunta small{display:block;margin-top:20px;font-size:30px;color:#9a9187;letter-spacing:.04em}
+  /* El flyer de la contraseña: casi vacío a propósito. Lo que no se cuenta es lo que hace preguntar. */
+  .secreto{justify-content:center;padding:200px 90px 320px}
+  .secreto .brasas{height:760px;background:radial-gradient(ellipse 65% 100% at 50% 120%, rgba(201,169,110,.22), transparent 72%)}
+  h1.chico{font-size:112px;margin-top:28px}
+  .susurro{margin-top:72px;font-size:28px;letter-spacing:.38em;text-transform:uppercase;color:#9a9187}
+  .palabra{margin-top:26px;font-family:'Playfair Display',Georgia,serif;font-size:116px;line-height:1.08;color:#e0c283}
+  .secreto .pregunta{margin-top:80px}
+  .secreto .sin-reserva{margin-top:64px;font-size:30px;letter-spacing:.14em;text-transform:uppercase}
   footer{position:absolute;left:0;right:0;bottom:120px;z-index:2;text-align:center;
          font-size:30px;letter-spacing:.2em;text-transform:uppercase;color:#9a9187}
   footer p+p{margin-top:14px;color:#c9a96e;letter-spacing:.1em;text-transform:none;font-size:32px}
 </style></head>
 <body>
-<div class="hoja">
+<div class="hoja ${tipo === "contrasena" ? "secreto" : ""}">
   ${fondo ? '<div class="foto"></div>' : ""}
   <div class="brasas"></div>
   <div class="marco"></div>
   <div class="dentro">
-    <img class="logo" src="${logo}" alt="" />
+    ${
+      tipo === "contrasena"
+        ? `<p class="eyebrow">La casa no tiene cartel</p>
+    <h1 class="chico">¿Sabés<br />dónde es?</h1>
+    <div class="filete"></div>
+    <p class="susurro">La contraseña de esta semana</p>
+    <p class="palabra">${esc(palabra)}</p>
+    <div class="pregunta">
+      <p>Mandanos la contraseña por mensaje</p>
+      <small>y te pasamos la dirección exacta.</small>
+    </div>
+    <p class="sin-reserva">${esc(dias.join(" · "))}<br />${esc(horario)} · Sin reserva</p>`
+        : `<img class="logo" src="${logo}" alt="" />
     <p class="eyebrow">Una casa en La Plata</p>
     <h1>La casa<br />está abierta</h1>
     <div class="filete"></div>
@@ -108,17 +131,19 @@ const html = `<!doctype html>
     <div class="pregunta">
       <p>No tenemos cartel en la calle.</p>
       <small>Escribinos y te pasamos la dirección exacta.</small>
-    </div>
+    </div>`
+    }
   </div>
   <footer>
-    <p>${esc(zona)}</p>
+    ${tipo === "contrasena" ? "" : `<p>${esc(zona)}</p>`}
     <p>@cenascatdog</p>
   </footer>
 </div>
 </body></html>`;
 
 mkdirSync(resolve(root, "exports"), { recursive: true });
-const salidaHtml = resolve(root, "exports/catdog-flyer.html");
+const nombre = tipo === "contrasena" ? "catdog-flyer-contrasena" : "catdog-flyer";
+const salidaHtml = resolve(root, `exports/${nombre}.html`);
 writeFileSync(salidaHtml, html);
 
 const navegadores = [
@@ -127,7 +152,7 @@ const navegadores = [
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
 ].filter((p) => p && existsSync(p));
 if (navegadores.length === 0) throw new Error("No encontré Chrome ni Edge para sacar la imagen.");
-const salidaPng = resolve(root, "exports/catdog-flyer.png");
+const salidaPng = resolve(root, `exports/${nombre}.png`);
 execFileSync(navegadores[0], [
   "--headless",
   "--disable-gpu",
@@ -143,7 +168,18 @@ console.log("escrito:", salidaPng);
 
 console.log("\n--- para pegar en WhatsApp ---\n");
 console.log(
-  [
+  tipo === "contrasena"
+    ? [
+        `La casa no tiene cartel en la calle. 🔑`,
+        "",
+        `*La contraseña de esta semana: ${palabra}.*`,
+        "",
+        "Mandámela por acá y te paso la dirección exacta.",
+        `${dias.join(", ")}, ${horario.toLowerCase()}. Sin reserva.`,
+        "",
+        `${sitio}/?de=wa`,
+      ].join("\n")
+    : [
     `*La casa está abierta* · ${dias.join(", ")}, ${horario.toLowerCase()}.`,
     "",
     "Barra, parrilla y mesa de pool, en una casa del casco de La Plata.",
