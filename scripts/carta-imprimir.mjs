@@ -15,7 +15,7 @@
  *  - Setting barra:horario       → el encabezado (los días no van: la carta está en la mesa, ya se sabe que abrió)
  *  - scripts/carta-tragos.json   → los tragos, con sus descripciones y sus precios por sección
  */
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import pg from "pg";
@@ -95,7 +95,7 @@ const tomar = sueltos
 /** Una hoja A4 entera, con su encabezado y su pie. */
 function hoja(subtitulo, cuerpo) {
   return (
-    `<article class="hoja">\n  <header>\n    <img class="logo" src="${logo}" alt="" />\n` +
+    `<article class="hoja">\n  <header>\n${conLogo ? `    <img class="logo" src="${logo}" alt="" />\n` : ""}` +
     `    <p class="marca">CatDog</p>\n    <p class="sub">${esc(subtitulo)}</p>\n    <div class="filete"></div>\n  </header>\n\n` +
     `  <main>\n${cuerpo}  </main>\n\n` +
     `  <footer>\n    <p>Se pide y se paga en la barra · efectivo, tarjeta o transferencia</p>\n    <p>Instagram @cenascatdog · ${esc(sitio.replace(/^https?:\/\//u, ""))}</p>\n  </footer>\n</article>`
@@ -136,8 +136,19 @@ const laBarra = tragos.secciones
   .map((s) => seccion(s.nombre === "De autor" ? "Tragos de autor" : s.nombre, s.items, { precioComun: s.precio, columnas: s.items.length > 5 }))
   .join("\n");
 
+function buscarNavegador() {
+  const encontrados = [
+    process.env.CHROME_PATH,
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  ].filter((p) => p && existsSync(p));
+  if (encontrados.length === 0) throw new Error("No encontré Chrome ni Edge para imprimir.");
+  return encontrados;
+}
+
 const plantilla = readFileSync(resolve(root, "scripts/carta-plantilla.html"), "utf8");
 const logo = readFileSync(resolve(root, "scripts/carta-logo.txt"), "utf8").trim();
+const conLogo = process.argv.includes("--logo");
 const html = plantilla.replace(
   "{{HOJAS}}",
   [hoja(v("barra:horario"), laComida), hoja("La barra", laBarra)].join("\n"),
@@ -148,12 +159,7 @@ writeFileSync(salidaHtml, html);
 console.log("escrito:", salidaHtml);
 
 if (process.argv.includes("--pdf")) {
-  const navegadores = [
-    process.env.CHROME_PATH,
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-  ].filter((p) => p && existsSync(p));
-  if (navegadores.length === 0) throw new Error("No encontré Chrome ni Edge para imprimir el PDF.");
+  const navegadores = buscarNavegador();
   const salidaPdf = resolve(root, "informe/catdog-carta.pdf");
   execFileSync(navegadores[0], [
     "--headless",
@@ -163,4 +169,23 @@ if (process.argv.includes("--pdf")) {
     `file:///${salidaHtml.replace(/\\/g, "/")}`,
   ]);
   console.log("escrito:", salidaPdf);
+}
+
+// Cómo va a salir impresa en blanco y negro, antes de gastar una hoja.
+if (process.argv.includes("--bn")) {
+  const navegadores = buscarNavegador();
+  const previa = resolve(root, "exports/carta-blanco-y-negro.html");
+  mkdirSync(resolve(root, "exports"), { recursive: true });
+  writeFileSync(previa, html.replace("</style>", "  html{filter:grayscale(1)}\n</style>"));
+  const salidaPng = resolve(root, "exports/carta-blanco-y-negro.png");
+  execFileSync(navegadores[0], [
+    "--headless",
+    "--disable-gpu",
+    "--hide-scrollbars",
+    "--window-size=794,1123",
+    "--virtual-time-budget=2000",
+    `--screenshot=${salidaPng}`,
+    `file:///${previa.replace(/\\/g, "/")}`,
+  ]);
+  console.log("escrito:", salidaPng);
 }

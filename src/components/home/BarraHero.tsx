@@ -60,7 +60,7 @@ export function BarraHero({
         </p>
 
         <p className="mx-auto mt-8 max-w-md leading-relaxed text-muted">
-          Algo para tomar, un sánguche de lo que salga esa noche, una mesa de pool y la casa andando. Sin reserva: caés, te sentás y
+          Algo para tomar, un sánguche de lo que salga esa noche, una mesa de pool y ping pong, y la casa andando. Sin reserva: caés, te sentás y
           listo.
         </p>
 
