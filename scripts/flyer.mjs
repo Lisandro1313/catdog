@@ -54,6 +54,17 @@ const foto = arg("foto");
 const tipo = arg("tipo") ?? "abierta";
 // La contraseña de la semana: el nombre de uno de los tragos de la casa, que ya suena a password.
 const palabra = (arg("palabra") ?? "Hormiga Negra").trim();
+/**
+ * WhatsApp tapa con su interfaz unos 250 px arriba (nombre y barritas) y unos 400 abajo (la barra
+ * de responder). Todo lo que importa tiene que entrar en esa franja del medio, con margen, porque
+ * cuánto tapa cambia según el teléfono. Con --guias se dibuja la franja para comprobarlo.
+ */
+const SEGURO_ARRIBA = 260;
+const SEGURO_ABAJO = 420;
+// "estado" es el alto de la pantalla; "chat" es más cuadrado, que es como se ve reenviado en un chat.
+const formato = arg("formato") ?? "estado";
+const ALTO = formato === "chat" ? 1350 : 1920;
+const guias = process.argv.includes("--guias");
 const fondo = foto && existsSync(resolve(root, foto)) ? `data:image/jpeg;base64,${readFileSync(resolve(root, foto)).toString("base64")}` : null;
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const plata = (n) => "$" + new Intl.NumberFormat("es-AR").format(n);
@@ -65,48 +76,55 @@ const html = `<!doctype html>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{width:1080px;height:1920px}
+  html,body{width:1080px;height:${ALTO}px}
   body{background:#141210;color:#f3ede4;font-family:Inter,system-ui,sans-serif;overflow:hidden}
-  .hoja{position:relative;width:1080px;height:1920px;display:flex;flex-direction:column;
-        align-items:center;justify-content:center;text-align:center;padding:110px 90px 300px}
+  .hoja{position:relative;width:1080px;height:${ALTO}px;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;text-align:center;
+        padding:${formato === "chat" ? 90 : SEGURO_ARRIBA}px 90px ${formato === "chat" ? 90 : SEGURO_ABAJO}px}
   ${fondo ? `.foto{position:absolute;inset:0;background:url('${fondo}') center/cover;opacity:.3;filter:grayscale(.3)}` : ""}
   /* El marco fino: lo mismo que tiene el afiche de la página. */
-  .marco{position:absolute;inset:48px;border:2px solid rgba(201,169,110,.32)}
+  /* Pegados a la franja que se ve, no a la hoja: si no, la interfaz de WhatsApp los corta al medio. */
+  .marco{position:absolute;left:44px;right:44px;border:2px solid rgba(201,169,110,.32);
+         top:${formato === "chat" ? 44 : SEGURO_ARRIBA - 36}px;bottom:${formato === "chat" ? 44 : SEGURO_ABAJO - 36}px}
   /* El rescoldo de abajo, como en la página. */
-  .brasas{position:absolute;left:0;right:0;bottom:0;height:520px;
+  .brasas{position:absolute;left:0;right:0;bottom:${formato === "chat" ? 0 : SEGURO_ABAJO - 36}px;height:520px;
           background:radial-gradient(ellipse 70% 100% at 50% 118%, rgba(201,169,110,.30), transparent 70%)}
   .dentro{position:relative;z-index:2;width:100%}
   .logo{width:190px;border-radius:18px;display:block;margin:0 auto 56px}
-  .eyebrow{font-size:26px;letter-spacing:.42em;text-transform:uppercase;color:#c9a96e}
-  h1{font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:132px;line-height:1.02;margin-top:40px}
-  .filete{width:200px;height:2px;background:rgba(201,169,110,.55);margin:56px auto}
+  .eyebrow{font-size:30px;letter-spacing:.42em;text-transform:uppercase;color:#c9a96e}
+  h1{font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:118px;line-height:1.02;margin-top:30px}
+  .filete{width:200px;height:2px;background:rgba(201,169,110,.55);margin:44px auto}
   .dias{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
-  .dias span{border:2px solid rgba(201,169,110,.5);border-radius:999px;padding:16px 36px;
-             font-family:'Playfair Display',Georgia,serif;font-size:40px}
+  .dias span{border:2px solid rgba(201,169,110,.5);border-radius:999px;padding:14px 32px;
+             font-family:'Playfair Display',Georgia,serif;font-size:38px}
   .horario{margin-top:36px;font-size:32px;letter-spacing:.3em;text-transform:uppercase;color:#9a9187}
-  .gancho{margin-top:72px;font-family:'Playfair Display',Georgia,serif;font-size:60px;line-height:1.28}
+  .gancho{margin-top:56px;font-family:'Playfair Display',Georgia,serif;font-size:58px;line-height:1.26}
   .gancho b{color:#e0c283;font-weight:500}
-  .sin-reserva{margin-top:34px;font-size:34px;color:#9a9187;line-height:1.5}
-  .pregunta{margin-top:84px;border:2px solid rgba(201,169,110,.45);border-radius:28px;padding:44px 48px}
+  .sin-reserva{margin-top:30px;font-size:34px;color:#9a9187;line-height:1.5}
+  .pregunta{margin-top:58px;border:2px solid rgba(201,169,110,.45);border-radius:28px;padding:44px 48px}
   .pregunta p{font-family:'Playfair Display',Georgia,serif;font-size:46px;line-height:1.3}
-  .pregunta small{display:block;margin-top:20px;font-size:30px;color:#9a9187;letter-spacing:.04em}
+  .pregunta small{display:block;margin-top:22px;font-size:34px;color:#9a9187;letter-spacing:.04em}
   /* El flyer de la contraseña: casi vacío a propósito. Lo que no se cuenta es lo que hace preguntar. */
-  .secreto{justify-content:center;padding:200px 90px 320px}
-  .secreto .brasas{height:760px;background:radial-gradient(ellipse 65% 100% at 50% 120%, rgba(201,169,110,.22), transparent 72%)}
+  .secreto{justify-content:center}
+  .secreto .brasas{height:620px;background:radial-gradient(ellipse 65% 100% at 50% 120%, rgba(201,169,110,.22), transparent 72%)}
   h1.chico{font-size:112px;margin-top:28px}
-  .susurro{margin-top:72px;font-size:28px;letter-spacing:.38em;text-transform:uppercase;color:#9a9187}
+  .susurro{margin-top:72px;font-size:32px;letter-spacing:.38em;text-transform:uppercase;color:#9a9187}
   .palabra{margin-top:26px;font-family:'Playfair Display',Georgia,serif;font-size:116px;line-height:1.08;color:#e0c283}
   .secreto .pregunta{margin-top:80px}
-  .secreto .sin-reserva{margin-top:64px;font-size:30px;letter-spacing:.14em;text-transform:uppercase}
-  footer{position:absolute;left:0;right:0;bottom:120px;z-index:2;text-align:center;
-         font-size:30px;letter-spacing:.2em;text-transform:uppercase;color:#9a9187}
-  footer p+p{margin-top:14px;color:#c9a96e;letter-spacing:.1em;text-transform:none;font-size:32px}
+  .secreto .sin-reserva{margin-top:64px;font-size:34px;letter-spacing:.14em;text-transform:uppercase}
+  /* Dentro del flujo y no pegado abajo: ahí lo tapa la barra de responder de WhatsApp. */
+  footer{margin-top:52px;text-align:center;font-size:32px;letter-spacing:.2em;text-transform:uppercase;color:#9a9187}
+  footer p+p{margin-top:16px;color:#c9a96e;letter-spacing:.1em;text-transform:none;font-size:36px}
+  ${guias ? `.guia{position:absolute;left:0;right:0;z-index:9;background:rgba(181,83,60,.28)}
+  .guia.arriba{top:0;height:${SEGURO_ARRIBA}px}
+  .guia.abajo{bottom:0;height:${SEGURO_ABAJO}px}` : ""}
 </style></head>
 <body>
 <div class="hoja ${tipo === "contrasena" ? "secreto" : ""}">
   ${fondo ? '<div class="foto"></div>' : ""}
   <div class="brasas"></div>
   <div class="marco"></div>
+  ${guias && formato !== "chat" ? '<div class="guia arriba"></div><div class="guia abajo"></div>' : ""}
   <div class="dentro">
     ${
       tipo === "contrasena"
@@ -120,29 +138,28 @@ const html = `<!doctype html>
       <small>y te pasamos la dirección exacta.</small>
     </div>
     <p class="sin-reserva">${esc(dias.join(" · "))}<br />${esc(horario)} · Sin reserva</p>`
-        : `<img class="logo" src="${logo}" alt="" />
-    <p class="eyebrow">Una casa en La Plata</p>
+        : `<p class="eyebrow">Una casa en La Plata</p>
     <h1>La casa<br />está abierta</h1>
     <div class="filete"></div>
     <div class="dias">${dias.map((d) => `<span>${esc(d)}</span>`).join("")}</div>
     <p class="horario">${esc(horario)}</p>
     ${desde > 0 ? `<p class="gancho">Sánguche y algo para tomar<br /><b>desde ${plata(desde)}</b></p>` : ""}
-    <p class="sin-reserva">Barra, parrilla y mesa de pool.<br />Sin reserva: caés, te sentás y listo.</p>
+    <p class="sin-reserva">Barra, parrilla y mesa de pool. Sin reserva.</p>
     <div class="pregunta">
-      <p>No tenemos cartel en la calle.</p>
-      <small>Escribinos y te pasamos la dirección exacta.</small>
+      <p>${esc(zona)}</p>
+      <small>Una casa sin cartel: se entra por el portón y un pasillo.</small>
     </div>`
     }
   </div>
   <footer>
-    ${tipo === "contrasena" ? "" : `<p>${esc(zona)}</p>`}
     <p>@cenascatdog</p>
   </footer>
 </div>
 </body></html>`;
 
 mkdirSync(resolve(root, "exports"), { recursive: true });
-const nombre = tipo === "contrasena" ? "catdog-flyer-contrasena" : "catdog-flyer";
+const nombre =
+  (tipo === "contrasena" ? "catdog-flyer-contrasena" : "catdog-flyer") + (formato === "chat" ? "-chat" : "") + (guias ? "-guias" : "");
 const salidaHtml = resolve(root, `exports/${nombre}.html`);
 writeFileSync(salidaHtml, html);
 
@@ -157,7 +174,7 @@ execFileSync(navegadores[0], [
   "--headless",
   "--disable-gpu",
   "--hide-scrollbars",
-  "--window-size=1080,1920",
+  `--window-size=1080,${ALTO}`,
   "--default-background-color=141210",
   // Dos segundos para que bajen las tipografías antes de la foto.
   "--virtual-time-budget=2000",
