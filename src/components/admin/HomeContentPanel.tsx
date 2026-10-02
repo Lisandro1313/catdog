@@ -44,7 +44,7 @@ export function PhotosPanel({ photos }: { photos: PhotoRow[] }) {
             <img src={preview} alt="" className="h-16 w-16 rounded-lg border border-line object-cover" />
           )}
         </div>
-        <input className="input" name="caption" placeholder="Pie de foto (opcional): La mesa, la barra, el pasillo…" maxLength={120} />
+        <input className="input" name="caption" placeholder="Pie de foto (opcional): La mesa, la barra, la parrilla…" maxLength={120} />
         {state?.message && <p className={`text-sm ${state.ok ? "text-ok" : "text-danger"}`}>{state.message}</p>}
         <button className="btn btn-primary btn-sm justify-self-start" type="submit" disabled={pending || !preview}>
           {pending ? "Subiendo…" : "Subir al home"}

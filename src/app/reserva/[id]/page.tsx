@@ -102,7 +102,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
                 <div className="mt-6 rounded-xl bg-surface-2 p-4">
                   <p className="eyebrow">Dónde</p>
                   <p className="mt-1 font-display text-xl">{reservation.event.address}</p>
-                  <p className="mt-1 text-xs text-muted">Casa sin cartel: portón, pasillo y puerta. Llegá {formatTime(reservation.event.date)} hs.</p>
+                  <p className="mt-1 text-xs text-muted">Casa sin cartel: se entra por el portón. Llegá {formatTime(reservation.event.date)} hs.</p>
                 </div>
               )}
               {upcoming && (
@@ -270,7 +270,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
             <p className="eyebrow">Esa noche</p>
             <ul className="mt-3 grid gap-2 text-sm text-muted sm:grid-cols-2">
               <li>
-                <span className="text-ink">Llegá {formatTime(reservation.event.date)} hs.</span> Es una casa sin cartel: portón, pasillo y puerta.
+                <span className="text-ink">Llegá {formatTime(reservation.event.date)} hs.</span> Es una casa sin cartel: se entra por el portón.
               </li>
               <li>
                 <span className="text-ink">Te recibimos con un cóctel sin alcohol</span> de la casa, de pie, mientras llegan todos.

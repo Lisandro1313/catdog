@@ -347,7 +347,7 @@ export function renderReminder(input: ReminderInput): RenderedMail {
   const cuando = faltan <= 14 ? "Hoy es la cena" : "Mañana es la cena";
   const body = `
     <p>Hola ${esc(first)}. ${cuando}: <strong>${formatLong(input.event.date)}, ${formatTime(input.event.date)} hs</strong>.</p>
-    ${input.event.address ? `<p style="font-size:18px"><strong>${input.event.address}</strong><br><span style="color:#9a9187;font-size:14px">Casa sin cartel: portón, pasillo y puerta. Se recibe de pie con un cóctel sin alcohol de la casa.</span></p>` : ""}
+    ${input.event.address ? `<p style="font-size:18px"><strong>${input.event.address}</strong><br><span style="color:#9a9187;font-size:14px">Casa sin cartel: se entra por el portón. Se recibe de pie con un cóctel sin alcohol de la casa.</span></p>` : ""}
     <p>${input.quantity === 1 ? "Tu lugar" : `Tus ${input.quantity} lugares`}: ${
       input.seats.length ? `silla${input.seats.length > 1 ? "s" : ""} <strong>${input.seats.join(", ")}</strong>` : `<a href="${link}" style="color:#c9a96e">todavía no elegiste la silla, elegila acá</a>`
     }.</p>

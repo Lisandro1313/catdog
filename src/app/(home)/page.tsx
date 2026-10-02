@@ -195,7 +195,7 @@ export default async function HomePage() {
     {
       q: "¿Dónde es exactamente?",
       a: barra.direccion
-        ? `${barra.direccion}. Es una casa sin cartel: se entra por un portón y un pasillo.`
+        ? `${barra.direccion}. Es una casa sin cartel: se entra por el portón.`
         : `${ZONE}. Es una casa sin cartel: escribinos y te pasamos el número exacto.`,
       // Decir "escribinos" sin dar por dónde es dejar a la persona con el teléfono en la mano.
       cta: waDireccion ? { href: waDireccion, label: "Escribinos por WhatsApp" } : null,
@@ -706,8 +706,8 @@ export default async function HomePage() {
                   <>
                     <p className="mt-3 text-sm leading-relaxed text-muted">
                       {barra.direccion
-                        ? "Una casa sin cartel en el casco de La Plata. Se entra por un portón y un pasillo."
-                        : "Una casa sin cartel en el casco de La Plata. Se entra por un portón y un pasillo; escribinos y te pasamos el número exacto."}
+                        ? "Una casa sin cartel en el casco de La Plata. Se entra por el portón."
+                        : "Una casa sin cartel en el casco de La Plata. Se entra por el portón; escribinos y te pasamos el número exacto."}
                     </p>
                     {barra.direccion && <p className="mt-3 font-display text-lg text-ink">{barra.direccion}</p>}
                     <p className="mt-3 text-sm text-muted">
@@ -730,7 +730,7 @@ export default async function HomePage() {
                 ) : (
                   <>
                     <p className="mt-3 text-sm leading-relaxed text-muted">
-                      Una casa sin cartel en el casco de La Plata. Se entra por un portón y un pasillo. El número exacto te llega con la
+                      Una casa sin cartel en el casco de La Plata. Se entra por el portón. El número exacto te llega con la
                       confirmación de la reserva.
                     </p>
                     <p className="mt-3 text-sm text-muted">
