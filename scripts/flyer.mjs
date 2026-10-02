@@ -16,6 +16,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import pg from "pg";
+import sharp from "sharp";
 
 const root = resolve(import.meta.dirname, "..");
 const arg = (nombre) => {
@@ -180,7 +181,10 @@ execFileSync(navegadores[0], [
   `--screenshot=${salidaPng}`,
   `file:///${salidaHtml.replace(/\\/g, "/")}`,
 ]);
-console.log("escrito:", salidaPng);
+// WhatsApp recomprime igual, pero el JPG es lo que esperan la galería y la historia.
+const salidaJpg = salidaPng.replace(/.png$/u, ".jpg");
+await sharp(salidaPng).jpeg({ quality: 92, chromaSubsampling: "4:4:4" }).toFile(salidaJpg);
+console.log("escrito:", salidaJpg);
 
 console.log("\n--- para pegar en WhatsApp ---\n");
 console.log(

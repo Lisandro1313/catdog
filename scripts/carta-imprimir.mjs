@@ -19,6 +19,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import pg from "pg";
+import sharp from "sharp";
 import QRCode from "qrcode";
 
 const root = resolve(import.meta.dirname, "..");
@@ -169,6 +170,40 @@ if (process.argv.includes("--pdf")) {
     `file:///${salidaHtml.replace(/\\/g, "/")}`,
   ]);
   console.log("escrito:", salidaPdf);
+}
+
+/**
+ * Las dos caras como imágenes, para la historia de WhatsApp.
+ *
+ * Se dibuja cada hoja sola y al doble de resolución, y recién después se achica a 1080 de ancho:
+ * así las letras chicas (las descripciones de los tragos) siguen leyéndose. Si se dibujara directo
+ * a 1080 se empastan.
+ */
+if (process.argv.includes("--jpg")) {
+  const navegadores = buscarNavegador();
+  mkdirSync(resolve(root, "exports"), { recursive: true });
+  const hojas = html.split("<article class=\"hoja\">").slice(1).map((h) => `<article class="hoja">${h.split("</article>")[0]}</article>`);
+  const salidas = [];
+  for (const [i, cuerpo] of hojas.entries()) {
+    const sola = resolve(root, `exports/carta-cara-${i + 1}.html`);
+    writeFileSync(sola, plantilla.replace("{{HOJAS}}", cuerpo));
+    const png = resolve(root, `exports/carta-cara-${i + 1}.png`);
+    execFileSync(navegadores[0], [
+      "--headless",
+      "--disable-gpu",
+      "--hide-scrollbars",
+      "--window-size=794,1123",
+      "--force-device-scale-factor=2",
+      "--virtual-time-budget=2000",
+      `--screenshot=${png}`,
+      `file:///${sola.replace(/\\/g, "/")}`,
+    ]);
+    const jpg = resolve(root, `exports/catdog-carta-cara-${i + 1}.jpg`);
+    await sharp(png).resize({ width: 1080 }).flatten({ background: "#ffffff" }).jpeg({ quality: 90, chromaSubsampling: "4:4:4" }).toFile(jpg);
+    salidas.push(jpg);
+    console.log("escrito:", jpg);
+  }
+  if (salidas.length === 0) throw new Error("no encontré ninguna hoja para exportar");
 }
 
 // Cómo va a salir impresa en blanco y negro, antes de gastar una hoja.
