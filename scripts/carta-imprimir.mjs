@@ -96,7 +96,7 @@ function hoja(subtitulo, cuerpo) {
     `<article class="hoja">\n  <header>\n    <img class="logo" src="${logo}" alt="" />\n` +
     `    <p class="marca">CatDog</p>\n    <p class="sub">${esc(subtitulo)}</p>\n    <div class="filete"></div>\n  </header>\n\n` +
     `  <main>\n${cuerpo}  </main>\n\n` +
-    `  <footer>\n    <p>Se pide y se paga en la barra · efectivo, tarjeta o transferencia</p>\n    <p>@cenascatdog</p>\n  </footer>\n</article>`
+    `  <footer>\n    <p>Se pide y se paga en la barra · efectivo, tarjeta o transferencia</p>\n    <p>Instagram @cenascatdog · ${esc(sitio.replace(/^https?:\/\//u, ""))}</p>\n  </footer>\n</article>`
   );
 }
 
