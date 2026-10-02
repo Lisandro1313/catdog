@@ -42,9 +42,11 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 /** Un renglón: nombre, puntos, precio, y la nota abajo si la hay. */
 function fila({ nombre, precio: p, desc }, precioComun) {
-  const n = p ?? precioComun;
+  // Si toda la sección vale lo mismo, el precio ya está en el título: repetirlo veinte veces no
+  // informa nada y le saca aire a la columna. Sólo se escribe el que se sale del precio común.
+  const n = p && p !== precioComun ? p : precioComun ? 0 : p;
   return (
-    `<li><div class="fila"><span class="n">${esc(nombre)}</span><span class="r"></span>` +
+    `<li><div class="fila"><span class="n">${esc(nombre)}</span>${n ? '<span class="r"></span>' : ""}` +
     (n ? `<span class="p">${precio(n)}</span>` : "") +
     `</div>${desc ? `<p class="nota">${esc(desc)}</p>` : ""}</li>`
   );

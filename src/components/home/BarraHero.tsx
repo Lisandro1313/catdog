@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FORMAS_DE_PAGO, type Barra } from "@/lib/barra";
 import type { Producto } from "@/lib/caja-rapida-tipos";
-import { formatPrice } from "@/lib/config";
+import { SITE_NAME, formatPrice } from "@/lib/config";
 import { Brasas } from "./Brasas";
 
 /**
@@ -39,7 +39,9 @@ export function BarraHero({
       <div className="ap-frame" aria-hidden="true" />
 
       <div className="ap-spot relative z-10 mx-auto w-full max-w-2xl text-center">
-        <p className="ap-eyebrow">Una casa en La Plata</p>
+        {/* La marca, no una descripción del lugar: en el celular la barra de arriba no se muestra,
+            así que si acá no está el nombre, el que llega desde Instagram no lo lee hasta el pie. */}
+        <p className="ap-eyebrow">{SITE_NAME}</p>
         <h1 className="ap-display mt-6 text-[clamp(3rem,13vw,6.5rem)]">
           La casa
           <br />

@@ -146,13 +146,11 @@ const html = `<!doctype html>
     <p class="horario">${esc(horario)}</p>
     ${desde > 0 ? `<p class="gancho">Sánguche y algo para tomar<br /><b>desde ${plata(desde)}</b></p>` : ""}
     <p class="sin-reserva">Barra, parrilla y mesa de pool / ping pong.<br />Sin reserva.</p>
-    <div class="pregunta">
-      <p>${esc(zona)}</p>
-      <small>Una casa sin cartel: se entra por el portón.</small>
-    </div>`
+`
     }
   </div>
   <footer>
+    ${tipo === "contrasena" ? "" : `<p>${esc(zona)}</p>`}
     <p>@cenascatdog</p>
   </footer>
 </div>
