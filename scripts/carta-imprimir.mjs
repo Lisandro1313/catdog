@@ -12,7 +12,7 @@
  *  - Setting caja:tarifa_hora    → la mesa
  *  - Setting barra:opciones      → los combos, con su descripción si la tienen
  *  - Setting barra:incluye       → la bajada del sánguche
- *  - Setting barra:dias/horario  → el encabezado
+ *  - Setting barra:horario       → el encabezado (los días no van: la carta está en la mesa, ya se sabe que abrió)
  *  - scripts/carta-tragos.json   → los tragos, con sus descripciones y sus precios por sección
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -138,7 +138,7 @@ const plantilla = readFileSync(resolve(root, "scripts/carta-plantilla.html"), "u
 const logo = readFileSync(resolve(root, "scripts/carta-logo.txt"), "utf8").trim();
 const html = plantilla.replace(
   "{{HOJAS}}",
-  [hoja(`${v("barra:dias")} · ${v("barra:horario")}`, laComida), hoja("La barra", laBarra)].join("\n"),
+  [hoja(v("barra:horario"), laComida), hoja("La barra", laBarra)].join("\n"),
 );
 
 const salidaHtml = resolve(root, "informe/catdog-carta.html");
