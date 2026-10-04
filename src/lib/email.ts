@@ -504,3 +504,19 @@ export async function sendAdminEvento(input: {
   });
   if (error) console.error("[email] aviso de evento fallo", error);
 }
+
+/** Aviso a la casa: alguien pidió un producto. Sirve para no perder el pedido entre los mensajes. */
+export async function sendAdminProducto(input: { producto: string; cantidad: number; name: string; contacto: string; mensaje: string | null }) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!isEmailConfigured() || !adminEmail) return;
+  const html = layout(
+    "Pedido de un producto",
+    `<p><strong>${esc(input.name)}</strong> quiere <strong>${input.cantidad} × ${esc(input.producto)}</strong>.</p>
+     <p>Contacto: ${esc(input.contacto)}</p>
+     ${input.mensaje ? `<p style="white-space:pre-line">${esc(input.mensaje)}</p>` : ""}
+     <p><a href="${siteUrl()}/admin/productos" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#c9a96e;color:#141210;text-decoration:none;font-weight:bold">Verlo en el panel</a></p>`,
+    "No se cobró nada: se avisa cuando está y se paga al retirarlo.",
+  );
+  const { error } = await sendMail({ to: adminEmail, subject: `Pedido: ${input.cantidad} × ${input.producto} (${input.name})`, html, text: toText(html) });
+  if (error) console.error("[email] aviso de producto falló", error);
+}

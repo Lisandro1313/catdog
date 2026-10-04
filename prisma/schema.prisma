@@ -656,3 +656,23 @@ model Jugador {
 
   @@index([ultimaAt])
 }
+
+/// Un pedido anticipado de un producto de la casa (un licor, un envasado): alguien dice "lo quiero"
+/// antes de que se produzca. Sirve para saber cuánto hacer, y para avisarle cuando esté.
+model PedidoProducto {
+  id        String    @id @default(cuid())
+  /// El nombre del producto tal como figuraba en la lista cuando lo pidió.
+  producto  String
+  cantidad  Int       @default(1)
+  name      String
+  /// WhatsApp o mail.
+  contacto  String
+  mensaje   String?
+  /// "nuevo" | "avisado" | "entregado" | "cancelado"
+  estado    String    @default("nuevo")
+  ipHash    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+
+  @@index([producto, estado])
+}

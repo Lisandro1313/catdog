@@ -262,3 +262,32 @@ export function TuEvento({ wa }: { wa: string | null }) {
     </section>
   );
 }
+
+/** Lo que se elabora en la casa para llevarse: un adelanto en el home, el detalle en /productos. */
+export function HechoEnLaCasa({ productos }: { productos: { nombre: string; presentacion: string; estado: string }[] }) {
+  if (productos.length === 0) return null;
+  return (
+    <section id="productos" className="reveal mx-auto w-full max-w-3xl scroll-mt-16 px-6 py-16 sm:py-24">
+      <div className="text-center">
+        <p className="ap-ornament mb-3">✦</p>
+        <h2 className="ap-eyebrow">Hecho en la casa</h2>
+        <p className="mx-auto mt-4 max-w-md leading-relaxed text-muted">
+          Lo que hacemos acá para llevarte. Anotate en lo que te interese y te avisamos cuando esté.
+        </p>
+      </div>
+      <ul className="mx-auto mt-8 grid max-w-xl gap-3">
+        {productos.slice(0, 4).map((p) => (
+          <li key={p.nombre} className="flex items-baseline justify-between gap-3 border-b border-line pb-3">
+            <span className="font-display text-xl">{p.nombre}</span>
+            <span className="text-xs tracking-[0.16em] uppercase text-muted">{p.estado === "disponible" ? p.presentacion || "disponible" : "muy pronto"}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-8 text-center">
+        <Link className="btn btn-ghost px-8" href="/productos">
+          Ver los productos
+        </Link>
+      </p>
+    </section>
+  );
+}

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema } from "@/lib/foro";
 import { parseOpciones, setBarra, setExcepcion } from "@/lib/barra";
+import { borrarPedidoProducto, ESTADOS_PEDIDO, setConfigProductos, setEstadoPedidoProducto, type EstadoPedido } from "@/lib/productos";
 import { parseProductos, setConfigCaja } from "@/lib/caja-rapida";
 import { borrarPedido, ESTADOS, setEstadoPedido, type Estado } from "@/lib/eventos-privados";
 import { darDeBaja } from "@/lib/avisos";
@@ -1241,4 +1242,37 @@ export async function borrarPedidoAction(formData: FormData) {
   if (!id) return;
   await borrarPedido(id);
   revalidatePath("/admin/fiestas");
+}
+
+// ---------- productos de la casa ----------
+
+/** La lista de productos y si la página está prendida. */
+export async function setProductosAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  await setConfigProductos({
+    activos: formData.get("activos") === "on",
+    lista: String(formData.get("lista") ?? ""),
+    texto: String(formData.get("texto") ?? ""),
+  });
+  revalidatePath("/productos");
+  revalidatePath("/");
+  revalidatePath("/admin/productos");
+  return { ok: true, message: "Guardado." };
+}
+
+export async function estadoPedidoProductoAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const estado = String(formData.get("estado") ?? "");
+  if (!id || !ESTADOS_PEDIDO.includes(estado as EstadoPedido)) return;
+  await setEstadoPedidoProducto(id, estado as EstadoPedido);
+  revalidatePath("/admin/productos");
+}
+
+export async function borrarPedidoProductoAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await borrarPedidoProducto(id);
+  revalidatePath("/admin/productos");
 }

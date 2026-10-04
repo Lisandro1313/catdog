@@ -28,7 +28,8 @@ import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
 import { FORMAS_DE_PAGO, getBarra, getExcepcion } from "@/lib/barra";
 import { getConfigEventos } from "@/lib/eventos-privados";
-import { BarraHero, CartaBarra, LaSemana, TuEvento } from "@/components/home/BarraHero";
+import { BarraHero, CartaBarra, HechoEnLaCasa, LaSemana, TuEvento } from "@/components/home/BarraHero";
+import { getConfigProductos } from "@/lib/productos";
 import { Brasas } from "@/components/home/Brasas";
 import { AvisameForm } from "@/components/AvisameForm";
 import { EstadoCasa } from "@/components/home/EstadoCasa";
@@ -105,6 +106,8 @@ export default async function HomePage() {
   const barra = await getBarra();
   const modoBarra = barra.activa;
   const eventos = await getConfigEventos();
+  const productos = await getConfigProductos();
+  const conProductos = productos.activos && productos.productos.length > 0;
   const caja = modoBarra ? await getConfigCaja() : null;
   // Si la próxima cena todavía no tiene carta, se muestra la de la última cena como anticipo, aclarándolo.
   const ownSteps = parseMenu(event?.menu);
@@ -396,6 +399,7 @@ export default async function HomePage() {
           </section>
 
           {eventos.activos && <TuEvento wa={waEvento} />}
+          {conProductos && <HechoEnLaCasa productos={productos.productos} />}
         </>
       ) : (
       <section id="inicio" className="relative flex min-h-[92dvh] items-center overflow-hidden px-6 py-20 sm:min-h-[88dvh]">
