@@ -5,6 +5,7 @@ import { SITE_NAME } from "@/lib/config";
 import { getBarra } from "@/lib/barra";
 import { getConfigCaja } from "@/lib/caja-rapida";
 import { CartaBarra } from "@/components/home/BarraHero";
+import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
 import { Reveal } from "@/components/Reveal";
 import { TrackVisit } from "@/components/TrackVisit";
 
@@ -34,7 +35,7 @@ export default async function CartaPage() {
           {SITE_NAME}
         </Link>
       </p>
-      <CartaBarra barra={barra} productos={caja.productos} mesaHora={caja.mesas > 0 ? caja.tarifaHora : 0} />
+      <CartaBarra barra={barra} productos={caja.productos} mesaHora={caja.mesas > 0 ? caja.tarifaHora : 0} tragos={SECCIONES_TRAGOS} />
       <div className="px-6 pb-16 text-center">
         <p className="text-sm text-muted">
           {barra.dias} · {barra.horario.toLowerCase()}

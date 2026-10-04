@@ -36,6 +36,7 @@ import { EstadoCasa } from "@/components/home/EstadoCasa";
 import { BarraFija } from "@/components/home/BarraFija";
 import { diasQueAbre, estadoAhora, horaDeApertura, horarioSchema, textoDeEstado } from "@/lib/horario";
 import { getConfigCaja } from "@/lib/caja-rapida";
+import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
 
 /**
  * El home se genera y se guarda un minuto (ISR): responde al instante y los metadatos
@@ -382,7 +383,7 @@ export default async function HomePage() {
             </section>
           )}
 
-          <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
+          <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} tragos={SECCIONES_TRAGOS} />
           {/* Lo único que queda del que entra, mira la carta y se va. Sin esto, cada semana se
               empieza de cero: no hay a quién avisarle que el jueves se proyecta algo. */}
           <section id="avisame" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-20">

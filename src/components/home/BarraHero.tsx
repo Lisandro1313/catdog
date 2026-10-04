@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FORMAS_DE_PAGO, type Barra } from "@/lib/barra";
 import type { Producto } from "@/lib/caja-rapida-tipos";
+import type { SeccionTragos } from "@/lib/carta-tragos";
 import { SITE_NAME, formatPrice } from "@/lib/config";
 import { Brasas } from "./Brasas";
 
@@ -139,15 +140,18 @@ export function CartaBarra({
   barra,
   productos,
   mesaHora,
+  tragos = [],
 }: {
   barra: Barra;
   productos: Producto[];
   mesaHora: number;
+  /** Los tragos con nombre y descripción. Si vienen, el "Trago" suelto no se repite en "Para tomar". */
+  tragos?: SeccionTragos[];
 }) {
   const combos = new Set(barra.opciones.map((o) => o.que.toLowerCase()));
   const sueltos = productos.filter((p) => !combos.has(p.nombre.toLowerCase()));
   const comer = sueltos.filter((p) => DE_COMER.test(p.nombre));
-  const tomar = sueltos.filter((p) => !DE_COMER.test(p.nombre));
+  const tomar = sueltos.filter((p) => !DE_COMER.test(p.nombre) && !(tragos.length > 0 && /^trago/iu.test(p.nombre)));
 
   return (
     <section id="la-carta" className="reveal mx-auto w-full max-w-3xl scroll-mt-16 px-4 py-16 sm:px-6 sm:py-24">
@@ -220,6 +224,22 @@ export function CartaBarra({
             )}
           </div>
         </div>
+
+        {tragos.map((s) => (
+          <div key={s.nombre} className="carta-bloque">
+            <p className="carta-titulo">
+              {s.nombre} · {formatPrice(s.precio)}
+            </p>
+            <ul className="carta-lista">
+              {s.items.map((t) => (
+                <li key={t.nombre} className={t.desc ? "con-nota" : ""}>
+                  <span className="nombre">{t.nombre}</span>
+                  {t.desc && <span className="nota">{t.desc}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
 
         <p className="carta-pie">Se pide y se paga en la barra · {FORMAS_DE_PAGO}</p>
       </div>
