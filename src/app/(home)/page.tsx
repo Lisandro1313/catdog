@@ -53,7 +53,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const barra = await getBarra();
   if (barra.activa) {
     const desde = barra.opciones.reduce((min, o) => Math.min(min, o.precio), Infinity);
-    const title = `${SITE_NAME} · ${barra.dias} en una casa de La Plata`;
+    // La frase de la casa, como en la bio de Instagram: es lo que se lee cuando alguien pasa el link.
+    const title = `${SITE_NAME} · Si llegaste hasta acá, alguien te contó`;
     const description = `${barra.incluye} Desde ${formatPrice(desde)}, sin reserva. ${barra.dias}, ${barra.horario.toLowerCase()}.`;
     const image = { url: "/opengraph-image?v=barra", width: 1200, height: 630, alt: `${SITE_NAME} en La Plata` };
     return {
@@ -194,7 +195,7 @@ export default async function HomePage() {
       q: "¿Por qué los lunes?",
       a: "Porque el que trabaja en gastronomía labura de martes a domingo, justo cuando el resto sale. El lunes abrimos para eso.",
     },
-    ...(barra.jueves ? [{ q: "¿Qué es la noche de cine?", a: barra.jueves }] : []),
+    ...(barra.jueves ? [{ q: "¿Qué pasa los jueves?", a: barra.jueves }] : []),
     {
       q: "¿Dónde es exactamente?",
       a: barra.direccion

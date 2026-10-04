@@ -72,7 +72,7 @@ export function BarraPanel({
       </label>
 
       <label className="grid gap-1 text-xs text-muted">
-        El bloque de los jueves, la noche de cine (vacío = no se muestra)
+        El bloque de los jueves (vacío = va junto con viernes y sábados; lo del cine no se publica)
         <textarea className="input" name="jueves" rows={4} defaultValue={jueves} maxLength={500} />
       </label>
 

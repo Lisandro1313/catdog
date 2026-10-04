@@ -8,7 +8,7 @@ import { deDeLaRuta, esRutaDeAccion } from "@/lib/origen";
  * Rutas que se cuentan (las que llevan TrackVisit o el embudo de la reserva). Cualquier otra se ignora.
  * /precios queda afuera a propósito: es el cartel de la tablet de la casa y contarlo inflaría todo.
  */
-const KNOWN = new Set(["/", "/fechas", "/hoy", "/hoy/jugar", "/reservar", "/eventos", "/productos"]);
+const KNOWN = new Set(["/", "/fechas", "/hoy", "/hoy/jugar", "/reservar", "/eventos", "/productos", "/carta"]);
 
 /**
  * Qué se cuenta: una ruta conocida, esa misma ruta con su `?de=` (de dónde llegó), o un clic

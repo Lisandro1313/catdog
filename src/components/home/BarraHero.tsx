@@ -48,6 +48,8 @@ export function BarraHero({
           está abierta
         </h1>
         <hr className="ap-rule-gold mx-auto mt-8 w-40" />
+        {/* La frase de la casa, la misma de la bio de Instagram: no hay cartel, se llega porque alguien contó. */}
+        <p className="mt-6 font-display text-xl italic text-accent sm:text-2xl">Si llegaste hasta acá, alguien te contó.</p>
 
         {/* La lista de días estaba acá y no es lo que se viene a buscar: el que entra quiere saber
             si está abierto ahora. Los días siguen estando en La semana, en Dónde y en el pie. */}
@@ -95,11 +97,14 @@ export function BarraHero({
  * la razón para venir ese día; el fin de semana no necesita explicación.
  */
 export function LaSemana({ barra, mesaHora }: { barra: Barra; mesaHora: number }) {
+  // Lo que pasa los jueves no se anuncia acá (va de boca en boca): sin texto propio, el jueves
+  // es una noche más de la casa abierta.
+  const abreJueves = /jueves/iu.test(barra.dias);
   const noches = [
     barra.lunes && { dia: "Lunes", titulo: "El día del gastronómico", texto: barra.lunes },
-    barra.jueves && { dia: "Jueves", titulo: "Noche de cine", texto: barra.jueves },
+    barra.jueves && { dia: "Jueves", titulo: "Los jueves", texto: barra.jueves },
     {
-      dia: "Viernes y sábados",
+      dia: abreJueves && !barra.jueves ? "Jueves, viernes y sábados" : "Viernes y sábados",
       titulo: "La casa abierta",
       texto: `La barra andando, la parrilla prendida y la mesa de pool y ping pong${mesaHora > 0 ? ` a ${formatPrice(mesaHora)} la hora` : ""}. Se llega a cualquier hora y se queda lo que da.`,
     },

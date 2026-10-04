@@ -15,6 +15,8 @@ export const ORIGENES = [
   { clave: "wa", label: "WhatsApp", donde: "Cuando le pasás la página a alguien" },
   { clave: "qr", label: "QR impreso", donde: "El cartelito de las mesas" },
   { clave: "afiche", label: "Afiche", donde: "Lo que se pega en la calle" },
+  { clave: "tarjeta", label: "Tarjeta en mano", donde: "La que se reparte en los bares" },
+  { clave: "tarjeta-gastro", label: "Tarjeta gastronómicos", donde: "La de los lunes, para la gente del rubro" },
   { clave: "mail", label: "Mail", donde: "Los avisos que salen por mail" },
 ] as const;
 
