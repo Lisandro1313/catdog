@@ -1,10 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- El monograma de la casa: CD en un aro dorado. Se lee aunque mida 16 píxeles. -->
   <rect width="64" height="64" rx="14" fill="#141210"/>
-  <!-- tenedor -->
-  <path d="M11 17 v11 M15 17 v11 M19 17 v11 M11 28 q4 5 8 0 M15 28 v20" stroke="#c9a96e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <!-- plato -->
-  <circle cx="32" cy="32" r="15" fill="none" stroke="#c9a96e" stroke-width="3"/>
-  <circle cx="32" cy="32" r="8" fill="none" stroke="#c9a96e" stroke-width="1.5" opacity="0.6"/>
-  <!-- cuchillo -->
-  <path d="M49 17 c6 4 6 12 0 15 v16" stroke="#c9a96e" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+  <circle cx="32" cy="32" r="25" fill="none" stroke="#d8b878" stroke-width="2.4"/>
+  <text x="32" y="40.5" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="23" fill="#f3ece1">CD</text>
 </svg>

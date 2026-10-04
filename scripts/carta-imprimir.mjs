@@ -96,7 +96,7 @@ const tomar = sueltos
 /** Una hoja A4 entera, con su encabezado y su pie. */
 function hoja(subtitulo, cuerpo) {
   return (
-    `<article class="hoja">\n  <header>\n${conLogo ? `    <img class="logo" src="${logo}" alt="" />\n` : ""}` +
+    `<article class="hoja">\n  <header>\n${conLogo ? `    <div class="logo">${logo}</div>\n` : ""}` +
     `    <p class="marca">CatDog</p>\n    <p class="sub">${esc(subtitulo)}</p>\n    <div class="filete"></div>\n  </header>\n\n` +
     `  <main>\n${cuerpo}  </main>\n\n` +
     `  <footer>\n    <p>Se pide y se paga en la barra · efectivo, tarjeta o transferencia</p>\n    <p>Instagram @cenascatdog · ${esc(sitio.replace(/^https?:\/\//u, ""))}</p>\n  </footer>\n</article>`
@@ -148,8 +148,10 @@ function buscarNavegador() {
 }
 
 const plantilla = readFileSync(resolve(root, "scripts/carta-plantilla.html"), "utf8");
-const logo = readFileSync(resolve(root, "scripts/carta-logo.txt"), "utf8").trim();
-const conLogo = process.argv.includes("--logo");
+// El monograma CD en un solo color, dibujado como vector: en blanco y negro sale nítido y no es un
+// bloque negro como el logo anterior (una foto con fondo oscuro). Con --sin-logo se saca.
+const logo = readFileSync(resolve(root, "public/logo-cd-negro.svg"), "utf8").replace(/<!--[\s\S]*?-->/gu, "").trim();
+const conLogo = !process.argv.includes("--sin-logo");
 const html = plantilla.replace(
   "{{HOJAS}}",
   [hoja(v("barra:horario"), laComida), hoja("La barra", laBarra)].join("\n"),

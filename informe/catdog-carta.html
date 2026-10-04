@@ -14,7 +14,8 @@
   .hoja { width: 210mm; height: 297mm; padding: 18mm 20mm 16mm; display: flex; flex-direction: column; page-break-after: always; }
   .hoja:last-child { page-break-after: auto; }
   header { text-align: center; }
-  .logo { width: 22mm; height: auto; border-radius: 2mm; display: block; margin: 0 auto 4mm; }
+  .logo { width: 20mm; margin: 0 auto 3mm; }
+  .logo svg { width: 100%; height: auto; display: block; }
   .marca { font-size: 22pt; letter-spacing: .34em; text-transform: uppercase; margin: 0; }
   .sub { font-family: system-ui, sans-serif; font-size: 9pt; letter-spacing: .22em; text-transform: uppercase; color: #000; margin: 2mm 0 0; }
   .filete { width: 30mm; height: 0; border-top: 1px solid #000; margin: 6mm auto 0; }
@@ -48,6 +49,13 @@
 <body>
 <article class="hoja">
   <header>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  
+  <circle cx="200" cy="200" r="168" fill="none" stroke="#000" stroke-width="5"/>
+  <circle cx="200" cy="200" r="150" fill="none" stroke="#000" stroke-width="1.5"/>
+  <text x="200" y="240" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="150" fill="#000">CD</text>
+  <text x="200" y="300" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="17" letter-spacing="6" fill="#000">LA PLATA</text>
+</svg></div>
     <p class="marca">CatDog</p>
     <p class="sub">Desde las 18 hs</p>
     <div class="filete"></div>
@@ -95,6 +103,13 @@
 </article>
 <article class="hoja">
   <header>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  
+  <circle cx="200" cy="200" r="168" fill="none" stroke="#000" stroke-width="5"/>
+  <circle cx="200" cy="200" r="150" fill="none" stroke="#000" stroke-width="1.5"/>
+  <text x="200" y="240" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="150" fill="#000">CD</text>
+  <text x="200" y="300" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="17" letter-spacing="6" fill="#000">LA PLATA</text>
+</svg></div>
     <p class="marca">CatDog</p>
     <p class="sub">La barra</p>
     <div class="filete"></div>

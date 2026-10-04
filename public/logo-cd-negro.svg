@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- El logo en un solo color, sin fondo: para imprimir en blanco y negro (carta, etiquetas, sellos). -->
+  <circle cx="200" cy="200" r="168" fill="none" stroke="#000" stroke-width="5"/>
+  <circle cx="200" cy="200" r="150" fill="none" stroke="#000" stroke-width="1.5"/>
+  <text x="200" y="240" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="150" fill="#000">CD</text>
+  <text x="200" y="300" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="17" letter-spacing="6" fill="#000">LA PLATA</text>
+</svg>
