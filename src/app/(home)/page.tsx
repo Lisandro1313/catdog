@@ -390,7 +390,7 @@ export default async function HomePage() {
               <p className="ap-eyebrow">La semana que viene</p>
               <p className="mt-3 font-display text-2xl sm:text-3xl">¿Te avisamos?</p>
               <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted">
-                Dejanos tu WhatsApp y te contamos qué hay cada semana: qué sale de la parrilla, qué se proyecta el jueves. Un mensaje
+                Dejanos tu WhatsApp y te contamos qué hay cada semana: qué sale de la parrilla y qué hay cada noche. Un mensaje
                 y nada más. Te damos de baja cuando lo pidas.
               </p>
               <div className="mx-auto mt-2 max-w-lg text-left">
