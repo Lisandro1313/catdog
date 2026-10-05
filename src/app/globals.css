@@ -3535,3 +3535,35 @@ details.faq > summary::-webkit-details-marker {
   line-height: 1.3;
   color: var(--accent-strong);
 }
+
+/* Las reacciones de la sobremesa: chiquitas, para que no le ganen al texto. */
+.reaccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2rem;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--muted);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.reaccion:hover {
+  border-color: rgba(201, 169, 110, 0.5);
+}
+/* La propia se ve distinta: hay que poder sacarla sin adivinar cuál fue. */
+.reaccion.is-mia {
+  border-color: rgba(201, 169, 110, 0.7);
+  background: rgba(201, 169, 110, 0.14);
+  color: var(--text);
+}
+.reaccion-mas {
+  font-size: 1.1rem;
+  padding: 0 0.7rem;
+  color: var(--muted);
+}

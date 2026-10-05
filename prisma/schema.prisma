@@ -676,3 +676,19 @@ model PedidoProducto {
 
   @@index([producto, estado])
 }
+
+/// Una reacción de la sobremesa: un emoji que alguien le puso a un tema o a una respuesta.
+/// Sin relación declarada porque sirve para los dos; los huérfanos se limpian al borrar el tema.
+model Reaccion {
+  id        String   @id @default(cuid())
+  /// "tema" | "respuesta"
+  sobre     String
+  objetoId  String
+  emoji     String
+  /// El teléfono que la puso: sirve para que pueda sacarla y para que no cuente dos veces.
+  deviceKey String
+  createdAt DateTime @default(now())
+
+  @@unique([sobre, objetoId, emoji, deviceKey])
+  @@index([sobre, objetoId])
+}

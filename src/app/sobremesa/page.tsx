@@ -4,6 +4,7 @@ import { SITE_NAME } from "@/lib/config";
 import { readForoKey } from "@/lib/device";
 import { getTemas } from "@/lib/foro";
 import { NuevoTema } from "@/components/foro/NuevoTema";
+import { Novedades } from "@/components/foro/Novedades";
 import { TrackVisit } from "@/components/TrackVisit";
 import { MedirClics } from "@/components/MedirClics";
 import { InstagramLink } from "@/components/InstagramLink";
@@ -37,6 +38,8 @@ export default async function SobremesaPage() {
         </p>
       </div>
 
+      <Novedades temas={temas.map((t) => ({ id: t.id, ultima: t.lastAt.toISOString() }))} />
+
       <div className="mt-8">
         <NuevoTema />
       </div>
@@ -46,11 +49,18 @@ export default async function SobremesaPage() {
       ) : (
         <ol className="mt-8 grid gap-3">
           {temas.map((t) => (
-            <li key={t.id} className={`card p-5 ${t.pinned ? "card-gold" : ""}`}>
+            <li key={t.id} data-tema={t.id} className={`card p-5 ${t.pinned ? "card-gold" : ""}`}>
               <Link href={`/sobremesa/${t.id}`} className="block">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <p className="font-display text-xl">{t.title}</p>
-                  {t.pinned && <span className="ap-eyebrow text-accent">Fijado</span>}
+                  <span className="flex shrink-0 items-center gap-2">
+                    {/* Lo destapa el navegador si se movió desde la última visita: el servidor no
+                        sabe cuándo entró esta persona. */}
+                    <span data-nuevo hidden className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] tracking-[0.15em] uppercase text-accent">
+                      Nuevo
+                    </span>
+                    {t.pinned && <span className="ap-eyebrow text-accent">Fijado</span>}
+                  </span>
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{t.text}</p>
                 <p className="mt-3 text-xs text-muted">

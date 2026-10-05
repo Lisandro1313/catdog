@@ -17,6 +17,7 @@ import {
 } from "@/lib/foro";
 import { getTonightEvent } from "@/lib/hoy";
 import { allowKey, allowRequest } from "@/lib/rate-limit";
+import { alternar } from "@/lib/reacciones";
 
 export type ForoResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -113,4 +114,25 @@ export async function borrarMioAction(input: unknown): Promise<ForoResult> {
   else await borrarMiRespuesta(parsed.data.id, key);
   revalidatePath("/sobremesa");
   return { ok: true };
+}
+
+/**
+ * Poner o sacar una reacción. Devuelve si quedó puesta, para que el botón del teléfono se
+ * corrija solo si el servidor no estaba de acuerdo con lo que ya había pintado.
+ */
+export async function reaccionarAction(input: { sobre: string; objetoId: string; emoji: string; temaId: string }): Promise<{ ok: boolean; puesta: boolean }> {
+  const parsed = z
+    .object({ sobre: z.string().max(12), objetoId: z.string().min(1).max(40), emoji: z.string().max(8), temaId: z.string().min(1).max(40) })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, puesta: false };
+  // Tocar emojis es barato, pero no gratis: 120 por teléfono cada quince minutos es más de lo que
+  // nadie va a tocar de verdad y corta a cualquiera que quiera inflar un número.
+  const key = await ensureForoKey();
+  if (!allowKey(`reaccion:${key}`, 120)) return { ok: false, puesta: false };
+
+  const { temaId, ...donde } = parsed.data;
+  const puesta = await alternar({ ...donde, deviceKey: key });
+  // La página del tema es la que muestra los conteos, tanto los suyos como los de sus respuestas.
+  revalidatePath(`/sobremesa/${temaId}`);
+  return { ok: true, puesta };
 }
