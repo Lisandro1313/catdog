@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { formatShort } from "@/lib/dates";
 import { getTemasAdmin } from "@/lib/foro";
+import { CATEGORIAS, categoriaDe } from "@/lib/foro-tipos";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
-import { foroBorrarAction, foroFijarAction, foroOcultarAction, foroOcultarRespuestaAction } from "../../actions";
+import { foroBorrarAction, foroCategoriaAction, foroFijarAction, foroOcultarAction, foroOcultarRespuestaAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,23 @@ export default async function SobremesaAdminPage() {
                 ))}
               </ul>
             )}
+
+            {/* De qué va: una ficha por categoría, la puesta queda marcada. */}
+            <form action={foroCategoriaAction} className="mt-4 flex flex-wrap items-center gap-1.5">
+              <input type="hidden" name="id" value={t.id} />
+              <span className="ap-eyebrow mr-1">De qué va</span>
+              {CATEGORIAS.map((c) => (
+                <button
+                  key={c.clave}
+                  type="submit"
+                  name="categoria"
+                  value={c.clave}
+                  className={`cat-chip ${categoriaDe(t.categoria) === c.clave ? "is-on" : ""}`}
+                >
+                  {c.nombre}
+                </button>
+              ))}
+            </form>
 
             <div className="mt-4 flex flex-wrap gap-2">
               <form action={foroFijarAction}>

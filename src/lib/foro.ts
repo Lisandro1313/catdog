@@ -180,6 +180,11 @@ export async function ocultarTema(id: string, ocultar: boolean) {
   await prisma.tema.update({ where: { id }, data: { hiddenAt: ocultar ? new Date() : null } });
 }
 
+export async function ponerCategoria(id: string, categoria: string) {
+  if (!esCategoria(categoria)) return;
+  await prisma.tema.update({ where: { id }, data: { categoria } });
+}
+
 export async function fijarTema(id: string, fijar: boolean) {
   await prisma.tema.update({ where: { id }, data: { pinned: fijar } });
 }

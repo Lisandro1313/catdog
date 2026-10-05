@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema } from "@/lib/foro";
+import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema, ponerCategoria } from "@/lib/foro";
 import { parseOpciones, setBarra, setExcepcion } from "@/lib/barra";
 import { borrarPedidoProducto, ESTADOS_PEDIDO, setConfigProductos, setEstadoPedidoProducto, type EstadoPedido } from "@/lib/productos";
 import { parseProductos, setConfigCaja } from "@/lib/caja-rapida";
@@ -1108,6 +1108,16 @@ export async function foroOcultarAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await ocultarTema(id, String(formData.get("ocultar") ?? "") === "si");
+  revalidatePath("/admin/sobremesa");
+  revalidatePath("/sobremesa");
+}
+
+/** De qué va un tema. Sirve sobre todo para acomodar los que se escribieron antes de que existieran. */
+export async function foroCategoriaAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await ponerCategoria(id, String(formData.get("categoria") ?? ""));
   revalidatePath("/admin/sobremesa");
   revalidatePath("/sobremesa");
 }
