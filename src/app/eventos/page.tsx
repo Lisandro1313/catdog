@@ -90,6 +90,7 @@ export default async function EventosPage() {
         <PedirEvento
           paquetes={config.paquetes}
           mesa={config.publicarPrecios ? config.mesa : 0}
+          hayMesa={config.mesa > 0}
           senaPorcentaje={SENA_PORCENTAJE}
           publicarPrecios={config.publicarPrecios}
         />

@@ -12,11 +12,15 @@ import { MAX_MENSAJE, MAX_PERSONAS, MIN_PERSONAS, claveDe, lineasDe, paquetePara
 export function PedirEvento({
   paquetes,
   mesa,
+  hayMesa,
   senaPorcentaje,
   publicarPrecios,
 }: {
   paquetes: Paquete[];
+  /** Lo que sale la mesa, para mostrar. 0 cuando la casa no publica precios. */
   mesa: number;
+  /** Si la casa tiene mesa. Que no se publique el precio no quiere decir que no se pueda pedir. */
+  hayMesa: boolean;
   senaPorcentaje: number;
   publicarPrecios: boolean;
 }) {
@@ -143,7 +147,7 @@ export function PedirEvento({
         </div>
       )}
 
-      {mesa > 0 && (
+      {hayMesa && (
         <label className="mt-4 flex items-start gap-2 text-sm">
           <input type="checkbox" className="mt-1 h-4 w-4 accent-[var(--ap-gold)]" checked={conMesa} onChange={(e) => setConMesa(e.target.checked)} />
           <span>
