@@ -14,6 +14,7 @@ import { SubscribeForm } from "@/components/SubscribeForm";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { TrackVisit } from "@/components/TrackVisit";
 import { MedirClics } from "@/components/MedirClics";
+import { MedirRecorrido } from "@/components/MedirRecorrido";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { StickyCta } from "@/components/StickyCta";
 import { Reveal } from "@/components/Reveal";
@@ -280,6 +281,7 @@ export default async function HomePage() {
     <div className="ap flex flex-1 flex-col pb-24 sm:pb-0">
       <TrackVisit path="/" />
       <MedirClics />
+      {modoBarra && <MedirRecorrido />}
       <Reveal />
       {event && (
         <script

@@ -46,6 +46,37 @@ export const ACCION_LABEL: Record<Accion, string> = {
   instagram: "Fueron al Instagram",
 };
 
+/**
+ * El recorrido por el home: hasta dónde baja la gente antes de irse.
+ *
+ * Las visitas dicen cuántos entraron; esto dice qué llegaron a ver. Es la diferencia entre "vinieron
+ * 80" y "de 80, 50 vieron la carta y 9 llegaron a los eventos": lo segundo dice qué sección está
+ * demasiado abajo y qué sección no le interesa a nadie.
+ *
+ * El orden es el de la página, porque así se lee el embudo de arriba para abajo.
+ */
+export const HITOS = [
+  { id: "la-semana", label: "La semana" },
+  { id: "fotos-barra", label: "Las fotos" },
+  { id: "la-carta", label: "La carta" },
+  { id: "avisame", label: "Dejar el WhatsApp" },
+  { id: "productos", label: "Hecho en la casa" },
+  { id: "tu-evento", label: "Tu evento" },
+  { id: "nosotros", label: "Quiénes somos" },
+  { id: "donde", label: "Dónde" },
+  { id: "preguntas", label: "Preguntas" },
+] as const;
+
+const IDS_HITO = new Set(HITOS.map((h) => h.id as string));
+
+export function rutaDeHito(id: string): string {
+  return `/hasta/${id}`;
+}
+
+export function esRutaDeHito(ruta: string): boolean {
+  return ruta.startsWith("/hasta/") && IDS_HITO.has(ruta.slice(7));
+}
+
 export function rutaDeAccion(a: string): string {
   return `/clic/${a}`;
 }

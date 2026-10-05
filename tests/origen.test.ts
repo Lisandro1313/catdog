@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deDeLaRuta, esRutaDeAccion, etiquetaDe, limpiarDe, rutaContada, rutaDeAccion } from "../src/lib/origen";
+import { HITOS, deDeLaRuta, esRutaDeAccion, esRutaDeHito, etiquetaDe, limpiarDe, rutaContada, rutaDeAccion, rutaDeHito } from "../src/lib/origen";
 
 /**
  * De dónde llega la gente. Lo que se cuenta acá es lo que después decide si Instagram sirve o no,
@@ -63,5 +63,35 @@ describe("las acciones", () => {
   it("una acción inventada no se cuenta", () => {
     expect(esRutaDeAccion("/clic/cualquiera")).toBe(false);
     expect(esRutaDeAccion("/")).toBe(false);
+  });
+});
+
+/**
+ * El recorrido: hasta dónde baja la gente. Lo que importa es que no se cuele cualquier cosa, porque
+ * el nombre de la sección lo manda el navegador, y que los hitos sigan existiendo en la página.
+ */
+describe("los hitos del recorrido", () => {
+  it("van con su prefijo y vuelven", () => {
+    expect(rutaDeHito("la-carta")).toBe("/hasta/la-carta");
+    expect(esRutaDeHito("/hasta/la-carta")).toBe(true);
+  });
+
+  it("una sección inventada no se cuenta", () => {
+    expect(esRutaDeHito("/hasta/cualquiera")).toBe(false);
+    expect(esRutaDeHito("/hasta/")).toBe(false);
+    expect(esRutaDeHito("/la-carta")).toBe(false);
+    expect(esRutaDeHito("/clic/wa")).toBe(false);
+  });
+
+  it("no se pisa con las acciones ni con las rutas de verdad", () => {
+    for (const h of HITOS) {
+      expect(esRutaDeAccion(rutaDeHito(h.id))).toBe(false);
+      expect(deDeLaRuta(rutaDeHito(h.id))).toBe("");
+    }
+  });
+
+  it("cada hito tiene nombre y ninguno se repite", () => {
+    expect(new Set(HITOS.map((h) => h.id)).size).toBe(HITOS.length);
+    expect(HITOS.every((h) => h.label.length > 0)).toBe(true);
   });
 });

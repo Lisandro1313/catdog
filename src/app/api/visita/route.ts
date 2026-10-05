@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { allowRequest } from "@/lib/rate-limit";
 import { argentinaDay } from "@/lib/dates";
-import { deDeLaRuta, esRutaDeAccion } from "@/lib/origen";
+import { deDeLaRuta, esRutaDeAccion, esRutaDeHito } from "@/lib/origen";
 
 /**
  * Rutas que se cuentan (las que llevan TrackVisit o el embudo de la reserva). Cualquier otra se ignora.
@@ -15,7 +15,7 @@ const KNOWN = new Set(["/", "/fechas", "/hoy", "/hoy/jugar", "/reservar", "/even
  * de los que se miden. Cualquier otra cosa se ignora: el cuerpo lo escribe el navegador.
  */
 function aceptada(ruta: string): boolean {
-  if (esRutaDeAccion(ruta)) return true;
+  if (esRutaDeAccion(ruta) || esRutaDeHito(ruta)) return true;
   const de = deDeLaRuta(ruta);
   if (!de) return KNOWN.has(ruta);
   return KNOWN.has(ruta.slice(0, ruta.indexOf("?de=")));
@@ -33,8 +33,9 @@ export async function POST(req: NextRequest) {
   }
   // No contamos las visitas del panel ni las del entorno local (la base es la misma que en producción).
   if (path.startsWith("/admin") || process.env.NODE_ENV !== "production") return NextResponse.json({ ok: true });
-  // Un contador, no una métrica: con 60 por IP cada 15 minutos alcanza y no se infla desde un script.
-  if (!(await allowRequest("visita", 60))) return NextResponse.json({ ok: true });
+  // Un contador, no una métrica. El recorrido manda hasta nueve avisos más por persona, así que el
+  // límite sube: con 200 por IP cada 15 minutos sigue sin poder inflarse desde un script.
+  if (!(await allowRequest("visita", 200))) return NextResponse.json({ ok: true });
 
   const day = argentinaDay();
   await prisma.pageView.upsert({

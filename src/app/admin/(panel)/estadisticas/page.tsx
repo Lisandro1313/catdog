@@ -12,6 +12,7 @@ import { getMatriz } from "@/lib/matriz-db";
 import { sinRomper } from "@/lib/sin-romper";
 import { LUGAR_LABEL, LUGAR_QUE_HACER, resumenMatriz, type Lugar } from "@/lib/matriz";
 import { DeDondeViene } from "@/components/admin/DeDondeViene";
+import { Recorrido } from "@/components/admin/Recorrido";
 import { avisadosPorOrigen } from "@/lib/avisos";
 
 export const dynamic = "force-dynamic";
@@ -235,7 +236,7 @@ export default async function EstadisticasPage() {
         })()}
         {visits.byPath.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-2 text-xs">
-            {visits.byPath.filter((p) => !p.path.includes("?de=") && !p.path.startsWith("/clic/")).map((p) => (
+            {visits.byPath.filter((p) => !p.path.includes("?de=") && !p.path.startsWith("/clic/") && !p.path.startsWith("/hasta/")).map((p) => (
               <li key={p.path} className="rounded-full border border-line px-3 py-1 text-muted">
                 {p.path === "/reservar" ? (
                   <span>intentos de reserva</span>
@@ -252,6 +253,8 @@ export default async function EstadisticasPage() {
       </section>
 
       <DeDondeViene url={siteUrl()} visitas={visits.byPath} avisados={avisados} />
+
+      <Recorrido visitas={visits.byPath} />
 
       {/* Plata */}
       <section className="card p-6">
