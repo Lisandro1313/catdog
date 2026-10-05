@@ -33,6 +33,7 @@ import { getBarra, getExcepcion } from "@/lib/barra";
 import { getConfigEventos } from "@/lib/eventos-privados";
 import { BarraHero, CartaBarra, HechoEnLaCasa, LaSemana, TuEvento } from "@/components/home/BarraHero";
 import { getConfigProductos } from "@/lib/productos";
+import { getTemas } from "@/lib/foro";
 import { Brasas } from "@/components/home/Brasas";
 import { AvisameForm } from "@/components/AvisameForm";
 import { EstadoCasa } from "@/components/home/EstadoCasa";
@@ -160,6 +161,8 @@ export default async function HomePage() {
   // Qué días y a qué hora abre, leídos del texto que se carga en Ajustes. Con eso sale el cartel
   // de "abierto ahora" y el horario que publicamos para Google, sin cargar lo mismo dos veces.
   const excepcion = modoBarra ? await getExcepcion() : null;
+  // Los dos últimos temas, para que el bloque de la sobremesa muestre de qué se está hablando.
+  const temas = (await getTemas(null, 2)).slice(0, 2);
   const diasAbre = diasQueAbre(barra.dias);
   const horaAbre = horaDeApertura(barra.horario) ?? 20;
   const estadoInicial = textoDeEstado(estadoAhora(diasAbre, horaAbre, new Date(), excepcion));
@@ -706,9 +709,31 @@ export default async function HomePage() {
                 La charla no termina cuando se levantan los platos. Un lugar para seguir un tema de la mesa, pedir la receta de
                 algo, recomendar un disco o tirar una idea para la próxima.
               </p>
+
+              {temas.length > 0 && (
+                <ul className="mx-auto mt-7 grid max-w-md gap-2 text-left">
+                  {temas.map((t) => (
+                    <li key={t.id}>
+                      <Link
+                        href={`/sobremesa/${t.id}`}
+                        className="block rounded-xl border border-line px-4 py-3 transition-colors hover:border-accent/50"
+                      >
+                        <p className="font-display text-base leading-snug">{t.title}</p>
+                        <p className="mt-1 text-xs text-muted">
+                          {t.fromHouse ? <span className="text-accent">La casa</span> : t.author}
+                          {t.respuestas > 0
+                            ? ` · ${t.respuestas} ${t.respuestas === 1 ? "respuesta" : "respuestas"}`
+                            : " · sin respuestas todavía"}
+                        </p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
               <p className="mt-6">
                 <Link className="btn btn-ghost" href="/sobremesa">
-                  Entrar a la sobremesa
+                  {temas.length > 0 ? "Ver toda la sobremesa" : "Entrar a la sobremesa"}
                 </Link>
               </p>
             </div>

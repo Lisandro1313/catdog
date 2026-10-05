@@ -5,6 +5,9 @@ import { readForoKey } from "@/lib/device";
 import { getTemas } from "@/lib/foro";
 import { NuevoTema } from "@/components/foro/NuevoTema";
 import { TrackVisit } from "@/components/TrackVisit";
+import { MedirClics } from "@/components/MedirClics";
+import { InstagramLink } from "@/components/InstagramLink";
+import { getInstagram } from "@/lib/photos";
 import { desde } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +21,12 @@ export const metadata: Metadata = {
 
 export default async function SobremesaPage() {
   const key = await readForoKey();
-  const temas = await getTemas(key);
+  const [temas, instagram] = await Promise.all([getTemas(key), getInstagram()]);
 
   return (
     <div className="ap mx-auto w-full max-w-2xl px-6 py-14 sm:py-20">
       <TrackVisit path="/sobremesa" />
+      <MedirClics />
 
       <div className="text-center">
         <p className="ap-eyebrow">{SITE_NAME}</p>
@@ -50,8 +54,10 @@ export default async function SobremesaPage() {
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{t.text}</p>
                 <p className="mt-3 text-xs text-muted">
-                  {t.fromHouse ? <span className="text-accent">La casa</span> : t.author} · {desde(t.createdAt)}
-                  {t.respuestas > 0 && ` · ${t.respuestas} ${t.respuestas === 1 ? "respuesta" : "respuestas"}`}
+                  {t.fromHouse ? <span className="text-accent">La casa</span> : t.author}
+                  {t.respuestas > 0
+                    ? ` · ${t.respuestas} ${t.respuestas === 1 ? "respuesta" : "respuestas"} · última ${desde(t.lastAt)}`
+                    : ` · ${desde(t.createdAt)}`}
                   {t.eventTitle && ` · ${t.eventTitle}`}
                 </p>
               </Link>
@@ -60,9 +66,14 @@ export default async function SobremesaPage() {
         </ol>
       )}
 
-      <p className="mt-10 text-center text-xs text-muted">
-        Escribe cualquiera, sin cuenta ni contraseña: va con el nombre que pongas. La casa puede ocultar lo que no
-        corresponda. <Link href="/" className="text-accent">Volver al inicio</Link>
+      <p className="mt-10 text-center text-xs leading-relaxed text-muted">
+        Escribe cualquiera, sin cuenta ni contraseña: va con el nombre que pongas. La casa puede ocultar lo que no corresponda.
+      </p>
+      <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted">
+        <Link href="/" className="text-accent">
+          Volver al inicio
+        </Link>
+        <InstagramLink handle={instagram} />
       </p>
     </div>
   );
