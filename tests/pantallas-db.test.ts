@@ -108,6 +108,17 @@ describe.skipIf(!url)("las pantallas del panel traen sus datos", { timeout: 6000
     expect(Array.isArray(ultimos)).toBe(true);
   });
 
+  it("Productos de la casa, con sus pedidos", async () => {
+    const { getConfigProductos, getPedidosProductos, demandaPorProducto } = await import("../src/lib/productos");
+    const [config, pedidos] = await Promise.all([getConfigProductos(), getPedidosProductos()]);
+    expect(Array.isArray(config.productos)).toBe(true);
+    expect(Array.isArray(pedidos)).toBe(true);
+    // La demanda es lo que dice cuánto producir: tiene que salir de los pedidos sin romperse.
+    const demanda = demandaPorProducto(pedidos);
+    expect(demanda instanceof Map).toBe(true);
+    for (const [, d] of demanda) expect(d.unidades).toBeGreaterThan(0);
+  });
+
   it("El día suelto que se abre a mano", async () => {
     const { getBarra, getExcepcion } = await import("../src/lib/barra");
     const [barra, exc] = await Promise.all([getBarra(), getExcepcion()]);
