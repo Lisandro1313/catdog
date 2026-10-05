@@ -47,9 +47,9 @@ const ROUND = ["Semifinal 1", "Semifinal 2", "Final"];
 
 const NAME_KEY = "catdog:jugar:nombre";
 
-type Props = { photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records; whatsapp: string | null };
+type Props = { photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records; whatsapp: string | null; /** Si esta noche hay una cena de pasos: cambia a donde vuelve el link de arriba. */ conCena?: boolean };
 
-export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, whatsapp }: Props) {
+export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, whatsapp, conCena = false }: Props) {
   const [view, setViewRaw] = useState<View>("hub");
   const pushed = useRef(0);
   /** Entrar a un juego deja una entrada en el historial: "atrás" vuelve al hub en vez de salir. */
@@ -529,8 +529,8 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
   return (
     <div className="jg-stage">
       <div className="flex items-center justify-between text-xs text-muted">
-        <Link href="/hoy" className="hover:text-ink">
-          ← Puertas adentro
+        <Link href={conCena ? "/hoy" : "/"} className="hover:text-ink">
+          ← {conCena ? "Puertas adentro" : "La casa"}
         </Link>
         <Link href="/sobremesa" className="hover:text-ink">
           La sobremesa →
@@ -538,7 +538,8 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
       </div>
       <h1 className="ap-display mt-6 text-4xl">Para la espera</h1>
       <p className="mt-3 text-sm leading-relaxed text-muted">
-        Once juegos, ninguno obligatorio. Si la noche de la cena llegás a la marca en {PREMIO_MINIMO} de los {GAMES.length}, la casa te invita un trago. Es difícil a propósito.
+        Once juegos, ninguno obligatorio. Si llegás a la marca en {PREMIO_MINIMO} de los {GAMES.length}, la casa te invita un trago.
+        Es difícil a propósito.
       </p>
 
       <div className="mt-6 flex items-center justify-between gap-3">

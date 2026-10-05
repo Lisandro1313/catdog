@@ -940,9 +940,12 @@ export default async function HomePage() {
           <Link href="/hoy/jugar" className="hover:text-ink">
             Juegos de la mesa
           </Link>
-          <Link href="/hoy/demo" className="hover:text-ink">
-            Puertas adentro
-          </Link>
+          {/* Puertas adentro es el juego de una cena de pasos: con la casa abierta no hay. */}
+          {!modoBarra && (
+            <Link href="/hoy/demo" className="hover:text-ink">
+              Puertas adentro
+            </Link>
+          )}
         </p>
         {contactEmail() && (
           <p className="mt-3">

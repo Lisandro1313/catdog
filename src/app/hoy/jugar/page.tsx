@@ -36,9 +36,11 @@ export default async function JugarPage({ searchParams }: { searchParams: Promis
   }
 
   const deviceKey = await readDeviceKey();
+  // La cena de esta noche, si la hay: decide a dónde vuelve el link de arriba.
+  const tonight = await getTonightEvent();
   const [photos, event, marcasIniciales, records] = await Promise.all([
     getPhotos(),
-    getTonightEvent().then((t) => t ?? getDemoEvent()),
+    Promise.resolve(tonight).then((t) => t ?? getDemoEvent()),
     deviceKey ? getMarcas(deviceKey) : Promise.resolve<Marcas>({}),
     getRecords(),
   ]);
@@ -71,7 +73,7 @@ export default async function JugarPage({ searchParams }: { searchParams: Promis
           </a>
         </p>
       )}
-      <JugarHub photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} />
+      <JugarHub photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} conCena={Boolean(tonight)} />
     </>
   );
 }

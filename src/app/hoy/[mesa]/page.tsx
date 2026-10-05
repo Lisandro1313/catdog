@@ -6,6 +6,8 @@ import { parseBar, parseMenu } from "@/lib/menu";
 import { getUpcomingEvents } from "@/lib/reservations";
 import { isAdmin } from "@/lib/admin-auth";
 import { buildActs, gameReady, getDemoEvent, getTonightEvent, isHoyOff, publicActs } from "@/lib/hoy";
+import { getBarra } from "@/lib/barra";
+import { redirect } from "next/navigation";
 import { HoyClient } from "@/components/hoy/HoyClient";
 import { voteOptions } from "@/lib/vivo";
 import { TrackVisit } from "@/components/TrackVisit";
@@ -32,12 +34,16 @@ export default async function HoyPage({ params, searchParams }: Props) {
   const off = await isHoyOff();
 
   const tonight = await getTonightEvent();
+  const admin = await isAdmin();
+  // Con la casa abierta y sin cena esta noche, no hay nada "puertas adentro" que mostrar: la última
+  // cena publicada no es la de hoy. La casa puede seguir mirándola para probar.
+  if (!tonight && !admin && (await getBarra()).activa) redirect("/hoy/jugar");
+
   let event = tonight;
   let exampleSecrets = false;
   if (demo || (!tonight && !off)) {
     const wanted = typeof sp.e === "string" ? sp.e : null;
     // El mismo criterio que guessAction: el admin ve los secretos reales; cualquier otro, ejemplos.
-    const admin = await isAdmin();
     const candidate = await getDemoEvent(admin ? wanted : null);
     if (candidate) {
       // Fuera de la noche real, un invitado nunca ve secretos de una cena futura: se juega con ejemplos.
