@@ -1,47 +1,76 @@
 /**
  * El rescoldo de abajo y las chispas que suben.
  *
- * Estaba escrito adentro del afiche de las cenas, así que con la casa abierta no se veía: el otro
- * afiche es otro bloque. Acá vive una sola vez y lo usan los dos.
+ * Vive acá una sola vez y lo usan los dos afiches (la casa abierta y las cenas).
  *
- * Cada chispa lleva su posición, tamaño, demora y deriva propias para que no se note el patrón.
+ * Las posiciones salen de un generador con semilla fija, no de Math.random: el servidor y el
+ * navegador tienen que dibujar exactamente lo mismo o React se queja de que no coinciden. Con la
+ * semilla fija también se puede volver a una composición que gustó.
+ *
+ * Son dos capas, como un fuego de verdad: las chispas (muchas, chicas y rápidas, que nacen del
+ * rescoldo) y las pavesas (pocas, grandes y lentas, que flotan más arriba y dan profundidad).
  * Todo con transform y opacity, que son las dos cosas que el navegador anima sin repintar.
  */
-const CHISPAS = [
-  { x: "4%", tam: "3px", demora: "0s", dura: "11s", deriva: "18px" },
-  { x: "9%", tam: "5px", demora: "6.5s", dura: "9s", deriva: "26px" },
-  { x: "14%", tam: "2px", demora: "3.2s", dura: "16s", deriva: "-14px" },
-  { x: "19%", tam: "3px", demora: "9.8s", dura: "12s", deriva: "12px" },
-  { x: "24%", tam: "5px", demora: "5.1s", dura: "9.5s", deriva: "24px" },
-  { x: "29%", tam: "2px", demora: "12.4s", dura: "15s", deriva: "-22px" },
-  { x: "33%", tam: "3px", demora: "1.3s", dura: "13s", deriva: "-20px" },
-  { x: "38%", tam: "4px", demora: "7.9s", dura: "10s", deriva: "16px" },
-  { x: "43%", tam: "2px", demora: "4.6s", dura: "17s", deriva: "-28px" },
-  { x: "47%", tam: "3px", demora: "10.7s", dura: "11s", deriva: "14px" },
-  { x: "52%", tam: "5px", demora: "2.4s", dura: "8.5s", deriva: "22px" },
-  { x: "57%", tam: "2px", demora: "8.1s", dura: "14s", deriva: "-16px" },
-  { x: "61%", tam: "3px", demora: "13.6s", dura: "12.5s", deriva: "20px" },
-  { x: "66%", tam: "4px", demora: "0.9s", dura: "10.5s", deriva: "-24px" },
-  { x: "70%", tam: "2px", demora: "6.2s", dura: "16.5s", deriva: "10px" },
-  { x: "75%", tam: "5px", demora: "11.3s", dura: "9s", deriva: "28px" },
-  { x: "79%", tam: "3px", demora: "3.7s", dura: "13.5s", deriva: "-18px" },
-  { x: "84%", tam: "2px", demora: "14.9s", dura: "15.5s", deriva: "16px" },
-  { x: "88%", tam: "4px", demora: "5.8s", dura: "10s", deriva: "-26px" },
-  { x: "92%", tam: "3px", demora: "9.1s", dura: "12s", deriva: "24px" },
-  { x: "96%", tam: "2px", demora: "2.8s", dura: "17.5s", deriva: "-12px" },
-  /* Tres bien chiquitas y lentas: las que parecen estar más lejos, atrás del fuego. */
-  { x: "21%", tam: "2px", demora: "15.7s", dura: "19s", deriva: "8px" },
-  { x: "55%", tam: "2px", demora: "17.2s", dura: "20s", deriva: "-9px" },
-  { x: "83%", tam: "2px", demora: "16.4s", dura: "18.5s", deriva: "11px" },
-];
+
+/** Generador con semilla: siempre la misma secuencia, en el servidor y en el navegador. */
+function dado(semilla: number) {
+  let s = semilla;
+  return (min: number, max: number) => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return min + (s / 4294967296) * (max - min);
+  };
+}
+
+const r = dado(20261005);
+const n2 = (x: number) => Math.round(x * 100) / 100;
+
+/**
+ * Las chispas se amontonan abajo y se van espaciando hacia los costados, que es donde está el
+ * rescoldo: repartidas parejo parecían una lluvia de estrellas, no un fuego.
+ */
+const CHISPAS = Array.from({ length: 42 }, (_, i) => {
+  // Un poco de sesgo al centro, donde está la panza de calor.
+  const centro = (i % 2 === 0 ? 1 : -1) * Math.pow(r(0, 1), 1.7) * 50;
+  return {
+    x: `${n2(50 + centro)}%`,
+    tam: `${Math.round(r(2, 6))}px`,
+    demora: `${n2(r(0, 18))}s`,
+    dura: `${n2(r(8, 17))}s`,
+    deriva: `${Math.round(r(-34, 34))}px`,
+  };
+});
+
+/** Las pavesas: grandes, lentas y desenfocadas. Son las que se ven aunque no mires. */
+const PAVESAS = Array.from({ length: 7 }, () => ({
+  x: `${n2(r(8, 92))}%`,
+  tam: `${Math.round(r(7, 12))}px`,
+  demora: `${n2(r(0, 24))}s`,
+  dura: `${n2(r(19, 30))}s`,
+  deriva: `${Math.round(r(-60, 60))}px`,
+}));
 
 export function Brasas() {
   return (
     <div className="ap-brasas" aria-hidden="true">
       {CHISPAS.map((c, i) => (
         <span
-          key={i}
+          key={`c${i}`}
           className="ap-chispa"
+          style={
+            {
+              "--x": c.x,
+              "--tam": c.tam,
+              "--demora": c.demora,
+              "--dura": c.dura,
+              "--deriva": c.deriva,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+      {PAVESAS.map((c, i) => (
+        <span
+          key={`p${i}`}
+          className="ap-chispa ap-pavesa"
           style={
             {
               "--x": c.x,

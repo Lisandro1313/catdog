@@ -2944,12 +2944,13 @@ details.faq > summary::-webkit-details-marker {
   right: -10%;
   /* Pegado al borde de abajo: antes estaba a -18% y quedaba casi todo fuera de la pantalla. */
   bottom: 0;
-  height: 38%;
+  height: 52%;
   background:
-    radial-gradient(ellipse 40% 95% at 28% 100%, rgba(232, 97, 60, 0.62), transparent 68%),
-    radial-gradient(ellipse 50% 95% at 66% 100%, rgba(255, 140, 66, 0.55), transparent 70%),
-    radial-gradient(ellipse 85% 90% at 50% 100%, rgba(201, 169, 110, 0.34), transparent 76%);
-  filter: blur(10px);
+    radial-gradient(ellipse 38% 92% at 26% 100%, rgba(232, 97, 60, 0.78), transparent 66%),
+    radial-gradient(ellipse 46% 92% at 64% 100%, rgba(255, 140, 66, 0.7), transparent 68%),
+    radial-gradient(ellipse 30% 70% at 46% 100%, rgba(255, 196, 120, 0.5), transparent 64%),
+    radial-gradient(ellipse 92% 88% at 50% 100%, rgba(201, 169, 110, 0.42), transparent 74%);
+  filter: blur(12px);
   animation: ap-rescoldo 7s ease-in-out infinite alternate;
 }
 
@@ -2986,8 +2987,10 @@ details.faq > summary::-webkit-details-marker {
   width: var(--tam);
   height: var(--tam);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 228, 186, 1), rgba(255, 150, 70, 0.85) 42%, rgba(232, 97, 60, 0) 70%);
-  box-shadow: 0 0 6px rgba(255, 150, 70, 0.55);
+  background: radial-gradient(circle, rgba(255, 240, 214, 1), rgba(255, 160, 80, 0.92) 40%, rgba(232, 97, 60, 0) 72%);
+  box-shadow:
+    0 0 10px rgba(255, 160, 80, 0.8),
+    0 0 22px rgba(232, 97, 60, 0.45);
   opacity: 0;
   animation: ap-chispa var(--dura) linear var(--demora) infinite;
   will-change: transform, opacity;
@@ -2999,15 +3002,43 @@ details.faq > summary::-webkit-details-marker {
     transform: translate3d(0, 0, 0) scale(0.7);
   }
   12% {
-    opacity: 0.9;
+    opacity: 1;
   }
   70% {
-    opacity: 0.5;
+    opacity: 0.62;
   }
   100% {
     /* Sube toda la altura del afiche y deriva de costado, como el aire caliente. */
     opacity: 0;
     transform: translate3d(var(--deriva), -75vh, 0) scale(1.15);
+  }
+}
+
+/* Las pavesas: grandes, lentas y desenfocadas, para que el fuego tenga profundidad y no sea
+   una sola capa de puntitos parejos. */
+.ap-pavesa {
+  filter: blur(2.5px);
+  opacity: 0;
+  box-shadow:
+    0 0 20px rgba(255, 160, 80, 0.6),
+    0 0 44px rgba(232, 97, 60, 0.3);
+  animation-name: ap-pavesa;
+}
+
+@keyframes ap-pavesa {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6);
+  }
+  18% {
+    opacity: 0.75;
+  }
+  75% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--deriva), -92vh, 0) scale(1.3);
   }
 }
 
