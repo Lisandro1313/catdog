@@ -46,6 +46,12 @@ export type Barra = {
   direccion: string;
 };
 
+/**
+ * La frase de la casa, la misma de la bio de Instagram: no hay cartel, se llega porque alguien
+ * contó. La dicen el afiche, el texto que se comparte y el título que se ve al pasar el link.
+ */
+export const FRASE_DE_LA_CASA = "Si llegaste hasta acá, alguien te contó.";
+
 /** Cómo se paga. Lo dicen la carta y las preguntas, así que vive en un solo lado. */
 export const FORMAS_DE_PAGO = "efectivo, tarjeta o transferencia";
 

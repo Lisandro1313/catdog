@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FORMAS_DE_PAGO, type Barra } from "@/lib/barra";
+import { FORMAS_DE_PAGO, FRASE_DE_LA_CASA, type Barra } from "@/lib/barra";
 import type { Producto } from "@/lib/caja-rapida-tipos";
 import type { SeccionTragos } from "@/lib/carta-tragos";
 import { SITE_NAME, formatPrice } from "@/lib/config";
@@ -50,7 +50,7 @@ export function BarraHero({
         </h1>
         <hr className="ap-rule-gold mx-auto mt-8 w-40" />
         {/* La frase de la casa, la misma de la bio de Instagram: no hay cartel, se llega porque alguien contó. */}
-        <p className="mt-6 font-display text-xl italic text-accent sm:text-2xl">Si llegaste hasta acá, alguien te contó.</p>
+        <p className="mt-6 font-display text-xl italic text-accent sm:text-2xl">{FRASE_DE_LA_CASA}</p>
 
         {/* La lista de días estaba acá y no es lo que se viene a buscar: el que entra quiere saber
             si está abierto ahora. Los días siguen estando en La semana, en Dónde y en el pie. */}

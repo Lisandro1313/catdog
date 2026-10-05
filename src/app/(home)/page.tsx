@@ -15,6 +15,7 @@ import { WaitlistForm } from "@/components/WaitlistForm";
 import { TrackVisit } from "@/components/TrackVisit";
 import { MedirClics } from "@/components/MedirClics";
 import { MedirRecorrido } from "@/components/MedirRecorrido";
+import { Pasala } from "@/components/home/Pasala";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { StickyCta } from "@/components/StickyCta";
 import { Reveal } from "@/components/Reveal";
@@ -27,7 +28,7 @@ import { barJsonLd, foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
 import { getPaymentConfig } from "@/lib/payment";
-import { FORMAS_DE_PAGO, getBarra, getExcepcion } from "@/lib/barra";
+import { FORMAS_DE_PAGO, FRASE_DE_LA_CASA, getBarra, getExcepcion } from "@/lib/barra";
 import { getConfigEventos } from "@/lib/eventos-privados";
 import { BarraHero, CartaBarra, HechoEnLaCasa, LaSemana, TuEvento } from "@/components/home/BarraHero";
 import { getConfigProductos } from "@/lib/productos";
@@ -56,7 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
   if (barra.activa) {
     const desde = barra.opciones.reduce((min, o) => Math.min(min, o.precio), Infinity);
     // La frase de la casa, como en la bio de Instagram: es lo que se lee cuando alguien pasa el link.
-    const title = `${SITE_NAME} · Si llegaste hasta acá, alguien te contó`;
+    const title = `${SITE_NAME} · ${FRASE_DE_LA_CASA.replace(/.$/u, "")}`;
     const description = `${barra.incluye} Desde ${formatPrice(desde)}, sin reserva. ${barra.dias}, ${barra.horario.toLowerCase()}.`;
     const image = { url: "/opengraph-image?v=barra", width: 1200, height: 630, alt: `${SITE_NAME} en La Plata` };
     return {
@@ -176,6 +177,14 @@ export default async function HomePage() {
   );
   const waEvento = casaWhatsapp("Hola! Los vi en la página, quería preguntar por un evento en la casa.");
   const waPie = casaWhatsapp("Hola! Los vi en la página.");
+  // Lo que se manda cuando alguien pasa la casa. El ?de=wa es lo que después, en Números, separa
+  // al que llegó por el boca a boca del que llegó por lo que publicamos nosotros.
+  const textoParaCompartir = [
+    `${SITE_NAME} · ${FRASE_DE_LA_CASA}`,
+    "",
+    `${barra.dias}, ${barra.horario.toLowerCase()}. Sin reserva.`,
+    `${siteUrl()}/?de=wa`,
+  ].join("\n");
 
   // Algunas preguntas terminan en "escribinos": esas llevan el botón, no sólo el texto.
   type Faq = { q: string; a: string; cta?: { href: string; label: string } | null };
@@ -386,6 +395,9 @@ export default async function HomePage() {
           )}
 
           <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} tragos={SECCIONES_TRAGOS} />
+          {/* El boca a boca es como llegó la mayoría; lo único que falta es hacerlo de un toque. */}
+          <Pasala frase={FRASE_DE_LA_CASA} texto={textoParaCompartir} />
+
           {/* Lo único que queda del que entra, mira la carta y se va. Sin esto, cada semana se
               empieza de cero: no hay a quién avisarle que el jueves se proyecta algo. */}
           <section id="avisame" className="reveal mx-auto w-full max-w-2xl scroll-mt-16 px-6 py-16 sm:py-20">

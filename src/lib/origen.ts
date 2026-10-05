@@ -37,13 +37,14 @@ export function etiquetaDe(clave: string): string {
  * Las cosas que se cuentan además de las visitas: tocar el WhatsApp, pedir cómo llegar.
  * Van con su propio prefijo para que no se mezclen con las rutas de verdad.
  */
-export const ACCIONES = ["wa", "mapa", "instagram"] as const;
+export const ACCIONES = ["wa", "mapa", "instagram", "compartir"] as const;
 export type Accion = (typeof ACCIONES)[number];
 
 export const ACCION_LABEL: Record<Accion, string> = {
   wa: "Tocaron el WhatsApp",
   mapa: "Pidieron cómo llegar",
   instagram: "Fueron al Instagram",
+  compartir: "Pasaron la página",
 };
 
 /**
@@ -59,6 +60,7 @@ export const HITOS = [
   { id: "la-semana", label: "La semana" },
   { id: "fotos-barra", label: "Las fotos" },
   { id: "la-carta", label: "La carta" },
+  { id: "pasala", label: "Pasarla a alguien" },
   { id: "avisame", label: "Dejar el WhatsApp" },
   { id: "productos", label: "Hecho en la casa" },
   { id: "tu-evento", label: "Tu evento" },
