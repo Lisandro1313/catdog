@@ -19,6 +19,8 @@ export type TemaRow = {
   respuestas: number;
   mio: boolean;
   eventTitle: string | null;
+  /** Null en lo que se escribió antes de que existieran: se lee como "Cualquiera". */
+  categoria: string | null;
 };
 
 export type RespuestaRow = {
@@ -38,4 +40,40 @@ export function limpiarNombre(raw: string): string {
 /** El texto tal cual lo escribieron, pero sin saltos de línea de más ni espacios al final. */
 export function limpiarTexto(raw: string, max: number): string {
   return raw.replace(/\r\n/gu, "\n").replace(/\n{3,}/gu, "\n\n").trim().slice(0, max);
+}
+
+/**
+ * Las categorías de la sobremesa.
+ *
+ * Son pocas y las pone la casa: un foro chico donde cada uno inventa su etiqueta termina con
+ * treinta categorías de un tema cada una, que es lo mismo que no tener ninguna. Estas salen de lo
+ * que la gente ya habla en la mesa.
+ *
+ * La clave es lo que se guarda y viaja en el link; el nombre es lo que se lee.
+ */
+export const CATEGORIAS = [
+  { clave: "recetas", nombre: "Recetas" },
+  { clave: "musica", nombre: "Música" },
+  { clave: "carta", nombre: "La carta" },
+  { clave: "noche", nombre: "La noche" },
+  { clave: "cualquiera", nombre: "Cualquiera" },
+] as const;
+
+export type Categoria = (typeof CATEGORIAS)[number]["clave"];
+
+/** La que se usa cuando no eligieron ninguna, y la de todo lo que se escribió antes de que existieran. */
+export const CATEGORIA_POR_DEFECTO: Categoria = "cualquiera";
+
+export function esCategoria(x: string | null | undefined): x is Categoria {
+  return CATEGORIAS.some((c) => c.clave === x);
+}
+
+/** La categoría de un tema, tolerando lo viejo (sin categoría) y lo roto (una clave que ya no existe). */
+export function categoriaDe(raw: string | null | undefined): Categoria {
+  return esCategoria(raw) ? raw : CATEGORIA_POR_DEFECTO;
+}
+
+export function nombreCategoria(clave: string | null | undefined): string {
+  const c = CATEGORIAS.find((x) => x.clave === categoriaDe(clave));
+  return c ? c.nombre : "Cualquiera";
 }

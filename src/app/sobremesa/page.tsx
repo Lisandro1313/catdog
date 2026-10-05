@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SITE_NAME } from "@/lib/config";
 import { readForoKey } from "@/lib/device";
-import { getTemas } from "@/lib/foro";
+import { contarPorCategoria, getTemas } from "@/lib/foro";
+import { CATEGORIAS, esCategoria, nombreCategoria } from "@/lib/foro-tipos";
 import { NuevoTema } from "@/components/foro/NuevoTema";
 import { Novedades } from "@/components/foro/Novedades";
 import { TrackVisit } from "@/components/TrackVisit";
@@ -20,9 +21,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function SobremesaPage() {
+export default async function SobremesaPage({ searchParams }: { searchParams: Promise<{ de?: string }> }) {
   const key = await readForoKey();
-  const [temas, instagram] = await Promise.all([getTemas(key), getInstagram()]);
+  const { de } = await searchParams;
+  const filtro = esCategoria(de) ? de : null;
+  const [temas, instagram, cuentas] = await Promise.all([getTemas(key, 50, filtro), getInstagram(), contarPorCategoria()]);
 
   return (
     <div className="ap mx-auto w-full max-w-2xl px-6 py-14 sm:py-20">
@@ -40,12 +43,26 @@ export default async function SobremesaPage() {
 
       <Novedades temas={temas.map((t) => ({ id: t.id, ultima: t.lastAt.toISOString() }))} />
 
+      {/* Los filtros son links y no botones: se pueden compartir y el botón de atrás funciona. */}
+      <nav className="mt-7 flex flex-wrap justify-center gap-1.5" aria-label="Categorías">
+        <Link href="/sobremesa" className={`cat-chip ${filtro === null ? "is-on" : ""}`}>
+          Todo
+        </Link>
+        {CATEGORIAS.filter((c) => (cuentas.get(c.clave) ?? 0) > 0).map((c) => (
+          <Link key={c.clave} href={`/sobremesa?de=${c.clave}`} className={`cat-chip ${filtro === c.clave ? "is-on" : ""}`}>
+            {c.nombre} <span className="ml-1 text-xs opacity-70">{cuentas.get(c.clave)}</span>
+          </Link>
+        ))}
+      </nav>
+
       <div className="mt-8">
         <NuevoTema />
       </div>
 
       {temas.length === 0 ? (
-        <p className="card mt-8 p-6 text-center text-sm text-muted">Todavía no hay nada. El primer tema es tuyo.</p>
+        <p className="card mt-8 p-6 text-center text-sm text-muted">
+          {filtro ? "Todavía no hay nada de esto. El primer tema es tuyo." : "Todavía no hay nada. El primer tema es tuyo."}
+        </p>
       ) : (
         <ol className="mt-8 grid gap-3">
           {temas.map((t) => (
@@ -64,6 +81,7 @@ export default async function SobremesaPage() {
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{t.text}</p>
                 <p className="mt-3 text-xs text-muted">
+                  <span className="cat-tag">{nombreCategoria(t.categoria)}</span> ·{" "}
                   {t.fromHouse ? <span className="text-accent">La casa</span> : t.author}
                   {t.respuestas > 0
                     ? ` · ${t.respuestas} ${t.respuestas === 1 ? "respuesta" : "respuestas"} · última ${desde(t.lastAt)}`

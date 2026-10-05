@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, useTransition } from "react";
 import { abrirTemaAction } from "@/app/sobremesa/actions";
-import { MAX_TEXTO, MAX_TITULO } from "@/lib/foro-tipos";
+import { CATEGORIAS, CATEGORIA_POR_DEFECTO, MAX_TEXTO, MAX_TITULO, type Categoria } from "@/lib/foro-tipos";
 import { guardarNombre, leerNombre, subscribeNombre } from "./nombre";
 
 /** Abrir un tema nuevo. El nombre queda guardado en el teléfono para no escribirlo cada vez. */
@@ -14,6 +14,7 @@ export function NuevoTema() {
   const recordado = useSyncExternalStore(subscribeNombre, leerNombre, () => "");
   const [escrito, setEscrito] = useState<string | null>(null);
   const name = escrito ?? recordado;
+  const [categoria, setCategoria] = useState<Categoria>(CATEGORIA_POR_DEFECTO);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [web, setWeb] = useState("");
@@ -24,7 +25,7 @@ export function NuevoTema() {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const r = await abrirTemaAction({ title, text, author: name, web });
+      const r = await abrirTemaAction({ title, text, author: name, web, categoria });
       if (!r.ok) {
         setError(r.error);
         return;
@@ -49,6 +50,22 @@ export function NuevoTema() {
 
   return (
     <form onSubmit={enviar} className="card grid gap-3 p-5">
+      <div>
+        <p className="ap-eyebrow">¿De qué va?</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {CATEGORIAS.map((c) => (
+            <button
+              key={c.clave}
+              type="button"
+              onClick={() => setCategoria(c.clave)}
+              aria-pressed={categoria === c.clave}
+              className={`cat-chip ${categoria === c.clave ? "is-on" : ""}`}
+            >
+              {c.nombre}
+            </button>
+          ))}
+        </div>
+      </div>
       <input
         className="input"
         placeholder="El título (de qué querés hablar)"

@@ -496,10 +496,13 @@ model Tema {
   createdAt  DateTime  @default(now())
   /// Ultima respuesta, para ordenar por lo que se esta hablando.
   lastAt     DateTime  @default(now())
+  /// "recetas" | "musica" | "carta" | "noche" | "cualquiera". Nula en lo escrito antes de que existieran.
+  categoria  String?
 
   respuestas Respuesta[]
 
   @@index([hiddenAt, pinned, lastAt])
+  @@index([categoria, lastAt])
 }
 
 /// Una respuesta dentro de un tema de la sobremesa.

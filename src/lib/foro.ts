@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { borrarReaccionesDe } from "./reacciones";
-import { limpiarNombre, limpiarTexto, MAX_TEXTO, MAX_TITULO, type RespuestaRow, type TemaRow } from "./foro-tipos";
+import { CATEGORIA_POR_DEFECTO, esCategoria, limpiarNombre, limpiarTexto, MAX_TEXTO, MAX_TITULO, type RespuestaRow, type TemaRow } from "./foro-tipos";
 
 export * from "./foro-tipos";
 
@@ -16,9 +16,15 @@ export class ForoError extends Error {}
  * Los temas para mostrar: primero los fijados y después por última actividad.
  * Los ocultos no salen nunca acá (el panel los ve por su cuenta).
  */
-export async function getTemas(deviceKey: string | null, limit = 50): Promise<TemaRow[]> {
+export async function getTemas(deviceKey: string | null, limit = 50, categoria?: string | null): Promise<TemaRow[]> {
+  // "cualquiera" también junta lo viejo, que se guardó sin categoría.
+  const filtro = esCategoria(categoria)
+    ? categoria === "cualquiera"
+      ? { OR: [{ categoria: "cualquiera" }, { categoria: null }] }
+      : { categoria }
+    : {};
   const rows = await prisma.tema.findMany({
-    where: { hiddenAt: null },
+    where: { hiddenAt: null, ...filtro },
     orderBy: [{ pinned: "desc" }, { lastAt: "desc" }],
     take: limit,
     include: {
@@ -38,7 +44,19 @@ export async function getTemas(deviceKey: string | null, limit = 50): Promise<Te
     respuestas: t._count.respuestas,
     mio: Boolean(deviceKey) && t.deviceKey === deviceKey,
     eventTitle: t.event?.title ?? null,
+    categoria: t.categoria,
   }));
+}
+
+/** Cuántos temas hay en cada categoría, para que los filtros muestren su número. */
+export async function contarPorCategoria(): Promise<Map<string, number>> {
+  const filas = await prisma.tema.groupBy({ by: ["categoria"], where: { hiddenAt: null }, _count: { _all: true } });
+  const out = new Map<string, number>();
+  for (const f of filas) {
+    const clave = esCategoria(f.categoria) ? f.categoria : "cualquiera";
+    out.set(clave, (out.get(clave) ?? 0) + f._count._all);
+  }
+  return out;
 }
 
 export async function getTema(id: string, deviceKey: string | null) {
@@ -62,6 +80,7 @@ export async function getTema(id: string, deviceKey: string | null) {
     respuestas: t.respuestas.length,
     mio: Boolean(deviceKey) && t.deviceKey === deviceKey,
     eventTitle: t.event?.title ?? null,
+    categoria: t.categoria,
   };
   const respuestas: RespuestaRow[] = t.respuestas.map((r) => ({
     id: r.id,
@@ -81,6 +100,7 @@ export async function abrirTema(input: {
   deviceKey: string;
   eventId?: string | null;
   fromHouse?: boolean;
+  categoria?: string | null;
 }): Promise<string> {
   const title = limpiarTexto(input.title, MAX_TITULO);
   const text = limpiarTexto(input.text, MAX_TEXTO);
@@ -104,6 +124,8 @@ export async function abrirTema(input: {
       deviceKey: input.deviceKey,
       eventId: input.eventId ?? null,
       fromHouse: input.fromHouse ?? false,
+      // Una categoría inventada no entra: la lista la pone la casa.
+      categoria: esCategoria(input.categoria) ? input.categoria : CATEGORIA_POR_DEFECTO,
     },
   });
   return t.id;

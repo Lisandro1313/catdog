@@ -25,6 +25,7 @@ export type ForoResult = { ok: true; id?: string } | { ok: false; error: string 
 const TEMAS_POR_DIA = 5;
 
 const temaSchema = z.object({
+  categoria: z.string().max(20).optional(),
   title: z.string().max(MAX_TITULO + 50),
   text: z.string().max(MAX_TEXTO + 500),
   author: z.string().max(MAX_NOMBRE + 40),
@@ -57,6 +58,7 @@ export async function abrirTemaAction(input: unknown): Promise<ForoResult> {
       deviceKey: key,
       eventId: tonight?.id ?? null,
       fromHouse: admin,
+      categoria: parsed.data.categoria ?? null,
     });
     revalidatePath("/sobremesa");
     return { ok: true, id };

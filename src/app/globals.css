@@ -3567,3 +3567,35 @@ details.faq > summary::-webkit-details-marker {
   padding: 0 0.7rem;
   color: var(--muted);
 }
+
+/* Las fichas de categoría de la sobremesa: para elegir al escribir y para filtrar la lista. */
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.cat-chip:hover {
+  border-color: rgba(201, 169, 110, 0.5);
+}
+.cat-chip.is-on {
+  border-color: rgba(201, 169, 110, 0.75);
+  background: rgba(201, 169, 110, 0.14);
+  color: var(--text);
+}
+/* La que lleva cada tema en la lista: se lee, no se toca. */
+.cat-tag {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
