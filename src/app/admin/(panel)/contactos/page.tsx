@@ -3,6 +3,10 @@ import { formatPhone, whatsappUrl } from "@/lib/config";
 import Link from "next/link";
 import { getContacts } from "@/lib/admin-stats";
 import { getAvisados } from "@/lib/avisos";
+import { getBarra, getExcepcion, parseOpciones } from "@/lib/barra";
+import { siteUrl } from "@/lib/config";
+import { mensajeSemanal } from "@/lib/aviso-semanal";
+import { AvisoSemanal } from "@/components/admin/AvisoSemanal";
 import { bajaAvisoAction } from "../../actions";
 import { CopyButton } from "@/components/CopyButton";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
@@ -10,7 +14,17 @@ import { formatPrice } from "@/lib/config";
 import { formatShort } from "@/lib/dates";
 
 export default async function ContactsPage() {
-  const [contacts, avisados] = await Promise.all([getContacts(), getAvisados()]);
+  const [contacts, avisados, barra, excepcion] = await Promise.all([getContacts(), getAvisados(), getBarra(), getExcepcion()]);
+  // El precio de entrada sale de lo más barato de la casa, igual que en el flyer.
+  const precios = parseOpciones(barra.opciones.map((o) => `${o.que} | ${o.precio}`).join("\n")).map((o) => o.precio);
+  const mensaje = mensajeSemanal({
+    dias: barra.dias,
+    horario: barra.horario,
+    hoy: barra.hoy,
+    desde: precios.length > 0 ? Math.min(...precios) : 0,
+    excepcion,
+    sitio: siteUrl(),
+  });
   const habitues = contacts.filter((c) => c.dinners >= 2);
   const DAY = 24 * 60 * 60 * 1000;
   const since = (d: Date) => {
@@ -71,6 +85,8 @@ export default async function ContactsPage() {
             ))}
           </ul>
         )}
+
+        {avisados.length > 0 && <AvisoSemanal inicial={mensaje} cuantos={avisados.length} />}
       </section>
 
       <section className="card p-6">

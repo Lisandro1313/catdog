@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FORMAS_DE_PAGO, FRASE_DE_LA_CASA, type Barra } from "@/lib/barra";
+import type { Barra } from "@/lib/barra";
 import type { Producto } from "@/lib/caja-rapida-tipos";
 import type { SeccionTragos } from "@/lib/carta-tragos";
-import { SITE_NAME, formatPrice } from "@/lib/config";
+import { FORMAS_DE_PAGO, FRASE_DE_LA_CASA, SITE_NAME, formatPrice } from "@/lib/config";
 import { Brasas } from "./Brasas";
 
 /**

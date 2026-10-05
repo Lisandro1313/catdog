@@ -1,8 +1,8 @@
 import { ImageResponse } from "next/og";
-import { SITE_NAME, formatPrice } from "@/lib/config";
+import { FRASE_DE_LA_CASA, SITE_NAME, formatPrice } from "@/lib/config";
 import { formatDayNumber, formatMonth, formatTime, formatWeekday } from "@/lib/dates";
 import { getUpcomingEvents } from "@/lib/reservations";
-import { FRASE_DE_LA_CASA, getBarra } from "@/lib/barra";
+import { getBarra } from "@/lib/barra";
 
 /**
  * La imagen que muestra WhatsApp e Instagram al compartir el link.
