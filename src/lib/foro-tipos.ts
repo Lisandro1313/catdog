@@ -21,7 +21,23 @@ export type TemaRow = {
   eventTitle: string | null;
   /** Null en lo que se escribió antes de que existieran: se lee como "Cualquiera". */
   categoria: string | null;
+  /** Las reacciones que juntó, sumando las de sus respuestas: los puntos del tema. */
+  puntos: number;
 };
+
+/** Las tres formas de mirar la lista. La de siempre es "lo último", que es lo que trae de vuelta. */
+export const ORDENES = [
+  { clave: "ultimo", nombre: "Lo último" },
+  { clave: "hablado", nombre: "Lo más hablado" },
+  { clave: "votado", nombre: "Lo más votado" },
+] as const;
+
+export type Orden = (typeof ORDENES)[number]["clave"];
+export const ORDEN_POR_DEFECTO: Orden = "ultimo";
+
+export function esOrden(x: string | null | undefined): x is Orden {
+  return ORDENES.some((o) => o.clave === x);
+}
 
 export type RespuestaRow = {
   id: string;

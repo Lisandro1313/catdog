@@ -5,6 +5,7 @@ import { SITE_NAME } from "@/lib/config";
 import { desde } from "@/lib/dates";
 import { readForoKey } from "@/lib/device";
 import { getTema } from "@/lib/foro";
+import { nombreCategoria } from "@/lib/foro-tipos";
 import { BorrarMio, Responder } from "@/components/foro/Responder";
 import { Reacciones } from "@/components/foro/Reacciones";
 import { conteosDe } from "@/lib/reacciones";
@@ -30,18 +31,29 @@ export default async function TemaPage({ params }: { params: Promise<{ id: strin
   ]);
 
   return (
-    <div className="ap mx-auto w-full max-w-2xl px-6 py-14 sm:py-20">
+    <div className="ap mx-auto w-full max-w-2xl px-4 py-10 sm:px-6 sm:py-16">
       <Link href="/sobremesa" className="text-xs tracking-[0.2em] uppercase text-muted hover:text-ink">
         ← La sobremesa
       </Link>
 
-      <article className="card mt-5 p-6">
-        <h1 className="font-display text-2xl sm:text-3xl">{tema.title}</h1>
-        <p className="mt-2 text-xs text-muted">
-          {tema.fromHouse ? <span className="text-accent">La casa</span> : tema.author} · {desde(tema.createdAt)}
-          {tema.eventTitle && ` · ${tema.eventTitle}`}
+      <article className="hilo-op mt-5">
+        <p className="foro-meta">
+          <Link href={`/sobremesa?de=${tema.categoria ?? "cualquiera"}`} className="cat-tag hover:underline">
+            {nombreCategoria(tema.categoria)}
+          </Link>
+          <span aria-hidden="true">·</span>
+          <span>{tema.fromHouse ? <span className="text-accent">La casa</span> : tema.author}</span>
+          <span aria-hidden="true">·</span>
+          <span>{desde(tema.createdAt)}</span>
+          {tema.eventTitle && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{tema.eventTitle}</span>
+            </>
+          )}
         </p>
-        <p className="mt-4 whitespace-pre-line leading-relaxed">{tema.text}</p>
+        <h1 className="mt-2 font-display text-2xl leading-snug sm:text-3xl">{tema.title}</h1>
+        <p className="mt-3 whitespace-pre-line leading-relaxed">{tema.text}</p>
         <Reacciones sobre="tema" objetoId={tema.id} temaId={tema.id} inicial={delTema.get(tema.id) ?? []} />
         {tema.mio && (
           <p className="mt-4">
@@ -50,19 +62,23 @@ export default async function TemaPage({ params }: { params: Promise<{ id: strin
         )}
       </article>
 
-      <section className="mt-8">
+      <section className="mt-7">
         <p className="ap-eyebrow">
           {respuestas.length === 0
             ? "Todavía nadie contestó"
             : `${respuestas.length} ${respuestas.length === 1 ? "respuesta" : "respuestas"}`}
         </p>
-        <ol className="mt-3 grid gap-3">
+        {/* Cuelgan de una línea a la izquierda, como cualquier hilo: se ve de un vistazo dónde
+            termina el tema y dónde empieza la charla. */}
+        <ol className="hilo mt-3">
           {respuestas.map((r) => (
-            <li key={r.id} className="card p-5">
-              <p className="text-xs text-muted">
-                {r.fromHouse ? <span className="text-accent">La casa</span> : r.author} · {desde(r.createdAt)}
+            <li key={r.id}>
+              <p className="foro-meta">
+                <span>{r.fromHouse ? <span className="text-accent">La casa</span> : r.author}</span>
+                <span aria-hidden="true">·</span>
+                <span>{desde(r.createdAt)}</span>
               </p>
-              <p className="mt-2 whitespace-pre-line leading-relaxed">{r.text}</p>
+              <p className="mt-1.5 whitespace-pre-line leading-relaxed">{r.text}</p>
               <Reacciones sobre="respuesta" objetoId={r.id} temaId={tema.id} inicial={deLasRespuestas.get(r.id) ?? []} />
               {r.mio && (
                 <p className="mt-3">

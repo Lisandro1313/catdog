@@ -16,7 +16,12 @@ export class ForoError extends Error {}
  * Los temas para mostrar: primero los fijados y después por última actividad.
  * Los ocultos no salen nunca acá (el panel los ve por su cuenta).
  */
-export async function getTemas(deviceKey: string | null, limit = 50, categoria?: string | null): Promise<TemaRow[]> {
+export async function getTemas(
+  deviceKey: string | null,
+  limit = 50,
+  categoria?: string | null,
+  orden?: string | null,
+): Promise<TemaRow[]> {
   // "cualquiera" también junta lo viejo, que se guardó sin categoría.
   const filtro = esCategoria(categoria)
     ? categoria === "cualquiera"
@@ -30,9 +35,27 @@ export async function getTemas(deviceKey: string | null, limit = 50, categoria?:
     include: {
       event: { select: { title: true } },
       _count: { select: { respuestas: { where: { hiddenAt: null } } } },
+      respuestas: { where: { hiddenAt: null }, select: { id: true } },
     },
   });
-  return rows.map((t) => ({
+
+  // Los puntos de un tema son sus reacciones más las de sus respuestas: una charla donde se aplaude
+  // mucho una respuesta también es una buena charla. Se piden todas de una, no una por tema.
+  const ids = rows.map((t) => t.id);
+  const idsRespuestas = rows.flatMap((t) => t.respuestas.map((r) => r.id));
+  const reacciones =
+    ids.length === 0
+      ? []
+      : await prisma.reaccion.findMany({
+          where: { OR: [{ sobre: "tema", objetoId: { in: ids } }, { sobre: "respuesta", objetoId: { in: idsRespuestas } }] },
+          select: { objetoId: true },
+        });
+  const porObjeto = new Map<string, number>();
+  for (const r of reacciones) porObjeto.set(r.objetoId, (porObjeto.get(r.objetoId) ?? 0) + 1);
+  const puntosDe = (t: (typeof rows)[number]) =>
+    (porObjeto.get(t.id) ?? 0) + t.respuestas.reduce((n, r) => n + (porObjeto.get(r.id) ?? 0), 0);
+
+  const temas = rows.map((t) => ({
     id: t.id,
     title: t.title,
     text: t.text,
@@ -45,7 +68,17 @@ export async function getTemas(deviceKey: string | null, limit = 50, categoria?:
     mio: Boolean(deviceKey) && t.deviceKey === deviceKey,
     eventTitle: t.event?.title ?? null,
     categoria: t.categoria,
+    puntos: puntosDe(t),
   }));
+
+  // El orden se arma acá y no en la consulta porque los puntos salen de otra tabla. Lo fijado
+  // siempre va arriba, mire como mire: es lo que la casa quiere que se lea.
+  const peso = { hablado: (t: TemaRow) => t.respuestas, votado: (t: TemaRow) => t.puntos } as const;
+  const criterio = orden === "hablado" || orden === "votado" ? peso[orden] : null;
+  if (criterio) {
+    temas.sort((a, b) => Number(b.pinned) - Number(a.pinned) || criterio(b) - criterio(a) || b.lastAt.getTime() - a.lastAt.getTime());
+  }
+  return temas;
 }
 
 /** Cuántos temas hay en cada categoría, para que los filtros muestren su número. */
@@ -81,6 +114,8 @@ export async function getTema(id: string, deviceKey: string | null) {
     mio: Boolean(deviceKey) && t.deviceKey === deviceKey,
     eventTitle: t.event?.title ?? null,
     categoria: t.categoria,
+    // En la ficha del tema los puntos no se muestran: cada mensaje tiene sus propias reacciones.
+    puntos: 0,
   };
   const respuestas: RespuestaRow[] = t.respuestas.map((r) => ({
     id: r.id,
