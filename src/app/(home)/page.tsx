@@ -23,7 +23,7 @@ import { AnchorNav } from "@/components/AnchorNav";
 import { Countdown } from "@/components/Countdown";
 import { MapFacade } from "@/components/MapFacade";
 import { ShareButton } from "@/components/ShareButton";
-import { FORMAS_DE_PAGO, FRASE_DE_LA_CASA, casaWhatsapp, contactEmail, contactPhone, siteUrl } from "@/lib/config";
+import { FORMAS_DE_PAGO, FRASE_DE_LA_CASA, MAP_CENTER, ZONE, casaWhatsapp, comoLlegar, contactEmail, contactPhone, siteUrl } from "@/lib/config";
 import { barJsonLd, foodEventJsonLd } from "@/lib/structured-data";
 import { getApprovedReviews, getAverageRating } from "@/lib/reviews";
 import { getApprovedHuellas, getLastWinners } from "@/lib/vivo";
@@ -47,10 +47,7 @@ import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
  */
 export const revalidate = 60;
 
-/** Zona pública (sin el número): lo que se dice antes de pagar. */
-const ZONE = "Calle 66, entre 2 y 3 · La Plata";
-/** Centro del mapa: la cuadra, sin marcador (el número exacto no se muestra). */
-const MAP_CENTER = "-34.9218,-57.9306";
+// La zona y el punto del mapa viven en config: los usa también la carta.
 
 export async function generateMetadata(): Promise<Metadata> {
   const barra = await getBarra();
@@ -166,7 +163,7 @@ export default async function HomePage() {
   const horaAbre = horaDeApertura(barra.horario) ?? 20;
   const estadoInicial = textoDeEstado(estadoAhora(diasAbre, horaAbre, new Date(), excepcion));
   // "Cómo llegar", no "ver el mapa": abre el navegador con el camino desde donde esté la persona.
-  const mapa = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(MAP_CENTER)}`;
+  const mapa = comoLlegar();
 
   // Un link de WhatsApp por sitio, cada uno con el mensaje que corresponde: así sabemos de dónde
   // salió la consulta sin preguntarle nada a la persona.

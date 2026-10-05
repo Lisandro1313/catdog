@@ -52,6 +52,17 @@ export const FRASE_DE_LA_CASA = "Si llegaste hasta acá, alguien te contó.";
 /** Cómo se paga. Lo dicen la carta y las preguntas, así que vive en un solo lado. */
 export const FORMAS_DE_PAGO = "efectivo, tarjeta o transferencia";
 
+/** La zona, sin número: la casa no tiene cartel y el número exacto se pasa por mensaje. */
+export const ZONE = "Calle 66, entre 2 y 3 · La Plata";
+
+/** Dónde cae el mapa. No es la puerta: es la esquina, que es lo que se muestra en público. */
+export const MAP_CENTER = "-34.9218,-57.9306";
+
+/** "Cómo llegar": abre el navegador con el camino desde donde esté la persona. */
+export function comoLlegar(): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(MAP_CENTER)}`;
+}
+
 /** Precio por defecto por persona (ARS) al crear un evento nuevo. */
 export const DEFAULT_PRICE = 21000;
 export const DEFAULT_CAPACITY = 15;
