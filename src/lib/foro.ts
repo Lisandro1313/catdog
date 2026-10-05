@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { borrarReaccionesDe } from "./reacciones";
 import { limpiarNombre, limpiarTexto, MAX_TEXTO, MAX_TITULO, type RespuestaRow, type TemaRow } from "./foro-tipos";
 
 export * from "./foro-tipos";
@@ -166,5 +167,9 @@ export async function ocultarRespuesta(id: string, ocultar: boolean) {
 }
 
 export async function borrarTemaDefinitivo(id: string) {
+  // Las respuestas se van solas con el tema (cascada), pero las reacciones no tienen relación
+  // declarada porque sirven para los dos: si no se borran acá, quedan colgadas para siempre.
+  const respuestas = await prisma.respuesta.findMany({ where: { temaId: id }, select: { id: true } });
+  await borrarReaccionesDe(id, respuestas.map((r) => r.id));
   await prisma.tema.delete({ where: { id } });
 }
