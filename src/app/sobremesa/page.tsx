@@ -63,7 +63,7 @@ export default async function SobremesaPage({ searchParams }: Props) {
         </p>
       </div>
 
-      <Novedades temas={temas.map((t) => ({ id: t.id, ultima: t.lastAt.toISOString() }))} />
+      <Novedades temas={temas.map((t) => ({ id: t.id, ultima: t.lastAt.toISOString(), mio: t.mio }))} />
 
       <div className="mt-6">
         <NuevoTema />
@@ -107,8 +107,13 @@ export default async function SobremesaPage({ searchParams }: Props) {
                   <span aria-hidden="true">·</span>
                   <span>{desde(t.createdAt)}</span>
                   {t.pinned && <span className="foro-fijado">Fijado</span>}
+                  {t.mio && <span className="foro-tuyo">Tuyo</span>}
+                  {/* Los destapa el navegador, que es el único que sabe cuándo fue tu última visita. */}
                   <span data-nuevo hidden className="foro-nuevo">
                     Nuevo
+                  </span>
+                  <span data-nuevo-mio hidden className="foro-nuevo">
+                    Te contestaron
                   </span>
                 </p>
 

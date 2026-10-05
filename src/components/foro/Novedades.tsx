@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { textoNovedades } from "@/lib/foro-tipos";
 
 /** Dónde queda la última vez que esta persona miró la sobremesa. */
 const CLAVE = "sobremesa:visto";
@@ -38,7 +39,7 @@ function sinCambios() {
  * Los temas vienen marcados desde el servidor con `data-tema`; acá sólo se destapan los cartelitos
  * de los que tienen algo nuevo. Así la lista se sigue dibujando en el servidor.
  */
-export function Novedades({ temas }: { temas: { id: string; ultima: string }[] }) {
+export function Novedades({ temas }: { temas: { id: string; ultima: string; mio: boolean }[] }) {
   // En el servidor no hay memoria: 0 quiere decir "todavía no sé", y no se marca nada.
   const visto = useSyncExternalStore(sinCambios, leerVisto, () => 0);
   // La primera visita no marca todo como nuevo: sería ruido, no una novedad.
@@ -50,7 +51,8 @@ export function Novedades({ temas }: { temas: { id: string; ultima: string }[] }
 
   useEffect(() => {
     for (const t of recientes) {
-      document.querySelector(`[data-tema="${t.id}"] [data-nuevo]`)?.removeAttribute("hidden");
+      const cual = t.mio ? "[data-nuevo-mio]" : "[data-nuevo]";
+      document.querySelector(`[data-tema="${t.id}"] ${cual}`)?.removeAttribute("hidden");
     }
     try {
       localStorage.setItem(CLAVE, String(Date.now()));
@@ -59,13 +61,14 @@ export function Novedades({ temas }: { temas: { id: string; ultima: string }[] }
     }
   }, [recientes]);
 
-  if (recientes.length === 0) return null;
+  // Lo tuyo primero: que alguien te haya contestado no es lo mismo que "se movió algo".
+  const mios = recientes.filter((t) => t.mio).length;
+  const texto = textoNovedades(mios, recientes.length - mios);
+  if (!texto) return null;
 
   return (
-    <p className="mt-6 text-center text-sm text-accent">
-      {recientes.length === 1
-        ? "Hay 1 tema con algo nuevo desde la última vez."
-        : `Hay ${recientes.length} temas con algo nuevo desde la última vez.`}
+    <p className="mt-6 text-center text-sm text-accent" role="status">
+      {texto}
     </p>
   );
 }

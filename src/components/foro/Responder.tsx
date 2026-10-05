@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { borrarMioAction, responderAction } from "@/app/sobremesa/actions";
 import { MAX_TEXTO } from "@/lib/foro-tipos";
+import { conCita, escucharCitas } from "./Citar";
 import { guardarNombre, leerNombre, subscribeNombre } from "./nombre";
 
 /** Contestar un tema. Igual que al abrirlo: nombre guardado en el teléfono, nada de cuentas. */
@@ -16,6 +17,22 @@ export function Responder({ temaId }: { temaId: string }) {
   const [web, setWeb] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const caja = useRef<HTMLTextAreaElement>(null);
+
+  // Cuando alguien toca "Responderle" en un mensaje del hilo: el nombre adelante, el cursor al
+  // final y el formulario a la vista. Que no haya que buscar nada.
+  useEffect(
+    () =>
+      escucharCitas((nombre) => {
+        setText((t) => conCita(t, nombre));
+        const el = caja.current;
+        if (!el) return;
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        el.focus({ preventScroll: true });
+        requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length));
+      }),
+    [],
+  );
 
   function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -35,6 +52,7 @@ export function Responder({ temaId }: { temaId: string }) {
   return (
     <form onSubmit={enviar} className="card grid gap-3 p-5">
       <textarea
+        ref={caja}
         className="input min-h-24"
         placeholder="Tu respuesta…"
         aria-label="Tu respuesta"

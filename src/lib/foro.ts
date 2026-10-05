@@ -124,6 +124,7 @@ export async function getTema(id: string, deviceKey: string | null) {
     fromHouse: r.fromHouse,
     createdAt: r.createdAt,
     mio: Boolean(deviceKey) && r.deviceKey === deviceKey,
+    esAutor: r.deviceKey === t.deviceKey,
   }));
   return { tema, respuestas };
 }

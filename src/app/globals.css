@@ -3702,6 +3702,7 @@ details.faq > summary::-webkit-details-marker {
   opacity: 0.8;
 }
 .foro-fijado,
+.foro-tuyo,
 .foro-nuevo {
   border-radius: 999px;
   padding: 0.05rem 0.45rem;
@@ -3716,6 +3717,11 @@ details.faq > summary::-webkit-details-marker {
 .foro-nuevo {
   background: rgba(201, 169, 110, 0.18);
   color: var(--accent-strong);
+}
+/* Los tuyos: se reconocen sin leer el nombre, pero sin robarle la atención a lo nuevo. */
+.foro-tuyo {
+  border: 1px solid var(--border);
+  color: var(--muted);
 }
 
 /* El hilo: el tema arriba y las respuestas colgando de una línea, como cualquier foro. */
@@ -3734,4 +3740,41 @@ details.faq > summary::-webkit-details-marker {
 }
 .hilo > li + li {
   border-top: 1px solid var(--border);
+}
+/* Para que al entrar por el link de un mensaje no quede pegado al borde de arriba. */
+.hilo > li {
+  scroll-margin-top: 5rem;
+}
+/* Lo que escribiste vos, marcado al costado. */
+.hilo > li.es-mio {
+  box-shadow: inset 2px 0 0 rgba(201, 169, 110, 0.45);
+  padding-left: 0.7rem;
+  margin-left: -0.7rem;
+}
+
+/* Quién es quién en el hilo: el que abrió el tema, y vos. */
+.hilo-quien {
+  border-radius: 999px;
+  border: 1px solid rgba(201, 169, 110, 0.4);
+  padding: 0.05rem 0.45rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.hilo-quien.es-mio {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+/* "Responderle": baja al formulario con el nombre puesto. */
+.foro-citar {
+  font-size: 0.74rem;
+  color: var(--muted);
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+.foro-citar:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }

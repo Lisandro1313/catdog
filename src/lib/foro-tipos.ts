@@ -46,7 +46,24 @@ export type RespuestaRow = {
   fromHouse: boolean;
   createdAt: Date;
   mio: boolean;
+  /** La escribió el mismo teléfono que abrió el tema: en un hilo importa saber quién preguntó. */
+  esAutor: boolean;
 };
+
+/**
+ * El cartel de novedades de la sobremesa.
+ *
+ * Separa lo que te contestaron a vos de lo que se movió en los demás temas, porque no es lo mismo:
+ * que alguien conteste algo tuyo es el único motivo por el que una persona vuelve sola a un foro.
+ */
+export function textoNovedades(mios: number, otros: number): string | null {
+  if (mios === 0 && otros === 0) return null;
+  const tuyos = mios === 1 ? "Te contestaron en un tema tuyo" : `Te contestaron en ${mios} temas tuyos`;
+  const resto = otros === 1 ? "hay 1 tema con algo nuevo" : `hay ${otros} temas con algo nuevo`;
+  if (mios === 0) return `${resto.charAt(0).toUpperCase()}${resto.slice(1)} desde la última vez.`;
+  if (otros === 0) return `${tuyos}.`;
+  return `${tuyos}, y ${resto}.`;
+}
 
 /** Un nombre presentable: sin espacios de más, sin saltos de línea y con un largo razonable. */
 export function limpiarNombre(raw: string): string {
