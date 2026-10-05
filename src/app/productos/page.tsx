@@ -5,6 +5,8 @@ import { SITE_NAME, casaWhatsapp, formatPrice } from "@/lib/config";
 import { getConfigProductos } from "@/lib/productos";
 import { isAdmin } from "@/lib/admin-auth";
 import { LoQuiero } from "@/components/productos/LoQuiero";
+import { getInstagram } from "@/lib/photos";
+import { InstagramLink } from "@/components/InstagramLink";
 import { TrackVisit } from "@/components/TrackVisit";
 import { MedirClics } from "@/components/MedirClics";
 
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ProductosPage() {
-  const [config, esAdmin] = await Promise.all([getConfigProductos(), isAdmin()]);
+  const [config, esAdmin, instagram] = await Promise.all([getConfigProductos(), isAdmin(), getInstagram()]);
   // Apagada no existe para el público; la casa la ve igual (y en la compu de desarrollo también),
   // para revisarla antes de prenderla.
   const admin = esAdmin || process.env.NODE_ENV === "development";
@@ -80,10 +82,11 @@ export default async function ProductosPage() {
         </p>
       )}
 
-      <p className="mt-10 text-center text-xs text-muted">
+      <p className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-center text-xs text-muted">
         <Link href="/" className="text-accent">
           Volver al inicio
         </Link>
+        <InstagramLink handle={instagram} />
       </p>
     </div>
   );

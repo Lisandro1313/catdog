@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SITE_NAME, ZONE, casaWhatsapp, comoLlegar } from "@/lib/config";
 import { getBarra, getExcepcion } from "@/lib/barra";
+import { getInstagram } from "@/lib/photos";
+import { InstagramLink } from "@/components/InstagramLink";
 import { getConfigCaja } from "@/lib/caja-rapida";
 import { CartaBarra } from "@/components/home/BarraHero";
 import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
@@ -31,7 +33,7 @@ export const metadata: Metadata = {
 export default async function CartaPage() {
   const barra = await getBarra();
   if (!barra.activa) notFound();
-  const [caja, excepcion] = await Promise.all([getConfigCaja(), getExcepcion()]);
+  const [caja, excepcion, instagram] = await Promise.all([getConfigCaja(), getExcepcion(), getInstagram()]);
 
   const dias = diasQueAbre(barra.dias);
   const hora = horaDeApertura(barra.horario) ?? 20;
@@ -76,10 +78,11 @@ export default async function CartaPage() {
           )}
         </div>
 
-        <p className="mt-8">
+        <p className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
           <Link href="/" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
             Ver la casa entera
           </Link>
+          <InstagramLink handle={instagram} />
         </p>
       </div>
     </div>

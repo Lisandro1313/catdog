@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { SITE_NAME, casaWhatsapp, formatPrice } from "@/lib/config";
 import { getConfigEventos, lineasDe, SENA_PORCENTAJE } from "@/lib/eventos-privados";
 import { PedirEvento } from "@/components/eventos/PedirEvento";
+import { getInstagram } from "@/lib/photos";
+import { InstagramLink } from "@/components/InstagramLink";
 import { TrackVisit } from "@/components/TrackVisit";
 import { MedirClics } from "@/components/MedirClics";
 
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EventosPage() {
-  const config = await getConfigEventos();
+  const [config, instagram] = await Promise.all([getConfigEventos(), getInstagram()]);
   if (!config.activos) notFound();
   const wa = casaWhatsapp("Hola! Los vi en la página, quería preguntar por un evento en la casa.");
 
@@ -106,10 +108,11 @@ export default async function EventosPage() {
         </p>
       )}
 
-      <p className="mt-10 text-center text-xs text-muted">
+      <p className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-center text-xs text-muted">
         <Link href="/" className="text-accent">
           Volver al inicio
         </Link>
+        <InstagramLink handle={instagram} />
       </p>
     </div>
   );

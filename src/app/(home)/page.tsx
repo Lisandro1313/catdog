@@ -14,6 +14,7 @@ import { SubscribeForm } from "@/components/SubscribeForm";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { TrackVisit } from "@/components/TrackVisit";
 import { MedirClics } from "@/components/MedirClics";
+import { InstagramIcon } from "@/components/InstagramLink";
 import { MedirRecorrido } from "@/components/MedirRecorrido";
 import { Pasala } from "@/components/home/Pasala";
 import { PhotoStrip } from "@/components/PhotoStrip";
@@ -958,16 +959,6 @@ function WhatsAppIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.7-5.2A8.5 8.5 0 1 1 21 11.5Z" strokeLinejoin="round" />
       <path d="M8.8 8.3c.2-.5.4-.5.7-.5h.5c.2 0 .4 0 .6.5l.7 1.6c.1.3 0 .5-.1.7l-.4.4c-.2.2-.2.4 0 .7.3.5 1 1.3 1.9 1.8.3.2.5.1.7 0l.5-.5c.2-.2.4-.2.6-.1l1.5.8c.3.2.4.3.4.5 0 .3-.1.9-.4 1.2-.4.4-1 .6-1.6.5-1-.1-2.4-.7-3.7-2-1.3-1.3-2-2.7-2.1-3.7-.1-.6.1-1.3.5-1.6Z" />
-    </svg>
-  );
-}
-
-function InstagramIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
