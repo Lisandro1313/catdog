@@ -28,23 +28,36 @@ async function png(nombre, svg) {
   console.log("escrito:", nombre);
 }
 
-// ---------- tapas de destacadas: 1080×1080, todo dentro del círculo del medio ----------
-const tapa = (palabra, glifo) => `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080">
+// ---------- tapas de destacadas: 1080×1080, un ícono grande y nada más ----------
+// La primera versión traía la palabra adentro de un aro, e Instagram la achicaba dentro de su propio
+// círculo hasta que no se leía. El nombre ya va abajo de cada destacada: la tapa solo tiene que
+// reconocerse de un vistazo, así que va el dibujo solo, grande y en dorado.
+const tapa = (icono) => `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080">
   <rect width="1080" height="1080" fill="${FONDO}"/>
-  <circle cx="540" cy="540" r="330" fill="none" stroke="${ORO}" stroke-width="6"/>
-  <text x="540" y="470" text-anchor="middle" font-family="${SERIF}" font-size="120" fill="${ORO}">${glifo}</text>
-  <text x="540" y="640" text-anchor="middle" font-family="${SERIF}" font-size="104" fill="${CREMA}" letter-spacing="4">${esc(palabra)}</text>
+  <g fill="none" stroke="${ORO}" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">${icono}</g>
 </svg>`;
 
+const ICONOS = {
+  // Una copa de cóctel con su aceituna.
+  carta: `<path d="M330 330 H750 L540 590 Z"/><path d="M540 590 V770"/><path d="M430 770 H650"/><circle cx="610" cy="400" r="30" fill="${ORO}" stroke="none"/>`,
+  // La estrella de cuatro puntas, la misma que adorna el sitio.
+  eventos: `<path d="M540 290 Q562 518 790 540 Q562 562 540 790 Q518 562 290 540 Q518 518 540 290 Z" fill="${ORO}" stroke="none"/>`,
+  // La bola ocho.
+  mesa: `<circle cx="540" cy="540" r="230" fill="${ORO}" stroke="none"/><circle cx="540" cy="540" r="105" fill="${FONDO}" stroke="none"/><text x="540" y="590" text-anchor="middle" font-family="${SERIF}" font-size="150" fill="${ORO}" stroke="none">8</text>`,
+  // La luna: el lunes.
+  lunes: `<circle cx="540" cy="540" r="240" fill="${ORO}" stroke="none"/><circle cx="625" cy="470" r="215" fill="${FONDO}" stroke="none"/>`,
+  // El pin del mapa.
+  llegar: `<path d="M540 800 C430 650 360 560 360 455 A180 180 0 1 1 720 455 C720 560 650 650 540 800 Z"/><circle cx="540" cy="455" r="62"/>`,
+};
+
 const tapas = [
-  ["destacada-carta.png", "Carta", "✦"],
-  ["destacada-eventos.png", "Eventos", "✦"],
-  ["destacada-mesa.png", "La mesa", "●"],
-  ["destacada-lunes.png", "Lunes", "☾"],
-  ["destacada-cine.png", "Cine", "▸"],
-  ["destacada-llegar.png", "Llegar", "↓"],
+  ["destacada-carta.png", ICONOS.carta],
+  ["destacada-eventos.png", ICONOS.eventos],
+  ["destacada-mesa.png", ICONOS.mesa],
+  ["destacada-lunes.png", ICONOS.lunes],
+  ["destacada-llegar.png", ICONOS.llegar],
 ];
-for (const [archivo, palabra, glifo] of tapas) await png(archivo, tapa(palabra, glifo));
+for (const [archivo, icono] of tapas) await png(archivo, tapa(icono));
 
 // ---------- posteo de eventos ----------
 // Sin precios a propósito: la casa los pasa por mensaje, y un posteo que lo dice todo no deja nada que preguntar.
