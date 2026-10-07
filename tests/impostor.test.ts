@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armarRonda, categorias, MAX_JUGADORES, MIN_JUGADORES } from "../src/lib/impostor";
+import { armarRonda, categorias, leerNombres, MAX_JUGADORES, MAX_NOMBRE, MIN_JUGADORES, nombreDe, ordenDeRonda } from "../src/lib/impostor";
 
 /** Un azar que repite una secuencia fija, para que cada prueba dé siempre lo mismo. */
 function secuencia(...valores: number[]) {
@@ -67,5 +67,31 @@ describe("las categorías", () => {
 
   it("las fijas tienen palabras de sobra para varias rondas", () => {
     for (const c of categorias([])) expect(c.palabras.length).toBeGreaterThanOrEqual(15);
+  });
+});
+
+describe("los nombres de la mesa", () => {
+  it("si el nombre está vacío, usa Jugador N", () => {
+    expect(nombreDe(["Ana", "  ", "Beto"], 1)).toBe("Jugador 2");
+    expect(nombreDe(["Ana"], 3)).toBe("Jugador 4");
+    expect(nombreDe(["  Ana   María "], 0)).toBe("Ana María");
+  });
+
+  it("recorta los nombres largos", () => {
+    expect(nombreDe(["x".repeat(40)], 0)).toHaveLength(MAX_NOMBRE);
+  });
+
+  it("lee lo guardado solo si sirve", () => {
+    expect(leerNombres(null)).toBeNull();
+    expect(leerNombres("no es json")).toBeNull();
+    expect(leerNombres(JSON.stringify({ a: 1 }))).toBeNull();
+    expect(leerNombres(JSON.stringify(["Ana", "Beto"]))).toBeNull();
+    expect(leerNombres(JSON.stringify(["Ana", 3, "Caro"]))).toEqual(["Ana", "", "Caro"]);
+    expect(leerNombres(JSON.stringify(Array(20).fill("Z")))).toHaveLength(MAX_JUGADORES);
+  });
+
+  it("la ronda arranca en el que empieza y da la vuelta", () => {
+    expect(ordenDeRonda(4, 2)).toEqual([2, 3, 0, 1]);
+    expect(ordenDeRonda(3, 0)).toEqual([0, 1, 2]);
   });
 });

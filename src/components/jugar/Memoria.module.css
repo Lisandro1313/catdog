@@ -1,0 +1,164 @@
+/* Memotest: reparto, dorso, par equivocado, par encontrado y el cartel de racha. */
+
+/* Las cartas entran repartidas, una atrás de otra. */
+.carta {
+  animation: mem-reparto 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  animation-delay: calc(var(--i, 0) * 28ms);
+  -webkit-tap-highlight-color: transparent;
+}
+@keyframes mem-reparto {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.85) rotate(-4deg);
+  }
+}
+
+.dorso {
+  display: inline-block;
+  font-size: 1.1rem;
+  opacity: 0.85;
+  text-shadow: 0 0 10px rgba(224, 194, 131, 0.45);
+}
+
+/* Par equivocado: borde rojo y un temblor cuando termina de girar. */
+/* (Las animaciones van en lista con el reparto: así, al sacar la clase, el reparto no se repite.) */
+.error :global(.jg-flip-front) {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px rgba(181, 83, 60, 0.4);
+}
+.carta.error {
+  animation:
+    mem-reparto 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both,
+    mem-no 0.32s ease-in-out both;
+  animation-delay: calc(var(--i, 0) * 28ms), 0.3s;
+}
+@keyframes mem-no {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+  40%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+/* Par encontrado: salta y queda con un brillo dorado que pasa una vez. */
+.encontrada :global(.jg-flip-front) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.35);
+}
+.carta.encontrada {
+  animation:
+    mem-reparto 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both,
+    mem-par 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+  animation-delay: calc(var(--i, 0) * 28ms), 0s;
+}
+@keyframes mem-par {
+  45% {
+    transform: scale(1.12);
+  }
+}
+.encontrada :global(.jg-flip-front)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 236, 190, 0.55) 50%, transparent 70%);
+  background-size: 250% 100%;
+  background-position: 120% 0;
+  animation: mem-brillo 0.7s ease-out 0.1s forwards;
+  pointer-events: none;
+}
+@keyframes mem-brillo {
+  to {
+    background-position: -120% 0;
+  }
+}
+
+/* Barrita del vistazo inicial: se vacía mientras las ves. */
+.peekbar {
+  height: 3px;
+  margin: 0.5rem 0 0.6rem;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.peekbar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  animation: mem-vacia linear forwards;
+}
+@keyframes mem-vacia {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* "¡Seguidos ×3!" sobre el tablero. */
+.cartel {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 4;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: #1a150d;
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  animation: mem-cartel 1.1s cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+}
+@keyframes mem-cartel {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.08);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -22px) scale(1);
+  }
+}
+
+/* Tablero completo: ola de saltitos. */
+.ganado .carta.encontrada {
+  animation:
+    mem-reparto 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both,
+    mem-par 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.5),
+    mem-ola 0.5s ease-in-out both;
+  animation-delay: calc(var(--i, 0) * 28ms), 0s, calc(0.35s + var(--i, 0) * 40ms);
+}
+@keyframes mem-ola {
+  50% {
+    transform: translateY(-8px) scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carta,
+  .carta.error,
+  .carta.encontrada,
+  .ganado .carta.encontrada,
+  .encontrada :global(.jg-flip-front)::after,
+  .cartel {
+    animation: none;
+  }
+  .cartel {
+    transform: translateX(-50%);
+  }
+}

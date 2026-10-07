@@ -1,0 +1,82 @@
+/* Verdadero o falso: la carta entra, festeja o tiembla según la respuesta. */
+
+.card {
+  animation: cardIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2) both !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+
+.ok {
+  border-color: var(--ok) !important;
+  box-shadow: 0 0 0 3px rgba(126, 166, 122, 0.3);
+  animation: okPop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.5) !important;
+}
+@keyframes okPop {
+  40% {
+    transform: scale(1.03);
+  }
+}
+
+.bad {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(181, 83, 60, 0.3);
+  animation: shake 0.4s ease-in-out !important;
+}
+@keyframes shake {
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+.verdict {
+  animation: verdict 0.3s ease both;
+}
+@keyframes verdict {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.answer {
+  touch-action: manipulation;
+  transition: transform 0.1s;
+}
+.answer:active {
+  transform: scale(0.96);
+}
+
+.bump {
+  display: inline-block;
+  animation: bump 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+}
+@keyframes bump {
+  from {
+    transform: scale(1.5);
+    color: var(--accent-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .ok,
+  .bad,
+  .verdict,
+  .bump {
+    animation: none !important;
+  }
+}

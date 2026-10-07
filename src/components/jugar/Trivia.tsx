@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { TRIVIA, type TriviaItem } from "@/lib/jugar";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, shuffle } from "./Shell";
+import { Shell, buzz, keepAwake, shuffle } from "./Shell";
 import { Fin } from "./Fin";
+import { FANFARRIA, chime, hitTone, tick, vibrate } from "./juice";
+import css from "./Trivia.module.css";
 
 /** Milisegundos ahora (helper: el compilador de React no lo cuenta como impureza del render). */
 function now(): number {
@@ -52,10 +54,13 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
   const [left, setLeft] = useState(100);
   const deadline = useRef(0);
   const reported = useRef(false);
+  /** Cuándo se respondió: el botón "Siguiente" aparece donde estaban los otros y un doble toque lo saltearía. */
+  const answeredAt = useRef(0);
 
   const secondsFor = (s: number) => Math.max(5, 14 - s * 0.6);
 
   function start() {
+    keepAwake();
     reported.current = false;
     // Las de la carta van intercaladas cerca del principio, para que salgan casi siempre.
     const menu = shuffle(deLaCarta.length > 0 ? deLaCarta : fromMenu(pairs));
@@ -72,12 +77,20 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
   useEffect(() => {
     if (phase !== "play" || answer != null) return;
     const total = secondsFor(streak) * 1000;
+    let lastSec = Infinity;
     const id = setInterval(() => {
       const ms = deadline.current - now();
       setLeft(Math.max(0, (ms / total) * 100));
+      // Los últimos tres segundos hacen tic.
+      const sec = Math.ceil(ms / 1000);
+      if (sec !== lastSec) {
+        if (sec > 0 && sec <= 3 && lastSec !== Infinity) tick(sec <= 1);
+        lastSec = sec;
+      }
       if (ms <= 0) {
         clearInterval(id);
         buzz();
+        answeredAt.current = now();
         setAnswer("⏱");
       }
     }, 100);
@@ -96,14 +109,21 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
   function respond(v: boolean) {
     if (!q || answer != null) return;
     setAnswer(v);
+    answeredAt.current = now();
     if (v === q.answer) {
-      beep(600 + streak * 15, 120);
-      setStreak((s) => s + 1);
-    } else buzz();
+      const s = streak + 1;
+      if (s === METAS.trivia || s % 5 === 0) chime(FANFARRIA, 90, 160);
+      else hitTone(s);
+      vibrate(15);
+      setStreak(s);
+    } else {
+      buzz();
+      vibrate([60, 40, 60]);
+    }
   }
 
   function next() {
-    if (answer == null) return;
+    if (answer == null || now() - answeredAt.current < 450) return;
     const wrong = answer === "⏱" || answer !== q.answer;
     if (wrong) {
       setPhase("end");
@@ -155,17 +175,35 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
   const correct = answer != null && answer !== "⏱" && answer === q.answer;
 
   return (
-    <Shell title="Verdadero o falso" onBack={onBack} right={<>racha {streak}</>}>
+    <Shell
+      title="Verdadero o falso"
+      onBack={onBack}
+      right={
+        <span key={streak} className={streak ? css.bump : ""}>
+          racha {streak}
+        </span>
+      }
+    >
       <div className="jg-timebar mt-4" aria-hidden="true">
         <span style={{ width: `${left}%` }} className={left < 30 ? "is-low" : ""} />
       </div>
-      <div className="jg-mimica-card mt-4">
+      <div key={i} className={`jg-mimica-card mt-4 ${css.card} ${answer == null ? "" : correct ? css.ok : css.bad}`}>
         <p className="ap-eyebrow">¿Verdadero o falso?</p>
         <p className="mt-4 font-display text-2xl leading-snug">{q.text}</p>
         {answer != null && (
           <div className="mt-5 border-t border-accent/20 pt-4">
-            <p className={`ap-eyebrow ${correct ? "text-ok" : "text-danger"}`}>
-              {correct ? "Correcto" : answer === "⏱" ? "Se pasó el tiempo" : q.answer ? "Era verdadero" : "Era falso"}
+            <p className={`ap-eyebrow ${css.verdict} ${correct ? "text-ok" : "text-danger"}`}>
+              {correct
+                ? streak === METAS.trivia
+                  ? `¡Correcto! ${streak} seguidos: marca para el trago`
+                  : streak % 5 === 0
+                    ? `¡Correcto! ${streak} al hilo`
+                    : "Correcto"
+                : answer === "⏱"
+                  ? "Se pasó el tiempo"
+                  : q.answer
+                    ? "Era verdadero"
+                    : "Era falso"}
             </p>
             <p className="mt-2 text-sm text-muted">{q.why}</p>
           </div>
@@ -173,10 +211,10 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
       </div>
       {answer == null ? (
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <button className="btn btn-ghost" type="button" onClick={() => respond(false)}>
+          <button className={`btn btn-ghost ${css.answer}`} type="button" onClick={() => respond(false)}>
             Falso
           </button>
-          <button className="btn btn-primary" type="button" onClick={() => respond(true)}>
+          <button className={`btn btn-primary ${css.answer}`} type="button" onClick={() => respond(true)}>
             Verdadero
           </button>
         </div>

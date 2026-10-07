@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, beep, buzz, keepAwake, tap as vibrar } from "./Shell";
 import { Fin } from "./Fin";
+import { Cuenta } from "./Cuenta";
+import css from "./Lisandro.module.css";
 
 const DURATION = 30;
 const HOLES = 9;
@@ -23,8 +25,12 @@ const CAST: Record<Kind, Who> = {
 };
 const INGREDIENTES = ["🍤", "🧄", "🌿", "🍋", "🍓", "🧀", "🫒", "🌶️"];
 
-type Pop = { hole: number; who: Who; emoji?: string; id: number; until: number };
+type Pop = { hole: number; who: Who; emoji?: string; id: number; until: number; leaving?: boolean };
+/** Lo que se acaba de tocar: se aplasta (o se quema) en el lugar mientras sale el cartel. */
+type Golpe = { hole: number; who: Who | null; emoji?: string; id: number; bad: boolean; text: string };
 type Props = { onDone: (points: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
+/** Cuánto tarda en esconderse el que se va sin que lo toquen (mientras baja, ya no se puede tocar). */
+const BAJA_MS = 170;
 
 function now(): number {
   return Date.now();
@@ -57,17 +63,18 @@ function pickHole(taken: number[]): number {
  * Racha de cinco sin errar: bonus. Tocar un agujero vacío corta la racha.
  */
 export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
-  const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
+  const [phase, setPhase] = useState<"idle" | "count" | "play" | "over" | "end">("idle");
   const [left, setLeft] = useState(DURATION);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [pops, setPops] = useState<Pop[]>([]);
-  const [hit, setHit] = useState<{ hole: number; text: string; id: number; bad: boolean } | null>(null);
+  const [golpe, setGolpe] = useState<Golpe | null>(null);
   const startAt = useRef(0);
   const reported = useRef(false);
   const popsRef = useRef<Pop[]>([]);
   const streakRef = useRef(0);
   const lastHitAt = useRef<Record<number, number>>({});
+  const lastLeft = useRef(DURATION);
 
   function setPopsBoth(next: Pop[]) {
     popsRef.current = next;
@@ -80,30 +87,41 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
     setScore(0);
     setStreak(0);
     streakRef.current = 0;
-    setHit(null);
+    setGolpe(null);
     setPopsBoth([]);
-    startAt.current = now();
-    setPhase("play");
+    setLeft(DURATION);
+    lastLeft.current = DURATION;
+    setPhase("count");
   }
 
-  // El director de escena: cada 100 ms saca a los que ya se fueron y hace asomar a alguien si hay lugar.
+  // El director de escena: cada 50 ms esconde a los que ya se fueron y hace asomar a alguien si hay lugar.
   useEffect(() => {
     if (phase !== "play") return;
     let nextSpawn = 0;
+    const sounds: ReturnType<typeof setTimeout>[] = [];
     const id = setInterval(() => {
       const t = now();
       const elapsed = (t - startAt.current) / 1000;
       const remaining = Math.max(0, Math.ceil(DURATION - elapsed));
-      setLeft(remaining);
+      if (remaining !== lastLeft.current) {
+        lastLeft.current = remaining;
+        setLeft(remaining);
+        // Los últimos cinco segundos hacen tic.
+        if (remaining > 0 && remaining <= 5) beep(remaining === 1 ? 1175 : 880, 45, "square", 0.05);
+      }
       if (remaining <= 0) {
         clearInterval(id);
         setPopsBoth([]);
-        setPhase("end");
+        beep(523, 120, "triangle", 0.16);
+        sounds.push(setTimeout(() => beep(392, 120, "triangle", 0.14), 130));
+        sounds.push(setTimeout(() => beep(262, 260, "triangle", 0.14), 260));
+        setPhase("over");
         return;
       }
-      let cur = popsRef.current.filter((p) => p.until > t);
+      // Los que se pasaron de tiempo bajan (un instante) y después desaparecen.
+      let cur = popsRef.current.filter((p) => p.until + BAJA_MS > t).map((p) => (!p.leaving && p.until <= t ? { ...p, leaving: true } : p));
       const maxPops = elapsed < 8 ? 1 : elapsed < 18 ? 2 : 3;
-      if (cur.length < maxPops && t >= nextSpawn) {
+      if (cur.filter((p) => !p.leaving).length < maxPops && t >= nextSpawn) {
         const who = pickWho(elapsed);
         const speed = Math.max(0.45, 1 - elapsed * 0.018);
         const pop: Pop = {
@@ -117,8 +135,18 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
         nextSpawn = t + 150 + Math.random() * 350;
       }
       if (cur.length !== popsRef.current.length || cur.some((p, i) => p !== popsRef.current[i])) setPopsBoth(cur);
-    }, 100);
-    return () => clearInterval(id);
+    }, 50);
+    return () => {
+      clearInterval(id);
+      sounds.forEach(clearTimeout);
+    };
+  }, [phase]);
+
+  // "¡Tiempo!" un momento, y después el resultado.
+  useEffect(() => {
+    if (phase !== "over") return;
+    const id = setTimeout(() => setPhase("end"), 1200);
+    return () => clearTimeout(id);
   }, [phase]);
 
   useEffect(() => {
@@ -130,7 +158,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
 
   function tap(hole: number) {
     if (phase !== "play") return;
-    const pop = popsRef.current.find((p) => p.hole === hole);
+    const pop = popsRef.current.find((p) => p.hole === hole && !p.leaving);
     if (!pop) {
       // El segundo toque de un doble tap sobre algo que ya cayó no cuenta como error.
       if (now() - (lastHitAt.current[hole] ?? 0) < 300) return;
@@ -138,7 +166,8 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
       if (streakRef.current > 0) {
         streakRef.current = 0;
         setStreak(0);
-        setHit({ hole, text: "Nada ahí", id: now(), bad: true });
+        beep(150, 80, "triangle", 0.08);
+        setGolpe({ hole, who: null, id: now(), bad: true, text: "Nada ahí" });
       }
       return;
     }
@@ -150,7 +179,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
       streakRef.current = 0;
       setStreak(0);
       setScore((s) => Math.max(0, s + w.points));
-      setHit({ hole, text: w.say[0], id: now(), bad: true });
+      setGolpe({ hole, who: w, emoji: pop.emoji, id: now(), bad: true, text: w.say[0] });
       try {
         navigator.vibrate?.([40, 30, 40]);
       } catch {
@@ -161,10 +190,14 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
     streakRef.current += 1;
     setStreak(streakRef.current);
     const bonus = streakRef.current % 5 === 0 ? 3 : 0;
-    beep(600 + w.points * 80 + streakRef.current * 8, 90);
-    vibrar(8);
+    // Un "¡toc!" que sube con lo que vale y con la racha; los que valen más, dos notas.
+    const f = 600 + w.points * 80 + Math.min(streakRef.current, 20) * 8;
+    beep(f, 70, "triangle", 0.2);
+    if (w.points >= 2) setTimeout(() => beep(f * 1.26, 80, "triangle", 0.16), 60);
+    if (bonus) [1047, 1319, 1568].forEach((fq, k) => setTimeout(() => beep(fq, 90, "triangle", 0.15), 140 + k * 80));
+    vibrar(bonus ? 30 : 10);
     setScore((s) => s + w.points + bonus);
-    setHit({ hole, text: bonus ? `¡Racha ×${streakRef.current}! +${w.points + bonus}` : w.say[rnd(w.say.length)], id: now(), bad: false });
+    setGolpe({ hole, who: w, emoji: pop.emoji, id: now(), bad: false, text: bonus ? `¡Racha ×${streakRef.current}! +${w.points + bonus}` : w.say[rnd(w.say.length)] });
   }
 
   if (phase === "end") {
@@ -186,8 +219,21 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
     );
   }
 
+  /** Puntitos hacia el bonus de cinco seguidos (al llegar a 5 quedan todos prendidos un instante). */
+  const enRacha = streak > 0 && streak % 5 === 0 ? 5 : streak % 5;
+
   return (
-    <Shell title="Los de la casa" onBack={onBack} right={phase === "play" ? <span className={left <= 5 ? "text-danger" : ""}>{left}s</span> : null}>
+    <Shell
+      title="Los de la casa"
+      onBack={onBack}
+      right={
+        phase === "play" || phase === "over" ? (
+          <span key={left <= 5 ? left : "t"} className={left <= 5 ? `text-danger ${css.apuro}` : ""}>
+            {left}s
+          </span>
+        ) : null
+      }
+    >
       {phase === "idle" ? (
         <div className="jg-center">
           <div className="flex items-center justify-center gap-2">
@@ -211,37 +257,81 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
         </div>
       ) : (
         <>
-          <div className="mt-3 flex items-baseline justify-between gap-3">
-            <p className="text-xs text-muted">Tocá a los de la casa. Al chef y al fuego, no.</p>
-            <div className="shrink-0 text-right">
-              <p key={score} className="ap-display text-3xl tabular-nums jg-pop">
-                {score}
-              </p>
-              {streak >= 2 && <p className="text-[10px] uppercase tracking-[0.2em] text-accent">racha {streak}</p>}
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs text-muted">Tocá a los de la casa. Al chef y al fuego, no.</p>
+              <div className={css.racha} aria-label={`Racha ${streak}`}>
+                {Array.from({ length: 5 }, (_, k) => (
+                  <span key={k} className={k < enRacha ? css.rachaOn : ""} />
+                ))}
+                <em>{streak >= 2 ? `racha ${streak}` : "5 seguidos: +3"}</em>
+              </div>
             </div>
+            <p key={score} className={`ap-display shrink-0 text-3xl tabular-nums jg-pop ${score >= METAS.lisandro ? "text-accent" : ""}`}>
+              {score}
+            </p>
           </div>
-          <div className="jg-holes mt-4">
-            {Array.from({ length: HOLES }, (_, h) => {
-              const pop = pops.find((p) => p.hole === h);
-              return (
-                <button key={h} type="button" className="jg-hole" onPointerDown={() => tap(h)} aria-label={pop ? pop.who.label : "Agujero vacío"}>
-                  {pop &&
-                    (pop.who.img ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img key={pop.id} src={pop.who.img} alt="" draggable={false} className={`jg-hole-face ${pop.who.points < 0 ? "is-chef" : ""} ${pop.who.kind === "gato" ? "is-fast" : ""}`} />
-                    ) : (
-                      <span key={pop.id} className={`jg-hole-emoji ${pop.who.points < 0 ? "is-bad" : ""}`} aria-hidden="true">
-                        {pop.emoji}
+          <div className={css.tiempo} aria-hidden="true">
+            <span style={{ transform: `scaleX(${left / DURATION})` }} className={left <= 5 ? css.tiempoPoco : ""} />
+          </div>
+          <div className="relative">
+            <div className="jg-holes mt-3">
+              {Array.from({ length: HOLES }, (_, h) => {
+                const pop = pops.find((p) => p.hole === h);
+                const col = h % 3;
+                return (
+                  <button key={h} type="button" className={`jg-hole ${css.agujero}`} onPointerDown={() => tap(h)} aria-label={pop && !pop.leaving ? pop.who.label : "Agujero vacío"}>
+                    {pop &&
+                      (pop.who.img ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={pop.id}
+                          src={pop.who.img}
+                          alt=""
+                          draggable={false}
+                          className={`jg-hole-face ${pop.who.points < 0 ? "is-chef" : ""} ${pop.who.kind === "gato" ? "is-fast" : ""} ${pop.leaving ? css.baja : ""}`}
+                        />
+                      ) : (
+                        <span key={pop.id} className={`jg-hole-emoji ${pop.who.points < 0 ? "is-bad" : ""} ${pop.leaving ? css.baja : ""}`} aria-hidden="true">
+                          {pop.emoji}
+                        </span>
+                      ))}
+                    {golpe?.hole === h && (
+                      <span key={golpe.id} className="contents">
+                        {golpe.who &&
+                          (golpe.who.img ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={golpe.who.img} alt="" draggable={false} className={`jg-hole-face ${golpe.bad ? "is-chef" : ""} ${css.golpe} ${golpe.bad ? css.golpeMal : ""}`} />
+                          ) : (
+                            <span className={`jg-hole-emoji ${golpe.bad ? "is-bad" : ""} ${css.golpe} ${golpe.bad ? css.golpeMal : ""}`} aria-hidden="true">
+                              {golpe.emoji}
+                            </span>
+                          ))}
+                        <span className={`${css.anillo} ${golpe.bad ? css.anilloMal : ""}`} aria-hidden="true" />
+                        <span className={`${css.cartelFila} ${col === 0 ? css.izq : col === 2 ? css.der : ""}`}>
+                          <span className={`jg-bubble ${golpe.bad ? css.malo : "is-gold"}`} style={{ position: "relative" }}>
+                            {golpe.text}
+                          </span>
+                        </span>
                       </span>
-                    ))}
-                  {hit?.hole === h && (
-                    <span key={hit.id} className={`jg-bubble ${hit.bad ? "" : "is-gold"}`} style={{ left: 4, top: -8 }}>
-                      {hit.text}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {phase === "count" && (
+              <Cuenta
+                onGo={() => {
+                  startAt.current = now();
+                  setPhase("play");
+                }}
+              />
+            )}
+            {phase === "over" && (
+              <div className={css.tiempoFuera} aria-live="assertive">
+                <span>¡Tiempo!</span>
+              </div>
+            )}
           </div>
         </>
       )}

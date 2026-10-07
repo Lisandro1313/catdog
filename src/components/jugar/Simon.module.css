@@ -1,0 +1,100 @@
+/* Simón de la barra: lo que se suma sobre jg-simon / jg-simon-btn. */
+
+.btn {
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Mientras el bartender muestra, los que no suenan se apagan un poco: se lee mejor cuál se prende */
+.showing .btn:not(:global(.is-lit)) {
+  opacity: 0.55;
+}
+
+/* El que tocaste mal queda en rojo */
+.wrong {
+  background: color-mix(in srgb, var(--danger) 70%, var(--surface)) !important;
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 4px rgba(181, 83, 60, 0.35);
+}
+
+.fail {
+  animation: shake 0.4s ease-in-out;
+}
+@keyframes shake {
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* "Tu turno" entra con un rebote */
+.turn {
+  display: inline-block;
+  color: var(--accent-strong);
+  animation: pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.5) both;
+}
+
+/* Cartel entre rondas, encima de los botones */
+.cheer {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  white-space: nowrap;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: #1a150d;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  animation: cheer 0.8s ease forwards;
+}
+@keyframes cheer {
+  0% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  25% {
+    opacity: 1;
+    scale: 1.08;
+  }
+  40% {
+    scale: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fail,
+  .turn {
+    animation: none;
+  }
+  .cheer {
+    animation-duration: 1.2s;
+    animation-timing-function: steps(1, end);
+  }
+}

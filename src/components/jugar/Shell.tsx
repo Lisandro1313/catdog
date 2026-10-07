@@ -123,10 +123,12 @@ export function withTransition(update: () => void) {
   }
   const t = doc.startViewTransition(() => {
     flushSync(update);
-  }) as { finished?: Promise<void>; skipTransition?: () => void } | undefined;
+  }) as { finished?: Promise<void>; ready?: Promise<void>; skipTransition?: () => void } | undefined;
   // Fusible: si la animación no termina (pestaña de fondo, navegador lento), se saltea y la pantalla queda usable.
   const timer = setTimeout(() => t?.skipTransition?.(), 500);
   t?.finished?.then(() => clearTimeout(timer)).catch(() => clearTimeout(timer));
+  // Saltear la animación rechaza `ready`: es lo esperado, no un error para la consola.
+  t?.ready?.catch(() => {});
 }
 
 let audio: AudioContext | null = null;

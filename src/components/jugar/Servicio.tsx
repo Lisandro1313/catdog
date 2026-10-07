@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, beep, buzz, keepAwake, tap as vibrar } from "./Shell";
 import { Fin } from "./Fin";
+import css from "./Servicio.module.css";
 
 type Ing = { id: string; label: string; emoji: string };
 const ING: Ing[] = [
@@ -114,14 +115,39 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [active, setActive] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, setFlash] = useState<{ text: string; tone: "bien" | "mal" | "nivel"; id: number } | null>(null);
+  /** El último ingrediente tocado: brilla verde si iba, rojo si no. */
+  const [fb, setFb] = useState<{ id: string; ok: boolean; n: number } | null>(null);
   const reported = useRef(false);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  /** Clientes a los que ya se les avisó que se están por ir (un aviso por cliente). */
+  const warned = useRef<Set<number>>(new Set());
+  const fbN = useRef(0);
   const servedRef = useRef(0);
   const livesRef = useRef(LIVES);
   const ordersRef = useRef<Order[]>([]);
 
   const level = Math.floor(served / 3) + 1;
   const slots = level >= 5 ? 3 : level >= 2 ? 2 : 1;
+
+  function later(fn: () => void, ms: number) {
+    timers.current.push(setTimeout(fn, ms));
+  }
+  useEffect(() => {
+    const pending = timers.current;
+    return () => {
+      pending.forEach(clearTimeout);
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+    };
+  }, []);
+
+  /** Un cartel por vez, siempre en el mismo lugar (no empuja los botones). */
+  function toast(text: string, tone: "bien" | "mal" | "nivel", ms = 1100) {
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setFlash({ text, tone, id: now() });
+    flashTimer.current = setTimeout(() => setFlash(null), ms);
+  }
 
   function setOrdersBoth(next: Order[]) {
     ordersRef.current = next;
@@ -137,6 +163,10 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
     setTips(0);
     setLives(LIVES);
     setFlash(null);
+    setFb(null);
+    warned.current = new Set();
+    timers.current.forEach(clearTimeout);
+    timers.current.length = 0;
     const first = newOrder(0);
     setOrdersBoth([first]);
     setActive(first.id);
@@ -159,14 +189,21 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
         buzz();
         livesRef.current -= gone.length;
         setLives(Math.max(0, livesRef.current));
-        setFlash(`${gone[0].c.name} se fue sin comer`);
-        setTimeout(() => setFlash(null), 800);
+        toast(livesRef.current <= 0 ? "Se cerró la barra" : `${gone[0].c.name} se fue sin comer`, "mal");
         cur = cur.filter((o) => o.deadline > t);
         if (livesRef.current <= 0) {
           clearInterval(id);
           setOrdersBoth(cur);
-          setTimeout(() => setPhase("end"), 600);
+          later(() => setPhase("end"), 1100);
           return;
+        }
+      }
+      // Aviso cuando a alguien le queda poca paciencia (una vez por cliente).
+      for (const o of cur) {
+        if (!warned.current.has(o.id) && (o.deadline - t) / o.total < 0.25) {
+          warned.current.add(o.id);
+          beep(392, 70, "square", 0.05);
+          later(() => beep(370, 90, "square", 0.05), 110);
         }
       }
       const maxSlots = lvl >= 5 ? 3 : lvl >= 2 ? 2 : 1;
@@ -174,8 +211,8 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
         const o = newOrder(servedRef.current, cur.map((x) => x.c.name));
         cur = [...cur, o];
         nextArrival = t + 900 + Math.random() * 1500;
-        beep(1046, 80);
-        setTimeout(() => beep(1318, 120), 90);
+        beep(1046, 80, "sine", 0.12);
+        later(() => beep(1318, 120, "sine", 0.12), 90);
         vibrar(15);
       }
       if (cur !== ordersRef.current) setOrdersBoth(cur);
@@ -193,32 +230,52 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
   }, [phase, served, onDone]);
 
   function tap(id: string) {
-    if (phase !== "play") return;
+    if (phase !== "play" || livesRef.current <= 0) return;
     const o = ordersRef.current.find((x) => x.id === active);
     if (!o) return;
-    if (o.recipe.steps.includes(id) && !o.got.includes(id)) {
+    // Ya está en el pedido (doble toque): no es un error.
+    if (o.got.includes(id)) {
+      beep(300, 30, "triangle", 0.05);
+      return;
+    }
+    fbN.current += 1;
+    if (o.recipe.steps.includes(id)) {
+      setFb({ id, ok: true, n: fbN.current });
       const got = [...o.got, id];
-      beep(500 + got.length * 60, 70);
+      beep(500 + got.length * 60, 60, "triangle", 0.16);
+      vibrar(6);
       if (got.length === o.recipe.steps.length) {
+        const lvlAntes = Math.floor(servedRef.current / 3) + 1;
         servedRef.current += o.vip ? 2 : 1;
         setServed(servedRef.current);
+        const lvl = Math.floor(servedRef.current / 3) + 1;
         const speedy = (o.deadline - now()) / o.total;
         const tip = o.vip ? 1000 : speedy > 0.6 ? 500 : speedy > 0.3 ? 200 : 0;
         if (tip) setTips((x) => x + tip);
-        beep(900, 160);
-        if (o.vip) {
-          setTimeout(() => beep(1200, 120), 150);
-          setTimeout(() => beep(1500, 240), 300);
-          vibrar(30);
+        // Campanita de entrega; con propina, monedas.
+        beep(880, 90, "triangle", 0.16);
+        later(() => beep(1320, 160, "triangle", 0.15), 85);
+        if (tip) {
+          later(() => beep(1760, 60, "square", 0.05), 210);
+          later(() => beep(2093, 90, "square", 0.05), 280);
         }
-        setFlash(o.vip ? `¡El chef aprueba! Vale doble, +$${tip}` : `¡${o.recipe.name} para ${o.c.name}!${tip ? ` +$${tip} de propina` : ""}`);
-        setTimeout(() => setFlash(null), 800);
+        if (o.vip) {
+          later(() => beep(1200, 120), 350);
+          later(() => beep(1500, 240), 480);
+          vibrar(30);
+        } else vibrar(15);
+        if (lvl > lvlAntes && (lvl === 2 || lvl === 3 || lvl === 5)) {
+          toast(lvl === 2 ? "Nivel 2: ahora vienen de a dos" : lvl === 3 ? "Nivel 3: la receta se esconde" : "¡Hora pico! Tres a la vez", "nivel", 1700);
+          [659, 784, 988].forEach((f, k) => later(() => beep(f, 110, "triangle", 0.13), 420 + k * 100));
+        } else toast(o.vip ? `¡El chef aprueba! Vale doble, +$${tip}` : `¡${o.recipe.name} para ${o.c.name}!${tip ? ` +$${tip}` : ""}`, "bien");
+        warned.current.delete(o.id);
         const rest = ordersRef.current.filter((x) => x.id !== o.id);
         setOrdersBoth(rest);
         setActive(rest[0]?.id ?? null);
       } else setOrdersBoth(ordersRef.current.map((x) => (x.id === o.id ? { ...x, got } : x)));
     } else {
       // Ingrediente de más: pierde paciencia y se sacude.
+      setFb({ id, ok: false, n: fbN.current });
       buzz();
       setOrdersBoth(ordersRef.current.map((x) => (x.id === o.id ? { ...x, deadline: x.deadline - x.total * 0.2, shake: x.shake + 1 } : x)));
     }
@@ -266,34 +323,66 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
   const current = orders.find((o) => o.id === active) ?? null;
 
   return (
-    <Shell title="Servicio" onBack={onBack} right={<>{"❤".repeat(lives)}{"♡".repeat(Math.max(0, LIVES - lives))}</>}>
+    <Shell
+      title="Servicio"
+      onBack={onBack}
+      right={
+        <span key={lives} className={lives < LIVES ? css.vidaMenos : ""} aria-label={`${lives} vidas`}>
+          {"❤".repeat(lives)}
+          {"♡".repeat(Math.max(0, LIVES - lives))}
+        </span>
+      }
+    >
       <div className="mt-3 flex items-baseline justify-between">
         <p className="text-xs uppercase tracking-[0.2em] text-muted">
           nivel {level}
           {level >= 5 && <span className="ml-2 text-danger">hora pico</span>}
-          {tips > 0 && <span className="ml-2 normal-case tracking-normal text-accent">${tips} de propina</span>}
+          {tips > 0 && (
+            <span key={tips} className={`ml-2 inline-block normal-case tracking-normal text-accent ${css.propina}`}>
+              ${tips} de propina
+            </span>
+          )}
         </p>
         <p key={served} className="ap-display text-3xl tabular-nums jg-pop">
           {served}
         </p>
       </div>
 
-      {flash && <p className="jg-servicio-flash mt-2">{flash}</p>}
+      {/* Lugar fijo para el cartel: aparece encima, sin correr los botones de abajo. */}
+      <div className={css.cartelSlot} aria-live="polite">
+        {flash && (
+          <p key={flash.id} className={`jg-servicio-flash ${css.cartel} ${css[flash.tone]}`}>
+            {flash.text}
+          </p>
+        )}
+      </div>
 
-      <div className={`mt-3 grid gap-2 ${slots === 3 ? "grid-cols-3 jg-pico" : slots === 2 ? "grid-cols-2" : ""}`}>
+      <div className={`grid gap-2 ${css.barra} ${slots === 3 ? "grid-cols-3 jg-pico" : slots === 2 ? "grid-cols-2" : ""}`}>
         {orders.map((o) => {
           const left = Math.max(0, ((o.deadline - (tick || now())) / o.total) * 100);
           const on = o.id === active;
+          const humor = left > 60 ? "🙂" : left > 30 ? "😐" : "😤";
           return (
-            <button key={o.id} type="button" onClick={() => setActive(o.id)} className={`jg-cliente ${on ? "is-on" : "is-off"} ${o.shake ? "is-shake" : ""} ${o.vip ? "is-vip" : ""}`} data-shake={o.shake}>
-              {o.c.img ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={o.c.img} alt="" className="jg-cliente-img" />
-              ) : (
-                <span className="jg-cliente-face" aria-hidden="true">
-                  {o.c.face}
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => setActive(o.id)}
+              className={`jg-cliente ${css.cliente} ${on ? "is-on" : "is-off"} ${o.shake ? (o.shake % 2 ? css.sacudeA : css.sacudeB) : ""} ${o.vip ? "is-vip" : ""} ${left < 25 ? css.urgente : ""}`}
+              aria-pressed={on}
+            >
+              <span className="relative flex-none">
+                {o.c.img ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={o.c.img} alt="" className="jg-cliente-img" />
+                ) : (
+                  <span className="jg-cliente-face" aria-hidden="true">
+                    {o.c.face}
+                  </span>
+                )}
+                <span key={humor} className={css.humor} aria-hidden="true">
+                  {humor}
                 </span>
-              )}
+              </span>
               <div className="min-w-0 flex-1 text-left">
                 <p className="truncate text-xs text-muted">
                   {o.c.name}
@@ -302,7 +391,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
                 <p className="truncate font-display text-lg leading-tight">{o.recipe.name}</p>
                 <p className="mt-1 flex flex-wrap gap-1 text-sm">
                   {o.recipe.steps.map((s) => (
-                    <span key={s} className={`jg-ing ${o.got.includes(s) ? "is-got" : o.hidden ? "is-hidden" : ""}`}>
+                    <span key={s} className={`jg-ing ${o.got.includes(s) ? `is-got ${css.puesto}` : o.hidden ? "is-hidden" : ""}`}>
                       {o.got.includes(s) || !o.hidden ? byId.get(s)?.emoji : "?"}
                     </span>
                   ))}
@@ -319,9 +408,17 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
 
       <div className="jg-ingredientes mt-4">
         {ING.map((i) => (
-          <button key={i.id} type="button" className={`jg-ing-btn ${current?.got.includes(i.id) ? "is-got" : ""}`} onPointerDown={() => tap(i.id)} aria-label={i.label} disabled={!current}>
+          <button
+            key={i.id}
+            type="button"
+            className={`jg-ing-btn ${css.ing} ${current?.got.includes(i.id) ? "is-got" : ""}`}
+            onPointerDown={() => tap(i.id)}
+            aria-label={i.label}
+            disabled={!current}
+          >
             <span aria-hidden="true">{i.emoji}</span>
             <span>{i.label}</span>
+            {fb?.id === i.id && <span key={fb.n} className={`${css.toque} ${fb.ok ? css.toqueBien : css.toqueMal}`} aria-hidden="true" />}
           </button>
         ))}
       </div>

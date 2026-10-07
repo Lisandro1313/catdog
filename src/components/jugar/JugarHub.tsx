@@ -7,6 +7,7 @@ import { GAMES, PREMIO_MINIMO, ganaDuelo, logrado, logrosParaPremio, retoDelDia,
 import { GAME_INFO, Tabla } from "./info";
 import { letSleep, withTransition } from "./Shell";
 import { Confetti } from "./Confetti";
+import { NovelaBoton } from "./novela/NovelaBoton";
 import { ShareButton } from "@/components/ShareButton";
 
 function fmtPremioAt(iso: string): string {
@@ -48,8 +49,9 @@ const Fruta = dynamic(() => import("./Fruta").then((m) => m.Fruta), { ssr: false
 const Vaso = dynamic(() => import("./Vaso").then((m) => m.Vaso), { ssr: false, loading: cargando });
 const Palabra = dynamic(() => import("./Palabra").then((m) => m.Palabra), { ssr: false, loading: cargando });
 const Fusion = dynamic(() => import("./Fusion").then((m) => m.Fusion), { ssr: false, loading: cargando });
+const Novela = dynamic(() => import("./Novela").then((m) => m.Novela), { ssr: false, loading: cargando });
 
-type View = "hub" | GameId | "premio" | "records" | "duelo" | "torneo" | "impostor";
+type View = "hub" | GameId | "premio" | "records" | "duelo" | "torneo" | "impostor" | "novela";
 type Duelo = { game: GameId; names: [string, string]; scores: [number | null, number | null]; wins: [number, number]; turn: 0 | 1; stage: "setup" | "play" | "between" | "done"; torneo?: Torneo };
 /** Torneo de mesa: cuatro nombres, dos semis y una final. Cada cruce es un duelo a una partida. */
 type Torneo = { players: [string, string, string, string]; match: 0 | 1 | 2; winners: string[] };
@@ -237,6 +239,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
     view === "mimica" ? <Mimica cards={mimica} onDone={(v) => reportar("mimica", v)} {...common} /> :
     view === "trivia" ? <Trivia pairs={pairs} deLaCarta={triviaCarta} onDone={(v) => reportar("trivia", v)} {...common} /> :
     view === "impostor" ? <Impostor deLaCarta={deLaCarta} onBack={salir} /> :
+    view === "novela" ? <Novela onBack={salir} /> :
     view === "pingpong" ? <PingPong onDone={(v) => reportar("pingpong", v)} {...common} /> :
     view === "pool" ? <Pool onDone={(v) => reportar("pool", v)} {...common} /> :
     view === "sanguche" ? <Sanguche onDone={(v) => reportar("sanguche", v)} {...common} /> :
@@ -550,7 +553,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
   }
 
   return (
-    <div className="jg-stage">
+    <div className="jg-stage jg-stage-hub">
       <div className="flex items-center justify-between text-xs text-muted">
         <Link href={conCena ? "/hoy" : "/"} className="hover:text-ink">
           ← {conCena ? "Puertas adentro" : "La casa"}
@@ -616,7 +619,36 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         </button>
       )}
 
-      <ul className="mt-6 grid gap-3">
+      {/* La novela de la casa: para leer con tiempo. No suma para el trago (no está en GAMES). */}
+      <h2 className="jg-seccion">Novela de la casa</h2>
+      <NovelaBoton onClick={() => setView("novela")} />
+
+      {/* Primero lo de la mesa entera: es lo que más se juega en grupo, y con veinte juegos sueltos
+          arriba quedaba enterrado al fondo. No suma para el trago: no hay quién gane por puntos. */}
+      <h2 className="jg-seccion">Para toda la mesa</h2>
+      <div className="jg-mesa-grid">
+        <button type="button" className="jg-link jg-link-mesa text-left" onClick={() => setView("impostor")}>
+          <span className="jg-link-title">🕵️ El Impostor</span>
+          <span className="jg-link-sub">De 3 a 12. A todos les toca la misma palabra menos a uno: hablan en ronda y votan quién era.</span>
+        </button>
+        <button type="button" className="jg-link text-left" onClick={() => { setDuelo({ game: "chef", names: ["", ""], scores: [null, null], wins: [0, 0], turn: 0, stage: "setup" }); setView("duelo"); }}>
+          <span className="jg-link-title">⚔️ Duelo</span>
+          <span className="jg-link-sub">Dos personas, un celular, al mejor de 3. En el juego que quieran.</span>
+        </button>
+        <button type="button" className="jg-link text-left" onClick={() => setView("torneo")}>
+          <span className="jg-link-title">🏆 Torneo</span>
+          <span className="jg-link-sub">Cuatro personas: dos semis y una final. Sale un campeón.</span>
+        </button>
+        <a href="https://basas-online.vercel.app/" target="_blank" rel="noopener noreferrer" className="jg-link">
+          <span className="jg-link-title">🃏 Basas online</span>
+          <span className="jg-link-sub">El juego de cartas de Lisandro, entre varios. Se abre aparte.</span>
+        </a>
+      </div>
+
+      {/* En grilla y cortitas: veinte tarjetas largas una abajo de la otra eran un scroll eterno en el
+          celular y una columna finita en la compu. El detalle de cada juego está adentro. */}
+      <h2 className="jg-seccion">Para jugar solo <span>· suman para el trago</span></h2>
+      <ul className="jg-grilla">
         {GAMES.map((g) => {
           const info = GAME_INFO[g];
           const ok = logrado(g, marcas[g]);
@@ -624,52 +656,20 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
           const top = records[g]?.[0];
           return (
             <li key={g}>
-              <button type="button" className={`jg-card ${ok ? "is-done" : ""}`} onClick={() => setView(g)}>
-                <span className="jg-card-icon" aria-hidden="true">
+              <button type="button" className={`jg-tile ${ok ? "is-done" : ""} ${g === reto ? "is-reto" : ""}`} onClick={() => setView(g)}>
+                <span className="jg-tile-icon" aria-hidden="true">
                   {info.icon}
                 </span>
-                <span className="jg-card-body">
-                  <span className="jg-card-title">
-                    {info.title}
-                    {g === reto && <span className="jg-card-reto">reto del día</span>}
-                  </span>
-                  <span className="jg-card-meta">
-                    {ok ? "✓ Logrado" : info.meta}
-                    {mine != null && <> · tuyo: {mine}</>}
-                  </span>
-                  {top && (
-                    <span className="jg-card-record">
-                      Récord: {top.name} · {top.best} {info.unit}
-                    </span>
-                  )}
-                </span>
+                <span className="jg-tile-title">{info.title}</span>
+                <span className="jg-tile-meta">{ok ? "✓ Logrado" : g === reto ? "Reto del día" : info.meta}</span>
+                {(mine != null || top) && (
+                  <span className="jg-tile-record">{mine != null ? `Tuyo: ${mine}` : `🏆 ${top!.name}: ${top!.best}`}</span>
+                )}
               </button>
             </li>
           );
         })}
       </ul>
-
-      {/* Para la mesa entera, con un celular que se pasa. No suma para el trago: no hay quién gane
-          por puntos, y es lo que más se juega en grupo. */}
-      <button type="button" className="jg-link jg-link-mesa mt-6 w-full text-left" onClick={() => setView("impostor")}>
-        <span className="jg-link-title">🕵️ El Impostor <span className="jg-nuevo">nuevo</span></span>
-        <span className="jg-link-sub">Para la mesa, de 3 a 12. A todos les toca la misma palabra menos a uno. Hablan en ronda y votan quién era.</span>
-      </button>
-
-      <button type="button" className="jg-link mt-3 w-full text-left" onClick={() => { setDuelo({ game: "chef", names: ["", ""], scores: [null, null], wins: [0, 0], turn: 0, stage: "setup" }); setView("duelo"); }}>
-        <span className="jg-link-title">⚔️ Duelo</span>
-        <span className="jg-link-sub">Dos personas, un celular: juega uno, después el otro, gana el mejor. Al mejor de 3. Sirve para cualquier juego menos la mímica.</span>
-      </button>
-
-      <button type="button" className="jg-link mt-3 w-full text-left" onClick={() => setView("torneo")}>
-        <span className="jg-link-title">🏆 Torneo de mesa</span>
-        <span className="jg-link-sub">Cuatro personas: dos semis y una final, en el juego que elijan. Sale un campeón de la mesa.</span>
-      </button>
-
-      <a href="https://basas-online.vercel.app/" target="_blank" rel="noopener noreferrer" className="jg-link mt-6">
-        <span className="jg-link-title">🃏 Basas online</span>
-        <span className="jg-link-sub">El juego de cartas de Lisandro, para jugar entre varios desde el celu. Se abre aparte; no cuenta para el trago.</span>
-      </a>
 
       {marcas.premio && !justWon ? (
         <button className="btn btn-primary mt-8 w-full" type="button" onClick={() => setView("premio")}>

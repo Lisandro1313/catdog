@@ -60,7 +60,7 @@ export const METAS: Record<GameId, number> = {
   vaso: 330,
   /** La palabra de la casa: intentos usados (menos es mejor; no adivinarla cuenta 7). */
   palabra: 4,
-  /** 2048 de la barra: puntos. Llegar a 2500 es armar un Negroni y algo más. */
+  /** 2048 de la barra: puntos. Un Negroni (128) da unos 770; llegar a 2500 es armar un Vermut (256) y algo más. */
   fusion: 2500,
 };
 

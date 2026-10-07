@@ -1,0 +1,278 @@
+/* La palabra de la casa. Estilos propios (no tocan globals.css). */
+
+.juego {
+  --verde: #4a8a42;
+  --amarillo: #c19a2e;
+  --gris: #3a3530;
+  --t: min(3.3rem, 14.5vw, 7.4dvh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0.9rem;
+}
+
+.grilla {
+  position: relative;
+  display: grid;
+  gap: 0.32rem;
+  perspective: 600px;
+}
+.fila {
+  display: grid;
+  grid-template-columns: repeat(5, var(--t));
+  gap: 0.32rem;
+}
+.sacude {
+  animation: sacudir 0.42s ease;
+}
+@keyframes sacudir {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(4px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-7px);
+  }
+  40%,
+  60% {
+    transform: translateX(7px);
+  }
+}
+
+.letra {
+  display: grid;
+  place-items: center;
+  height: var(--t);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.02);
+  color: #fff4e0;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: calc(var(--t) * 0.5);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  user-select: none;
+}
+.actual {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.escrita {
+  border-color: rgba(224, 194, 131, 0.75);
+  animation: tecleo 0.12s ease-out;
+}
+@keyframes tecleo {
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+/* El volteo: a mitad de la vuelta (cuando la letra está de canto) cambia de color. */
+.bien,
+.esta,
+.no {
+  background: var(--final);
+  border-color: var(--final);
+  color: #fff;
+  animation: voltear 0.5s ease-in-out both;
+  animation-delay: var(--d, 0ms);
+}
+.bien {
+  --final: var(--verde);
+}
+.esta {
+  --final: var(--amarillo);
+}
+.no {
+  --final: var(--gris);
+  color: #d6cdc1;
+}
+@keyframes voltear {
+  0% {
+    transform: rotateX(0);
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(224, 194, 131, 0.75);
+    color: #fff4e0;
+  }
+  49.9% {
+    transform: rotateX(90deg);
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(224, 194, 131, 0.75);
+    color: #fff4e0;
+  }
+  50% {
+    transform: rotateX(90deg);
+    background: var(--final);
+    border-color: var(--final);
+  }
+  100% {
+    transform: rotateX(0);
+    background: var(--final);
+    border-color: var(--final);
+  }
+}
+.salta {
+  animation: saltar 0.55s ease both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes saltar {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-38%);
+  }
+  60% {
+    transform: translateY(6%);
+  }
+  80% {
+    transform: translateY(-8%);
+  }
+}
+
+/* Cartelito arriba de la grilla */
+.aviso {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: -0.4rem;
+  z-index: 4;
+  transform: translateX(-50%);
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.5rem;
+  background: #fff4e0;
+  color: #1a150d;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  animation: aviso 1.4s ease forwards;
+}
+.aviso.queda {
+  animation: entra 0.3s ease both;
+  letter-spacing: 0.12em;
+}
+@keyframes aviso {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+  12%,
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes entra {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+}
+
+/* Teclado */
+.teclado {
+  display: grid;
+  gap: 0.36rem;
+  width: 100%;
+  margin-top: 0.9rem;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.teclas {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+}
+.tecla {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 2.6rem;
+  height: min(3.3rem, 7.4dvh);
+  min-height: 2.6rem;
+  border-radius: 0.45rem;
+  background: #4a433c;
+  color: #fff4e0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.25s,
+    transform 0.06s;
+}
+.tecla:active {
+  transform: scale(0.93);
+  background: #5d554c;
+}
+.ancha {
+  flex-grow: 1.6;
+  max-width: 4.2rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+.enviar {
+  background: var(--accent);
+  color: #1a150d;
+}
+.enviar:active {
+  background: var(--accent-strong);
+}
+.tecla.bien {
+  background: var(--verde);
+  color: #fff;
+}
+.tecla.esta {
+  background: var(--amarillo);
+  color: #fff;
+}
+.tecla.no {
+  background: #24201c;
+  color: #6f675e;
+}
+.tecla.bien,
+.tecla.esta,
+.tecla.no {
+  animation: none;
+  border: 0;
+}
+
+.leyenda {
+  display: flex;
+  justify-content: center;
+  gap: 0.9rem;
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.leyenda i {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-right: 0.3rem;
+  vertical-align: -0.1rem;
+  border-radius: 0.2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sacude,
+  .escrita,
+  .salta {
+    animation: none;
+  }
+  .bien,
+  .esta,
+  .no {
+    animation-duration: 1ms;
+  }
+}

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, beep, buzz, shuffle, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
+import { FANFARRIA, chime, vibrate } from "./juice";
+import css from "./Simon.module.css";
 
 /** La alacena del bartender: cada partida toma cuatro al azar, cada uno con su nota. */
 const ALACENA = [
@@ -33,13 +35,15 @@ function randomIndex(): number {
  * hay que repetirlo en orden. Cada ronda suma uno y va más rápido. Los ingredientes cambian por partida.
  */
 export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
-  const [phase, setPhase] = useState<"idle" | "show" | "input" | "end">("idle");
+  const [phase, setPhase] = useState<"idle" | "show" | "input" | "fail" | "end">("idle");
   const [ings, setIngs] = useState<Ing[]>(ALACENA.slice(0, 4));
   const [seq, setSeq] = useState<number[]>([]);
   const [pos, setPos] = useState(0);
   const [lit, setLit] = useState<number | null>(null);
   const [round, setRound] = useState(0);
   const [wrong, setWrong] = useState<number | null>(null);
+  /** Cartel corto entre rondas ("¡Bien!", "¡Ronda 10!"). */
+  const [cheer, setCheer] = useState<{ text: string; id: number } | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const reported = useRef(false);
 
@@ -51,6 +55,7 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
 
   function show(sequence: number[], set: Ing[]) {
     setPhase("show");
+    setCheer(null);
     setLit(null);
     clearTimers();
     const step = Math.max(260, 620 - sequence.length * 35);
@@ -75,7 +80,9 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
     keepAwake();
     reported.current = false;
     setWrong(null);
+    setCheer(null);
     setRound(0);
+    setPos(0);
     const set = shuffle(ALACENA).slice(0, 4);
     setIngs(set);
     const first = [randomIndex()];
@@ -89,22 +96,30 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
     beep(ings[id].note, 140);
     timers.current.push(setTimeout(() => setLit(null), 160));
     if (seq[pos] !== id) {
+      // Antes de la pantalla final, se ve cuál era: el correcto parpadea y el tocado queda en rojo.
       setWrong(id);
       buzz();
-      try {
-        navigator.vibrate?.([60, 40, 60]);
-      } catch {
-        // sin vibración
-      }
-      setPhase("end");
+      vibrate([60, 40, 60]);
+      setPhase("fail");
+      const right = seq[pos];
+      [0, 1, 2].forEach((k) => {
+        timers.current.push(setTimeout(() => setLit(right), 250 + k * 300));
+        timers.current.push(setTimeout(() => setLit(null), 400 + k * 300));
+      });
+      timers.current.push(setTimeout(() => setPhase("end"), 1400));
       return;
     }
     if (pos + 1 === seq.length) {
       const r = seq.length;
       setRound(r);
+      setPos(pos + 1);
       const next = [...seq, randomIndex()];
       setSeq(next);
-      timers.current.push(setTimeout(() => show(next, ings), 650));
+      const hito = r + 1 === METAS.simon;
+      setCheer({ text: hito ? `¡Ronda ${r + 1}: la del trago!` : r % 5 === 0 ? `¡${r} al hilo!` : ["¡Bien!", "¡Eso!", "Salud", "¡Sale!"][r % 4], id: r });
+      timers.current.push(setTimeout(() => (hito || r % 5 === 0 ? chime(FANFARRIA, 90, 150) : chime([784, 1047], 80, 130, "triangle")), 180));
+      vibrate(20);
+      timers.current.push(setTimeout(() => show(next, ings), hito || r % 5 === 0 ? 1100 : 800));
       setPhase("show");
       return;
     }
@@ -156,7 +171,9 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
       ) : (
         <>
           <p className="mt-4 flex items-center justify-center gap-2 text-xs uppercase tracking-[0.2em] text-muted">
-            {phase === "show" ? (
+            {phase === "fail" ? (
+              <span className="text-danger">¡Uy! Era el que parpadea</span>
+            ) : phase === "show" ? (
               <>
                 <span className="jg-shake text-base" aria-hidden="true">
                   🍸
@@ -164,17 +181,33 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
                 Mirá…
               </>
             ) : (
-              "Tu turno"
+              <span key={`t${round}`} className={css.turn}>
+                Tu turno
+              </span>
             )}
           </p>
-          <div className="jg-simon mt-4">
+          <div className={`relative mt-4 ${phase === "fail" ? css.fail : ""}`}>
+          {cheer && (
+            <p key={cheer.id} className={css.cheer} aria-live="polite">
+              {cheer.text}
+            </p>
+          )}
+          <div className={`jg-simon ${phase === "show" ? css.showing : ""}`}>
             {ings.map((ing, id) => (
               <button
                 key={ing.label}
                 type="button"
-                className={`jg-simon-btn ${lit === id ? "is-lit" : ""}`}
+                className={`jg-simon-btn ${css.btn} ${lit === id ? "is-lit" : ""} ${phase === "fail" && wrong === id ? css.wrong : ""}`}
                 style={{ "--c": ing.color } as React.CSSProperties}
-                onPointerDown={() => press(id)}
+                onPointerDown={(e) => {
+                  if (!e.isPrimary) return;
+                  press(id);
+                }}
+                onClick={(e) => {
+                  // Teclado (Enter / espacio): el click llega sin puntero.
+                  if (e.detail === 0) press(id);
+                }}
+                onContextMenu={(e) => e.preventDefault()}
                 disabled={phase !== "input"}
                 aria-label={ing.label}
               >
@@ -185,9 +218,10 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
               </button>
             ))}
           </div>
-          <div className="mt-5 flex justify-center gap-1.5" aria-hidden="true">
+          </div>
+          <div className="mx-auto mt-5 flex max-w-xs flex-wrap justify-center gap-1.5" aria-hidden="true">
             {seq.map((_, k) => (
-              <span key={k} className={`jg-dotline ${phase === "input" && k < pos ? "is-on" : ""}`} />
+              <span key={k} className={`jg-dotline ${phase === "input" && k < pos ? "is-on" : ""} ${phase === "input" && k === pos ? "is-current" : ""}`} />
             ))}
           </div>
         </>

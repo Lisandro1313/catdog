@@ -1,0 +1,157 @@
+/* El Impostor: nombres de la mesa, la carta que se da vuelta, la votación y el suspenso. */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.num {
+  width: 1.4rem;
+  flex: none;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.row input {
+  flex: 1;
+  min-width: 0;
+}
+.quitar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+.quitar:hover:not(:disabled) {
+  color: var(--danger);
+}
+.quitar:disabled {
+  opacity: 0.25;
+}
+.rowIn {
+  animation: rowIn 0.25s ease both;
+}
+@keyframes rowIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* La tapa late para que se note que hay que tocarla */
+.tapa {
+  animation: tapa 1.8s ease-in-out infinite;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+@keyframes tapa {
+  50% {
+    border-color: rgba(224, 194, 131, 0.95);
+    background: rgba(201, 169, 110, 0.12);
+  }
+}
+
+/* La carta se da vuelta al tocarla */
+.flip {
+  animation: flip 0.45s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+  transform-origin: 50% 50%;
+}
+@keyframes flip {
+  from {
+    opacity: 0;
+    transform: perspective(700px) rotateY(80deg) scale(0.95);
+  }
+}
+
+.name {
+  overflow-wrap: anywhere;
+}
+
+/* El orden de la ronda */
+.orden {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.orden li {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.orden li:first-child {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+/* Votación: una ficha por jugador */
+.votos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.voto {
+  min-height: 3rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  touch-action: manipulation;
+}
+.voto:active {
+  transform: scale(0.97);
+}
+.votoOn {
+  border-color: var(--danger);
+  background: rgba(181, 83, 60, 0.18);
+  color: var(--text);
+}
+
+/* Redoble antes de revelar */
+.drum {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  animation: drum 0.36s ease-in-out infinite;
+}
+@keyframes drum {
+  50% {
+    transform: scale(1.15) rotate(-4deg);
+  }
+}
+
+.reveal {
+  animation: reveal 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+    filter: blur(6px);
+  }
+}
+.ganaMesa {
+  color: var(--ok);
+}
+.ganaImpostor {
+  color: var(--danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rowIn,
+  .tapa,
+  .flip,
+  .drum,
+  .reveal {
+    animation: none;
+  }
+}

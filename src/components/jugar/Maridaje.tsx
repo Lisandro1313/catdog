@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, shuffle } from "./Shell";
+import { Shell, beep, buzz, shuffle, tap } from "./Shell";
 import { Fin } from "./Fin";
+import css from "./Maridaje.module.css";
 
 /** Milisegundos ahora (helper: el compilador de React no lo cuenta como impureza del render). */
 function now(): number {
@@ -12,7 +13,7 @@ function now(): number {
 
 export type Pair = { dish: string; drink: string };
 
-type Round = { dish: string; answer: string; options: string[] };
+type Round = { id: number; dish: string; answer: string; options: string[] };
 
 type Props = {
   pairs: Pair[];
@@ -27,7 +28,7 @@ type Props = {
 };
 
 /** Una ronda al azar: un plato de la noche con su cóctel y tres señuelos distintos cada vez. */
-function nextRound(pairs: Pair[], extra: string[], avoid: string | null): Round {
+function nextRound(pairs: Pair[], extra: string[], avoid: string | null): Omit<Round, "id"> {
   const pool = Array.from(new Set([...pairs.map((p) => p.drink), ...extra]));
   const candidates = pairs.length > 1 ? pairs.filter((p) => p.dish !== avoid) : pairs;
   const p = candidates[Math.floor(Math.random() * candidates.length)];
@@ -49,21 +50,42 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
   const deadline = useRef(0);
   const reported = useRef(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** La pregunta ya se contestó (o se pasó el tiempo): el segundo toque no cuenta. */
+  const resolved = useRef(false);
+  const roundId = useRef(0);
+  const lastSec = useRef(0);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  /** Cartel al llegar a la marca en medio de la racha. */
+  const [cartel, setCartel] = useState<{ text: string; id: number } | null>(null);
+
+  function later(fn: () => void, ms: number) {
+    timers.current.push(setTimeout(fn, ms));
+  }
+  useEffect(() => {
+    const pending = timers.current;
+    return () => pending.forEach(clearTimeout);
+  }, []);
 
   /** Segundos por pregunta: 9 al principio, hasta 3.5 en la racha 12+. */
   const secondsFor = (s: number) => Math.max(3.5, 9 - s * 0.45);
 
   function serve(s: number, avoid: string | null) {
     const r = nextRound(pairs, extraDrinks, avoid);
-    setRound(r);
+    roundId.current += 1;
+    setRound({ ...r, id: roundId.current });
     setPicked(null);
+    resolved.current = false;
+    lastSec.current = Math.ceil(secondsFor(s));
     deadline.current = now() + secondsFor(s) * 1000;
     setLeft(100);
   }
 
   function start() {
     reported.current = false;
+    timers.current.forEach(clearTimeout);
+    timers.current.length = 0;
     setStreak(0);
+    setCartel(null);
     setPhase("play");
     serve(0, null);
   }
@@ -75,11 +97,16 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
     timer.current = setInterval(() => {
       const ms = deadline.current - now();
       setLeft(Math.max(0, (ms / total) * 100));
-      if (ms <= 0) {
+      // Los últimos tres segundos hacen tic.
+      const sec = Math.ceil(ms / 1000);
+      if (sec < lastSec.current && sec <= 3 && sec > 0) beep(sec === 1 ? 1100 : 880, 40, "square", 0.05);
+      lastSec.current = Math.min(lastSec.current, sec);
+      if (ms <= 0 && !resolved.current) {
+        resolved.current = true;
         if (timer.current) clearInterval(timer.current);
         buzz();
         setPicked("⏱");
-        setTimeout(() => setPhase("end"), 900);
+        later(() => setPhase("end"), 1100);
       }
     }, 100);
     return () => {
@@ -95,16 +122,24 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
   }, [phase, streak, onDone]);
 
   function pick(o: string) {
-    if (!round || picked != null) return;
+    if (!round || picked != null || resolved.current) return;
+    resolved.current = true;
     setPicked(o);
     if (o === round.answer) {
-      beep(660 + streak * 20, 120);
       const s = streak + 1;
+      const base = 523 * Math.pow(2, Math.min(s, 16) / 12);
+      beep(base, 90, "triangle", 0.16);
+      later(() => beep(base * 1.5, 150, "triangle", 0.15), 80);
+      tap(12);
       setStreak(s);
-      setTimeout(() => serve(s, round.dish), 550);
+      if (s === METAS.maridaje) {
+        setCartel({ text: "¡Marca para el trago!", id: s });
+        [784, 988, 1175, 1568].forEach((f, k) => later(() => beep(f, 120, "triangle", 0.14), 200 + k * 90));
+      } else if (s > METAS.maridaje && s % 5 === 0) setCartel({ text: `¡${s} seguidos!`, id: s });
+      later(() => serve(s, round.dish), 650);
     } else {
       buzz();
-      setTimeout(() => setPhase("end"), 1100);
+      later(() => setPhase("end"), 1400);
     }
   }
 
@@ -164,37 +199,67 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
 
   const timedOut = picked === "⏱";
   const correct = picked != null && picked === round.answer;
+  const secs = secondsFor(streak);
 
   return (
-    <Shell title="Maridaje" onBack={onBack} right={<>racha {streak}</>}>
-      <div className="jg-timebar mt-4" aria-hidden="true">
-        <span style={{ width: `${left}%` }} className={left < 30 ? "is-low" : ""} />
+    <Shell
+      title="Maridaje"
+      onBack={onBack}
+      right={
+        <span key={streak} className={streak ? "jg-pop" : ""}>
+          racha {streak}
+        </span>
+      }
+    >
+      <div className={`jg-timebar mt-4 ${css.reloj}`} aria-hidden="true">
+        <span
+          key={round.id}
+          className={`${css.barra} ${left < 30 ? css.apurado : ""}`}
+          style={{ animationDuration: `${secs}s`, animationPlayState: picked != null ? "paused" : "running" }}
+        />
       </div>
-      <div className="jg-mimica-card mt-4">
-        <p className="ap-eyebrow">{carta ? "¿Qué trago es?" : "¿Con qué cóctel va?"}</p>
-        <p className="mt-4 font-display text-2xl leading-snug">{round.dish}</p>
-        {picked != null && (
-          <div className="mt-5 border-t border-accent/20 pt-4">
-            <p className={`ap-eyebrow ${correct ? "text-ok" : "text-danger"}`}>{correct ? "Ese mismo" : timedOut ? "Se pasó el tiempo" : "No"}</p>
-            <p className="mt-2 text-sm text-muted">
-              {carta ? "Es el " : "Va con "}
-              <span className="text-accent">{round.answer}</span>.
-            </p>
-          </div>
+      <div className="relative">
+        <div key={round.id} className={`jg-mimica-card mt-4 ${picked == null ? "" : correct ? css.bien : css.mal}`}>
+          <p className="ap-eyebrow">{carta ? "¿Qué trago es?" : "¿Con qué cóctel va?"}</p>
+          <p className="mt-4 font-display text-2xl leading-snug">{round.dish}</p>
+          {picked != null && (
+            <div className={`mt-5 border-t border-accent/20 pt-4 ${css.veredicto}`}>
+              <p className={`ap-eyebrow ${correct ? "text-ok" : "text-danger"}`}>{correct ? "Ese mismo" : timedOut ? "Se pasó el tiempo" : "No"}</p>
+              <p className="mt-2 text-sm text-muted">
+                {carta ? "Es el " : "Va con "}
+                <span className="text-accent">{round.answer}</span>.
+              </p>
+            </div>
+          )}
+        </div>
+        {correct && (
+          <span key={round.id} className={css.mas} aria-hidden="true">
+            +1
+          </span>
+        )}
+        {cartel && (
+          <span key={cartel.id} className={css.cartel} aria-live="polite">
+            {cartel.text}
+          </span>
         )}
       </div>
-      <div className="mt-4 grid gap-2">
-        {round.options.map((o) => (
-          <button
-            key={o}
-            type="button"
-            className={`hoy-chip is-normal text-left ${picked === o ? (o === round.answer ? "is-on" : "is-wrong") : ""} ${picked != null && o === round.answer ? "is-on" : ""}`}
-            disabled={picked != null}
-            onClick={() => pick(o)}
-          >
-            {o}
-          </button>
-        ))}
+      <div key={round.id} className="mt-4 grid gap-2">
+        {round.options.map((o, k) => {
+          const isAnswer = picked != null && o === round.answer;
+          const isWrong = picked === o && o !== round.answer;
+          return (
+            <button
+              key={o}
+              type="button"
+              className={`hoy-chip is-normal text-left ${css.opcion} ${isAnswer ? `is-on ${css.esa}` : ""} ${isWrong ? `is-wrong ${css.noEsa}` : ""} ${picked != null && !isAnswer && !isWrong ? css.apagada : ""}`}
+              style={{ animationDelay: `${k * 45}ms` }}
+              disabled={picked != null}
+              onClick={() => pick(o)}
+            >
+              {o}
+            </button>
+          );
+        })}
       </div>
     </Shell>
   );

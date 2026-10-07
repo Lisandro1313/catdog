@@ -1,0 +1,185 @@
+/* Servicio: cartel en lugar fijo, toques que se ven, clientes que entran y se impacientan. */
+
+.cartelSlot {
+  position: relative;
+  height: 2.2rem;
+  margin: 0.4rem 0 0.35rem;
+}
+.cartel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.78rem;
+  animation: ser-cartel 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3) both !important;
+}
+@keyframes ser-cartel {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+}
+.bien {
+  border-color: rgba(126, 166, 122, 0.7) !important;
+  background: rgba(126, 166, 122, 0.16) !important;
+}
+.mal {
+  border-color: rgba(181, 83, 60, 0.7) !important;
+  background: rgba(181, 83, 60, 0.16) !important;
+  color: var(--ink);
+}
+.nivel {
+  border-color: var(--accent-strong) !important;
+  background: var(--accent-strong) !important;
+  color: #1a150d;
+  font-weight: 700;
+}
+
+/* La barra de clientes guarda un mínimo de alto: así los ingredientes no saltan cuando cambia la gente. */
+.barra {
+  min-height: 7rem;
+}
+.cliente {
+  -webkit-tap-highlight-color: transparent;
+  animation: ser-llega 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+@keyframes ser-llega {
+  from {
+    opacity: 0;
+    transform: translateX(18px) scale(0.96);
+  }
+}
+/* Dos sacudidas iguales con distinto nombre: alternándolas, cada error vuelve a sacudir. */
+.cliente.sacudeA {
+  animation: ser-sacude-a 0.32s ease-in-out;
+  border-color: var(--danger);
+}
+.cliente.sacudeB {
+  animation: ser-sacude-b 0.32s ease-in-out;
+  border-color: var(--danger);
+}
+@keyframes ser-sacude-a {
+  20%,
+  60% {
+    transform: translateX(-5px) rotate(-0.6deg);
+  }
+  40%,
+  80% {
+    transform: translateX(5px) rotate(0.6deg);
+  }
+}
+@keyframes ser-sacude-b {
+  20%,
+  60% {
+    transform: translateX(-5px) rotate(-0.6deg);
+  }
+  40%,
+  80% {
+    transform: translateX(5px) rotate(0.6deg);
+  }
+}
+/* Poca paciencia: el borde late en rojo. */
+.urgente {
+  box-shadow: 0 0 0 1px rgba(181, 83, 60, 0.6), 0 0 18px rgba(181, 83, 60, 0.25);
+}
+.urgente :global(.jg-timebar) {
+  animation: ser-late 0.5s ease-in-out infinite alternate;
+}
+@keyframes ser-late {
+  to {
+    opacity: 0.45;
+  }
+}
+
+/* La carita del humor, abajo a la derecha de la cara. */
+.humor {
+  position: absolute;
+  right: -0.35rem;
+  bottom: -0.3rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  animation: ser-humor 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.6) both;
+}
+@keyframes ser-humor {
+  from {
+    transform: scale(0.3);
+  }
+}
+
+/* Ingrediente puesto en el pedido: salta. */
+.puesto {
+  animation: ser-puesto 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.6);
+}
+@keyframes ser-puesto {
+  from {
+    transform: scale(1.5);
+  }
+}
+
+/* Botones de ingredientes: un destello verde (iba) o rojo (no iba). */
+.ing {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.toque {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: ser-toque 0.45s ease-out forwards;
+}
+.toqueBien {
+  background: radial-gradient(circle at 50% 45%, rgba(126, 166, 122, 0.75), rgba(126, 166, 122, 0.15) 70%);
+}
+.toqueMal {
+  background: radial-gradient(circle at 50% 45%, rgba(181, 83, 60, 0.85), rgba(181, 83, 60, 0.2) 70%);
+}
+@keyframes ser-toque {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Corazón que se pierde, propina que suma. */
+.vidaMenos {
+  display: inline-block;
+  animation: ser-vida 0.5s ease-in-out;
+}
+@keyframes ser-vida {
+  30% {
+    transform: scale(1.4);
+    color: var(--danger);
+  }
+}
+.propina {
+  animation: ser-propina 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+}
+@keyframes ser-propina {
+  from {
+    transform: scale(1.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cartel,
+  .cliente,
+  .cliente.sacudeA,
+  .cliente.sacudeB,
+  .urgente :global(.jg-timebar),
+  .humor,
+  .puesto,
+  .vidaMenos,
+  .propina {
+    animation: none !important;
+  }
+}

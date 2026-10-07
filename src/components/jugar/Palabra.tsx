@@ -1,25 +1,45 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Marcas, Records } from "@/lib/juegos";
+import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { evaluar, PALABRAS, type Pista } from "@/lib/juegos-reglas";
 import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
 import { Fin } from "./Fin";
+import s from "./Palabra.module.css";
 
 const INTENTOS = 6;
+const LARGO = 5;
 const FILAS_TECLADO = ["QWERTYUIOP", "ASDFGHJKLÑ", "ZXCVBNM"];
 /** No adivinarla cuenta como un intento más que el máximo. */
 const PERDIO = INTENTOS + 1;
+/** Cada letra tarda en darse vuelta, y arranca un poco después que la anterior. */
+const VUELTA_MS = 500;
+const ESCALON_MS = 260;
+const REVELADO_MS = ESCALON_MS * (LARGO - 1) + VUELTA_MS;
+const FELICITA = ["¡Genio!", "¡Tremendo!", "¡Muy bien!", "¡Bien!", "¡Justo!", "¡Por un pelo!"];
 
 const palabraAlAzar = (evitar: string | null) => {
   const opciones = PALABRAS.filter((p) => p !== evitar);
   return opciones[Math.floor(Math.random() * opciones.length)];
 };
 
+/**
+ * La tecla física como letra del juego: las tildes y la diéresis se ignoran (á → A, ü → U),
+ * la ñ queda como Ñ. Lo que no es letra, null.
+ */
+function letraDeTecla(key: string): string | null {
+  if (key.length !== 1) return null;
+  const up = key.toUpperCase();
+  if (up === "Ñ") return "Ñ";
+  const base = up.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return /^[A-Z]$/.test(base) ? base : null;
+}
+
 type Props = { onDone: (intentos: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
+type Intento = { palabra: string; pistas: Pista[] };
 
 /** La mejor pista que tuvo cada letra hasta ahora, para pintar el teclado. */
-function pistasDelTeclado(intentos: { palabra: string; pistas: Pista[] }[]): Record<string, Pista> {
+function pistasDelTeclado(intentos: Intento[]): Record<string, Pista> {
   const orden: Record<Pista, number> = { no: 0, esta: 1, bien: 2 };
   const out: Record<string, Pista> = {};
   for (const it of intentos) {
@@ -38,65 +58,107 @@ function pistasDelTeclado(intentos: { palabra: string; pistas: Pista[] }[]): Rec
 export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [palabra, setPalabra] = useState("");
-  const [intentos, setIntentos] = useState<{ palabra: string; pistas: Pista[] }[]>([]);
+  const [intentos, setIntentos] = useState<Intento[]>([]);
   const [escrito, setEscrito] = useState("");
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<{ k: number; texto: string; queda?: boolean } | null>(null);
+  const [sacudida, setSacudida] = useState({ n: 0, fila: -1 });
+  const [revelando, setRevelando] = useState(false);
+  /** Cuántos intentos ya terminaron de darse vuelta: el teclado se pinta recién ahí (si no, adelanta el resultado). */
+  const [listos, setListos] = useState(0);
   const [gano, setGano] = useState(false);
+  const [cerrada, setCerrada] = useState(false);
   const reported = useRef(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const despues = (ms: number, fn: () => void) => {
+    timers.current.push(setTimeout(fn, ms));
+  };
+  useEffect(() => {
+    const lista = timers.current;
+    return () => lista.forEach(clearTimeout);
+  }, []);
+
+  function avisar(texto: string, queda = false) {
+    setAviso((a) => ({ k: (a?.k ?? 0) + 1, texto, queda }));
+  }
 
   function start() {
     keepAwake();
+    timers.current.forEach(clearTimeout);
+    timers.current.length = 0;
     reported.current = false;
     setPalabra((anterior) => palabraAlAzar(anterior || null));
     setIntentos([]);
     setEscrito("");
     setAviso(null);
+    setSacudida({ n: 0, fila: -1 });
+    setRevelando(false);
+    setListos(0);
     setGano(false);
+    setCerrada(false);
     setPhase("play");
   }
 
+  function rechazar(texto: string) {
+    avisar(texto);
+    setSacudida((x) => ({ n: x.n + 1, fila: intentos.length }));
+    buzz();
+  }
+
   function tecla(k: string) {
-    // Después de acertar o de gastar los intentos, el teclado no escribe más mientras se muestra el final.
-    if (phase !== "play" || gano || intentos.length >= INTENTOS) return;
+    // Mientras se dan vuelta las letras, o ya terminó, el teclado no escribe.
+    if (phase !== "play" || revelando || cerrada) return;
     if (k === "OK") {
-      if (escrito.length < 5) {
-        setAviso("Faltan letras");
-        buzz();
-        setTimeout(() => setAviso(null), 900);
-        return;
-      }
+      if (escrito.length < LARGO) return rechazar("Faltan letras");
+      if (!/[AEIOUY]/.test(escrito)) return rechazar("Sin vocales no hay palabra");
+      if (intentos.some((it) => it.palabra === escrito)) return rechazar("Esa ya la probaste");
       const pistas = evaluar(escrito, palabra);
       const nuevos = [...intentos, { palabra: escrito, pistas }];
+      const n = nuevos.length;
       setIntentos(nuevos);
       setEscrito("");
+      setRevelando(true);
+      // Un tic por letra, justo cuando se da vuelta: agudo si es verde, medio si es amarilla.
+      pistas.forEach((p, j) => {
+        despues(j * ESCALON_MS + VUELTA_MS / 2, () => {
+          beep(p === "bien" ? 784 : p === "esta" ? 587 : 330, 70, "triangle", p === "no" ? 0.05 : 0.09);
+          if (p !== "no") tap(5);
+        });
+      });
       const acerto = pistas.every((p) => p === "bien");
-      if (acerto) {
-        setGano(true);
-        beep(660, 120);
-        setTimeout(() => beep(880, 120), 110);
-        setTimeout(() => beep(1320, 220), 220);
-        tap(25);
-        setTimeout(() => setPhase("end"), 1300);
-      } else if (nuevos.length >= INTENTOS) {
-        buzz();
-        setAviso(palabra);
-        setTimeout(() => setPhase("end"), 1800);
-      } else {
-        beep(440, 80, "triangle");
-      }
+      const ultima = n >= INTENTOS;
+      if (acerto || ultima) setCerrada(true);
+      despues(REVELADO_MS, () => {
+        setRevelando(false);
+        setListos(n);
+        if (acerto) {
+          setGano(true);
+          avisar(FELICITA[n - 1] ?? "¡Bien!");
+          beep(660, 120);
+          despues(110, () => beep(880, 120));
+          despues(220, () => beep(1320, 240));
+          tap(25);
+          despues(2000, () => setPhase("end"));
+        } else if (ultima) {
+          avisar(palabra, true);
+          buzz();
+          despues(2400, () => setPhase("end"));
+        }
+      });
       return;
     }
     if (k === "⌫") {
+      if (escrito) tap(3);
       setEscrito((e) => e.slice(0, -1));
       return;
     }
-    if (escrito.length < 5) {
-      setEscrito((e) => e + k);
-      tap(5);
+    if (escrito.length < LARGO) {
+      setEscrito((e) => (e.length < LARGO ? e + k : e));
+      tap(4);
     }
   }
 
-  // El teclado de la compu también sirve.
+  // El teclado de la compu también sirve (con tildes o sin: á cuenta como A).
   const teclaRef = useRef(tecla);
   useEffect(() => {
     teclaRef.current = tecla;
@@ -104,9 +166,20 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     if (phase !== "play") return;
     const al = (e: KeyboardEvent) => {
-      if (e.key === "Enter") teclaRef.current("OK");
-      else if (e.key === "Backspace") teclaRef.current("⌫");
-      else if (/^[a-zñ]$/iu.test(e.key)) teclaRef.current(e.key.toUpperCase());
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        teclaRef.current("OK");
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        teclaRef.current("⌫");
+      } else {
+        const l = letraDeTecla(e.key);
+        if (l) {
+          e.preventDefault();
+          teclaRef.current(l);
+        }
+      }
     };
     window.addEventListener("keydown", al);
     return () => window.removeEventListener("keydown", al);
@@ -133,73 +206,106 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
           again={start}
           onBack={onBack}
           bien={`Era ${palabra}. Bien leída.`}
-          mal={`Era ${palabra}. Para el trago: en 4 intentos o menos.`}
+          mal={`Era ${palabra}. Para el trago: en ${METAS.palabra} intentos o menos.`}
         />
       </Shell>
     );
   }
 
-  const teclado = pistasDelTeclado(intentos);
-  const filas = Array.from({ length: INTENTOS }, (_, i) => {
-    if (i < intentos.length) return intentos[i];
-    if (i === intentos.length) return { palabra: escrito.padEnd(5, " "), pistas: null };
-    return { palabra: "     ", pistas: null };
-  });
-
-  return (
-    <Shell title="La palabra de la casa" onBack={onBack} right={phase === "play" ? <>{Math.min(intentos.length + 1, INTENTOS)}/{INTENTOS}</> : null}>
-      {phase === "idle" ? (
+  if (phase === "idle") {
+    return (
+      <Shell title="La palabra de la casa" onBack={onBack}>
         <div className="jg-center">
-          <p className="text-4xl" aria-hidden="true">
-            🟩
-          </p>
-          <p className="mt-4 text-sm leading-relaxed text-muted">
-            Una palabra de cinco letras, de la cocina o la barra. Seis intentos. Verde: la letra está y en su lugar. Amarillo: está, pero en otro
-            lado. Gris: no está.
+          <div className={s.juego} aria-hidden="true">
+            <div className={s.fila}>
+              {"MENTA".split("").map((l, j) => (
+                <span key={j} className={`${s.letra} ${j === 0 ? s.bien : j === 3 ? s.esta : s.no}`} style={{ "--d": `${200 + j * ESCALON_MS}ms` } as React.CSSProperties}>
+                  {l}
+                </span>
+              ))}
+            </div>
+          </div>
+          <p className="mt-5 text-sm leading-relaxed text-muted">
+            Una palabra de cinco letras, de la cocina o la barra. Seis intentos.
+            <br />
+            <strong className="text-ink">M</strong> verde: está y en su lugar. <strong className="text-ink">T</strong> amarilla: está, en otro lado.
+            Gris: no está.
           </p>
           <button className="btn btn-primary mt-6" type="button" onClick={start}>
             Adivinar
           </button>
         </div>
-      ) : (
-        <>
-          <div className="jg-palabra mt-4" role="grid" aria-label="Intentos">
-            {filas.map((f, i) => (
-              <div key={i} className="jg-palabra-fila" role="row">
-                {f.palabra.split("").map((l, j) => (
-                  <span key={j} role="gridcell" className={`jg-letra ${f.pistas ? `is-${f.pistas[j]}` : l.trim() ? "is-escrita" : ""}`} style={f.pistas ? { animationDelay: `${j * 90}ms` } : undefined}>
-                    {l.trim()}
-                  </span>
-                ))}
+      </Shell>
+    );
+  }
+
+  const teclado = pistasDelTeclado(intentos.slice(0, listos));
+  const actual = intentos.length;
+
+  return (
+    <Shell title="La palabra de la casa" onBack={onBack} right={<>{Math.min(actual + 1, INTENTOS)}/{INTENTOS}</>}>
+      <div className={s.juego}>
+        <div className={s.grilla} role="grid" aria-label="Intentos">
+          {aviso && (
+            <p key={aviso.k} className={`${s.aviso} ${aviso.queda ? s.queda : ""}`} role="status">
+              {aviso.texto}
+            </p>
+          )}
+          {Array.from({ length: INTENTOS }, (_, i) => {
+            const it: Intento | undefined = intentos[i];
+            const texto = it ? it.palabra : i === actual ? escrito : "";
+            const festeja = gano && i === actual - 1;
+            return (
+              <div key={i === actual ? `f${i}-${sacudida.n}` : `f${i}`} className={`${s.fila} ${i === actual && sacudida.fila === i ? s.sacude : ""}`} role="row">
+                {Array.from({ length: LARGO }, (_, j) => {
+                  const l = texto[j] ?? "";
+                  const cls = it ? `${s[it.pistas[j]]} ${festeja ? s.salta : ""}` : l ? s.escrita : i === actual ? s.actual : "";
+                  const d = festeja ? j * 90 : j * ESCALON_MS;
+                  return (
+                    <span
+                      key={j}
+                      role="gridcell"
+                      aria-label={it ? `${l}: ${it.pistas[j] === "bien" ? "en su lugar" : it.pistas[j] === "esta" ? "en otro lugar" : "no está"}` : l || undefined}
+                      className={`${s.letra} ${cls}`}
+                      style={it ? ({ "--d": `${d}ms` } as React.CSSProperties) : undefined}
+                    >
+                      {l}
+                    </span>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-          <p className="mt-3 min-h-5 text-center text-sm text-accent" aria-live="polite">
-            {aviso}
-          </p>
-          <div className="jg-teclado mt-2">
-            {FILAS_TECLADO.map((fila, i) => (
-              <div key={fila} className="jg-teclado-fila">
-                {i === 2 && (
-                  <button type="button" className="jg-tecla is-ancha" onClick={() => tecla("OK")}>
-                    Listo
-                  </button>
-                )}
-                {fila.split("").map((k) => (
-                  <button key={k} type="button" className={`jg-tecla ${teclado[k] ? `is-${teclado[k]}` : ""}`} onClick={() => tecla(k)}>
-                    {k}
-                  </button>
-                ))}
-                {i === 2 && (
-                  <button type="button" className="jg-tecla is-ancha" onClick={() => tecla("⌫")} aria-label="Borrar">
-                    ⌫
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+            );
+          })}
+        </div>
+
+        <div className={s.teclado}>
+          {FILAS_TECLADO.map((fila, i) => (
+            <div key={fila} className={s.teclas}>
+              {i === 2 && (
+                <button type="button" className={`${s.tecla} ${s.ancha} ${s.enviar}`} onMouseDown={(e) => e.preventDefault()} onClick={() => tecla("OK")}>
+                  ENVIAR
+                </button>
+              )}
+              {fila.split("").map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  className={`${s.tecla} ${teclado[k] ? s[teclado[k]] : ""}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => tecla(k)}
+                >
+                  {k}
+                </button>
+              ))}
+              {i === 2 && (
+                <button type="button" className={`${s.tecla} ${s.ancha}`} onMouseDown={(e) => e.preventDefault()} onClick={() => tecla("⌫")} aria-label="Borrar">
+                  ⌫
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </Shell>
   );
 }

@@ -89,6 +89,53 @@ const eventoEstado = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" heigh
 </svg>`;
 await png("post-eventos-estado.png", eventoEstado);
 
+// ---------- posteo de los juegos ----------
+// Invita a venir, no sólo a jugar: el trago se canjea en la barra. Y no promete que sea fácil (son 11 de 19).
+const dado = (x, y, s) => {
+  const p = (dx, dy) => `<circle cx="${x + dx * s}" cy="${y + dy * s}" r="${s * 0.09}" fill="${FONDO}"/>`;
+  return `<rect x="${x - s / 2}" y="${y - s / 2}" width="${s}" height="${s}" rx="${s * 0.18}" fill="${ORO}"/>${p(-0.25, -0.25)}${p(0.25, -0.25)}${p(0, 0)}${p(-0.25, 0.25)}${p(0.25, 0.25)}`;
+};
+const bola8 = (x, y, r) =>
+  `<circle cx="${x}" cy="${y}" r="${r}" fill="${ORO}"/><circle cx="${x}" cy="${y}" r="${r * 0.46}" fill="${FONDO}"/><text x="${x}" y="${y + r * 0.22}" text-anchor="middle" font-family="${SERIF}" font-size="${r * 0.62}" fill="${ORO}">8</text>`;
+const copa = (x, y, s) =>
+  `<g fill="none" stroke="${ORO}" stroke-width="${s * 0.07}" stroke-linecap="round" stroke-linejoin="round"><path d="M${x - s / 2} ${y - s / 2} H${x + s / 2} L${x} ${y + s * 0.12} Z"/><path d="M${x} ${y + s * 0.12} V${y + s / 2}"/><path d="M${x - s * 0.25} ${y + s / 2} H${x + s * 0.25}"/></g>`;
+const estrella = (x, y, s) =>
+  `<path d="M${x} ${y - s / 2} Q${x + s * 0.06} ${y - s * 0.06} ${x + s / 2} ${y} Q${x + s * 0.06} ${y + s * 0.06} ${x} ${y + s / 2} Q${x - s * 0.06} ${y + s * 0.06} ${x - s / 2} ${y} Q${x - s * 0.06} ${y - s * 0.06} ${x} ${y - s / 2} Z" fill="${ORO}"/>`;
+
+const juegos = (w, h) => {
+  const cx = w / 2;
+  const u = h / 1350;
+  const y = (n) => Math.round(n * u);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+  <defs><radialGradient id="luz" cx="50%" cy="38%" r="65%"><stop offset="0" stop-color="#2e2719"/><stop offset="1" stop-color="${FONDO}"/></radialGradient></defs>
+  <rect width="${w}" height="${h}" fill="url(#luz)"/>
+  <rect x="${y(36)}" y="${y(36)}" width="${w - y(72)}" height="${h - y(72)}" fill="none" stroke="${ORO}" stroke-opacity=".35" stroke-width="2"/>
+  <text x="${cx}" y="${y(170)}" text-anchor="middle" font-family="${SANS}" font-size="${y(30)}" letter-spacing="${y(9)}" fill="${ORO}">CATDOG · LA PLATA</text>
+  ${dado(cx - y(300), y(330), y(110))}
+  ${bola8(cx - y(100), y(330), y(58))}
+  ${copa(cx + y(100), y(330), y(110))}
+  ${estrella(cx + y(300), y(330), y(120))}
+  <text x="${cx}" y="${y(560)}" text-anchor="middle" font-family="${SERIF}" font-size="${y(132)}" fill="${CREMA}">Jugá</text>
+  <text x="${cx}" y="${y(690)}" text-anchor="middle" font-family="${SERIF}" font-size="${y(96)}" fill="${CREMA}">mientras esperás</text>
+  <rect x="${cx - y(80)}" y="${y(760)}" width="${y(160)}" height="${y(3)}" fill="${ORO}" opacity=".7"/>
+  <text x="${cx}" y="${y(860)}" text-anchor="middle" font-family="${SERIF}" font-size="${y(54)}" fill="${CREMA}">Los juegos de la casa, en el celu.</text>
+  <text x="${cx}" y="${y(940)}" text-anchor="middle" font-family="${SERIF}" font-size="${y(54)}" fill="${CREMA}">Llegá a la marca en once</text>
+  <text x="${cx}" y="${y(1020)}" text-anchor="middle" font-family="${SERIF}" font-size="${y(54)}" fill="${ORO}">y el trago va por nosotros.</text>
+  <text x="${cx}" y="${y(1150)}" text-anchor="middle" font-family="${SANS}" font-size="${y(30)}" letter-spacing="${y(4)}" fill="${CREMA}" opacity=".75">SE JUEGA DESDE EL CELU · EL TRAGO SE TOMA ACÁ</text>
+  <text x="${cx}" y="${y(1235)}" text-anchor="middle" font-family="${SANS}" font-size="${y(34)}" letter-spacing="${y(6)}" fill="${ORO}">LINK EN LA BIO</text>
+</svg>`;
+};
+await png("post-juegos-feed.png", juegos(1080, 1350));
+await png(
+  "post-juegos-estado.png",
+  `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920"><rect width="1080" height="1920" fill="${FONDO}"/><svg x="0" y="285" width="1080" height="1350">${juegos(1080, 1350).replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}</svg></svg>`,
+);
+// La tapa de la destacada, como las otras: un ícono solo, grande.
+await png(
+  "destacada-juegos.png",
+  `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080"><rect width="1080" height="1080" fill="${FONDO}"/>${dado(540, 540, 440)}</svg>`,
+);
+
 // ---------- bocetos de logo: de un solo color, para que sirvan en el perfil y en blanco y negro ----------
 const conceptos = (fondo, tinta, acento) => `<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="700">
   <rect width="1800" height="700" fill="${fondo}"/>

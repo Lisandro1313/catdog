@@ -1,0 +1,134 @@
+/* Atrapá al chef: lo que suma "juice" sobre las clases jg-* globales. */
+
+.timebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  transition: width 0.25s linear, background 0.3s;
+  z-index: 3;
+  pointer-events: none;
+}
+.timebarLow {
+  background: var(--danger);
+}
+
+/* Número grande de la cuenta regresiva */
+.count {
+  font-family: var(--font-display);
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--accent-strong);
+  animation: countPop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+@keyframes countPop {
+  0% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+}
+
+/* "+1", "+2", "−2" que salta del chef */
+.pts {
+  position: absolute;
+  z-index: 4;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent-strong);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  animation: ptsUp 0.7s ease-out forwards;
+}
+.ptsBad {
+  color: var(--danger);
+}
+.ptsGold {
+  font-size: 2.1rem;
+}
+@keyframes ptsUp {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-46px) scale(1);
+  }
+}
+
+/* Destello rojo cuando tocás al enojado */
+.flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(181, 83, 60, 0.05), rgba(181, 83, 60, 0.45));
+  animation: flashOut 0.45s ease-out forwards;
+}
+@keyframes flashOut {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Anillo que se expande donde lo atrapaste */
+.ring {
+  position: absolute;
+  z-index: 1;
+  border-radius: 999px;
+  border: 3px solid var(--accent-strong);
+  pointer-events: none;
+  animation: ringOut 0.45s ease-out forwards;
+}
+@keyframes ringOut {
+  from {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* Tres puntitos: cuánto falta para el bonus de racha */
+.dots {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  transition: background 0.15s, transform 0.15s;
+}
+.dotOn {
+  background: var(--accent-strong);
+  transform: scale(1.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .count,
+  .pts,
+  .flash,
+  .ring {
+    animation-duration: 0.01s;
+  }
+}

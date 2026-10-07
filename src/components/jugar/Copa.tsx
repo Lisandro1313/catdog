@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Marcas, Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { METAS, type Marcas, type Records } from "@/lib/juegos";
+import { Shell, beep, buzz, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
+import { FANFARRIA, chime, vibrate } from "./juice";
+import css from "./Copa.module.css";
 
 const COPAS = 5;
 /** Cada copa vale hasta 100: 100 en la línea exacta, 0 si te pasás por mucho o servís de menos. */
@@ -33,9 +35,20 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
   const levelRef = useRef(0);
   /** Si el dedo está apoyado (ref, para que el chorro y el soltar no lean estado viejo). */
   const active = useRef(false);
+  const nextTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (nextTimer.current) clearTimeout(nextTimer.current);
+    },
+    [],
+  );
 
   function start() {
     keepAwake();
+    if (nextTimer.current) clearTimeout(nextTimer.current);
+    active.current = false;
+    setPouring(false);
     setPhase("play");
     setI(0);
     setScores([]);
@@ -84,21 +97,20 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
     const pts = over ? 0 : Math.max(0, Math.round(100 - Math.abs(diff) * (diff < 0 ? 380 : 520)));
     const text = over ? "¡Rebalsó!" : pts >= 95 ? "Perfecto" : pts >= 80 ? "Casi al ras" : pts >= 50 ? "Le faltó mano" : diff < 0 ? "Muy corto" : "Se pasó";
     setFlash({ pts, text });
+    // El "clin" de la copa al apoyarla, y después cómo salió.
     if (over) buzz();
-    else if (pts >= 95) {
-      beep(880, 120);
-      setTimeout(() => beep(1320, 220), 110);
-      tap(20);
-    } else if (pts >= 80) beep(760, 160);
-    else beep(320, 200, "triangle");
-    try {
-      navigator.vibrate?.(pts >= 95 ? [20, 30, 20] : 15);
-    } catch {
-      // sin vibración
+    else {
+      beep(2400, 60, "sine", 0.06);
+      if (pts >= 95) chime([880, 1320, 1760], 90, 200);
+      else if (pts >= 80) chime([660, 880], 90, 160);
+      else if (pts >= 50) beep(520, 180, "triangle");
+      else beep(300, 220, "triangle");
     }
+    vibrate(over ? [40, 30, 40] : pts >= 95 ? [20, 30, 20] : 15);
     const next = [...scores, pts];
     setScores(next);
-    setTimeout(() => {
+    if (nextTimer.current) clearTimeout(nextTimer.current);
+    nextTimer.current = setTimeout(() => {
       setFlash(null);
       if (next.length >= COPAS) setPhase("end");
       else {
@@ -106,7 +118,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
         levelRef.current = 0;
         setLevel(0);
       }
-    }, 900);
+    }, 1100);
   }
 
   useEffect(() => {
@@ -120,6 +132,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     if (phase === "end" && !reported.current) {
       reported.current = true;
+      if (total >= METAS.copa) setTimeout(() => chime(FANFARRIA, 110, 200), 400);
       onDone(total);
     }
   }, [phase, total, onDone]);
@@ -157,7 +170,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
             <p key={total} className="ap-display text-3xl tabular-nums jg-pop">{total}</p>
           </div>
           <div
-            className={`jg-copa ${pouring ? "is-pouring" : ""} ${level > 1 ? "is-spill" : ""}`}
+            className={`jg-copa ${css.copa} ${pouring ? "is-pouring" : ""} ${level > 1 ? "is-spill" : ""}`}
             onPointerDown={(e) => {
               e.preventDefault();
               if (flash || active.current) return;
@@ -172,6 +185,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
             }}
             onPointerUp={release}
             onPointerCancel={release}
+            onContextMenu={(e) => e.preventDefault()}
             role="button"
             tabIndex={0}
             aria-label="Servir: mantené apretado"
@@ -182,24 +196,40 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
             }}
             onKeyUp={(e) => e.key === " " && release()}
           >
-            <div className="jg-copa-glass">
-              <div className="jg-copa-line" style={{ bottom: `${target * 100}%` }} />
-              <div className="jg-copa-liquid" style={{ height: `${Math.min(level, 1) * 100}%`, background: COLORES[i] }} />
+            <div key={i} className={`jg-copa-glass ${css.enter}`}>
+              <div className={`jg-copa-line ${css.line}`} style={{ bottom: `${target * 100}%` }} />
+              <div className="jg-copa-liquid" style={{ height: `${Math.min(level, 1) * 100}%`, background: COLORES[i] }}>
+                {pouring && (
+                  <span className={css.bubbles} aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                )}
+              </div>
               {level > 1 && <div className="jg-copa-spill" style={{ background: COLORES[i] }} />}
             </div>
             <div className="jg-copa-stem" />
             <div className="jg-copa-base" />
+            {flash && flash.pts >= 95 && <span className={css.sparkle} aria-hidden="true" />}
             {flash && (
-              <div className="jg-copa-flash">
-                <p className="ap-display text-4xl">{flash.pts}</p>
+              <div className="jg-copa-flash" aria-live="polite">
+                <p className={`ap-display text-5xl ${css.pts} ${flash.pts >= 95 ? css.perfect : flash.pts >= 80 ? css.good : flash.pts < 50 ? css.bad : ""}`}>
+                  {flash.pts >= 95 ? "¡" : ""}
+                  {flash.pts}
+                  {flash.pts >= 95 ? "!" : ""}
+                </p>
                 <p className="text-xs uppercase tracking-[0.2em] text-muted">{flash.text}</p>
               </div>
             )}
           </div>
           <p className="mt-3 text-center text-xs text-muted">{pouring ? "Soltá en la línea…" : flash ? "" : "Mantené apretado para servir"}</p>
-          <div className="mt-3 flex justify-center gap-1.5" aria-hidden="true">
+          <div className={`mt-3 ${css.chips}`} aria-label="Puntos de cada copa">
             {Array.from({ length: COPAS }, (_, k) => (
-              <span key={k} className={`jg-dotline ${k < scores.length ? "is-on" : ""}`} />
+              <span key={k} className={`${css.chip} ${k < scores.length ? css.chipOn : ""} ${k === scores.length ? css.chipNow : ""}`}>
+                {k < scores.length ? scores[k] : "·"}
+              </span>
             ))}
           </div>
         </>

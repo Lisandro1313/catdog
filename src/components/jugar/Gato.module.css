@@ -1,0 +1,40 @@
+/* El gato de la casa: el tablero se sacude al chocar y las flechas responden al toque. */
+.choque {
+  animation: gato-choque 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+@keyframes gato-choque {
+  10%,
+  90% {
+    transform: translate(-1px, 1px);
+  }
+  20%,
+  80% {
+    transform: translate(3px, -2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translate(-6px, 2px);
+  }
+  40%,
+  60% {
+    transform: translate(6px, -1px);
+  }
+}
+
+.flecha {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.06s, background 0.06s;
+}
+.flecha:active {
+  transform: scale(0.9);
+  background: rgba(201, 169, 110, 0.28) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choque {
+    animation: none;
+  }
+}

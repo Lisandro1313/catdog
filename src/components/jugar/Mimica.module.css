@@ -1,0 +1,62 @@
+/* Mímica: la carta entra con cada consigna y se tiñe según cómo se fue la anterior. */
+
+.card {
+  animation: cardIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both !important;
+}
+.hit {
+  border-color: var(--ok) !important;
+  box-shadow: 0 0 0 3px rgba(126, 166, 122, 0.35);
+}
+.pass {
+  border-color: var(--border) !important;
+}
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateX(36px) rotate(2deg) scale(0.96);
+  }
+}
+
+.count {
+  font-family: var(--font-display);
+  font-size: 5.5rem;
+  line-height: 1;
+  color: var(--accent-strong);
+  animation: countPop 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+@keyframes countPop {
+  from {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+.score {
+  display: inline-block;
+  animation: bump 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+}
+@keyframes bump {
+  from {
+    transform: scale(1.5);
+    color: var(--accent-strong);
+  }
+}
+
+/* Últimos diez segundos: el reloj late */
+.hurry {
+  animation: hurry 1s ease-in-out infinite;
+}
+@keyframes hurry {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .count,
+  .score,
+  .hurry {
+    animation: none !important;
+  }
+}

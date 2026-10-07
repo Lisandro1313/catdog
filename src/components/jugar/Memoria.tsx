@@ -4,9 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, beep, shuffle, tap } from "./Shell";
 import { Fin } from "./Fin";
+import css from "./Memoria.module.css";
 
 const PAIRS = 8;
+const PEEK_MS = 1800;
 const FALLBACK = ["🍸", "🍹", "🥂", "🍷", "🧄", "🌶️", "🦐", "🍓", "🍋", "🫒", "🧀", "🍞"];
+/** Escala para los pares seguidos: cada acierto en racha suena una nota más arriba. */
+const ESCALA = [523, 587, 659, 784, 880, 1047, 1175, 1319];
 
 type Card = { id: number; key: string; img: string | null; emoji: string | null };
 
@@ -29,21 +33,42 @@ function chica(url: string): string {
 
 export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Props) {
   const [cards, setCards] = useState<Card[] | null>(null);
+  const [round, setRound] = useState(0);
   const [open, setOpen] = useState<number[]>([]);
   const [found, setFound] = useState<Set<string>>(new Set());
   const [moves, setMoves] = useState(0);
-  /** Vistazo de 1,5 s al empezar: se ven todas y se dan vuelta. */
+  /** Vistazo al empezar: se ven todas y se dan vuelta. */
   const [peek, setPeek] = useState(true);
-  const lock = useRef(false);
+  /** El par que no era: tiembla en rojo hasta que se da vuelta. */
+  const [miss, setMiss] = useState<number[]>([]);
+  /** Pares seguidos sin errar. */
+  const [combo, setCombo] = useState(0);
+  const [cartel, setCartel] = useState<{ text: string; id: number } | null>(null);
+  const [showFin, setShowFin] = useState(false);
   const reported = useRef(false);
+  /** El par equivocado espera para darse vuelta; si tocás otra carta antes, se da vuelta al toque. */
+  const missTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  /** Mientras se resuelve un par acertado (la segunda carta todavía gira), no se toca. */
+  const lock = useRef(false);
+
+  function later(fn: () => void, ms: number) {
+    timers.current.push(setTimeout(fn, ms));
+  }
 
   // Se reparte en el cliente (aleatorio) después de montar, para no pelear con la hidratación.
   useEffect(() => {
     const id = setTimeout(() => setCards(deal(photos)), 0);
-    const p = setTimeout(() => setPeek(false), 1800);
+    const p = setTimeout(() => {
+      setPeek(false);
+      beep(330, 70, "triangle", 0.06);
+    }, PEEK_MS);
+    const pending = timers.current;
     return () => {
       clearTimeout(id);
       clearTimeout(p);
+      if (missTimer.current) clearTimeout(missTimer.current);
+      pending.forEach(clearTimeout);
     };
   }, [photos]);
 
@@ -55,83 +80,158 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
     }
   }, [done, moves, onDone]);
 
+  function closeMiss() {
+    if (missTimer.current) clearTimeout(missTimer.current);
+    missTimer.current = null;
+    setMiss([]);
+    setOpen([]);
+  }
+
   function flip(i: number) {
-    if (!cards || peek || lock.current || open.includes(i) || found.has(cards[i].key)) return;
-    const next = [...open, i];
+    if (!cards || peek || done || lock.current || found.has(cards[i].key)) return;
+    // Hay un par equivocado a la vista: se da vuelta ya y esta carta arranca el próximo par.
+    let current = open;
+    if (miss.length) {
+      if (miss.includes(i)) return;
+      closeMiss();
+      current = [];
+    }
+    if (current.includes(i)) return;
+    const next = [...current, i];
     setOpen(next);
-    beep(440 + i * 9, 50, "triangle", 0.1);
-    if (next.length === 2) {
-      setMoves((m) => m + 1);
+    beep(440 + i * 9, 45, "triangle", 0.1);
+    tap(6);
+    if (next.length < 2) return;
+
+    setMoves((m) => m + 1);
+    const [a, b] = next.map((k) => cards[k]);
+    if (a.key === b.key) {
+      const nf = new Set(found).add(a.key);
+      const c = combo + 1;
+      setCombo(c);
       lock.current = true;
-      const [a, b] = next.map((k) => cards[k]);
-      setTimeout(
-        () => {
-          if (a.key === b.key) {
-            setFound((f) => new Set(f).add(a.key));
-            beep(880, 90);
-            setTimeout(() => beep(1175, 140), 90);
-            tap(15);
-          }
-          setOpen([]);
-          lock.current = false;
-        },
-        a.key === b.key ? 350 : 800,
-      );
+      // Se marca apenas termina de girar la segunda carta.
+      later(() => {
+        lock.current = false;
+        setFound(nf);
+        setOpen([]);
+        const nota = ESCALA[Math.min(ESCALA.length - 1, c - 1)];
+        beep(nota, 90, "triangle", 0.16);
+        later(() => beep(nota * 1.5, 140, "triangle", 0.14), 80);
+        tap(c > 1 ? 25 : 15);
+        if (nf.size === PAIRS) {
+          setCartel({ text: "¡Completo!", id: Date.now() });
+          [784, 988, 1175, 1568].forEach((f, k) => later(() => beep(f, k === 3 ? 320 : 120, "triangle", 0.16), 220 + k * 110));
+          later(() => setShowFin(true), 1300);
+        } else if (c >= 2) setCartel({ text: c >= 4 ? `¡Imparable! ×${c}` : `¡Seguidos ×${c}!`, id: Date.now() });
+      }, 280);
+    } else {
+      setCombo(0);
+      setMiss(next);
+      later(() => {
+        beep(196, 120, "triangle", 0.1);
+        tap(25);
+      }, 300);
+      missTimer.current = setTimeout(closeMiss, 1050);
     }
   }
 
   function again() {
+    timers.current.forEach(clearTimeout);
+    timers.current.length = 0;
+    lock.current = false;
+    if (missTimer.current) clearTimeout(missTimer.current);
     setCards(deal(photos));
+    setRound((r) => r + 1);
     setOpen([]);
+    setMiss([]);
     setFound(new Set());
     setMoves(0);
+    setCombo(0);
+    setCartel(null);
+    setShowFin(false);
     reported.current = false;
     setPeek(true);
-    setTimeout(() => setPeek(false), 1800);
+    later(() => {
+      setPeek(false);
+      beep(330, 70, "triangle", 0.06);
+    }, PEEK_MS);
   }
 
+  const sobreMeta = moves > METAS.memoria;
+
   return (
-    <Shell title="Memotest" onBack={onBack} right={<>{moves} mov.</>}>
-      {!done && (
-        <p className="mt-4 text-xs text-muted">
-          {peek ? "Mirá bien…" : `${found.size} de ${PAIRS} pares · para la marca: ${METAS.memoria} movimientos o menos.`}
-        </p>
-      )}
-      {done ? (
+    <Shell
+      title="Memotest"
+      onBack={onBack}
+      right={
+        <span key={moves} className={`jg-pop ${sobreMeta && !showFin ? "text-danger" : ""}`}>
+          {moves} mov.
+        </span>
+      }
+    >
+      {showFin ? (
         <Fin nueva={nueva} game="memoria" value={moves} label={`${moves} movimientos`} marcas={marcas} records={records} again={again} onBack={onBack} bien="Memoria de elefante." />
-      ) : cards ? (
-        <div className="jg-grid mt-4">
-          {cards.map((c, i) => {
-            const up = peek || open.includes(i) || found.has(c.key);
-            return (
-              <button
-                key={c.id}
-                type="button"
-                className={`jg-flip ${up ? "is-up" : ""} ${found.has(c.key) ? "is-found" : ""}`}
-                onPointerDown={() => flip(i)}
-                aria-label={up ? "Carta dada vuelta" : "Carta boca abajo"}
-              >
-                <span className="jg-flip-inner">
-                  <span className="jg-flip-back">✦</span>
-                  <span className="jg-flip-front">
-                    {c.img ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={chica(c.img)} alt="" loading={i < 6 ? "eager" : "lazy"} decoding="async" />
-                    ) : (
-                      <span className="jg-emoji">{c.emoji}</span>
-                    )}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
       ) : (
-        <div className="jg-grid mt-4" aria-hidden="true">
-          {Array.from({ length: PAIRS * 2 }, (_, i) => (
-            <span key={i} className="jg-flip" />
-          ))}
-        </div>
+        <>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-muted">{peek ? "Mirá bien…" : done ? "¡Todos los pares!" : `Para la marca: ${METAS.memoria} mov. o menos`}</p>
+            <div className="jg-progress max-w-[9rem]" aria-label={`${found.size} de ${PAIRS} pares`}>
+              {Array.from({ length: PAIRS }, (_, k) => (
+                <span key={k} className={k < found.size ? "is-on" : ""} />
+              ))}
+            </div>
+          </div>
+          <div className={css.peekbar} aria-hidden="true">
+            {peek && <span key={round} style={{ animationDuration: `${PEEK_MS}ms` }} />}
+          </div>
+          <div className={`relative ${done ? css.ganado : ""}`}>
+            {cards ? (
+              <div key={round} className="jg-grid">
+                {cards.map((c, i) => {
+                  const isFound = found.has(c.key);
+                  const up = peek || open.includes(i) || isFound;
+                  const isMiss = miss.includes(i);
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`jg-flip ${css.carta} ${up ? "is-up" : ""} ${isFound ? css.encontrada : ""} ${isMiss ? css.error : ""}`}
+                      style={{ "--i": i } as React.CSSProperties}
+                      onPointerDown={() => flip(i)}
+                      aria-label={up ? "Carta dada vuelta" : "Carta boca abajo"}
+                    >
+                      <span className="jg-flip-inner">
+                        <span className="jg-flip-back">
+                          <span className={css.dorso}>✦</span>
+                        </span>
+                        <span className="jg-flip-front">
+                          {c.img ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={chica(c.img)} alt="" loading="eager" decoding="async" draggable={false} />
+                          ) : (
+                            <span className="jg-emoji">{c.emoji}</span>
+                          )}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="jg-grid" aria-hidden="true">
+                {Array.from({ length: PAIRS * 2 }, (_, i) => (
+                  <span key={i} className="jg-flip" />
+                ))}
+              </div>
+            )}
+            {cartel && (
+              <span key={cartel.id} className={css.cartel} aria-live="polite">
+                {cartel.text}
+              </span>
+            )}
+          </div>
+        </>
       )}
     </Shell>
   );

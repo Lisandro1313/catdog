@@ -126,3 +126,32 @@ export function armarRonda(jugadores: number, palabras: string[], azar: () => nu
   if (empieza >= impostor) empieza += 1;
   return { palabra, impostor, empieza };
 }
+
+/** Largo máximo de un nombre en la mesa: que entre en un botón del celu. */
+export const MAX_NOMBRE = 16;
+
+/** El nombre de un lugar de la mesa. Si lo dejaron vacío, "Jugador N" (contando desde 1). */
+export function nombreDe(nombres: string[], i: number): string {
+  const n = (nombres[i] ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_NOMBRE);
+  return n || `Jugador ${i + 1}`;
+}
+
+/**
+ * Los nombres guardados de la última partida (vienen de localStorage: puede haber cualquier cosa).
+ * Devuelve una lista de MIN_JUGADORES a MAX_JUGADORES textos, o null si no sirve.
+ */
+export function leerNombres(raw: string | null): string[] | null {
+  if (!raw) return null;
+  try {
+    const v: unknown = JSON.parse(raw);
+    if (!Array.isArray(v) || v.length < MIN_JUGADORES) return null;
+    return v.slice(0, MAX_JUGADORES).map((x) => (typeof x === "string" ? x.slice(0, MAX_NOMBRE) : ""));
+  } catch {
+    return null;
+  }
+}
+
+/** El orden en que se habla: arranca `empieza` y sigue la ronda. */
+export function ordenDeRonda(jugadores: number, empieza: number): number[] {
+  return Array.from({ length: jugadores }, (_, k) => (empieza + k) % jugadores);
+}

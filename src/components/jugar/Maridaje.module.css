@@ -1,0 +1,169 @@
+/* Maridaje: reloj fluido, opciones que entran, acierto y error que se sienten. */
+
+/* El reloj baja con una animación (suave, sin saltos de a 100 ms). */
+.reloj {
+  position: relative;
+}
+.barra {
+  width: 100%;
+  transform-origin: left;
+  animation-name: mar-reloj;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes mar-reloj {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+.apurado {
+  background: var(--danger) !important;
+  box-shadow: 0 0 10px rgba(181, 83, 60, 0.6);
+}
+
+/* Las cuatro opciones entran escalonadas. */
+.opcion {
+  animation: mar-entra 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  -webkit-tap-highlight-color: transparent;
+}
+@keyframes mar-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.opcion.esa:disabled {
+  opacity: 1;
+  border-color: var(--ok);
+  color: var(--ok);
+  background: rgba(126, 166, 122, 0.18);
+  animation: mar-esa 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.5) both;
+  animation-delay: 0s !important;
+}
+@keyframes mar-esa {
+  0% {
+    transform: scale(0.97);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.opcion.noEsa:disabled {
+  opacity: 1;
+  animation: mar-no 0.36s ease-in-out both;
+  animation-delay: 0s !important;
+}
+@keyframes mar-no {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+.opcion.apagada:disabled {
+  opacity: 0.4;
+}
+
+/* La tarjeta: verde al acertar, sacudida al errar. */
+.bien {
+  border-color: var(--ok) !important;
+  box-shadow: 0 0 0 1px rgba(126, 166, 122, 0.35), 0 0 28px rgba(126, 166, 122, 0.18);
+}
+.mal {
+  border-color: var(--danger) !important;
+  animation: mar-no 0.4s ease-in-out both !important;
+}
+.veredicto {
+  animation: mar-entra 0.25s ease both;
+}
+
+/* "+1" que sube desde la tarjeta. */
+.mas {
+  position: absolute;
+  right: 1rem;
+  top: 0.8rem;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.6rem;
+  color: var(--ok);
+  pointer-events: none;
+  animation: mar-sube 0.8s ease-out forwards;
+}
+@keyframes mar-sube {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.7);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scale(1);
+  }
+}
+
+/* "¡Marca para el trago!" */
+.cartel {
+  position: absolute;
+  left: 50%;
+  top: -0.6rem;
+  z-index: 3;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: #1a150d;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 0 0 4px rgba(201, 169, 110, 0.25);
+  animation: mar-cartel 1.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+}
+@keyframes mar-cartel {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.08);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opcion,
+  .opcion.esa:disabled,
+  .opcion.noEsa:disabled,
+  .mal,
+  .veredicto,
+  .mas,
+  .cartel {
+    animation: none !important;
+  }
+  .cartel {
+    transform: translateX(-50%);
+  }
+  /* El reloj sí baja: es información, no adorno. */
+}
