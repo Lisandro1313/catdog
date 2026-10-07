@@ -30,12 +30,16 @@ describe("reglas de los juegos", () => {
     expect(plausible("gato", 401)).toBe(false);
     expect(plausible("chef", -1)).toBe(false);
     expect(plausible("chef", 12.5)).toBe(false);
+    // Dardos: nueve dardos al triple 20 son 540, el máximo posible.
+    expect(plausible("dardos", 540)).toBe(true);
+    expect(plausible("dardos", 541)).toBe(false);
   });
 
   it("el premio pide once logros", () => {
     // Lo decidió la casa: con 19 juegos, 9 quedaba fácil.
     expect(PREMIO_MINIMO).toBe(11);
     expect(GAMES.length).toBeGreaterThan(PREMIO_MINIMO);
+    expect(GAMES).toContain("dardos");
   });
 
   it("limpia el nombre de los récords", () => {

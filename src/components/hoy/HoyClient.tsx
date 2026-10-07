@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { extrasAction, guessAction, liveAction, type ExtrasState, type LiveSnapshot } from "@/app/hoy/actions";
 import type { TableRow } from "@/lib/hoy";
-import { PREMIO_MINIMO } from "@/lib/juegos";
+import { GAMES, PREMIO_MINIMO } from "@/lib/juegos";
 import { Huella, Recomendar, Telon, Votacion } from "./Extras";
 import { TarjetaButton } from "./Tarjeta";
 import { ShareButton } from "@/components/ShareButton";
@@ -457,8 +457,8 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
             </span>
           </Link>
           <Link href="/hoy/jugar" className="jg-link mt-4">
-            <span className="jg-link-title">Para la espera: once juegos</span>
-            <span className="jg-link-sub">Ping pong, pool, la parrilla, el sánguche, la palabra de la casa, 2048, maridaje, el gato y más: diecinueve, y El Impostor para la mesa. Si lográs {PREMIO_MINIMO}, hay un trago.</span>
+            <span className="jg-link-title">Para la espera: {GAMES.length} juegos</span>
+            <span className="jg-link-sub">Ping pong, pool, dardos, la parrilla, el sánguche, la palabra de la casa, 2048, maridaje, el gato y más, y El Impostor para la mesa. Si lográs {PREMIO_MINIMO}, hay un trago.</span>
           </Link>
         </div>
       </Stage>

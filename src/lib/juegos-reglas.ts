@@ -151,3 +151,31 @@ export function puntosDelVaso(frenoEn: number, blanco: number, largo = 1): numbe
   if (d <= 0.02) return 100;
   return Math.max(0, Math.round(100 - (d - 0.02) * 520));
 }
+
+// ---------- Dardos ----------
+
+/** Los sectores en el orden del tablero, empezando por el 20 de arriba y siguiendo como las agujas del reloj. */
+export const SECTORES_DARDOS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5] as const;
+
+/** Los radios de un tablero de reglamento, en milímetros desde el centro. */
+export const ANILLOS_DARDOS = { bull: 6.35, bull25: 15.9, tripleDentro: 99, tripleFuera: 107, dobleDentro: 162, dobleFuera: 170 } as const;
+
+export type Impacto = { puntos: number; mult: 0 | 1 | 2 | 3; sector: number; nombre: string };
+
+/**
+ * Cuánto vale un dardo clavado en (x, y), en milímetros desde el centro del tablero, con la y para
+ * abajo como en la pantalla. Fuera del anillo de dobles no vale nada.
+ */
+export function puntoDelDardo(x: number, y: number): Impacto {
+  const r = Math.hypot(x, y);
+  const A = ANILLOS_DARDOS;
+  if (r <= A.bull) return { puntos: 50, mult: 2, sector: 25, nombre: "Bull" };
+  if (r <= A.bull25) return { puntos: 25, mult: 1, sector: 25, nombre: "25" };
+  if (r > A.dobleFuera) return { puntos: 0, mult: 0, sector: 0, nombre: "Afuera" };
+  // Ángulo desde arriba, como las agujas del reloj. Cada sector ocupa 18°, con el 20 centrado arriba.
+  const grados = ((Math.atan2(x, -y) * 180) / Math.PI + 360 + 9) % 360;
+  const sector = SECTORES_DARDOS[Math.floor(grados / 18) % 20];
+  if (r >= A.tripleDentro && r <= A.tripleFuera) return { puntos: sector * 3, mult: 3, sector, nombre: `Triple ${sector}` };
+  if (r >= A.dobleDentro) return { puntos: sector * 2, mult: 2, sector, nombre: `Doble ${sector}` };
+  return { puntos: sector, mult: 1, sector, nombre: String(sector) };
+}

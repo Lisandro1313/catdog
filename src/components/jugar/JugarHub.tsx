@@ -50,6 +50,7 @@ const Fruta = dynamic(() => import("./Fruta").then((m) => m.Fruta), { ssr: false
 const Vaso = dynamic(() => import("./Vaso").then((m) => m.Vaso), { ssr: false, loading: cargando });
 const Palabra = dynamic(() => import("./Palabra").then((m) => m.Palabra), { ssr: false, loading: cargando });
 const Fusion = dynamic(() => import("./Fusion").then((m) => m.Fusion), { ssr: false, loading: cargando });
+const Dardos = dynamic(() => import("./Dardos").then((m) => m.Dardos), { ssr: false, loading: cargando });
 const Novela = dynamic(() => import("./Novela").then((m) => m.Novela), { ssr: false, loading: cargando });
 
 type View = "hub" | GameId | "premio" | "records" | "duelo" | "torneo" | "impostor" | "novela";
@@ -253,6 +254,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
     view === "vaso" ? <Vaso onDone={(v) => reportar("vaso", v)} {...common} /> :
     view === "palabra" ? <Palabra onDone={(v) => reportar("palabra", v)} {...common} /> :
     view === "fusion" ? <Fusion onDone={(v) => reportar("fusion", v)} {...common} /> :
+    view === "dardos" ? <Dardos onDone={(v) => reportar("dardos", v)} {...common} /> :
     null;
 
   if (game) {

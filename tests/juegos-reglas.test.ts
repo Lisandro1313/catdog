@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { apilar, ESCALERA_2048, evaluar, hayJugada, juntarFila, mover, PALABRAS, ponerFicha, puntoDelCorte, puntosDelVaso } from "../src/lib/juegos-reglas";
+import { ANILLOS_DARDOS, apilar, ESCALERA_2048, evaluar, hayJugada, juntarFila, mover, PALABRAS, ponerFicha, puntoDelCorte, puntoDelDardo, puntosDelVaso, SECTORES_DARDOS } from "../src/lib/juegos-reglas";
 
 describe("2048 de la barra", () => {
   it("junta pares hacia la izquierda y suma lo que se formó", () => {
@@ -127,5 +127,35 @@ describe("deslizá el vaso", () => {
 
   it("si se pasa de la barra, se cayó", () => {
     expect(puntosDelVaso(1.01, 0.95)).toBe(0);
+  });
+});
+
+describe("dardos", () => {
+  const T = ANILLOS_DARDOS;
+  it("el centro es bull y el anillo de alrededor, 25", () => {
+    expect(puntoDelDardo(0, 0).puntos).toBe(50);
+    expect(puntoDelDardo(0, -10).puntos).toBe(25);
+    expect(puntoDelDardo(T.bull25 + 1, 0).mult).toBe(1);
+  });
+
+  it("los sectores siguen el orden del tablero", () => {
+    // Arriba el 20, a la derecha el 6, abajo el 3, a la izquierda el 11.
+    expect(puntoDelDardo(0, -50).sector).toBe(20);
+    expect(puntoDelDardo(50, 0).sector).toBe(6);
+    expect(puntoDelDardo(0, 50).sector).toBe(3);
+    expect(puntoDelDardo(-50, 0).sector).toBe(11);
+    // Un poco a la derecha del 20 está el 1; un poco a la izquierda, el 5.
+    const a = (20 * Math.PI) / 180;
+    expect(puntoDelDardo(Math.sin(a) * 50, -Math.cos(a) * 50).sector).toBe(1);
+    expect(puntoDelDardo(-Math.sin(a) * 50, -Math.cos(a) * 50).sector).toBe(5);
+  });
+
+  it("triples, dobles y afuera", () => {
+    expect(puntoDelDardo(0, -103)).toEqual({ puntos: 60, mult: 3, sector: 20, nombre: "Triple 20" });
+    expect(puntoDelDardo(0, -166)).toEqual({ puntos: 40, mult: 2, sector: 20, nombre: "Doble 20" });
+    expect(puntoDelDardo(-103, 0).puntos).toBe(33);
+    expect(puntoDelDardo(0, -171).puntos).toBe(0);
+    expect(SECTORES_DARDOS).toHaveLength(20);
+    expect(new Set(SECTORES_DARDOS).size).toBe(20);
   });
 });

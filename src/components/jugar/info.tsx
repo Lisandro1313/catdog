@@ -22,6 +22,7 @@ export const GAME_INFO: Record<GameId, { title: string; blurb: string; meta: str
   vaso: { title: "Deslizá el vaso", blurb: "Empujá el vaso por la barra para que frene en el blanco. Cinco tiros. Si se cae, cero.", meta: `${METAS.vaso} de 500 puntos`, icon: "🍺", unit: "pts" },
   palabra: { title: "La palabra de la casa", blurb: "Cinco letras, seis intentos. Verde: está y en su lugar. Amarillo: está, en otro lado.", meta: `En ${METAS.palabra} intentos o menos`, icon: "🟩", unit: "intentos" },
   fusion: { title: "2048 de la barra", blurb: "Deslizá para juntar: dos hielos hacen un limón, dos limones una menta… hasta el trago de la noche.", meta: `${METAS.fusion} puntos`, icon: "🧊", unit: "pts" },
+  dardos: { title: "Dardos", blurb: "El tablero de la pared. Apuntá, esperá el pulso y tirá para arriba. Tres rondas de tres dardos.", meta: `${METAS.dardos} puntos en 9 dardos`, icon: "🎯", unit: "pts" },
   trivia: { title: "Verdadero o falso", blurb: "Barra y cocina. Seguís hasta el primer error, con reloj.", meta: `Racha de ${METAS.trivia}`, icon: "🍸", unit: "seguidos" },
 };
 
