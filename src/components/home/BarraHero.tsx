@@ -97,7 +97,7 @@ export function BarraHero({
  * La semana: cada noche con su motivo. El lunes y el jueves tienen nombre propio porque son
  * la razón para venir ese día; el fin de semana no necesita explicación.
  */
-export function LaSemana({ barra, mesaHora }: { barra: Barra; mesaHora: number }) {
+export function LaSemana({ barra, mesaHora, proxima }: { barra: Barra; mesaHora: number; proxima?: { cuando: string; hora: string } | null }) {
   // Lo que pasa los jueves no se anuncia acá (va de boca en boca): sin texto propio, el jueves
   // es una noche más de la casa abierta.
   const abreJueves = /jueves/iu.test(barra.dias);
@@ -126,6 +126,22 @@ export function LaSemana({ barra, mesaHora }: { barra: Barra; mesaHora: number }
           </article>
         ))}
       </div>
+
+      {/* Lo único que se puede hacer acá sin dar nada ni salir de la página. La mayoría llega desde
+          una historia un martes, le gusta, y el lunes ya se olvidó: esto deja que el teléfono se lo
+          acuerde por ellos. */}
+      {proxima && (
+        <p className="mt-10 text-center text-sm text-muted">
+          La próxima: <span className="text-ink">{proxima.cuando}</span> a las {proxima.hora}.{" "}
+          <a className="agendalo" href="/api/agenda" data-mide="agenda">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path d="M8 3v4M16 3v4M3 11h18" strokeLinecap="round" />
+            </svg>
+            Agendalo
+          </a>
+        </p>
+      )}
     </section>
   );
 }

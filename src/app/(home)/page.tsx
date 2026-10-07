@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { HOLD_MINUTES, MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
-import { formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
+import { formatDayNumber, formatLong, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
 import { getUpcomingEvents } from "@/lib/reservations";
 import { parseBar, parseMenu, splitDrink } from "@/lib/menu";
 import { getAbout, getInstagram, getPhotos, getVideo } from "@/lib/photos";
@@ -38,7 +38,7 @@ import { Brasas } from "@/components/home/Brasas";
 import { AvisameForm } from "@/components/AvisameForm";
 import { EstadoCasa } from "@/components/home/EstadoCasa";
 import { BarraFija } from "@/components/home/BarraFija";
-import { diasQueAbre, estadoAhora, horaDeApertura, horarioSchema, textoDeEstado } from "@/lib/horario";
+import { diasQueAbre, estadoAhora, horaDeApertura, horarioSchema, proximaApertura, textoDeEstado } from "@/lib/horario";
 import { getConfigCaja } from "@/lib/caja-rapida";
 import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
 
@@ -166,6 +166,9 @@ export default async function HomePage() {
   const diasAbre = diasQueAbre(barra.dias);
   const horaAbre = horaDeApertura(barra.horario) ?? 20;
   const estadoInicial = textoDeEstado(estadoAhora(diasAbre, horaAbre, new Date(), excepcion));
+  // Cuándo vuelve a abrir, con fecha: es lo que se agenda.
+  const apertura = modoBarra ? proximaApertura(diasAbre, horaAbre, new Date(), excepcion) : null;
+  const proxima = apertura ? { cuando: formatLong(apertura.inicio), hora: formatTime(apertura.inicio) } : null;
   // "Cómo llegar", no "ver el mapa": abre el navegador con el camino desde donde esté la persona.
   const mapa = comoLlegar();
 
@@ -356,7 +359,7 @@ export default async function HomePage() {
             mapa={mapa}
             estado={<EstadoCasa dias={diasAbre} hora={horaAbre} inicial={estadoInicial} excepcion={excepcion} />}
           />
-          <LaSemana barra={barra} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} />
+          <LaSemana barra={barra} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} proxima={proxima} />
           {/* Las fotos van entre lo que pasa cada noche y lo que sale: primero qué es esto, después
               cómo es, y recién ahí cuánto cuesta. Es el orden en que alguien decide si viene.
               Varias son de las cenas de pasos, así que el título no promete que sea lo de esta noche. */}

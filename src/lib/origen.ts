@@ -18,6 +18,7 @@ export const ORIGENES = [
   { clave: "tarjeta", label: "Tarjeta en mano", donde: "La que se reparte en los bares" },
   { clave: "tarjeta-gastro", label: "Tarjeta gastronómicos", donde: "La de los lunes, para la gente del rubro" },
   { clave: "mail", label: "Mail", donde: "Los avisos que salen por mail" },
+  { clave: "agenda", label: "Calendario", donde: "El que se agendó el día y volvió desde el recordatorio" },
 ] as const;
 
 const LABELS = new Map(ORIGENES.map((o) => [o.clave as string, o.label as string]));
@@ -37,7 +38,7 @@ export function etiquetaDe(clave: string): string {
  * Las cosas que se cuentan además de las visitas: tocar el WhatsApp, pedir cómo llegar.
  * Van con su propio prefijo para que no se mezclen con las rutas de verdad.
  */
-export const ACCIONES = ["wa", "mapa", "instagram", "compartir"] as const;
+export const ACCIONES = ["wa", "mapa", "instagram", "compartir", "agenda"] as const;
 export type Accion = (typeof ACCIONES)[number];
 
 export const ACCION_LABEL: Record<Accion, string> = {
@@ -45,6 +46,7 @@ export const ACCION_LABEL: Record<Accion, string> = {
   mapa: "Pidieron cómo llegar",
   instagram: "Fueron al Instagram",
   compartir: "Pasaron la página",
+  agenda: "Se agendaron el próximo día",
 };
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { comoHora, diasQueAbre, estadoAhora, horaDeApertura, horarioSchema, textoDeEstado } from "../src/lib/horario";
+import { comoHora, diasQueAbre, estadoAhora, horaDeApertura, horarioSchema, proximaApertura, textoDeEstado } from "../src/lib/horario";
 
 /**
  * El cartel de "abierto ahora" es lo primero que mira el que abre la página un viernes a la noche.
@@ -185,5 +185,56 @@ describe("la excepción de un día", () => {
     const suelto = { fecha: "2026-10-06", abre: true, desde: 21, hasta: null };
     const e = estadoAhora(DIAS, 20, ar("2026-10-06", "22:00"), suelto);
     expect(textoDeEstado(e)).toBe("Abierto ahora");
+  });
+});
+
+describe("la próxima apertura, con fecha", () => {
+  const lunVieSab = [1, 5, 6];
+
+  it("devuelve el próximo día que abre, a la hora que abre", () => {
+    // Miércoles 7 de octubre de 2026, 15 hs de Argentina (18 UTC).
+    const r = proximaApertura(lunVieSab, 20, new Date("2026-10-07T18:00:00Z"));
+    expect(r).not.toBeNull();
+    // El viernes 9 a las 20 de Argentina son las 23 UTC.
+    expect(r!.inicio.toISOString()).toBe("2026-10-09T23:00:00.000Z");
+    expect(r!.fin.toISOString()).toBe("2026-10-10T02:00:00.000Z");
+  });
+
+  it("si hoy abre y todavía no abrió, es hoy", () => {
+    // Viernes 9 a las 15 de Argentina.
+    const r = proximaApertura(lunVieSab, 20, new Date("2026-10-09T18:00:00Z"));
+    expect(r!.inicio.toISOString()).toBe("2026-10-09T23:00:00.000Z");
+  });
+
+  it("si ya abrió, salta a la próxima", () => {
+    // Viernes 9 a las 22 de Argentina: ya está abierto, lo que viene es el sábado.
+    const r = proximaApertura(lunVieSab, 20, new Date("2026-10-10T01:00:00Z"));
+    expect(r!.inicio.toISOString()).toBe("2026-10-10T23:00:00.000Z");
+  });
+
+  it("una excepción que abre un día de semana se adelanta a la semana de siempre", () => {
+    const r = proximaApertura(lunVieSab, 20, new Date("2026-10-07T18:00:00Z"), {
+      fecha: "2026-10-08",
+      abre: true,
+      desde: 21,
+      hasta: 2,
+    });
+    expect(r!.inicio.toISOString()).toBe("2026-10-09T00:00:00.000Z");
+    // De 21 a 2 son cinco horas, aunque crucen la medianoche.
+    expect(r!.fin.toISOString()).toBe("2026-10-09T05:00:00.000Z");
+  });
+
+  it("una excepción que cierra saltea ese día", () => {
+    const r = proximaApertura(lunVieSab, 20, new Date("2026-10-07T18:00:00Z"), {
+      fecha: "2026-10-09",
+      abre: false,
+      desde: 20,
+      hasta: null,
+    });
+    expect(r!.inicio.toISOString()).toBe("2026-10-10T23:00:00.000Z");
+  });
+
+  it("sin días cargados no hay próxima apertura", () => {
+    expect(proximaApertura([], 20, new Date("2026-10-07T18:00:00Z"))).toBeNull();
   });
 });

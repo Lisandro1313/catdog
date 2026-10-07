@@ -159,3 +159,38 @@ export function horarioSchema(dias: number[], hora: number): { dayOfWeek: string
     closes: hh(FIN_DE_LA_NOCHE),
   };
 }
+
+/**
+ * El próximo momento en que la casa abre, como fecha y hora de verdad.
+ *
+ * `estadoAhora` sirve para el cartelito ("Abre el lunes a las 20") pero no da una fecha, y para
+ * meter algo en el calendario de alguien hace falta el día exacto. Devuelve null si no abre nunca
+ * (nadie cargó los días).
+ *
+ * Si ya está abierto ahora, devuelve igual la próxima apertura: agendar lo que ya está pasando no
+ * le sirve a nadie.
+ */
+export function proximaApertura(
+  dias: number[],
+  hora: number,
+  ahora: Date = new Date(),
+  excepcion: Excepcion | null = null,
+): { inicio: Date; fin: Date } | null {
+  for (let i = 0; i <= 8; i++) {
+    const candidato = new Date(ahora.getTime() - AR_OFFSET_MS + i * DIA_MS);
+    const fecha = candidato.toISOString().slice(0, 10);
+    const exc = excepcion && excepcion.fecha === fecha ? excepcion : null;
+    const abre = exc ? exc.abre : dias.includes(candidato.getUTCDay());
+    if (!abre) continue;
+    const desde = exc ? exc.desde : hora;
+    const hasta = exc ? exc.hasta : null;
+    // La hora argentina se vuelve a hora real sumando el huso.
+    const inicio = new Date(Date.parse(`${fecha}T00:00:00Z`) + desde * 3600000 + AR_OFFSET_MS);
+    if (inicio.getTime() <= ahora.getTime()) continue;
+    // Sin hora de cierre no se inventa la madrugada entera: el calendario de alguien no es el
+    // lugar para bloquearle ocho horas. Tres alcanzan para que la noche aparezca.
+    const horasQueDura = hasta === null ? 3 : (hasta < desde ? hasta + 24 : hasta) - desde;
+    return { inicio, fin: new Date(inicio.getTime() + horasQueDura * 3600000) };
+  }
+  return null;
+}
