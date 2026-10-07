@@ -32,9 +32,9 @@ describe("reglas de los juegos", () => {
     expect(plausible("chef", 12.5)).toBe(false);
   });
 
-  it("el premio pide nueve logros, haya los juegos que haya", () => {
-    // Sumar juegos da más para elegir, no más para hacer.
-    expect(PREMIO_MINIMO).toBe(9);
+  it("el premio pide once logros", () => {
+    // Lo decidió la casa: con 19 juegos, 9 quedaba fácil.
+    expect(PREMIO_MINIMO).toBe(11);
     expect(GAMES.length).toBeGreaterThan(PREMIO_MINIMO);
   });
 

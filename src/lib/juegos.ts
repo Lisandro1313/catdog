@@ -3,11 +3,11 @@
  */
 
 /**
- * Cuántos logros hacen falta para el trago. Eran "todos menos dos" cuando había once juegos.
- * Con diecinueve no se sube: más juegos es más para elegir, no más para hacer. Pedir diecisiete
- * en una noche sería que no lo gane nadie.
+ * Cuántos logros hacen falta para el trago. Eran 9 de 11 juegos. Con diecinueve, 9 quedaba fácil:
+ * cada uno arma los suyos con los que mejor le salen. Subió a 11 el 2026-10-07, a pedido de la
+ * casa. Pedir "todos menos dos" (17) sería que no lo gane nadie.
  */
-export const PREMIO_MINIMO = 9;
+export const PREMIO_MINIMO = 11;
 
 export const GAMES = [
   "maridaje", "servicio", "gato", "ritmo", "memoria", "chef", "lisandro", "copa", "simon", "mimica", "trivia",
