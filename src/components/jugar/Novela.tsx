@@ -1,20 +1,73 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useState, useSyncExternalStore } from "react";
-import { ARCANOS, DIAS, DIA_INFO, FINALES, NOMBRES, NOMBRE_PISTA, PISTAS, VINCULOS, type Dia, type FinalId, type Linea, type Vinculo } from "@/lib/novela/guion";
-import { avanzar, cargar, elegir, escenaDe, inicial, interpolar, lineaActual, lineaEnPantalla, opciones, retratoEn, serializar, subieron, type Estado } from "@/lib/novela/motor";
-import { MuteButton, beep, keepAwake, tap } from "./Shell";
+import {
+  ARCANOS,
+  CGS,
+  CG_INFO,
+  CONFIDENTES,
+  CONFIDENTE_INFO,
+  DIA_INFO,
+  ESCENAS,
+  FINALES,
+  NIVELES_STAT,
+  NOMBRES,
+  NOMBRE_PISTA,
+  NOMBRE_STAT,
+  PISTAS,
+  PISTAS2,
+  RANGO_MAX,
+  STATS,
+  STAT_MAX,
+  VINCULOS,
+  type CgId,
+  type Confidente,
+  type FinalId,
+  type Linea,
+} from "@/lib/novela/guion";
+import {
+  avanzar,
+  cargar,
+  elegir,
+  empezarT2,
+  escenaDe,
+  inicial,
+  interpolar,
+  lineaActual,
+  lineaEnPantalla,
+  momento,
+  opcionesVista,
+  parejas,
+  proximoRango,
+  resumen,
+  retratoEn,
+  serializar,
+  subieron,
+  subieronRangos,
+  subieronStats,
+  type Estado,
+  type Partida,
+} from "@/lib/novela/motor";
+import { LOGROS, nuevosLogros } from "@/lib/novela/logros";
+import { imagenCg, imagenFondo, imagenesDe } from "@/lib/novela/arte";
+import { MuteButton, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Retrato } from "./novela/Retrato";
 import { Fondo } from "./novela/Fondo";
+import { Cg } from "./novela/Cg";
 import s from "./Novela.module.css";
 
 export const TITULO = "¿Quién te contó?";
 
 // ─── Memoria del teléfono (puede fallar: modo privado, sin espacio) ─────────────────────────
 
-const K_PARTIDA = "catdog:novela:partida";
+/** La partida de antes (una sola ranura). Si existe, se lee como si fuera la ranura 1. */
+const K_VIEJA = "catdog:novela:partida";
+const K_SLOT = (n: number) => `catdog:novela:slot${n}`;
 const K_FINALES = "catdog:novela:finales";
 const K_LEIDAS = "catdog:novela:leidas";
+const K_GALERIA = "catdog:novela:galeria";
+const K_LOGROS = "catdog:novela:logros";
+const SLOTS = [1, 2, 3] as const;
 
 const oyentes = new Set<() => void>();
 function leer(k: string): string | null {
@@ -56,6 +109,21 @@ function lista(raw: string | null): string[] {
     return [];
   }
 }
+function sumar(k: string, items: string[]) {
+  const ya = lista(leer(k));
+  const nuevos = items.filter((x) => !ya.includes(x));
+  if (nuevos.length) escribir(k, JSON.stringify([...ya, ...nuevos]));
+}
+
+/** Lo crudo de una ranura (la 1 cae en la partida vieja si no tiene nada propio). */
+function crudoSlot(n: number, propio: string | null, vieja: string | null): string | null {
+  return propio ?? (n === 1 ? vieja : null);
+}
+function guardarSlot(n: number, v: string | null) {
+  escribir(K_SLOT(n), v);
+  // Una vez que la ranura 1 tiene algo propio, la partida vieja ya se migró.
+  if (n === 1 && leer(K_VIEJA) != null) escribir(K_VIEJA, null);
+}
 
 /** Las líneas ya leídas (en cualquier partida): las que "saltar leídos" puede pasar de largo. */
 let leidasCache: Set<string> | null = null;
@@ -79,29 +147,53 @@ function marcarLeida(id: string) {
   }, 600);
 }
 
+/** Precarga imágenes (fondos y retratos de lo que viene) para que no parpadeen. */
+const precargadas = new Set<string>();
+function precargar(srcs: string[]) {
+  for (const src of srcs) {
+    if (precargadas.has(src)) continue;
+    precargadas.add(src);
+    const img = new Image();
+    img.decoding = "async";
+    img.src = src;
+  }
+}
+function lindantes(id: string): string[] {
+  const e = ESCENAS[id];
+  if (!e) return [];
+  const ids = [e.sigue, ...(e.opciones ?? []).map((o) => o.va), ...(e.ramas ?? []).map((r) => r.va)].filter((x): x is string => !!x && !!ESCENAS[x]);
+  return [id, ...ids];
+}
+function imagenesPara(id: string): string[] {
+  const out: string[] = [];
+  for (const x of lindantes(id)) {
+    const e = ESCENAS[x];
+    const f = e.cg ? imagenCg(e.cg) : imagenFondo(e.fondo);
+    if (f) out.push(f);
+    for (const l of e.lineas) if (l.quien !== "narra" && l.quien !== "yo") out.push(...imagenesDe(l.quien, !!e.noche));
+  }
+  return [...new Set(out)];
+}
+
 // ─── Sonidos: sutiles, que no rompan la mesa ─────────────────────────────────────────────────
 
+const SONIDOS = ["glitch", "elegir", "pagina", "logro", "acierto", "campana", "clic", "error"] as const;
 const golpeSonido = () => {
-  beep(140, 120, "square", 0.05);
-  setTimeout(() => beep(90, 160, "sawtooth", 0.04), 60);
+  sonar("glitch", 0.3);
   tap(25);
 };
 const eleccionSonido = () => {
-  beep(880, 50, "square", 0.05);
-  setTimeout(() => beep(1320, 70, "square", 0.04), 55);
+  sonar("elegir", 0.35);
   tap(12);
-};
-const vinculoSonido = () => {
-  beep(660, 80, "triangle", 0.08);
-  setTimeout(() => beep(990, 120, "triangle", 0.07), 90);
-  setTimeout(() => beep(1320, 180, "triangle", 0.06), 200);
 };
 
 // ─── El juego ────────────────────────────────────────────────────────────────────────────────
 
-type Pantalla = "titulo" | "nombre" | "juego" | "fin" | "finales";
+type Pantalla = "titulo" | "slots" | "nombre" | "juego" | "fin" | "extras";
 type Panel = null | "log" | "vinculos";
 type Registro = { quien: string; texto: string; eleccion?: boolean };
+type Aviso = { tipo: "vinculo" | "rango" | "stat" | "logro" | "cg"; chico: string; texto: string; valor?: string };
+type Tab = "finales" | "galeria" | "logros";
 
 function nombreDe(l: Pick<Linea, "quien">, nombre: string): string | null {
   if (l.quien === "narra") return null;
@@ -109,36 +201,60 @@ function nombreDe(l: Pick<Linea, "quien">, nombre: string): string | null {
   return NOMBRES[l.quien];
 }
 
+function descripcionSlot(p: Partida): string {
+  const m = momento(p.estado);
+  const dia = DIA_INFO[m.dia].titulo;
+  if (m.temporada === 1) return `Temporada 1 · ${dia}`;
+  const top = CONFIDENTES.filter((c) => p.estado.rangos[c] > 0).sort((a, b) => p.estado.rangos[b] - p.estado.rangos[a])[0];
+  return `Temporada 2 · Semana ${m.semana} · ${dia}${top ? ` · ${NOMBRES[top]} R${p.estado.rangos[top]}` : ""}`;
+}
+
 export function Novela({ onBack }: { onBack: () => void }) {
-  const guardada = useGuardado(K_PARTIDA);
+  const crudos = [useGuardado(K_SLOT(1)), useGuardado(K_SLOT(2)), useGuardado(K_SLOT(3))];
+  const vieja = useGuardado(K_VIEJA);
   const finalesRaw = useGuardado(K_FINALES);
+  const galeriaRaw = useGuardado(K_GALERIA);
+  const logrosRaw = useGuardado(K_LOGROS);
   const logrados = useMemo(() => lista(finalesRaw) as FinalId[], [finalesRaw]);
+  const galeria = useMemo(() => lista(galeriaRaw) as CgId[], [galeriaRaw]);
+  const logros = useMemo(() => lista(logrosRaw), [logrosRaw]);
+  const [c1, c2, c3] = crudos;
+  const partidas = useMemo(() => {
+    const raws = [crudoSlot(1, c1, vieja), c2, c3];
+    return raws.map((raw) => ({ raw, p: cargar(raw) }));
+  }, [c1, c2, c3, vieja]);
 
   const [pantalla, setPantalla] = useState<Pantalla>("titulo");
+  const [modoSlots, setModoSlots] = useState<"cargar" | "nueva">("cargar");
+  const [slot, setSlot] = useState(1);
+  const [pisar, setPisar] = useState<number | null>(null);
   const [estado, setEstado] = useState<Estado>(inicial);
   const [nombre, setNombre] = useState("");
   const [borrador, setBorrador] = useState("");
-  const [cal, setCal] = useState<Dia | null>(null);
+  const [cal, setCal] = useState<ReturnType<typeof momento> | null>(null);
+  const [anterior, setAnterior] = useState<string | null>(null);
   const [golpe, setGolpe] = useState(0);
-  const [subio, setSubio] = useState<{ vs: Vinculo[]; k: number } | null>(null);
+  const [avisos, setAvisos] = useState<{ items: Aviso[]; k: number } | null>(null);
   const [typed, setTyped] = useState({ id: "", n: 0 });
   const [saltar, setSaltar] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
   const [log, setLog] = useState<Registro[]>([]);
-  const [pisar, setPisar] = useState(false);
   const [ultimoFinal, setUltimoFinal] = useState<FinalId | null>(null);
+  const [tab, setTab] = useState<Tab>("finales");
+  const [verCg, setVerCg] = useState<CgId | null>(null);
 
   const escena = escenaDe(estado.escena);
   const linea = lineaEnPantalla(estado);
   const actual = lineaActual(estado);
-  const ops = opciones(estado);
+  const ops = opcionesVista(estado);
   const enDecision = !!ops;
   const retrato = retratoEn(estado);
   const texto = linea ? interpolar(linea.texto, nombre) : "";
   const escrito = !linea || ops ? texto.length : typed.id === linea.id ? typed.n : 0;
   const listo = escrito >= texto.length;
   const lineaId = linea?.id ?? "";
-  const jugando = pantalla === "juego" && !cal && !panel;
+  const jugando = pantalla === "juego" && !cal && !panel && !anterior;
+  const hayT1 = logrados.some((f) => FINALES.find((x) => x.id === f)?.temporada === 1);
 
   // Máquina de escribir: de a dos letras. Se reinicia sola al cambiar de línea (por el id).
   useEffect(() => {
@@ -148,45 +264,77 @@ export function Novela({ onBack }: { onBack: () => void }) {
   }, [jugando, listo, lineaId]);
 
   // Las líneas con golpe suenan (sin tocar estado).
-  const golpeDeLinea = pantalla === "juego" && !cal && !!actual?.golpe;
+  const golpeDeLinea = pantalla === "juego" && !cal && !anterior && !!actual?.golpe;
   useEffect(() => {
     if (golpeDeLinea) golpeSonido();
   }, [golpeDeLinea, lineaId]);
 
-  // El calendario se va solo a los pocos segundos (o al tocar).
+  // El calendario se va solo a los pocos segundos (o al tocar). Espera a que se cierre el "anterior en".
   useEffect(() => {
-    if (!cal) return;
+    if (!cal || anterior) return;
     const t = setTimeout(() => setCal(null), saltar ? 700 : 3200);
     return () => clearTimeout(t);
-  }, [cal, saltar]);
+  }, [cal, saltar, anterior]);
 
-  function guardar(e: Estado, n = nombre) {
-    escribir(K_PARTIDA, serializar(e, n));
+  // Precarga de sonidos e imágenes de lo que viene.
+  useEffect(() => {
+    precargarSonidos([...SONIDOS]);
+  }, []);
+  const escenaId = estado.escena;
+  useEffect(() => {
+    if (pantalla === "juego") precargar(imagenesPara(escenaId));
+  }, [pantalla, escenaId]);
+
+  function guardar(e: Estado, n = nombre, sl = slot) {
+    guardarSlot(sl, serializar(e, n, Date.now()));
   }
 
-  function registrarFinal(f: FinalId) {
-    const ya = lista(leer(K_FINALES));
-    if (!ya.includes(f)) escribir(K_FINALES, JSON.stringify([...ya, f]));
-  }
-
-  /** Aplica un estado nuevo: calendario si cambia el día, barrido si cambia el lugar, fin si terminó. */
+  /** Aplica un estado nuevo: calendario si cambia el día, barrido si cambia el lugar, avisos, fin. */
   function aplicar(next: Estado, prev: Estado) {
-    const antes = escenaDe(prev.escena);
-    const despues = escenaDe(next.escena);
+    const items: Aviso[] = [];
     if (next.escena !== prev.escena) {
-      if (despues.dia !== antes.dia) {
-        setCal(despues.dia);
-        golpeSonido();
-      } else if (despues.fondo !== antes.fondo) {
+      const a = momento(prev);
+      const b = momento(next);
+      const antes = escenaDe(prev.escena);
+      const despues = escenaDe(next.escena);
+      if (a.dia !== b.dia || a.semana !== b.semana || a.temporada !== b.temporada) {
+        setCal(b);
+        sonar("pagina", 0.5);
+      } else if (despues.fondo !== antes.fondo || despues.cg) {
         setGolpe((g) => g + 1);
-        beep(220, 90, "square", 0.04);
+        sonar("clic", 0.3);
+      }
+      if (despues.cg && !galeria.includes(despues.cg)) {
+        sumar(K_GALERIA, [despues.cg]);
+        items.push({ tipo: "cg", chico: "Galería", texto: CG_INFO[despues.cg].titulo });
       }
     }
+    for (const v of subieron(prev, next)) items.push({ tipo: "vinculo", chico: "Vínculo", texto: v === "gris" ? "La esquina" : NOMBRES[v], valor: `▲ ${next.afinidad[v]}` });
+    for (const c of subieronRangos(prev, next)) items.push({ tipo: "rango", chico: "Rango", texto: NOMBRES[c], valor: `${next.rangos[c]}` });
+    for (const st of subieronStats(prev, next)) items.push({ tipo: "stat", chico: NOMBRE_STAT[st], texto: NIVELES_STAT[st][next.stats[st]], valor: `▲ ${next.stats[st]}` });
+
+    const finales = next.terminado ? [...new Set([...logrados, next.terminado])] : logrados;
+    const nuevos = nuevosLogros({ estado: next, finales, galeria }, logros);
+    if (nuevos.length) {
+      sumar(
+        K_LOGROS,
+        nuevos.map((l) => l.id),
+      );
+      for (const l of nuevos) items.push({ tipo: "logro", chico: "Logro", texto: l.titulo });
+    }
+    if (items.length) {
+      setAvisos((p) => ({ items, k: (p?.k ?? 0) + 1 }));
+      const fuerte = items.some((x) => x.tipo === "rango" || x.tipo === "logro" || x.tipo === "cg");
+      setTimeout(() => sonar(fuerte ? "logro" : "acierto", 0.4), 160);
+    }
     setEstado(next);
+
     if (next.terminado) {
-      registrarFinal(next.terminado);
+      sumar(K_FINALES, [next.terminado]);
       setUltimoFinal(next.terminado);
-      escribir(K_PARTIDA, null);
+      // Terminada la temporada 1, la ranura queda lista en el arranque de la 2. Terminada la 2, se libera.
+      const temporada = FINALES.find((f) => f.id === next.terminado)?.temporada ?? 1;
+      guardarSlot(slot, temporada === 1 ? serializar(empezarT2(next), nombre, Date.now()) : null);
       setSaltar(false);
       setPantalla("fin");
       golpeSonido();
@@ -204,6 +352,10 @@ export function Novela({ onBack }: { onBack: () => void }) {
 
   function tocar() {
     if (pantalla !== "juego" || panel) return;
+    if (anterior) {
+      setAnterior(null);
+      return;
+    }
     if (cal) {
       setCal(null);
       return;
@@ -219,51 +371,56 @@ export function Novela({ onBack }: { onBack: () => void }) {
   function elegirOpcion(k: number) {
     if (!ops) return;
     const op = ops.find((o) => o.k === k);
-    if (!op) return;
+    if (!op || op.bloqueo) {
+      sonar("error", 0.3);
+      return;
+    }
     eleccionSonido();
     setGolpe((g) => g + 1);
     setLog((l) => [...l.slice(-199), { quien: "", texto: op.opcion.texto, eleccion: true }]);
-    const next = elegir(estado, k);
-    const vs = subieron(estado, next);
-    if (vs.length) {
-      setSubio((p) => ({ vs, k: (p?.k ?? 0) + 1 }));
-      setTimeout(vinculoSonido, 160);
-    }
-    aplicar(next, estado);
+    aplicar(elegir(estado, k), estado);
   }
 
-  function empezar() {
-    const n = borrador.trim().slice(0, 16);
-    const e = inicial();
+  function entrar(e: Estado, n: string, sl: number, recap: string | null) {
     keepAwake();
+    setSlot(sl);
     setNombre(n);
     setEstado(e);
     setLog([]);
     setTyped({ id: "", n: 0 });
     setSaltar(false);
     setPanel(null);
-    setCal(escenaDe(e.escena).dia);
+    setAnterior(recap);
+    setCal(momento(e));
     setPantalla("juego");
-    guardar(e, n);
+  }
+
+  function empezar(temporada: 1 | 2) {
+    const n = borrador.trim().slice(0, 16);
+    const e = temporada === 1 ? inicial() : empezarT2();
+    guardar(e, n, slot);
+    entrar(e, n, slot, null);
+    sonar("campana", 0.5);
+  }
+
+  function cargarSlot(n: number) {
+    const p = partidas[n - 1].p;
+    if (!p) return;
+    entrar(p.estado, p.nombre, n, resumen(p.estado) || null);
     golpeSonido();
   }
 
-  function continuar() {
-    const g = cargar(leer(K_PARTIDA));
-    if (!g) {
-      escribir(K_PARTIDA, null);
-      return;
-    }
-    keepAwake();
-    setNombre(g.nombre);
-    setEstado(g.estado);
-    setLog([]);
-    setTyped({ id: "", n: 0 });
-    setPanel(null);
-    setCal(escenaDe(g.estado.escena).dia);
-    setPantalla("juego");
-    golpeSonido();
-  }
+  const ultimaSlot = (() => {
+    let mejor = 0;
+    let t = -1;
+    partidas.forEach(({ p }, i) => {
+      if (p && p.t > t) {
+        t = p.t;
+        mejor = i + 1;
+      }
+    });
+    return mejor;
+  })();
 
   // Saltar leídos: pasa solo mientras la línea ya se haya leído alguna vez. Frena en lo nuevo y en las decisiones.
   const pasoSalto = useEffectEvent(() => {
@@ -280,7 +437,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
     return () => clearTimeout(t);
   }, [saltar, jugando, enDecision, lineaId]);
 
-  // Teclado: espacio o enter avanzan; 1 a 5 eligen; L historial; V vínculos; Esc cierra.
+  // Teclado: espacio o enter avanzan; 1 a 9 eligen; L historial; V vínculos; Esc cierra.
   const onKey = useEffectEvent((e: KeyboardEvent) => {
     if (pantalla !== "juego") return;
     const el = e.target as HTMLElement | null;
@@ -308,17 +465,17 @@ export function Novela({ onBack }: { onBack: () => void }) {
     return () => removeEventListener("keydown", h);
   }, []);
 
-  // ─── Pantallas ─────────────────────────────────────────────────────────────────────────────
+  // ─── Pantallas de menú ─────────────────────────────────────────────────────────────────────
 
-  if (pantalla === "titulo" || pantalla === "nombre" || pantalla === "finales") {
-    const hayPartida = !!guardada && !!cargar(guardada);
+  if (pantalla === "titulo" || pantalla === "slots" || pantalla === "nombre" || pantalla === "extras") {
+    const hayPartida = partidas.some((x) => x.p);
     return (
       <div className={`${s.root} ${s.portada}`}>
         <div className={s.marco}>
           <div className={s.portadaFondo} aria-hidden="true" />
           <div className={s.barraTop}>
-            <button type="button" className={s.volver} onClick={onBack}>
-              ← Juegos
+            <button type="button" className={s.volver} onClick={pantalla === "titulo" ? onBack : () => setPantalla("titulo")}>
+              {pantalla === "titulo" ? "← Juegos" : "← Menú"}
             </button>
             <span className={s.mute}>
               <MuteButton />
@@ -327,15 +484,15 @@ export function Novela({ onBack }: { onBack: () => void }) {
 
           {pantalla === "titulo" && (
             <div className={s.portadaCuerpo}>
-              <p className={s.antetitulo}>Novelón de una semana en la casa</p>
+              <p className={s.antetitulo}>Novelón en la casa · Temporadas 1 y 2</p>
               <h1 className={s.tituloGrande} aria-label={TITULO}>
                 <TituloRecortado />
               </h1>
               <p className={s.lema}>Si llegaste hasta acá, alguien te contó.</p>
 
               <div className={s.menu}>
-                {hayPartida && (
-                  <button type="button" className={`${s.menuBtn} ${s.menuBtnRojo}`} onClick={continuar}>
+                {ultimaSlot > 0 && (
+                  <button type="button" className={`${s.menuBtn} ${s.menuBtnRojo}`} onClick={() => cargarSlot(ultimaSlot)}>
                     <span className={s.rombo}>◆</span> Continuar
                   </button>
                 )}
@@ -343,22 +500,87 @@ export function Novela({ onBack }: { onBack: () => void }) {
                   type="button"
                   className={s.menuBtn}
                   onClick={() => {
-                    if (hayPartida && !pisar) {
-                      setPisar(true);
-                      return;
-                    }
-                    setPisar(false);
-                    setBorrador(nombre);
-                    setPantalla("nombre");
+                    setModoSlots("nueva");
+                    setPisar(null);
+                    setPantalla("slots");
                   }}
                 >
-                  <span className={s.rombo}>◆</span> {pisar ? "¿Seguro? Se pisa la partida" : hayPartida ? "Empezar de nuevo" : "Empezar"}
+                  <span className={s.rombo}>◆</span> Nueva partida
                 </button>
-                <button type="button" className={s.menuBtn} onClick={() => setPantalla("finales")}>
-                  <span className={s.rombo}>★</span> Finales {logrados.length}/{FINALES.length}
+                {hayPartida && (
+                  <button
+                    type="button"
+                    className={s.menuBtn}
+                    onClick={() => {
+                      setModoSlots("cargar");
+                      setPantalla("slots");
+                    }}
+                  >
+                    <span className={s.rombo}>◇</span> Cargar partida
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={s.menuBtn}
+                  onClick={() => {
+                    setTab("finales");
+                    setPantalla("extras");
+                  }}
+                >
+                  <span className={s.rombo}>★</span> Extras · {logrados.length}/{FINALES.length} finales
                 </button>
               </div>
-              <p className={s.nota}>20 minutos · tocá para avanzar · se guarda solo</p>
+              <p className={s.nota}>Unas 2 horas · 5 vínculos · 17 finales · se guarda solo</p>
+            </div>
+          )}
+
+          {pantalla === "slots" && (
+            <div className={s.portadaCuerpo}>
+              <p className={s.antetitulo}>{modoSlots === "nueva" ? "¿En qué ranura empezás?" : "Cargar partida"}</p>
+              <ul className={s.slots}>
+                {SLOTS.map((n) => {
+                  const { raw, p } = partidas[n - 1];
+                  const rota = !!raw && !p;
+                  const deshab = modoSlots === "cargar" && !p;
+                  return (
+                    <li key={n}>
+                      <button
+                        type="button"
+                        className={`${s.slot} ${p ? s.slotLleno : ""} ${pisar === n ? s.slotPisar : ""}`}
+                        disabled={deshab}
+                        onClick={() => {
+                          if (modoSlots === "cargar") {
+                            cargarSlot(n);
+                            return;
+                          }
+                          if ((p || rota) && pisar !== n) {
+                            setPisar(n);
+                            return;
+                          }
+                          setPisar(null);
+                          setSlot(n);
+                          setBorrador(p?.nombre ?? nombre);
+                          setPantalla("nombre");
+                        }}
+                      >
+                        <b>Ranura {n}</b>
+                        {p ? (
+                          <>
+                            <span>{p.nombre || "Sin nombre"}</span>
+                            <small>{descripcionSlot(p)}</small>
+                          </>
+                        ) : rota ? (
+                          <small>La partida guardada no encaja con esta versión de la novela. Si empezás acá, se reinicia.</small>
+                        ) : (
+                          <small>Vacía</small>
+                        )}
+                        {pisar === n && <em>¿Seguro? Tocá de nuevo para pisarla.</em>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {vieja && !c1 && <p className={s.nota}>Tu partida de antes quedó en la ranura 1.</p>}
             </div>
           )}
 
@@ -367,10 +589,10 @@ export function Novela({ onBack }: { onBack: () => void }) {
               className={s.portadaCuerpo}
               onSubmit={(e) => {
                 e.preventDefault();
-                empezar();
+                empezar(1);
               }}
             >
-              <p className={s.antetitulo}>Pregunta de la casa</p>
+              <p className={s.antetitulo}>Pregunta de la casa · Ranura {slot}</p>
               <h2 className={s.preguntaGrande}>¿Cómo te dicen?</h2>
               <input
                 className={s.input}
@@ -386,14 +608,20 @@ export function Novela({ onBack }: { onBack: () => void }) {
                 <button type="submit" className={`${s.menuBtn} ${s.menuBtnRojo}`}>
                   <span className={s.rombo}>◆</span> Tocar el timbre
                 </button>
-                <button type="button" className={s.menuBtn} onClick={() => setPantalla("titulo")}>
-                  <span className={s.rombo}>◇</span> Volver
+                <button type="button" className={s.menuBtn} disabled={!hayT1} onClick={() => empezar(2)} title={hayT1 ? "" : "Terminá la temporada 1 al menos una vez"}>
+                  <span className={s.rombo}>▶</span> {hayT1 ? "Ir directo a la temporada 2" : "Temporada 2 (terminá la 1 primero)"}
                 </button>
               </div>
             </form>
           )}
 
-          {pantalla === "finales" && <ListaFinales logrados={logrados} onVolver={() => setPantalla("titulo")} />}
+          {pantalla === "extras" && <Extras tab={tab} setTab={setTab} logrados={logrados} galeria={galeria} logros={logros} onVer={setVerCg} />}
+
+          {verCg && (
+            <button type="button" className={s.cgVisor} onClick={() => setVerCg(null)} aria-label="Cerrar">
+              <Cg id={verCg} />
+            </button>
+          )}
         </div>
       </div>
     );
@@ -401,23 +629,38 @@ export function Novela({ onBack }: { onBack: () => void }) {
 
   if (pantalla === "fin" && ultimoFinal) {
     const f = FINALES.find((x) => x.id === ultimoFinal)!;
+    const deTemporada = FINALES.filter((x) => x.temporada === f.temporada);
     return (
       <div className={`${s.root} ${s.portada}`}>
         <div className={s.marco}>
           <div className={s.portadaFondo} aria-hidden="true" />
           <div className={`${s.portadaCuerpo} ${s.finCuerpo}`}>
-            <p className={s.antetitulo}>{f.verdadero ? "★ Final verdadero ★" : `Final ${FINALES.indexOf(f) + 1} de ${FINALES.length}`}</p>
+            <p className={s.antetitulo}>
+              {f.verdadero ? `★ Final verdadero · Temporada ${f.temporada} ★` : `Temporada ${f.temporada} · Final ${deTemporada.indexOf(f) + 1} de ${deTemporada.length}`}
+            </p>
             <h2 className={s.finTitulo}>
               <span>Fin</span>
             </h2>
             <p className={s.finNombre}>{f.titulo}</p>
-            <Vinculos estado={estado} compacto />
+            {f.temporada === 1 ? <Vinculos estado={estado} compacto /> : <Confidentes estado={estado} compacto />}
             <div className={s.menu}>
-              <button type="button" className={`${s.menuBtn} ${s.menuBtnRojo}`} onClick={() => setPantalla("finales")}>
+              {f.temporada === 1 && (
+                <button type="button" className={`${s.menuBtn} ${s.menuBtnRojo}`} onClick={() => cargarSlot(slot)}>
+                  <span className={s.rombo}>▶</span> Seguir: Temporada 2
+                </button>
+              )}
+              <button
+                type="button"
+                className={s.menuBtn}
+                onClick={() => {
+                  setTab("finales");
+                  setPantalla("extras");
+                }}
+              >
                 <span className={s.rombo}>★</span> Finales {logrados.length}/{FINALES.length}
               </button>
               <button type="button" className={s.menuBtn} onClick={() => setPantalla("titulo")}>
-                <span className={s.rombo}>◆</span> Volver a empezar
+                <span className={s.rombo}>◆</span> Menú
               </button>
               <button type="button" className={s.menuBtn} onClick={onBack}>
                 <span className={s.rombo}>◇</span> Volver a los juegos
@@ -429,21 +672,25 @@ export function Novela({ onBack }: { onBack: () => void }) {
     );
   }
 
+  // ─── El juego ──────────────────────────────────────────────────────────────────────────────
+
   const quien = linea ? nombreDe(linea, nombre) : null;
   const habla = linea && retrato && linea.quien === retrato.quien;
-  const info = DIA_INFO[escena.dia];
+  const m = momento(estado);
+  const info = DIA_INFO[m.dia];
+  const enPareja = parejas(estado);
 
   return (
     <div className={s.root}>
       <div className={s.marco} onClick={tocar}>
-        <div className={s.fondo} key={escena.fondo}>
-          <Fondo id={escena.fondo} />
+        <div className={s.fondo} key={escena.cg ?? escena.fondo}>
+          {escena.cg ? <Cg id={escena.cg} /> : <Fondo id={escena.fondo} />}
         </div>
 
-        {retrato && (
+        {retrato && !escena.cg && (
           <div className={`${s.retrato} ${habla ? "" : s.atenuado} ${linea?.golpe && habla ? s.sacudon : ""}`} key={`${retrato.quien}`}>
             <div className={s.retratoLosa} aria-hidden="true" />
-            <Retrato quien={retrato.quien} cara={retrato.cara} />
+            <Retrato quien={retrato.quien} cara={retrato.cara} noche={escena.noche} />
           </div>
         )}
 
@@ -452,6 +699,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
             ←
           </button>
           <span className={s.diaChip}>
+            {m.temporada === 2 && m.dia !== "epilogo" && <i>S{m.semana}</i>}
             <b>{info.titulo}</b> {escena.hora}
           </span>
           <span className={s.herramientas}>
@@ -470,29 +718,76 @@ export function Novela({ onBack }: { onBack: () => void }) {
           </span>
         </div>
 
-        {subio && (
-          <div className={s.subio} key={subio.k} aria-live="polite">
-            {subio.vs.map((v) => (
-              <span key={v} className={s.subioItem}>
-                <small>Vínculo</small> {v === "gris" ? "La esquina" : NOMBRES[v]} <b>▲ {estado.afinidad[v]}</b>
+        {avisos && (
+          <div className={s.subio} key={avisos.k} aria-live="polite">
+            {avisos.items.map((a, i) => (
+              <span key={i} className={`${s.subioItem} ${s[`aviso_${a.tipo}`] ?? ""}`}>
+                <small>{a.chico}</small> {a.texto} {a.valor && <b>{a.valor}</b>}
               </span>
             ))}
           </div>
         )}
 
         <div className={s.abajo}>
-          {ops && (
-            <div className={s.opciones} onClick={(e) => e.stopPropagation()} role="group" aria-label="¿Qué hacés?">
-              {ops.map(({ opcion, k }, i) => (
-                <button key={k} type="button" className={s.opcion} style={{ animationDelay: `${i * 60}ms` }} onClick={() => elegirOpcion(k)}>
-                  <span className={s.opcionNum}>{i + 1}</span>
-                  <span className={s.opcionTexto}>{opcion.texto}</span>
-                </button>
-              ))}
+          {ops && escena.libre && (
+            <div className={s.libre} onClick={(e) => e.stopPropagation()} role="group" aria-label="Tiempo libre">
+              <p className={s.libreTitulo}>
+                <b>Tiempo libre</b> ¿Con quién pasás la noche?
+              </p>
+              {ops.map(({ opcion, k, bloqueo }, i) => {
+                const c = opcion.rango;
+                if (c) {
+                  const n = estado.rangos[c];
+                  const prox = proximoRango(estado, c);
+                  return (
+                    <button key={k} type="button" className={`${s.carta} ${bloqueo ? s.cartaTrabada : ""}`} style={{ animationDelay: `${i * 50}ms` }} onClick={() => elegirOpcion(k)} aria-disabled={!!bloqueo}>
+                      <span className={s.cartaNum}>{i + 1}</span>
+                      <span className={s.cartaNombre}>
+                        {NOMBRES[c]} {enPareja.includes(c) && <i className={s.corazon}>♥</i>}
+                      </span>
+                      <span className={s.cartaLugar}>{CONFIDENTE_INFO[c].lugar}</span>
+                      <span className={s.cartaRango} aria-label={`Rango ${n}`}>
+                        {Array.from({ length: RANGO_MAX }, (_, j) => (
+                          <span key={j} className={j < n ? s.vincOn : s.vincOff}>
+                            ◆
+                          </span>
+                        ))}
+                      </span>
+                      <small className={s.cartaNota}>{bloqueo ?? `Rango ${prox.n}`}</small>
+                    </button>
+                  );
+                }
+                const st = STATS.find((x) => opcion.stats?.[x]);
+                return (
+                  <button key={k} type="button" className={`${s.carta} ${s.cartaEntrena}`} style={{ animationDelay: `${i * 50}ms` }} onClick={() => elegirOpcion(k)}>
+                    <span className={s.cartaNum}>{i + 1}</span>
+                    <span className={s.cartaNombre}>{opcion.texto}</span>
+                    {st && <small className={s.cartaNota}>+ {NOMBRE_STAT[st]}</small>}
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {linea && (
+          {ops && !escena.libre && (
+            <div className={s.opciones} onClick={(e) => e.stopPropagation()} role="group" aria-label="¿Qué hacés?">
+              {ops.map(({ opcion, k, bloqueo }, i) => {
+                const st = STATS.filter((x) => opcion.stats?.[x]);
+                return (
+                  <button key={k} type="button" className={`${s.opcion} ${bloqueo ? s.opcionTrabada : ""}`} style={{ animationDelay: `${i * 60}ms` }} onClick={() => elegirOpcion(k)} aria-disabled={!!bloqueo}>
+                    <span className={s.opcionNum}>{i + 1}</span>
+                    <span className={s.opcionTexto}>
+                      {opcion.texto}
+                      {bloqueo && <small className={s.opcionChip}>{bloqueo}</small>}
+                      {!bloqueo && st.length > 0 && <small className={s.opcionChip}>+ {st.map((x) => NOMBRE_STAT[x]).join(" + ")}</small>}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {linea && !(ops && escena.libre) && (
             <div className={`${s.caja} ${quien ? "" : s.cajaNarra} ${linea.golpe ? s.cajaGolpe : ""}`} key={linea.golpe ? linea.id : "caja"}>
               {quien && <span className={`${s.nombre} ${linea.quien === "yo" ? s.nombreYo : ""}`}>{quien}</span>}
               <p className={s.texto}>
@@ -508,12 +803,30 @@ export function Novela({ onBack }: { onBack: () => void }) {
 
         {golpe > 0 && <div className={s.barrido} key={`b${golpe}`} aria-hidden="true" />}
 
-        {cal && <Calendario dia={cal} onSeguir={() => setCal(null)} />}
+        {cal && <Calendario momento={cal} onSeguir={() => setCal(null)} />}
+
+        {anterior && (
+          <div
+            className={s.anterior}
+            onClick={(e) => {
+              e.stopPropagation();
+              setAnterior(null);
+            }}
+            role="dialog"
+            aria-label="Anterior en ¿Quién te contó?"
+          >
+            <p className={s.anteriorChico}>Anteriormente en</p>
+            <h2 className={s.anteriorTitulo}>¿Quién te contó?</h2>
+            <p className={s.anteriorTexto}>{interpolar(anterior, nombre)}</p>
+            {m.temporada === 2 && enPareja.length > 0 && <p className={s.anteriorPareja}>♥ Con {enPareja.map((c) => NOMBRES[c]).join(" y ")}</p>}
+            <p className={s.calToca}>Tocá para seguir</p>
+          </div>
+        )}
 
         {panel && (
           <div className={s.panel} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={panel === "log" ? "Historial" : "Vínculos"}>
             <div className={s.panelTop}>
-              <h2 className={s.panelTitulo}>{panel === "log" ? "Historial" : "Vínculos"}</h2>
+              <h2 className={s.panelTitulo}>{panel === "log" ? "Historial" : m.temporada === 2 ? "Vínculos" : "Vínculos"}</h2>
               <button type="button" className={s.cerrar} onClick={() => setPanel(null)} aria-label="Cerrar">
                 ✕
               </button>
@@ -528,6 +841,10 @@ export function Novela({ onBack }: { onBack: () => void }) {
                   </li>
                 ))}
               </ol>
+            ) : m.temporada === 2 ? (
+              <div className={s.panelScroll}>
+                <Confidentes estado={estado} />
+              </div>
             ) : (
               <Vinculos estado={estado} />
             )}
@@ -564,10 +881,19 @@ function TituloRecortado() {
 
 const LETRAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 const ABIERTO = new Set([0, 3, 4, 5]);
+const ORDEN_DIA: Record<string, number> = { lunes: 1, jueves: 2, viernes: 3, sabado: 4 };
+const DESDE_LUNES: Record<string, number> = { lunes: 0, jueves: 3, viernes: 4, sabado: 5 };
+/** Días que faltan para la firma (el sábado de la semana 5). */
+const faltan = (semana: number, dia: string) => Math.max(0, (5 - semana) * 7 + 5 - (DESDE_LUNES[dia] ?? 0));
 
-function Calendario({ dia, onSeguir }: { dia: Dia; onSeguir: () => void }) {
-  const info = DIA_INFO[dia];
-  const orden = DIAS.indexOf(dia);
+function Calendario({ momento: m, onSeguir }: { momento: ReturnType<typeof momento>; onSeguir: () => void }) {
+  const info = DIA_INFO[m.dia];
+  const arriba =
+    m.dia === "epilogo"
+      ? "Tiempo después"
+      : m.temporada === 2
+        ? `Temporada 2 · Semana ${m.semana} · día ${ORDEN_DIA[m.dia]} de 4${m.semana === 5 ? " · la última" : ""}`
+        : `Semana en la casa · día ${ORDEN_DIA[m.dia]} de 4`;
   return (
     <div
       className={s.calendario}
@@ -579,9 +905,10 @@ function Calendario({ dia, onSeguir }: { dia: Dia; onSeguir: () => void }) {
       aria-label={info.titulo}
     >
       <div className={s.calFranja} aria-hidden="true" />
-      <p className={s.calSemana}>{dia === "epilogo" ? "Una semana después" : `Semana en la casa · día ${orden + 1} de 4`}</p>
+      <p className={s.calSemana}>{arriba}</p>
       <h2 className={s.calDia}>{info.titulo}</h2>
       <p className={s.calBajada}>{info.bajada}</p>
+      {m.temporada === 2 && m.dia !== "epilogo" && <p className={s.calCuenta}>{faltan(m.semana, m.dia) === 0 ? "Hoy firman" : `Faltan ${faltan(m.semana, m.dia)} días para la firma`}</p>}
       <ol className={s.calTira} aria-hidden="true">
         {LETRAS_SEMANA.map((l, i) => (
           <li key={i} className={`${s.calCelda} ${!ABIERTO.has(i) ? s.calCerrado : ""} ${i === info.letra ? s.calHoy : ""}`}>
@@ -629,28 +956,148 @@ function Vinculos({ estado, compacto }: { estado: Estado; compacto?: boolean }) 
   );
 }
 
-function ListaFinales({ logrados, onVolver }: { logrados: FinalId[]; onVolver: () => void }) {
+/** Temporada 2: los cinco confidentes con su rango, las cualidades y los pedazos de Amalia. */
+function Confidentes({ estado, compacto }: { estado: Estado; compacto?: boolean }) {
+  const conoce = (c: Confidente) => (c === "dante" ? estado.marcas.includes("conoce:dante") : c === "sol" ? estado.marcas.includes("conoce:sol") : true);
+  const pareja = parejas(estado);
   return (
-    <div className={s.portadaCuerpo}>
-      <p className={s.antetitulo}>
-        Finales · {logrados.length} de {FINALES.length}
-      </p>
-      <ul className={s.finales}>
-        {FINALES.map((f) => {
-          const ok = logrados.includes(f.id);
+    <div className={compacto ? s.vincCompacto : undefined}>
+      <ul className={s.vinculos}>
+        {CONFIDENTES.map((c) => {
+          const n = estado.rangos[c];
+          const corte = estado.marcas.includes(`corte:${c}`);
+          const etiqueta = pareja.includes(c) ? "♥ Romance" : corte ? "Cortado" : estado.marcas.includes(`amistad:${c}`) ? "Amistad" : null;
           return (
-            <li key={f.id} className={`${s.finalItem} ${ok ? s.finalOk : ""} ${f.verdadero ? s.finalVerdadero : ""}`}>
-              <b>{ok ? f.titulo : "? ? ?"}</b>
-              <small>{ok ? (f.verdadero ? "Final verdadero" : "Conseguido") : f.pista || "El que sale si no te animás."}</small>
+            <li key={c} className={`${s.vinculo} ${corte ? s.vincCortado : ""}`}>
+              <span className={s.vincNombre}>
+                {conoce(c) ? NOMBRES[c] : "???"} {etiqueta && <i className={s.vincEtiqueta}>{etiqueta}</i>}
+              </span>
+              <span className={s.vincLugar}>{CONFIDENTE_INFO[c].lugar}</span>
+              <span className={s.vincRango} aria-label={`Rango ${n}`}>
+                {Array.from({ length: RANGO_MAX }, (_, i) => (
+                  <span key={i} className={i < n ? s.vincOn : s.vincOff}>
+                    ◆
+                  </span>
+                ))}
+              </span>
+              {!compacto && conoce(c) && (
+                <span className={s.vincQuien}>
+                  {CONFIDENTE_INFO[c].quien} Valora: <b>{NOMBRE_STAT[CONFIDENTE_INFO[c].valora]}</b>.
+                </span>
+              )}
             </li>
           );
         })}
       </ul>
-      <div className={s.menu}>
-        <button type="button" className={s.menuBtn} onClick={onVolver}>
-          <span className={s.rombo}>◇</span> Volver
-        </button>
+      <p className={s.pistasTitulo}>Cualidades</p>
+      <ul className={s.stats}>
+        {STATS.map((st) => (
+          <li key={st} className={s.stat}>
+            <b>{NOMBRE_STAT[st]}</b>
+            <span className={s.statBarra} aria-label={`${estado.stats[st]} de ${STAT_MAX}`}>
+              {Array.from({ length: STAT_MAX }, (_, i) => (
+                <span key={i} className={i < estado.stats[st] ? s.statOn : s.statOff} />
+              ))}
+            </span>
+            <small>{NIVELES_STAT[st][estado.stats[st]]}</small>
+          </li>
+        ))}
+      </ul>
+      {!compacto && (
+        <>
+          <p className={s.pistasTitulo}>Los pedazos de Amalia</p>
+          <ul className={s.pistas}>
+            {PISTAS2.map((p) => (
+              <li key={p} className={estado.marcas.includes(p) ? s.pistaOn : s.pistaOff}>
+                {estado.marcas.includes(p) ? `✦ ${NOMBRE_PISTA[p]}` : "✦ ???"}
+              </li>
+            ))}
+            {estado.marcas.includes("carta:amalia") && <li className={s.pistaOn}>✉ Le escribiste a Amalia</li>}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Extras({
+  tab,
+  setTab,
+  logrados,
+  galeria,
+  logros,
+  onVer,
+}: {
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  logrados: FinalId[];
+  galeria: CgId[];
+  logros: string[];
+  onVer: (c: CgId) => void;
+}) {
+  return (
+    <div className={s.portadaCuerpo}>
+      <div className={s.tabs} role="tablist">
+        {(
+          [
+            ["finales", `Finales ${logrados.length}/${FINALES.length}`],
+            ["galeria", `Galería ${galeria.length}/${CGS.length}`],
+            ["logros", `Logros ${logros.length}/${LOGROS.length}`],
+          ] as const
+        ).map(([t, label]) => (
+          <button key={t} type="button" role="tab" aria-selected={tab === t} className={`${s.tab} ${tab === t ? s.tabOn : ""}`} onClick={() => setTab(t)}>
+            {label}
+          </button>
+        ))}
       </div>
+
+      {tab === "finales" &&
+        ([1, 2] as const).map((t) => (
+          <div key={t} className={s.extrasBloque}>
+            <p className={s.antetitulo}>Temporada {t}</p>
+            <ul className={s.finales}>
+              {FINALES.filter((f) => f.temporada === t).map((f) => {
+                const ok = logrados.includes(f.id);
+                return (
+                  <li key={f.id} className={`${s.finalItem} ${ok ? s.finalOk : ""} ${f.verdadero ? s.finalVerdadero : ""}`}>
+                    <b>{ok ? f.titulo : "? ? ?"}</b>
+                    <small>{ok ? (f.verdadero ? "Final verdadero" : "Conseguido") : f.pista || "El que sale si no te animás."}</small>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+
+      {tab === "galeria" && (
+        <ul className={s.galeria}>
+          {CGS.map((c) => {
+            const ok = galeria.includes(c);
+            return (
+              <li key={c}>
+                <button type="button" className={`${s.cgMini} ${ok ? "" : s.cgBloq}`} disabled={!ok} onClick={() => onVer(c)}>
+                  {ok ? <Cg id={c} /> : <span className={s.cgCandado}>?</span>}
+                  <small>{ok ? CG_INFO[c].titulo : CG_INFO[c].pista}</small>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {tab === "logros" && (
+        <ul className={s.finales}>
+          {LOGROS.map((l) => {
+            const ok = logros.includes(l.id);
+            return (
+              <li key={l.id} className={`${s.finalItem} ${ok ? s.finalOk : ""}`}>
+                <b>{ok || !l.oculto ? l.titulo : "? ? ?"}</b>
+                <small>{ok || !l.oculto ? l.desc : "Logro secreto."}</small>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

@@ -5,11 +5,11 @@ export function NovelaBoton({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" className={s.boton} onClick={onClick}>
       <span className={s.fondo} aria-hidden="true" />
-      <span className={s.etiqueta}>Novela de la casa · nuevo</span>
+      <span className={s.etiqueta}>Temporada 2 · nueva</span>
       <span className={s.titulo}>
         <span className={s.a}>¿Quién</span> <span className={s.b}>te</span> <span className={s.c}>contó?</span>
       </span>
-      <span className={s.bajada}>Una semana en CatDog. Cuatro vínculos, un misterio en tinta verde y siete finales. 20 minutos.</span>
+      <span className={s.bajada}>La casa se vende: treinta días para salvarla. Cinco vínculos con romance, misterio en tinta verde, 17 finales. Unas 2 horas.</span>
       <span className={s.flecha} aria-hidden="true">
         ▶
       </span>

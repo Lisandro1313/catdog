@@ -20,6 +20,12 @@ const ALTO = 900;
 for (const f of readdirSync(origen)) {
   if (!/\.(png|jpe?g|webp)$/iu.test(f)) continue;
   const nombre = basename(f, extname(f)).toLowerCase();
+  // Los fondos de escena (fondo-barra.png…) no llevan recorte: sólo se achican.
+  if (nombre.startsWith("fondo-") || nombre.startsWith("cg-")) {
+    await sharp(join(origen, f)).resize({ height: 1400, withoutEnlargement: true }).webp({ quality: 80 }).toFile(resolve(OUT, `${nombre}.webp`));
+    console.log("listo", nombre);
+    continue;
+  }
   const { data, info } = await sharp(join(origen, f)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];

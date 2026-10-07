@@ -1,0 +1,49 @@
+/* Escena ilustrada con imagen: pantalla completa, entra con fundido. */
+.cg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0a0a0a;
+  animation: fundido 0.9s ease-out both;
+}
+.cg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.vineta {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgb(0 0 0 / 0.35) 0%, transparent 22%, transparent 55%, rgb(0 0 0 / 0.6) 100%),
+    radial-gradient(ellipse 90% 70% at 50% 45%, transparent 60%, rgb(0 0 0 / 0.55) 100%);
+}
+.titulo {
+  position: absolute;
+  top: calc(3.6rem + env(safe-area-inset-top));
+  left: -0.6rem;
+  padding: 0.25em 1.2em 0.25em 1.4em;
+  background: #0a0a0a;
+  color: #fbf7f2;
+  font-family: "Arial Black", Impact, sans-serif;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transform: rotate(-5deg);
+  box-shadow: 0 6px 0 #e0101e;
+}
+@keyframes fundido {
+  from {
+    opacity: 0;
+    filter: brightness(2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cg {
+    animation: none;
+  }
+}

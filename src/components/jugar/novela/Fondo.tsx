@@ -1,8 +1,11 @@
-import type { Fondo as FondoId } from "@/lib/novela/guion";
+import type { Fondo as FondoId } from "@/lib/novela/tipos";
+import { imagenFondo } from "@/lib/novela/arte";
+import s from "./Fondo.module.css";
 
 /**
  * Fondos de escena en SVG: siluetas negras sobre rojo y gris, rayos de luz en diagonal.
- * Todo determinista (nada de azar): se dibuja igual siempre.
+ * Todo determinista (nada de azar): se dibuja igual siempre. Donde hay ilustración (ver `arte.ts`)
+ * se usa la imagen con una capa encima, a la manera de Persona, para que el texto se lea.
  */
 
 const K = "#0a0a0a";
@@ -286,16 +289,328 @@ function Plaza() {
   );
 }
 
+// ─── Fondos de la temporada 2 ────────────────────────────────────────────────────────────────
+
+/** La Rana: el bar donde labura Vera. Neón verde con forma de sapo. */
+function Rana() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#07140d" />
+      <Rayos color="#2bff88" opacity={0.06} />
+      {/* pared de ladrillos oscuros */}
+      <g fill="#0f2418">
+        {Array.from({ length: 14 }, (_, f) =>
+          Array.from({ length: 6 }, (_, c) => <rect key={`${f}-${c}`} x={c * 70 + (f % 2 ? 35 : 0) - 20} y={40 + f * 24} width="64" height="20" />),
+        )}
+      </g>
+      {/* el sapo de neón */}
+      <g fill="none" stroke="#3dff8f" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M120 170 Q200 100 280 170 Q300 220 250 240 L150 240 Q100 220 120 170 Z" />
+        <circle cx="160" cy="150" r="18" />
+        <circle cx="240" cy="150" r="18" />
+        <path d="M160 200 Q200 225 240 200" />
+        <path d="M150 240 L130 270 M250 240 L270 270" />
+      </g>
+      <g fill="none" stroke="#3dff8f" strokeWidth="16" opacity="0.15">
+        <path d="M120 170 Q200 100 280 170 Q300 220 250 240 L150 240 Q100 220 120 170 Z" />
+      </g>
+      <text x="200" y="320" textAnchor="middle" fill="#ff3b6b" fontFamily="Georgia, serif" fontStyle="italic" fontSize="44" opacity="0.9">
+        La Rana
+      </text>
+      {/* barra y botellas */}
+      <path d="M0 480 L400 440 L400 720 L0 720 Z" fill={K} />
+      <path d="M0 480 L400 440 L400 452 L0 494 Z" fill="#3dff8f" opacity="0.7" />
+      {[40, 90, 140, 300, 350].map((x, i) => (
+        <rect key={x} x={x} y={400 - (i % 3) * 14} width="18" height={50 + (i % 3) * 14} rx="3" fill={i % 2 ? "#1f6b45" : R2} />
+      ))}
+    </g>
+  );
+}
+
+/** La terraza del edificio de Vera: la ciudad abajo, la catedral iluminada, lamparitas. */
+function Terraza() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#0b0816" />
+      <defs>
+        <linearGradient id="nv-cielo-terraza" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#120a24" />
+          <stop offset="1" stopColor="#3a1020" />
+        </linearGradient>
+      </defs>
+      <rect width="400" height="460" fill="url(#nv-cielo-terraza)" />
+      <circle cx="320" cy="90" r="30" fill={W} opacity="0.9" />
+      {/* la ciudad: edificios bajos con ventanas */}
+      <path d="M0 460 L0 380 L40 380 L40 350 L90 350 L90 390 L130 390 L130 340 L170 340 L170 400 L230 400 L230 360 L280 360 L280 330 L330 330 L330 380 L400 380 L400 460 Z" fill="#150c1c" />
+      {Array.from({ length: 26 }, (_, i) => (
+        <rect key={i} x={10 + ((i * 53) % 380)} y={350 + ((i * 29) % 90)} width="5" height="7" fill="#ffcf8a" opacity={0.5 + (i % 3) * 0.15} />
+      ))}
+      {/* la catedral, iluminada */}
+      <path d="M170 400 L170 250 L184 200 L198 250 L198 400 Z M214 400 L214 250 L228 200 L242 250 L242 400 Z M198 400 L198 300 L214 300 L214 400 Z" fill="#3a2440" />
+      <path d="M170 400 L170 250 L184 200 L198 250 L198 400 Z M214 400 L214 250 L228 200 L242 250 L242 400 Z" fill="#ffcf8a" opacity="0.12" />
+      {/* guirnalda de lamparitas */}
+      <path d="M0 150 Q100 220 200 170 Q300 120 400 190" fill="none" stroke={K} strokeWidth="2" />
+      {Array.from({ length: 12 }, (_, i) => {
+        const t = i / 11;
+        const x = t * 400;
+        const y = t < 0.5 ? 150 + Math.sin(t * Math.PI * 2) * 40 + t * 40 : 170 - Math.sin((t - 0.5) * Math.PI * 2) * 40 + (t - 0.5) * 40;
+        return (
+          <g key={i}>
+            <circle cx={x} cy={y + 8} r="6" fill="#ffd98a" />
+            <circle cx={x} cy={y + 8} r="16" fill="#ffd98a" opacity="0.18" />
+          </g>
+        );
+      })}
+      {/* baranda y piso */}
+      <path d="M0 470 L400 470 L400 720 L0 720 Z" fill={K} />
+      <rect x="0" y="450" width="400" height="10" fill="#2a2a2a" />
+      {Array.from({ length: 11 }, (_, i) => (
+        <rect key={i} x={i * 40} y="460" width="5" height="60" fill="#2a2a2a" />
+      ))}
+      {/* soga con una sábana */}
+      <path d="M260 420 Q320 440 400 420" stroke="#555" strokeWidth="2" fill="none" />
+      <path d="M300 430 L350 432 L346 520 L304 516 Z" fill={W} opacity="0.85" />
+    </g>
+  );
+}
+
+/** Sala de ensayo: paredes de cajas de huevo, amplificadores, cables. */
+function Ensayo() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#160d0a" />
+      <g fill="#2a1a14">
+        {Array.from({ length: 10 }, (_, f) =>
+          Array.from({ length: 8 }, (_, c) => <path key={`${f}-${c}`} d={`M${c * 50 + 25} ${f * 50 + 10} l18 18 l-18 18 l-18 -18 z`} />),
+        )}
+      </g>
+      <Rayos color={R} opacity={0.12} />
+      {/* foco */}
+      <path d="M200 0 L60 560 L340 560 Z" fill="#fff3d6" opacity="0.08" />
+      {/* amplificadores */}
+      <rect x="20" y="400" width="130" height="160" rx="6" fill={K} stroke="#3a3a3a" strokeWidth="4" />
+      <rect x="34" y="420" width="102" height="16" fill="#c9a24a" />
+      <circle cx="85" cy="500" r="44" fill="#1a1a1a" stroke="#333" strokeWidth="4" />
+      <rect x="260" y="420" width="120" height="140" rx="6" fill={K} stroke="#3a3a3a" strokeWidth="4" />
+      <circle cx="320" cy="495" r="38" fill="#1a1a1a" stroke="#333" strokeWidth="4" />
+      {/* batería */}
+      <ellipse cx="200" cy="470" rx="46" ry="14" fill={R2} stroke={K} strokeWidth="3" />
+      <rect x="154" y="470" width="92" height="60" fill={R2} stroke={K} strokeWidth="3" />
+      <ellipse cx="200" cy="530" rx="46" ry="14" fill="#5a0610" stroke={K} strokeWidth="3" />
+      <path d="M150 400 L250 380" stroke="#c9a24a" strokeWidth="4" />
+      <ellipse cx="250" cy="378" rx="36" ry="6" fill="#c9a24a" />
+      <path d="M0 560 L400 560 L400 720 L0 720 Z" fill={K} />
+      <path d="M40 600 Q120 640 200 600 Q280 560 380 620" stroke="#333" strokeWidth="5" fill="none" />
+    </g>
+  );
+}
+
+/** La guardia del hospital: pasillo de luz blanca, máquina de café. */
+function Guardia() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#cfd8dc" />
+      {/* pasillo en perspectiva */}
+      <path d="M0 0 L160 260 L240 260 L400 0 Z" fill="#e8eef0" />
+      <path d="M0 720 L160 420 L240 420 L400 720 Z" fill="#9fb0b6" />
+      <path d="M0 0 L160 260 L160 420 L0 720 Z" fill="#b7c6cb" />
+      <path d="M400 0 L240 260 L240 420 L400 720 Z" fill="#aebdc2" />
+      <rect x="160" y="260" width="80" height="160" fill="#f5fbff" />
+      {/* tubos de luz */}
+      {[40, 110, 170, 215].map((y, i) => (
+        <rect key={y} x={120 + i * 10} y={y} width={160 - i * 20} height="8" fill={W} />
+      ))}
+      {/* puertas */}
+      <path d="M40 200 L110 290 L110 470 L40 560 Z" fill="#5a8f8a" stroke={K} strokeWidth="3" />
+      <path d="M360 200 L290 290 L290 470 L360 560 Z" fill="#5a8f8a" stroke={K} strokeWidth="3" />
+      {/* máquina de café */}
+      <rect x="250" y="420" width="90" height="200" fill={R} stroke={K} strokeWidth="4" />
+      <rect x="262" y="440" width="66" height="60" fill="#222" />
+      <rect x="282" y="540" width="26" height="30" fill="#111" />
+      <text x="295" y="525" textAnchor="middle" fill={W} fontFamily="Arial Black, sans-serif" fontSize="14">
+        CAFÉ
+      </text>
+      {/* silla de plástico */}
+      <path d="M60 600 L130 600 L130 560 L66 560 Z M64 600 L64 660 M126 600 L126 660" fill="#3e6fb0" stroke={K} strokeWidth="4" />
+      <path d="M0 690 L400 690" stroke={R} strokeWidth="6" opacity="0.6" />
+    </g>
+  );
+}
+
+/** El cuarto oscuro de Sol: luz roja, fotos colgando de sogas. */
+function Oscuro() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#1a0204" />
+      <circle cx="200" cy="80" r="200" fill="#ff1020" opacity="0.22" />
+      <circle cx="200" cy="80" r="22" fill="#ff3040" />
+      <path d="M200 0 L200 58" stroke={K} strokeWidth="3" />
+      {/* sogas con fotos */}
+      {[170, 300, 430].map((y, f) => (
+        <g key={y}>
+          <path d={`M0 ${y} Q200 ${y + 30} 400 ${y}`} stroke="#4a0a10" strokeWidth="2" fill="none" />
+          {Array.from({ length: 5 }, (_, i) => {
+            const x = 30 + i * 78 + (f % 2) * 20;
+            const yy = y + 12 + Math.sin((i / 4) * Math.PI) * 18;
+            return (
+              <g key={i} transform={`rotate(${((i + f) % 3) - 1} ${x + 26} ${yy})`}>
+                <rect x={x} y={yy} width="52" height="66" fill="#f0d8d0" opacity="0.9" />
+                <rect x={x + 5} y={yy + 5} width="42" height="48" fill="#3a0a0e" />
+                <path d={`M${x + 8} ${yy + 46} L${x + 20} ${yy + 30} L${x + 30} ${yy + 40} L${x + 44} ${yy + 22} L${x + 44} ${yy + 50} L${x + 8} ${yy + 50} Z`} fill="#7a1a20" />
+                <rect x={x + 22} y={yy - 6} width="8" height="12" fill={K} />
+              </g>
+            );
+          })}
+        </g>
+      ))}
+      {/* mesada con bandejas */}
+      <path d="M0 560 L400 540 L400 720 L0 720 Z" fill={K} />
+      {[60, 170, 280].map((x) => (
+        <rect key={x} x={x} y="520" width="90" height="24" rx="3" fill="#2a0408" stroke="#5a0a12" strokeWidth="3" />
+      ))}
+    </g>
+  );
+}
+
+/** El lago del Paseo del Bosque, de noche: dos cielos. */
+function Bosque() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#060a14" />
+      <defs>
+        <pattern id="nv-estrellas-b" width="70" height="70" patternUnits="userSpaceOnUse">
+          <circle cx="12" cy="18" r="1.3" fill={W} />
+          <circle cx="50" cy="44" r="0.9" fill={W} />
+        </pattern>
+      </defs>
+      <rect width="400" height="360" fill="url(#nv-estrellas-b)" opacity="0.8" />
+      <circle cx="290" cy="110" r="36" fill="#f3ecd8" />
+      <Tilo x={40} y={300} s={1.2} />
+      <Tilo x={370} y={290} s={1.1} />
+      <Tilo x={200} y={320} s={0.7} />
+      {/* el lago, con el cielo repetido */}
+      <rect x="0" y="380" width="400" height="340" fill="#0a1426" />
+      <ellipse cx="290" cy="470" rx="34" ry="10" fill="#f3ecd8" opacity="0.5" />
+      {Array.from({ length: 8 }, (_, i) => (
+        <path key={i} d={`M${30 + i * 45} ${420 + (i % 3) * 40} h${30 + (i % 2) * 20}`} stroke={W} strokeWidth="2" opacity="0.25" />
+      ))}
+      {/* faroles en la orilla */}
+      {[60, 150, 330].map((x) => (
+        <g key={x}>
+          <rect x={x} y="300" width="5" height="80" fill={K} />
+          <circle cx={x + 2.5} cy="298" r="6" fill="#ffd98a" />
+          <path d={`M${x + 2.5} 400 l0 120`} stroke="#ffd98a" strokeWidth="4" opacity="0.2" />
+        </g>
+      ))}
+      {/* bote de madera con lamparita */}
+      <path d="M110 600 L290 600 L260 640 L140 640 Z" fill="#5a3420" stroke={K} strokeWidth="4" />
+      <circle cx="270" cy="586" r="6" fill="#ffd98a" />
+      <circle cx="270" cy="586" r="20" fill="#ffd98a" opacity="0.2" />
+      <path d="M150 600 L110 560 M250 600 L300 570" stroke="#8a5a3a" strokeWidth="5" />
+    </g>
+  );
+}
+
+/** La oficina de vidrio de Dante, en el piso doce. */
+function Oficina() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#08101e" />
+      {/* la ciudad de noche por el ventanal */}
+      {Array.from({ length: 9 }, (_, i) => (
+        <rect key={i} x={i * 46 - 10} y={260 + ((i * 37) % 120)} width="40" height="400" fill="#0f1a30" />
+      ))}
+      {Array.from({ length: 50 }, (_, i) => (
+        <rect key={i} x={((i * 71) % 390) + 4} y={280 + ((i * 47) % 300)} width="4" height="6" fill="#ffd98a" opacity={0.3 + (i % 4) * 0.15} />
+      ))}
+      {/* parantes del ventanal */}
+      {[0, 130, 260, 390].map((x) => (
+        <rect key={x} x={x} y="0" width="10" height="600" fill="#1c2638" />
+      ))}
+      <rect x="0" y="180" width="400" height="6" fill="#1c2638" />
+      <path d="M0 0 L120 0 L0 260 Z" fill={W} opacity="0.05" />
+      {/* escritorio y maqueta tapada */}
+      <path d="M0 600 L400 560 L400 720 L0 720 Z" fill="#111" />
+      <path d="M0 600 L400 560 L400 572 L0 612 Z" fill="#3a4a66" />
+      <path d="M230 560 L240 470 L268 440 L300 470 L306 560 Z" fill="#e8e8ea" stroke="#999" strokeWidth="2" />
+      <path d="M60 590 L60 548 L98 548 L98 586" fill="none" stroke="#9fd3ff" strokeWidth="3" opacity="0.7" />
+    </g>
+  );
+}
+
+/** Un departamento a la mañana: persiana en rayas de sol, dos tazas. */
+function Depto() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#f3e2c8" />
+      {/* ventana con persiana */}
+      <rect x="60" y="80" width="280" height="300" fill="#ffe7a8" />
+      {Array.from({ length: 12 }, (_, i) => (
+        <rect key={i} x="60" y={80 + i * 25} width="280" height="12" fill="#d8b98a" />
+      ))}
+      <rect x="54" y="74" width="292" height="312" fill="none" stroke="#7a5a3a" strokeWidth="8" />
+      {/* rayas de sol en diagonal */}
+      <g fill="#fff3c8" opacity="0.5">
+        {Array.from({ length: 7 }, (_, i) => (
+          <path key={i} d={`M${60 + i * 40} ${380} L${10 + i * 40} 720 L${30 + i * 40} 720 L${80 + i * 40} 380 Z`} />
+        ))}
+      </g>
+      {/* planta */}
+      <path d="M330 520 Q310 440 340 400 M340 520 Q360 450 384 430" stroke="#2f7a4a" strokeWidth="8" fill="none" strokeLinecap="round" />
+      <path d="M314 520 L370 520 L362 580 L322 580 Z" fill={R} />
+      {/* mesa con dos tazas */}
+      <path d="M0 600 L400 570 L400 720 L0 720 Z" fill="#8a5a3a" />
+      <path d="M0 600 L400 570 L400 582 L0 614 Z" fill="#a8744c" />
+      {[150, 230].map((x) => (
+        <g key={x}>
+          <path d={`M${x} 560 L${x + 36} 560 L${x + 32} 600 L${x + 4} 600 Z`} fill={W} stroke={K} strokeWidth="3" />
+          <path d={`M${x + 36} 568 q14 4 0 18`} fill="none" stroke={K} strokeWidth="3" />
+          <path d={`M${x + 10} 548 q-6 -12 4 -22 M${x + 22} 548 q-6 -12 4 -22`} stroke="#bbb" strokeWidth="3" fill="none" opacity="0.7" />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+const SVGS: Record<FondoId, () => React.JSX.Element> = {
+  barra: Barra,
+  puerta: Puerta,
+  pool: Pool,
+  cocina: Cocina,
+  vereda: Vereda,
+  pasillo: Pasillo,
+  plaza: Plaza,
+  rana: Rana,
+  terraza: Terraza,
+  ensayo: Ensayo,
+  guardia: Guardia,
+  diagonal: Vereda,
+  oscuro: Oscuro,
+  bosque: Bosque,
+  oficina: Oficina,
+  depto: Depto,
+};
+
+/** El fondo dibujado (sin la ilustración): sirve también para componer escenas ilustradas. */
+export function FondoSvg({ id }: { id: FondoId }) {
+  const Dibujo = SVGS[id];
+  return <Dibujo />;
+}
+
 export function Fondo({ id }: { id: FondoId }) {
+  const img = imagenFondo(id);
+  if (img) {
+    return (
+      <div className={s.foto}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- ilustraciones locales, sin optimizador */}
+        <img src={img} alt="" decoding="async" draggable={false} />
+        <span className={s.capa} aria-hidden="true" />
+      </div>
+    );
+  }
   return (
     <svg viewBox="0 0 400 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      {id === "barra" && <Barra />}
-      {id === "puerta" && <Puerta />}
-      {id === "pool" && <Pool />}
-      {id === "cocina" && <Cocina />}
-      {id === "vereda" && <Vereda />}
-      {id === "pasillo" && <Pasillo />}
-      {id === "plaza" && <Plaza />}
+      <FondoSvg id={id} />
     </svg>
   );
 }

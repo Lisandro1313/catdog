@@ -1049,3 +1049,489 @@
     display: none;
   }
 }
+
+/* ═══════════════ Temporada 2 ═══════════════ */
+
+.diaChip i {
+  font-style: normal;
+  background: var(--negro);
+  color: var(--blanco);
+  padding: 0 0.3em;
+  margin-right: 0.3rem;
+}
+
+/* ─── Avisos (vínculo, rango, cualidad, logro, galería) ─── */
+.aviso_rango {
+  background: var(--negro);
+  color: var(--blanco);
+  box-shadow: 0 4px 0 var(--rojo);
+  font-size: 1.25rem;
+}
+.aviso_rango b {
+  color: var(--rojo);
+}
+.aviso_stat {
+  background: var(--blanco);
+  color: var(--negro);
+}
+.aviso_stat small {
+  background: var(--rojo);
+  color: var(--blanco);
+}
+.aviso_logro {
+  background: #f2c230;
+  color: var(--negro);
+}
+.aviso_cg {
+  background: #6dff9e;
+  color: var(--negro);
+}
+
+/* ─── Tiempo libre: cartas a la manera de Persona ─── */
+.libre {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  max-height: 72dvh;
+  overflow-y: auto;
+  padding: 0.4rem 0.3rem 0.6rem;
+  cursor: default;
+}
+.carta {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.1rem;
+  min-height: 5.4rem;
+  padding: 0.5rem 0.6rem 0.5rem 1.9rem;
+  background: var(--blanco);
+  color: var(--negro);
+  border: 3px solid var(--negro);
+  box-shadow: 5px 5px 0 var(--rojo);
+  font: inherit;
+  text-align: left;
+  transform: skewX(-6deg);
+  cursor: pointer;
+  animation: opcionEntraCarta 0.32s cubic-bezier(0.2, 1.3, 0.4, 1) backwards;
+}
+@keyframes opcionEntraCarta {
+  from {
+    opacity: 0;
+    transform: skewX(-6deg) translateY(30px);
+  }
+}
+.carta > * {
+  transform: skewX(6deg);
+}
+.carta:hover,
+.carta:focus-visible {
+  background: var(--rojo);
+  color: var(--blanco);
+  outline: none;
+}
+.cartaTrabada,
+.cartaTrabada:hover,
+.cartaTrabada:focus-visible {
+  background: #3a3a3a;
+  color: #bdb6ae;
+  box-shadow: 5px 5px 0 var(--negro);
+  cursor: not-allowed;
+}
+.cartaEntrena {
+  background: #1b1b1b;
+  color: var(--blanco);
+  border-color: var(--blanco);
+  box-shadow: 5px 5px 0 var(--negro);
+  min-height: 4.2rem;
+}
+.cartaNum {
+  position: absolute;
+  left: 0.35rem;
+  top: 0.45rem;
+  display: grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  background: var(--negro);
+  color: var(--blanco);
+  font-size: 0.7rem;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.cartaEntrena .cartaNum {
+  background: var(--rojo);
+}
+.cartaNombre {
+  font-size: 1.05rem;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.cartaEntrena .cartaNombre {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+.cartaLugar {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rojo);
+}
+.carta:hover .cartaLugar {
+  color: var(--blanco);
+}
+.cartaRango {
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+.cartaNota {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.corazon {
+  font-style: normal;
+  color: var(--rojo);
+}
+.carta:hover .corazon {
+  color: var(--blanco);
+}
+
+/* ─── Opciones trabadas y chips de cualidad ─── */
+.opcionTrabada,
+.opcionTrabada:hover,
+.opcionTrabada:focus-visible {
+  background: #3a3a3a;
+  color: #bdb6ae;
+  cursor: not-allowed;
+  transform: skewX(-12deg);
+}
+.opcionChip {
+  display: block;
+  margin-top: 0.15rem;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--rojo);
+}
+.opcion:hover .opcionChip,
+.opcion:focus-visible .opcionChip {
+  color: var(--blanco);
+}
+.opcionTrabada .opcionChip,
+.opcionTrabada:hover .opcionChip {
+  color: #f2c230;
+}
+
+/* ─── Anteriormente en… ─── */
+.anterior {
+  position: absolute;
+  z-index: 45;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 2rem 1.4rem;
+  background:
+    repeating-linear-gradient(-60deg, transparent 0 22px, rgb(224 16 30 / 0.12) 22px 44px),
+    rgb(8 8 8);
+  animation: calEntra 0.4s ease-out both;
+}
+.anteriorChico {
+  margin: 0;
+  padding: 0.2em 0.6em;
+  background: var(--rojo);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+.anteriorTitulo {
+  margin: 0;
+  font-size: clamp(2rem, 11vw, 3rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  transform: rotate(-6deg);
+  text-shadow: 5px 5px 0 var(--rojo);
+}
+.anteriorTexto {
+  margin: 1rem 0 0;
+  padding: 0.9rem 1rem;
+  background: var(--blanco);
+  color: var(--negro);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  transform: rotate(-1.5deg);
+  box-shadow: 7px 7px 0 var(--rojo);
+}
+.anteriorPareja {
+  margin: 0.4rem 0 0;
+  color: #ff8fa3;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+.calCuenta {
+  position: relative;
+  margin: 0.6rem 0 0;
+  padding: 0.15em 0.6em;
+  background: var(--negro);
+  color: var(--blanco);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  transform: rotate(-4deg);
+}
+
+/* ─── Panel de vínculos de la temporada 2 ─── */
+.panelScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+.vincCortado {
+  opacity: 0.55;
+}
+.vincEtiqueta {
+  font-style: normal;
+  font-size: 0.6rem;
+  vertical-align: middle;
+  padding: 0.1em 0.4em;
+  background: var(--rojo);
+  color: var(--blanco);
+  letter-spacing: 0.08em;
+}
+.stats {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stat {
+  display: grid;
+  grid-template-columns: 5.2rem 1fr;
+  align-items: center;
+  gap: 0.1rem 0.6rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+.stat small {
+  grid-column: 2;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.72rem;
+  text-transform: none;
+  opacity: 0.85;
+}
+.statBarra {
+  display: flex;
+  gap: 3px;
+}
+.statOn,
+.statOff {
+  flex: 1;
+  height: 0.7rem;
+  transform: skewX(-20deg);
+}
+.statOn {
+  background: var(--rojo);
+}
+.statOff {
+  background: rgb(255 255 255 / 0.15);
+}
+.vincCompacto .stats {
+  margin-top: 0.4rem;
+}
+
+/* ─── Ranuras ─── */
+.slots {
+  display: grid;
+  gap: 0.7rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.slot {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: rgb(0 0 0 / 0.75);
+  color: var(--blanco);
+  border: 2px dashed rgb(255 255 255 / 0.6);
+  font: inherit;
+  text-align: left;
+  transform: skewX(-8deg);
+  cursor: pointer;
+}
+.slot > * {
+  transform: skewX(8deg);
+}
+.slot b {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rojo);
+}
+.slot span {
+  font-size: 1.2rem;
+  text-transform: uppercase;
+}
+.slot small,
+.slot em {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.78rem;
+}
+.slot em {
+  color: #f2c230;
+  font-weight: 800;
+}
+.slot:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.slotLleno {
+  background: var(--blanco);
+  color: var(--negro);
+  border: 3px solid var(--negro);
+  box-shadow: 6px 6px 0 var(--negro);
+}
+.slotLleno:hover,
+.slotLleno:focus-visible {
+  background: var(--rojo);
+  color: var(--blanco);
+  outline: none;
+}
+.slotLleno:hover b {
+  color: var(--blanco);
+}
+.slotPisar {
+  outline: 3px solid #f2c230;
+}
+.slotPisar em {
+  color: var(--rojo);
+}
+.menuBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ─── Extras: finales, galería, logros ─── */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+}
+.tab {
+  flex: 1 1 auto;
+  padding: 0.5rem 0.6rem;
+  background: rgb(0 0 0 / 0.7);
+  color: var(--blanco);
+  border: 2px solid var(--blanco);
+  font: inherit;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  transform: skewX(-10deg);
+  cursor: pointer;
+}
+.tabOn {
+  background: var(--blanco);
+  color: var(--negro);
+  box-shadow: 4px 4px 0 var(--negro);
+}
+.extrasBloque {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+}
+.galeria {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.7rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cgMini {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 14;
+  padding: 0;
+  overflow: hidden;
+  background: var(--negro);
+  border: 3px solid var(--blanco);
+  box-shadow: 5px 5px 0 var(--negro);
+  color: var(--blanco);
+  font: inherit;
+  cursor: pointer;
+}
+.cgMini > svg,
+.cgMini > div {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.cgMini small {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.3rem 0.4rem;
+  background: rgb(0 0 0 / 0.8);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  text-align: left;
+}
+.cgBloq {
+  cursor: default;
+  border-style: dashed;
+  opacity: 0.6;
+}
+.cgCandado {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 2.5rem;
+  color: var(--rojo);
+}
+.cgVisor {
+  position: absolute;
+  z-index: 60;
+  inset: 0;
+  padding: 0;
+  border: none;
+  background: var(--negro);
+  cursor: zoom-out;
+  animation: calEntra 0.35s ease-out both;
+}
+.cgVisor > svg,
+.cgVisor > div {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.libreTitulo {
+  grid-column: 1 / -1;
+  margin: 0 0 0.2rem;
+  padding: 0.3em 0.7em;
+  justify-self: start;
+  background: var(--negro);
+  color: var(--blanco);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  transform: rotate(-2deg) skewX(-10deg);
+  box-shadow: 4px 4px 0 var(--rojo);
+}
+.libreTitulo b {
+  color: var(--rojo);
+  margin-right: 0.3em;
+}

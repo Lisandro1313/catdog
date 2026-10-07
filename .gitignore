@@ -49,3 +49,6 @@ next-env.d.ts
 # Fotos originales del lugar (se suben a Blob desde el panel o con un script; no van al repo)
 fotos/
 exports/
+
+# Originales de la IA (pesados): lo que se usa está en public/novela
+/retratos/

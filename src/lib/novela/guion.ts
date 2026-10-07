@@ -1,98 +1,28 @@
 /**
  * ¿QUIÉN TE CONTÓ? — el guion de la novela de la casa.
  *
- * Acá solo hay datos: escenas, líneas, decisiones y finales. La lógica (avanzar, elegir, calcular
- * el final) está en `motor.ts`. Las líneas se escriben en un formato chico para que el guion se lea
- * como un guion:
- *
- *   vera/picara: Texto          → habla Vera, con cara pícara
- *   vera!: Texto                → habla Vera con "golpe" (sacudón + sonido)
- *   Texto suelto                → narración
- *   !Texto suelto               → narración con golpe
- *   [marca] ...                 → la línea solo sale si se tiene esa marca
- *   [-marca] ...                → la línea solo sale si NO se tiene esa marca
- *
- * `{nombre}` se reemplaza por el nombre que puso quien juega.
+ * Acá solo hay datos. La temporada 1 ("Una semana en la casa") está en este archivo; la temporada 2
+ * ("Treinta días") en `t2.ts`, y los vínculos con rangos en `confidentes/*`. El formato de las líneas
+ * y los tipos están en `tipos.ts`. La lógica (avanzar, elegir, calcular el final) está en `motor.ts`.
  *
  * El protagonista no tiene género: nadie le dice "nuevo" ni "nueva", le dicen "cara nueva" o
- * "la persona nueva". Los romances son con personajes ficticios; Lisandro (barra) y Agustín
- * (cocina) aparecen como los de la casa, nada más.
+ * "la persona nueva". Los romances son con personajes ficticios y adultos; Lisandro (barra) y
+ * Agustín (cocina) aparecen como los de la casa, con cariño, nada más.
  */
+import { armar, type CgId, type Confidente, type Dia, type Escena, type Final, type Quien, type Stat, type Vinculo } from "./tipos";
+import { ESCENAS_T2, PISTAS2, T2_INICIO } from "./t2";
+import { VERA } from "./confidentes/vera";
+import { TEO } from "./confidentes/teo";
+import { MORA } from "./confidentes/mora";
+import { DANTE } from "./confidentes/dante";
+import { SOL } from "./confidentes/sol";
 
-export const VINCULOS = ["vera", "teo", "mora", "gris"] as const;
-export type Vinculo = (typeof VINCULOS)[number];
-
-export const HABLANTES = ["narra", "yo", "vera", "teo", "mora", "gris", "gervasio", "lisandro", "agustin", "gato"] as const;
-export type Hablante = (typeof HABLANTES)[number];
-
-export const CARAS = ["normal", "feliz", "sonrisa", "picara", "triste", "enojo", "sorpresa", "serio"] as const;
-export type Cara = (typeof CARAS)[number];
-
-export const FONDOS = ["puerta", "barra", "pool", "cocina", "vereda", "pasillo", "plaza"] as const;
-export type Fondo = (typeof FONDOS)[number];
-
-export const DIAS = ["lunes", "jueves", "viernes", "sabado", "epilogo"] as const;
-export type Dia = (typeof DIAS)[number];
+export * from "./tipos";
+export { PISTAS2, T2_INICIO };
 
 export const PISTAS = ["pista:tinta", "pista:cadena", "pista:cuaderno"] as const;
 
-export type Condicion =
-  | { vinculo: Vinculo; min: number }
-  | { marca: string }
-  | { no: string }
-  | { total: number }
-  | { todas: Condicion[] };
-
-export type Linea = {
-  /** Único en todo el guion: sirve para "saltar leídos". */
-  id: string;
-  quien: Hablante;
-  cara: Cara;
-  texto: string;
-  golpe: boolean;
-  si?: Condicion;
-};
-
-export type Opcion = {
-  texto: string;
-  efectos?: Partial<Record<Vinculo, number>>;
-  marcas?: string[];
-  /** Si no se cumple, la opción no aparece. */
-  requiere?: Condicion;
-  /** Lo que pasa justo después de elegir (puede estar vacío). */
-  respuesta: Linea[];
-  /** A dónde va después. Si falta, a `sigue` de la escena. "@final" = calcular el final. */
-  va?: string;
-};
-
-export type Escena = {
-  id: string;
-  dia: Dia;
-  fondo: Fondo;
-  hora: string;
-  /** Marca que se gana con solo entrar a la escena. */
-  marca?: string;
-  lineas: Linea[];
-  opciones?: Opcion[];
-  sigue?: string;
-  /** Si la escena es el cierre de un final: al terminarla, se termina el juego. */
-  fin?: FinalId;
-};
-
-export const FINALES_IDS = ["verdadero", "vera", "teo", "mora", "casa", "abrigo", "lunes"] as const;
-export type FinalId = (typeof FINALES_IDS)[number];
-
-export type Final = {
-  id: FinalId;
-  titulo: string;
-  /** Lo que se ve en la lista de finales cuando todavía no se consiguió. */
-  pista: string;
-  verdadero?: boolean;
-  condicion: Condicion;
-  escena: string;
-};
-
-export const NOMBRES: Record<Exclude<Hablante, "narra" | "yo">, string> = {
+export const NOMBRES: Record<Quien, string> = {
   vera: "Vera",
   teo: "Teo",
   mora: "Mora",
@@ -101,9 +31,12 @@ export const NOMBRES: Record<Exclude<Hablante, "narra" | "yo">, string> = {
   lisandro: "Lisandro",
   agustin: "Agustín",
   gato: "El gato",
+  dante: "Dante",
+  sol: "Sol",
+  amalia: "Amalia",
 };
 
-/** Lo que es cada vínculo en la casa (el "arcano", a la manera de la casa). */
+/** Lo que es cada vínculo en la casa (el "arcano", a la manera de la casa). Temporada 1. */
 export const ARCANOS: Record<Vinculo, { lugar: string; quien: string }> = {
   vera: { lugar: "La barra", quien: "Bartender de La Rana. Los lunes se sienta del otro lado." },
   teo: { lugar: "La punta", quien: "Guitarrista. Vive en la última banqueta. Escribe en servilletas." },
@@ -111,10 +44,31 @@ export const ARCANOS: Record<Vinculo, { lugar: string; quien: string }> = {
   gris: { lugar: "La esquina", quien: "Un abrigo gris en la vereda de enfrente. Nunca entra." },
 };
 
-export const NOMBRE_PISTA: Record<(typeof PISTAS)[number], string> = {
+/** Los confidentes de la temporada 2: dónde se los encuentra, quiénes son y qué valoran. */
+export const CONFIDENTE_INFO: Record<Confidente, { lugar: string; quien: string; valora: Stat }> = {
+  vera: { lugar: "La barra", quien: "Bartender de La Rana. Barcelona le da hasta fin de mes. Sueña con una barra sin cartel.", valora: "labia" },
+  teo: { lugar: "La punta", quien: "Guitarrista. Lo invitaron a tocar en Buenos Aires y le da pánico.", valora: "encanto" },
+  mora: { lugar: "La mesa", quien: "Enfermera, invicta al pool. Le ofrecen la jefatura.", valora: "coraje" },
+  dante: { lugar: "La vidriera", quien: "32 años, adquisiciones en Grupo Altamira. Vino a comprar la casa.", valora: "labia" },
+  sol: { lugar: "El cuarto oscuro", quien: "29, fotógrafa. Arma un libro de bares sin cartel. Su mamá se llama Amalia.", valora: "coraje" },
+};
+
+export const NOMBRE_STAT: Record<Stat, string> = { encanto: "Encanto", coraje: "Coraje", labia: "Labia" };
+
+/** Los niveles de cada cualidad, como en Persona: del 0 al 6. */
+export const NIVELES_STAT: Record<Stat, string[]> = {
+  encanto: ["Del montón", "Simpatía", "Con onda", "Con ángel", "Imán", "Irresistible", "Leyenda de la barra"],
+  coraje: ["Timidez", "Se anima", "Valentía", "Temeridad", "Con agallas", "De hierro", "Invicto"],
+  labia: ["Silencio", "Conversa", "Ocurrencia", "Filo", "Chamuyo", "Poesía", "Pico de oro"],
+};
+
+export const NOMBRE_PISTA: Record<(typeof PISTAS)[number] | (typeof PISTAS2)[number], string> = {
   "pista:tinta": "Tinta verde, pluma de verdad",
   "pista:cadena": "No sos la primera persona",
   "pista:cuaderno": "La primera página del cuaderno",
+  "pista2:lista": "Amalia, 19 años, 1987",
+  "pista2:foto": "Una chica con una valija en la puerta",
+  "pista2:escritura": "Titular: Amalia Ríos",
 };
 
 export const DIA_INFO: Record<Dia, { titulo: string; bajada: string; letra: number }> = {
@@ -122,60 +76,53 @@ export const DIA_INFO: Record<Dia, { titulo: string; bajada: string; letra: numb
   jueves: { titulo: "Jueves", bajada: "A las nueve se cierra la puerta", letra: 3 },
   viernes: { titulo: "Viernes", bajada: "La casa explota", letra: 4 },
   sabado: { titulo: "Sábado", bajada: "El último de la semana", letra: 5 },
-  epilogo: { titulo: "El lunes siguiente", bajada: "Epílogo", letra: 0 },
+  epilogo: { titulo: "Después", bajada: "Epílogo", letra: 0 },
 };
 
-// ─── El formato chico ────────────────────────────────────────────────────────────────────────
+/** Las escenas ilustradas de la galería. */
+export const CG_INFO: Record<CgId, { titulo: string; pista: string }> = {
+  "cg-sol-techo": { titulo: "Amanecer en el borde", pista: "Sol · rango 4" },
+  "cg-beso": { titulo: "Un paraguas, dos personas", pista: "Dante · rango 5" },
+  "cg-vera-barra": { titulo: "¿Esto qué es?", pista: "Vera · rango 8" },
+  "cg-vera": { titulo: "Barra de arriba", pista: "Vera · rango 10" },
+  "cg-teo": { titulo: "Su nombre en la marquesina", pista: "Teo · rango 10" },
+  "cg-mora": { titulo: "La última partida", pista: "Mora · rango 10" },
+  "cg-dante": { titulo: "Dos cielos en el lago", pista: "Dante · rango 10" },
+  "cg-sol": { titulo: "Revelado pendiente", pista: "Sol · rango 10" },
+  "cg-celos": { titulo: "La misma anécdota", pista: "Querer a dos a la vez" },
+  "cg-casa": { titulo: "La casa llena", pista: "El último viernes" },
+  "cg-gervasio": { titulo: "Primera vez", pista: "El final verdadero de la temporada 2" },
+};
 
-const ES_HABLANTE = new Set<string>(HABLANTES);
-const ES_CARA = new Set<string>(CARAS);
-
-export function parseLineas(base: string, src: string): Linea[] {
-  return src
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((raw, i) => {
-      let t = raw;
-      let si: Condicion | undefined;
-      const cond = /^\[(-?)([\w:-]+)\]\s*/.exec(t);
-      if (cond) {
-        si = cond[1] ? { no: cond[2] } : { marca: cond[2] };
-        t = t.slice(cond[0].length);
-      }
-      const m = /^([a-z]+)(?:\/([a-z]+))?(!)?:\s+/.exec(t);
-      if (m && ES_HABLANTE.has(m[1])) {
-        const cara = m[2] ?? "normal";
-        if (!ES_CARA.has(cara)) throw new Error(`Cara desconocida "${cara}" en ${base}:${i}`);
-        return { id: `${base}:${i}`, quien: m[1] as Hablante, cara: cara as Cara, texto: t.slice(m[0].length), golpe: !!m[3], ...(si ? { si } : {}) };
-      }
-      const golpe = t.startsWith("!");
-      return { id: `${base}:${i}`, quien: "narra" as const, cara: "normal" as const, texto: golpe ? t.slice(1).trim() : t, golpe, ...(si ? { si } : {}) };
-    });
-}
-
-type OpcionSrc = Omit<Opcion, "respuesta"> & { respuesta?: string };
-type EscenaSrc = Omit<Escena, "lineas" | "opciones" | "id"> & { texto: string; opciones?: OpcionSrc[] };
-
-function armar(src: Record<string, EscenaSrc>): Record<string, Escena> {
-  const out: Record<string, Escena> = {};
-  for (const [id, e] of Object.entries(src)) {
-    const { texto, opciones, ...resto } = e;
-    out[id] = {
-      ...resto,
-      id,
-      lineas: parseLineas(id, texto),
-      ...(opciones ? { opciones: opciones.map((o, k) => ({ ...o, respuesta: parseLineas(`${id}:o${k}`, o.respuesta ?? "") })) } : {}),
-    };
-  }
-  return out;
-}
+/** "Anterior en ¿Quién te contó?": un resumen por día (temporada-semana-día). */
+export const RESUMENES: Record<string, string> = {
+  "1-1-lunes": "Una servilleta con tinta verde te trajo a una casa sin cartel. Lisandro te preguntó quién te contó. No supiste qué decir.",
+  "1-1-jueves": "Conociste a Vera, a Teo y a Agustín. Al salir, otra servilleta: \"Jueves. No llegues tarde. —G.\"",
+  "1-1-viernes": "El jueves se cerró la puerta a las nueve. Lo que pasó adentro no se cuenta. Afuera, en un charco: \"El cuaderno. Primera página.\"",
+  "1-1-sabado": "El viernes el del abrigo gris por fin te habló: \"Mañana, después del cierre, te voy a estar esperando.\"",
+  "2-2-lunes": "Pasó una semana. La casa ya es un poco tuya. Pero hoy Lisandro te espera en la vereda con un papel en la mano y cara de velorio.",
+  "2-2-jueves": "La casa se vende. Treinta días. Y alguien colgó un cartel en la reja: SE VENDE.",
+  "2-2-viernes": "Conociste a Sol, fotógrafa. En una foto vieja de su mamá, de 1987, aparece el abrigo gris en la misma esquina.",
+  "2-2-sabado": "Apareció Dante, de Grupo Altamira. Encantador. Peligroso. Y en su carpeta, una torre de catorce pisos donde está la casa.",
+  "2-3-lunes": "La asamblea de la casa. Y Gervasio te dejó dos palabras en tinta verde: \"Buscá a Amalia.\"",
+  "2-3-jueves": "Empezaste a buscar a Amalia. El cuaderno, el hospital, un mensaje a Sol. Y otra servilleta debajo de tu puerta.",
+  "2-3-viernes": "Jueves de tormenta y fotos viejas en un cuarto oscuro. A las tres de la mañana, Dante: \"Necesito hablar con alguien que no sea de la empresa.\"",
+  "2-3-sabado": "Dante te contó que la heredera viene a firmar en persona, el último sábado del mes. Hoy es la peña de la casa.",
+  "2-4-lunes": "La peña fue una fiesta. Pero a las cuatro de la mañana, por primera vez en treinta años, la esquina estaba vacía.",
+  "2-4-jueves": "Encontraste a Gervasio en la plaza. Se va a Mar del Plata. Y conoció a Amalia en 1987. Anoche, un auto negro: Altamira.",
+  "2-4-viernes": "Lisandro le cerró la puerta en la cara a Altamira. Pero Barcelona quiere la respuesta de Vera el mismo día y a la misma hora que la firma.",
+  "2-4-sabado": "Al cartel de SE VENDE le pusieron una faja: VENDIDO. Todavía no firmaron. La gente que la casa salvó... ¿la puede salvar?",
+  "2-5-lunes": "La última semana. Escribiste servilletas con la pluma verde. Ahora hay que esperar quién contesta.",
+  "2-5-jueves": "Gervasio cruzó la calle. Está en la vereda de la casa. \"Un paso por noche\", dice. El sábado llega al timbre.",
+  "2-5-viernes": "El último jueves. Lo que pasó adentro no se cuenta. Mañana a las seis: la firma.",
+  "2-5-sabado": "El último viernes, la casa desbordada. Y alguien llegó de Córdoba. O no. Hoy, a las seis, se decide todo.",
+};
 
 // ─── La semana ───────────────────────────────────────────────────────────────────────────────
 
 export const INICIO = "lun-puerta";
 
-export const ESCENAS: Record<string, Escena> = armar({
+const T1: Record<string, Escena> = armar({
   // ═══ LUNES ═══
   "lun-puerta": {
     dia: "lunes",
@@ -1033,20 +980,63 @@ export const ESCENAS: Record<string, Escena> = armar({
   },
 });
 
-/** En orden: gana el primero cuya condición se cumple. El último siempre se cumple. */
+export const ESCENAS: Record<string, Escena> = { ...T1, ...ESCENAS_T2, ...VERA, ...TEO, ...MORA, ...DANTE, ...SOL };
+
+const romance = (c: Confidente, titulo: string, pista: string): Final => ({
+  id: `t2-${c}`,
+  temporada: 2,
+  titulo,
+  pista,
+  condicion: { marca: `eleccion2:${c}` },
+  escena: `f2-${c}`,
+});
+
+/** En orden: gana el primero (de su temporada) cuya condición se cumple. El último de cada temporada siempre se cumple. */
 export const FINALES: Final[] = [
   {
     id: "verdadero",
+    temporada: 1,
     titulo: "Ahora te toca a vos",
     pista: "Juntá los tres pedazos de la verdad y cruzá a la esquina.",
     verdadero: true,
     condicion: { todas: [{ marca: "eleccion:gris" }, ...PISTAS.map((marca) => ({ marca }))] },
     escena: "fin-verdadero",
   },
-  { id: "abrigo", titulo: "El abrigo vacío", pista: "Cruzá a la esquina antes de tiempo.", condicion: { marca: "eleccion:gris" }, escena: "fin-abrigo" },
-  { id: "vera", titulo: "Una barra sin cartel", pista: "Del lado de los clientes.", condicion: { marca: "eleccion:vera" }, escena: "fin-vera" },
-  { id: "teo", titulo: "Una línea por lunes", pista: "La canción no tiene final.", condicion: { marca: "eleccion:teo" }, escena: "fin-teo" },
-  { id: "mora", titulo: "La partida sin apuesta", pista: "Alguien que nunca pierde.", condicion: { marca: "eleccion:mora" }, escena: "fin-mora" },
-  { id: "casa", titulo: "De la casa", pista: "Querer un poco a todos.", condicion: { todas: [{ marca: "eleccion:casa" }, { total: 10 }] }, escena: "fin-casa" },
-  { id: "lunes", titulo: "Lunes de nuevo", pista: "", condicion: { todas: [] }, escena: "fin-lunes" },
+  { id: "abrigo", temporada: 1, titulo: "El abrigo vacío", pista: "Cruzá a la esquina antes de tiempo.", condicion: { marca: "eleccion:gris" }, escena: "fin-abrigo" },
+  { id: "vera", temporada: 1, titulo: "Una barra sin cartel", pista: "Del lado de los clientes.", condicion: { marca: "eleccion:vera" }, escena: "fin-vera" },
+  { id: "teo", temporada: 1, titulo: "Una línea por lunes", pista: "La canción no tiene final.", condicion: { marca: "eleccion:teo" }, escena: "fin-teo" },
+  { id: "mora", temporada: 1, titulo: "La partida sin apuesta", pista: "Alguien que nunca pierde.", condicion: { marca: "eleccion:mora" }, escena: "fin-mora" },
+  { id: "casa", temporada: 1, titulo: "De la casa", pista: "Querer un poco a todos.", condicion: { todas: [{ marca: "eleccion:casa" }, { total: 10 }] }, escena: "fin-casa" },
+  { id: "lunes", temporada: 1, titulo: "Lunes de nuevo", pista: "", condicion: { todas: [] }, escena: "fin-lunes" },
+
+  {
+    id: "t2-verdadero",
+    temporada: 2,
+    titulo: "Primera vez",
+    pista: "Juntá los tres pedazos de Amalia, escribile a tiempo y cruzá a la esquina.",
+    verdadero: true,
+    condicion: { todas: [{ marca: "eleccion2:gris" }, { marca: "carta:amalia" }] },
+    escena: "f2-verdadero",
+  },
+  { id: "t2-celos", temporada: 2, titulo: "Dos banquetas vacías", pista: "Querer a dos a la vez y no elegir.", condicion: { marca: "celos:mal" }, escena: "f2-celos" },
+  romance("vera", "Lunes del otro lado", "Vera · rango 10, en pareja."),
+  romance("teo", "La cuarta estrofa", "Teo · rango 10, en pareja."),
+  romance("mora", "La partida que perdí ganando", "Mora · rango 10, en pareja."),
+  romance("dante", "Agua de la canilla", "Dante · rango 10, en pareja."),
+  romance("sol", "Bares que no existen", "Sol · rango 10, en pareja."),
+  {
+    id: "t2-casa",
+    temporada: 2,
+    titulo: "La última ronda",
+    pista: "Quedarte en la casa, con tres vínculos de rango 5 o más.",
+    condicion: {
+      todas: [
+        { marca: "eleccion2:casa" },
+        { alMenos: 3, de: [{ rango: "vera", min: 5 }, { rango: "teo", min: 5 }, { rango: "mora", min: 5 }, { rango: "dante", min: 5 }, { rango: "sol", min: 5 }] },
+      ],
+    },
+    escena: "f2-casa",
+  },
+  { id: "t2-abrigo", temporada: 2, titulo: "La pluma y el tren", pista: "Cruzá a la esquina sin haberle escrito a Amalia.", condicion: { marca: "eleccion2:gris" }, escena: "f2-abrigo" },
+  { id: "t2-cerrado", temporada: 2, titulo: "Cerrado por reestructuración", pista: "", condicion: { todas: [] }, escena: "f2-cerrado" },
 ];

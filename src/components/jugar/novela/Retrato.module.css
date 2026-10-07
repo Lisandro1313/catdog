@@ -1,0 +1,104 @@
+/* Retrato con ilustración: anclado abajo, de la cintura para arriba, sin deformar. */
+.img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  filter: drop-shadow(5px 0 0 #fbf7f2) drop-shadow(-3px 0 0 #fbf7f2) drop-shadow(10px 8px 0 #0a0a0a);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.capa {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* El del abrigo todavía no tiene cara: el ala del sombrero la tapa. */
+.oculto img {
+  filter: brightness(0.55) contrast(1.2) drop-shadow(5px 0 0 #fbf7f2) drop-shadow(10px 8px 0 #0a0a0a);
+}
+.oculto::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 42%;
+  background: radial-gradient(ellipse 45% 70% at 50% 30%, #0a0a0a 55%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Expresiones que la ilustración no tiene: se acompañan con efectos. */
+.efSonrojo .capa {
+  background: radial-gradient(ellipse 28% 9% at 50% 27%, rgb(255 80 110 / 0.45), transparent 70%);
+  mix-blend-mode: multiply;
+}
+.efSonrojo img {
+  animation: latido 1.4s ease-in-out infinite;
+}
+.efFeliz img {
+  animation: rebote 0.5s ease-out 1;
+  filter: brightness(1.06) saturate(1.1) drop-shadow(5px 0 0 #fbf7f2) drop-shadow(-3px 0 0 #fbf7f2) drop-shadow(10px 8px 0 #0a0a0a);
+}
+.efTriste img {
+  filter: brightness(0.78) saturate(0.6) drop-shadow(5px 0 0 #fbf7f2) drop-shadow(-3px 0 0 #fbf7f2) drop-shadow(10px 8px 0 #0a0a0a);
+}
+.efTriste .capa {
+  background: linear-gradient(180deg, rgb(40 70 140 / 0.28), transparent 60%);
+}
+.efEnojo img {
+  animation: sacude 0.32s steps(2) 2;
+}
+.efEnojo .capa {
+  background: radial-gradient(ellipse 60% 40% at 50% 30%, rgb(224 16 30 / 0.25), transparent 70%);
+}
+.efSorpresa img {
+  animation: salto 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) 1;
+}
+.efSerio img {
+  filter: contrast(1.15) saturate(0.75) drop-shadow(5px 0 0 #fbf7f2) drop-shadow(-3px 0 0 #fbf7f2) drop-shadow(10px 8px 0 #0a0a0a);
+}
+.efSerio .capa {
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.25), transparent 35%);
+}
+.efPicara img {
+  transform: rotate(-2deg);
+  transform-origin: 50% 100%;
+}
+
+@keyframes latido {
+  50% {
+    scale: 1.015;
+  }
+}
+@keyframes rebote {
+  40% {
+    translate: 0 -10px;
+  }
+}
+@keyframes sacude {
+  25% {
+    translate: -6px 2px;
+  }
+  75% {
+    translate: 6px -2px;
+  }
+}
+@keyframes salto {
+  from {
+    scale: 1.08;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .img img {
+    animation: none !important;
+  }
+}
