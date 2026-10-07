@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { borrarTemaDefinitivo, fijarTema, ocultarRespuesta, ocultarTema, ponerCategoria } from "@/lib/foro";
+import { borrarEncuesta, ponerEncuesta } from "@/lib/encuesta";
 import { parseOpciones, setBarra, setExcepcion } from "@/lib/barra";
 import { borrarPedidoProducto, ESTADOS_PEDIDO, setConfigProductos, setEstadoPedidoProducto, type EstadoPedido } from "@/lib/productos";
 import { parseProductos, setConfigCaja } from "@/lib/caja-rapida";
@@ -1120,6 +1121,25 @@ export async function foroCategoriaAction(formData: FormData) {
   await ponerCategoria(id, String(formData.get("categoria") ?? ""));
   revalidatePath("/admin/sobremesa");
   revalidatePath("/sobremesa");
+}
+
+/**
+ * La encuesta de un tema: una pregunta y las opciones, una por línea.
+ *
+ * Es lo único de la sobremesa que se puede contestar sin escribir, y de cada diez que entran nueve
+ * no escriben nunca. Vacío borra la encuesta.
+ */
+export async function foroEncuestaAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const pregunta = String(formData.get("pregunta") ?? "").trim();
+  const opciones = String(formData.get("opciones") ?? "");
+  if (pregunta === "") await borrarEncuesta(id);
+  else await ponerEncuesta(id, pregunta, opciones);
+  revalidatePath("/admin/sobremesa");
+  revalidatePath("/sobremesa");
+  revalidatePath(`/sobremesa/${id}`);
 }
 
 export async function foroFijarAction(formData: FormData) {

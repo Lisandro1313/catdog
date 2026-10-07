@@ -18,6 +18,7 @@ import {
 import { getTonightEvent } from "@/lib/hoy";
 import { allowKey, allowRequest } from "@/lib/rate-limit";
 import { alternar } from "@/lib/reacciones";
+import { votar } from "@/lib/encuesta";
 
 export type ForoResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -137,4 +138,24 @@ export async function reaccionarAction(input: { sobre: string; objetoId: string;
   // La página del tema es la que muestra los conteos, tanto los suyos como los de sus respuestas.
   revalidatePath(`/sobremesa/${temaId}`);
   return { ok: true, puesta };
+}
+
+/**
+ * Votar en la encuesta de un tema.
+ *
+ * Es lo más barato que ofrece la sobremesa: un toque, sin nombre y sin escribir. Se puede cambiar
+ * el voto, así que se guarda por teléfono y no se suma.
+ */
+export async function votarAction(input: { encuestaId: string; opcion: number; temaId: string }): Promise<{ ok: boolean }> {
+  const parsed = z
+    .object({ encuestaId: z.string().min(1).max(40), opcion: z.number().int().min(0).max(20), temaId: z.string().min(1).max(40) })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false };
+  const key = await ensureForoKey();
+  if (!allowKey(`voto:${key}`, 60)) return { ok: false };
+
+  await votar(parsed.data.encuestaId, parsed.data.opcion, key);
+  revalidatePath(`/sobremesa/${parsed.data.temaId}`);
+  revalidatePath("/sobremesa");
+  return { ok: true };
 }

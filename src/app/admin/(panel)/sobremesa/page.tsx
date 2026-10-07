@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { formatShort } from "@/lib/dates";
 import { getTemasAdmin } from "@/lib/foro";
+import { getEncuesta } from "@/lib/encuesta";
 import { CATEGORIAS, categoriaDe } from "@/lib/foro-tipos";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
-import { foroBorrarAction, foroCategoriaAction, foroFijarAction, foroOcultarAction, foroOcultarRespuestaAction } from "../../actions";
+import { foroBorrarAction, foroCategoriaAction, foroEncuestaAction, foroFijarAction, foroOcultarAction, foroOcultarRespuestaAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,10 @@ export const dynamic = "force-dynamic";
 export default async function SobremesaAdminPage() {
   const temas = await getTemasAdmin();
   const ocultos = temas.filter((t) => t.hiddenAt).length;
+  // La encuesta de cada tema, para poder editarla sin entrar a otra pantalla.
+  const encuestas = new Map(
+    (await Promise.all(temas.map(async (t) => [t.id, await getEncuesta(t.id, null)] as const))).filter(([, e]) => e !== null),
+  );
 
   return (
     <>
@@ -80,6 +85,34 @@ export default async function SobremesaAdminPage() {
                   {c.nombre}
                 </button>
               ))}
+            </form>
+
+            {/* La encuesta: lo que se puede contestar con un toque, sin escribir nada. */}
+            <form action={foroEncuestaAction} className="mt-4 grid gap-2 border-t border-line pt-4">
+              <input type="hidden" name="id" value={t.id} />
+              <span className="ap-eyebrow">
+                Encuesta
+                {encuestas.get(t.id) && ` · ${encuestas.get(t.id)!.total} voto${encuestas.get(t.id)!.total === 1 ? "" : "s"}`}
+              </span>
+              <input
+                className="input"
+                name="pregunta"
+                placeholder="¿Qué ponemos de música?"
+                defaultValue={encuestas.get(t.id)?.pregunta ?? ""}
+                maxLength={120}
+              />
+              <textarea
+                className="input min-h-20"
+                name="opciones"
+                placeholder={"Una opción por línea\nHasta seis"}
+                defaultValue={encuestas.get(t.id)?.opciones.map((o) => o.texto).join("\n") ?? ""}
+              />
+              <p className="text-xs text-muted">
+                Vacía la pregunta para sacarla. Si cambiás las opciones se borran los votos: ya no querrían decir lo mismo.
+              </p>
+              <button className="btn btn-ghost btn-sm justify-self-start" type="submit">
+                Guardar la encuesta
+              </button>
             </form>
 
             <div className="mt-4 flex flex-wrap gap-2">

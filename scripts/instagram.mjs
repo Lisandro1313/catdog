@@ -108,7 +108,7 @@ const conceptos = (fondo, tinta, acento) => `<svg xmlns="http://www.w3.org/2000/
     <text x="0" y="120" text-anchor="middle" font-family="${SANS}" font-size="20" letter-spacing="7" fill="${tinta}">LA PLATA</text>
   </g>
 
-  <!-- C. La puerta: la casa sin cartel, a puertas cerradas -->
+  <!-- C. La puerta: la casa sin cartel -->
   <g transform="translate(1500 330)">
     <path d="M -90 150 L -90 -60 A 90 90 0 0 1 90 -60 L 90 150" fill="none" stroke="${acento}" stroke-width="6"/>
     <circle cx="52" cy="50" r="9" fill="${acento}"/>

@@ -8,9 +8,11 @@ import { getTema } from "@/lib/foro";
 import { nombreCategoria } from "@/lib/foro-tipos";
 import { BorrarMio, Responder } from "@/components/foro/Responder";
 import { Citar } from "@/components/foro/Citar";
+import { Encuesta } from "@/components/foro/Encuesta";
 import { Reacciones } from "@/components/foro/Reacciones";
 import { ShareButton } from "@/components/ShareButton";
 import { conteosDe } from "@/lib/reacciones";
+import { getEncuesta } from "@/lib/encuesta";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +29,10 @@ export default async function TemaPage({ params }: { params: Promise<{ id: strin
   const { tema, respuestas } = data;
   // Los conteos de todas las respuestas en una sola consulta: una por respuesta sería una consulta
   // por cada mensaje de la charla.
-  const [delTema, deLasRespuestas] = await Promise.all([
+  const [delTema, deLasRespuestas, encuesta] = await Promise.all([
     conteosDe("tema", [tema.id], key),
     conteosDe("respuesta", respuestas.map((r) => r.id), key),
+    getEncuesta(tema.id, key),
   ]);
 
   return (
@@ -56,6 +59,7 @@ export default async function TemaPage({ params }: { params: Promise<{ id: strin
         </p>
         <h1 className="mt-2 font-display text-2xl leading-snug sm:text-3xl">{tema.title}</h1>
         <p className="mt-3 whitespace-pre-line leading-relaxed">{tema.text}</p>
+        {encuesta && <Encuesta encuesta={encuesta} temaId={tema.id} />}
         <Reacciones sobre="tema" objetoId={tema.id} temaId={tema.id} inicial={delTema.get(tema.id) ?? []} />
         <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
           <ShareButton

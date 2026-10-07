@@ -1,4 +1,4 @@
-# CatDog · Cena a puertas cerradas
+# CatDog · Una casa abierta en La Plata
 
 Sitio de reservas para una cena de 15 lugares. La gente entra, ve la próxima cena y su carta,
 deja nombre y mail, paga (por transferencia con comprobante por WhatsApp, o con Mercado Pago cuando
@@ -162,7 +162,7 @@ Las de la base ya las carga la integración de Neon. Faltan estas (se setean con
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Mail de contacto que se muestra en el sitio | Opcional: si no está, se muestra la casilla de Gmail que manda los mails. |
 | `NEXT_PUBLIC_SITE_URL` | URL pública del sitio | Ya seteada: `https://catdog-omega.vercel.app`. Se usa en los links de vuelta de Mercado Pago, mails y vista previa. **Cambiarla cuando haya dominio propio.** |
 | `ADMIN_EMAIL` | A dónde te avisamos cada reserva pagada | Tu mail. |
-| `NEXT_PUBLIC_SITE_NAME` / `NEXT_PUBLIC_SITE_TAGLINE` | Nombre y subtítulo | Opcionales (default "CatDog" / "Cena a puertas cerradas"). |
+| `NEXT_PUBLIC_SITE_NAME` / `NEXT_PUBLIC_SITE_TAGLINE` | Nombre y subtítulo | Opcionales (default "CatDog" / "Una casa abierta en La Plata"). |
 | `NEXT_PUBLIC_PARTNERS` | Nombres de los socios, separados por coma | Opcional (default "Lisandro,Agustín"). |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | IA gratis (Gemini) para el análisis | Opcional: https://aistudio.google.com/apikey |
 | `AI_GATEWAY_API_KEY` | IA con Claude vía Vercel AI Gateway | Opcional; requiere tarjeta en Vercel. |

@@ -42,7 +42,7 @@ export type Barra = {
   lunes: string;
   /** Un texto propio para los jueves. Vacío = el jueves va con viernes y sábados. El cine no se anuncia. */
   jueves: string;
-  /** Dirección completa para el público. Vacío = solo la zona, como en las cenas a puertas cerradas. */
+  /** Dirección completa para el público. Vacío = solo la zona, que es como iba cuando la dirección se daba recién al reservar. */
   direccion: string;
 };
 

@@ -74,7 +74,7 @@ function html(theme) {
   </style></head><body>
   <div class="frame"></div>
   <header>
-    <div class="eyebrow">Cena a puertas cerradas · La Plata</div>
+    <div class="eyebrow">Una casa abierta · La Plata</div>
     <h1>${data.titulo}</h1>
     <div class="sub">${data.subtitulo}</div>
     <div class="orn">✦</div>

@@ -44,7 +44,7 @@ export default async function CartaPage({ params }: { params: Promise<{ id: stri
 
       <article className="carta">
         <p className="carta-brand">{SITE_NAME}</p>
-        <p className="carta-eyebrow">Cena a puertas cerradas · La Plata</p>
+        <p className="carta-eyebrow">Una cena · La Plata</p>
         <h2 className="carta-title">{event.title}</h2>
         <p className="carta-date">
           {formatWeekday(event.date)} {formatDayNumber(event.date)} de {formatMonth(event.date)} · {formatTime(event.date)} hs

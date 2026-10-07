@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SITE_NAME } from "@/lib/config";
 import { readForoKey } from "@/lib/device";
 import { contarPorCategoria, getTemas } from "@/lib/foro";
+import { temasConEncuesta } from "@/lib/encuesta";
 import { CATEGORIAS, ORDENES, esCategoria, esOrden, nombreCategoria, ORDEN_POR_DEFECTO } from "@/lib/foro-tipos";
 import { NuevoTema } from "@/components/foro/NuevoTema";
 import { Novedades } from "@/components/foro/Novedades";
@@ -36,6 +37,7 @@ export default async function SobremesaPage({ searchParams }: Props) {
   const filtro = esCategoria(de) ? de : null;
   const orden = esOrden(ordenCrudo) ? ordenCrudo : ORDEN_POR_DEFECTO;
   const [temas, instagram, cuentas] = await Promise.all([getTemas(key, 50, filtro, orden), getInstagram(), contarPorCategoria()]);
+  const conEncuesta = await temasConEncuesta(temas.map((t) => t.id));
 
   /** Los links de arriba conservan lo otro: cambiar de orden no te saca del filtro, y al revés. */
   const link = (cambio: { de?: string | null; orden?: string }) => {
@@ -107,6 +109,7 @@ export default async function SobremesaPage({ searchParams }: Props) {
                   <span aria-hidden="true">·</span>
                   <span>{desde(t.createdAt)}</span>
                   {t.pinned && <span className="foro-fijado">Fijado</span>}
+                  {conEncuesta.has(t.id) && <span className="foro-encuesta">Se vota</span>}
                   {t.mio && <span className="foro-tuyo">Tuyo</span>}
                   {/* Los destapa el navegador, que es el único que sabe cuándo fue tu última visita. */}
                   <span data-nuevo hidden className="foro-nuevo">

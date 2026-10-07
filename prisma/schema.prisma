@@ -500,6 +500,7 @@ model Tema {
   categoria  String?
 
   respuestas Respuesta[]
+  encuesta   Encuesta?
 
   @@index([hiddenAt, pinned, lastAt])
   @@index([categoria, lastAt])
@@ -694,4 +695,32 @@ model Reaccion {
 
   @@unique([sobre, objetoId, emoji, deviceKey])
   @@index([sobre, objetoId])
+}
+
+/// Una encuesta colgada de un tema de la sobremesa: la casa pregunta y se vota con un toque.
+/// Existe porque casi nadie escribe en un foro, pero votar no cuesta nada.
+model Encuesta {
+  id        String   @id @default(cuid())
+  temaId    String   @unique
+  tema      Tema     @relation(fields: [temaId], references: [id], onDelete: Cascade)
+  pregunta  String
+  /// Las opciones, en orden. Se vota por posicion.
+  opciones  String[]
+  createdAt DateTime @default(now())
+
+  votos VotoEncuesta[]
+}
+
+/// Un voto. Uno por telefono: se puede cambiar, no sumar.
+model VotoEncuesta {
+  id         String   @id @default(cuid())
+  encuestaId String
+  encuesta   Encuesta @relation(fields: [encuestaId], references: [id], onDelete: Cascade)
+  /// La posicion de la opcion elegida.
+  opcion     Int
+  deviceKey  String
+  createdAt  DateTime @default(now())
+
+  @@unique([encuestaId, deviceKey])
+  @@index([encuestaId])
 }

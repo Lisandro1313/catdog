@@ -3738,6 +3738,77 @@ details.faq > summary::-webkit-details-marker {
   color: var(--muted);
 }
 
+/* La encuesta de un tema: antes de votar son opciones a secas, después barras con el porcentaje. */
+.encuesta {
+  margin-top: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  padding: 0.9rem 1rem 0.8rem;
+}
+.encuesta-pregunta {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.encuesta-opciones {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.encuesta-opcion {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease;
+}
+.encuesta-opcion:hover {
+  border-color: rgba(201, 169, 110, 0.5);
+}
+.encuesta-opcion.es-mia {
+  border-color: rgba(201, 169, 110, 0.7);
+}
+.encuesta-opcion .barra {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(201, 169, 110, 0.16);
+  transition: width 0.35s ease;
+}
+.encuesta-opcion .texto {
+  position: relative;
+  flex: 1;
+}
+.encuesta-opcion .numero {
+  position: relative;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+.encuesta-pie {
+  margin-top: 0.6rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* "Se vota": el tema que tiene encuesta, marcado en la lista. */
+.foro-encuesta {
+  border-radius: 999px;
+  border: 1px solid rgba(201, 169, 110, 0.45);
+  padding: 0.05rem 0.45rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
 /* El hilo: el tema arriba y las respuestas colgando de una línea, como cualquier foro. */
 .hilo-op {
   padding-bottom: 1.25rem;

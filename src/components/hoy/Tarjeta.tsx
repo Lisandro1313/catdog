@@ -84,7 +84,7 @@ function draw({ title, dateLabel, lines, score, siteHost }: Props): HTMLCanvasEl
 
   ctx.fillStyle = "rgba(243,235,221,0.6)";
   ctx.font = "400 30px Georgia, serif";
-  ctx.fillText("Una cena a puertas cerradas en La Plata", W / 2, 1760);
+  ctx.fillText("Una casa abierta en La Plata", W / 2, 1760);
   ctx.fillStyle = "#c9a96e";
   ctx.fillText(siteHost, W / 2, 1810);
   return c;

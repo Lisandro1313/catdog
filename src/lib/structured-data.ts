@@ -67,7 +67,7 @@ export function foodEventJsonLd(event: EventLike, photos: string[]) {
     name: `${SITE_NAME} · ${event.title}`,
     description:
       event.description ??
-      "Cena a puertas cerradas en una casa de La Plata: cada plato con su cóctel de autor.",
+      "Una cena en una casa de La Plata: cada plato con su cóctel de autor.",
     startDate: event.date.toISOString(),
     endDate: end.toISOString(),
     eventStatus: "https://schema.org/EventScheduled",
@@ -75,7 +75,7 @@ export function foodEventJsonLd(event: EventLike, photos: string[]) {
     image: photos.length ? photos : [`${base}/opengraph-image`],
     location: {
       "@type": "Place",
-      name: "Casa a puertas cerradas",
+      name: SITE_NAME,
       address: {
         "@type": "PostalAddress",
         streetAddress: "Calle 66, entre 2 y 3",

@@ -13,7 +13,7 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: `Próximas fechas · ${SITE_NAME}`,
-  description: "Las próximas cenas a puertas cerradas en La Plata: fecha, carta y reserva.",
+  description: "Las próximas cenas en una casa de La Plata: fecha, carta y reserva.",
 };
 
 /** Todas las fechas publicadas, la más cercana primero. Sin cupos ni mesa: solo "pocos lugares" / "agotado". */

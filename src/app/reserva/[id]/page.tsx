@@ -65,7 +65,7 @@ export default async function ReservationPage({ params, searchParams }: Props) {
       : [];
   const reservationUrl = `${siteUrl()}/reserva/${reservation.id}`;
   // La dirección solo va en el mensaje si es para los que vienen con esta reserva (ya está paga por ellos).
-  const shareText = `Tengo lugar para la cena a puertas cerradas del ${formatLong(reservation.event.date)}, ${formatTime(reservation.event.date)} hs${
+  const shareText = `Tengo lugar para la cena del ${formatLong(reservation.event.date)}, ${formatTime(reservation.event.date)} hs${
     reservation.event.address && reservation.quantity > 1 ? `, en ${reservation.event.address}` : ""
   }. ${reservation.quantity > 1 ? "Venís conmigo 🙂 " : ""}Mirá de qué va: ${siteUrl()}`;
 

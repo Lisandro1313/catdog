@@ -36,7 +36,7 @@ export default async function Image() {
 
   // Con la casa abierta no hay fecha que anunciar: lo que importa es qué días y a qué hora.
   // Arriba sólo la ciudad: el nombre de la casa es el titular, no hace falta describirlo.
-  const arriba = barra.activa ? "La Plata" : "Cena a puertas cerradas · La Plata";
+  const arriba = barra.activa ? "La Plata" : "Una cena · La Plata";
   const headline = barra.activa ? SITE_NAME : event ? `${cap(formatWeekday(event.date))} ${formatDayNumber(event.date)}` : "Próximamente";
   const when = barra.activa
     ? barra.dias

@@ -45,7 +45,7 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
         </button>
         <ShareButton
           className="btn btn-ghost btn-sm"
-          text={`Hice ${label} en “${GAME_INFO[game].title}”, los juegos de la mesa de CatDog (cena a puertas cerradas en La Plata). ¿Me ganás? ${typeof location !== "undefined" ? location.origin : ""}/hoy/jugar`}
+          text={`Hice ${label} en “${GAME_INFO[game].title}”, los juegos de la mesa de CatDog (una casa abierta en La Plata). ¿Me ganás? ${typeof location !== "undefined" ? location.origin : ""}/hoy/jugar`}
         />
       </div>
       <section className="mt-8 text-left">

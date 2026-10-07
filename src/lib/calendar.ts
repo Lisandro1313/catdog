@@ -14,7 +14,7 @@ function endOf(date: Date): Date {
 }
 
 function description(reservationUrl: string): string {
-  return `Cena a puertas cerradas · ${SITE_NAME}. Tu reserva: ${reservationUrl}`;
+  return `Una cena en ${SITE_NAME}. Tu reserva: ${reservationUrl}`;
 }
 
 /** Link "Agregar a Google Calendar" (no necesita archivo). */

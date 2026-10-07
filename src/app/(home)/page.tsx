@@ -69,13 +69,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const [event] = await getUpcomingEvents(1);
   const weekday = event ? formatWeekday(event.date) : "";
   const title = event
-    ? `${SITE_NAME} · ${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)} · Cena a puertas cerradas en La Plata`
-    : `${SITE_NAME} · Cena a puertas cerradas en La Plata`;
+    ? `${SITE_NAME} · ${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)} · Una cena en una casa de La Plata`
+    : `${SITE_NAME} · Una cena en una casa de La Plata`;
   const description = event
     ? `Una cena en una casa de La Plata. Varios pasos, cada plato con su cóctel de autor. ${formatPrice(event.price)} por persona, pocos lugares.`
     : "Una cena en una casa de La Plata. Varios pasos, cada plato con su cóctel de autor.";
   // La imagen se genera en /opengraph-image; el sufijo cambia con la fecha para que WhatsApp no muestre una vieja.
-  const image = { url: `/opengraph-image?v=${event ? event.date.getTime() : 0}`, width: 1200, height: 630, alt: "Cena a puertas cerradas en La Plata" };
+  const image = { url: `/opengraph-image?v=${event ? event.date.getTime() : 0}`, width: 1200, height: 630, alt: "Una cena en una casa de La Plata" };
   return {
     title,
     description,
@@ -453,7 +453,7 @@ export default async function HomePage() {
           </a>
         )}
         <div className="ap-spot relative z-10 mx-auto w-full max-w-2xl text-center">
-          <p className="ap-eyebrow">Cena a puertas cerradas · La Plata</p>
+          <p className="ap-eyebrow">{SITE_NAME} · La Plata</p>
           <h1 className="ap-display mt-6 text-[clamp(3.2rem,16vw,7.5rem)]">{heroTitle}</h1>
           <hr className="ap-rule-gold mx-auto mt-8 w-40" />
 
@@ -901,7 +901,7 @@ export default async function HomePage() {
               <p className="text-sm text-muted">¿Conocés a alguien que tiene que venir?</p>
               <ShareButton
                 className="btn btn-ghost btn-sm mt-3"
-                text={`Mirá esto: cena a puertas cerradas en La Plata, ${dateLong(event.date)}. Cada plato con su cóctel de autor. ${siteUrl()}`}
+                text={`Mirá esto: una cena en una casa de La Plata, ${dateLong(event.date)}. Cada plato con su cóctel de autor. ${siteUrl()}`}
               />
             </div>
           </section>
@@ -911,7 +911,7 @@ export default async function HomePage() {
       <footer className="border-t border-line py-10 text-center text-xs text-muted">
         <p className="ap-ornament mb-4">✦</p>
         <p className="font-display text-base text-ink">{SITE_NAME}</p>
-        <p className="mt-1">{modoBarra ? `${barra.dias} · ${ZONE}` : `Cena a puertas cerradas · ${ZONE}`}</p>
+        <p className="mt-1">{modoBarra ? `${barra.dias} · ${ZONE}` : `Cenas con reserva · ${ZONE}`}</p>
         <span className="pie-links mt-2 flex flex-wrap items-center justify-center gap-x-4">
           {instagram && (
             <a

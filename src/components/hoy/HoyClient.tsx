@@ -338,7 +338,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
           <div className="mt-6 flex flex-col items-center gap-3">
             <ShareButton
               className="btn btn-primary btn-sm"
-              text={`Le pegué a ${score.hits} de ${playable.length} ingredientes escondidos en “Puertas adentro” de ${title} · ${score.stars} ✦. Una cena a puertas cerradas en La Plata: ${siteUrl}`}
+              text={`Le pegué a ${score.hits} de ${playable.length} ingredientes escondidos en “Puertas adentro” de ${title} · ${score.stars} ✦. Una casa abierta en La Plata: ${siteUrl}`}
             />
             <TarjetaButton
               title={title}

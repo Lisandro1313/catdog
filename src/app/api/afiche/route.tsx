@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     ...steps.flatMap((st) => [st.dish, st.drink ?? ""]),
     formatPrice(event.price),
     host,
-    "Cena a puertas cerradas · La Plata",
+    "Una cena · La Plata",
     "por persona · pocos lugares",
     "Efectivo, transferencia o tarjeta en la puerta",
     "Reservá en",
@@ -108,7 +108,7 @@ export async function GET(req: Request) {
         />
 
         <div style={{ display: "flex", fontSize: px(s.eyebrow), letterSpacing: px(5), textTransform: "uppercase", color: gold, whiteSpace: "nowrap" }}>
-          Cena a puertas cerradas · La Plata
+          Una cena · La Plata
         </div>
         <div style={{ display: "flex", fontSize: px(s.day * K), fontWeight: 700, marginTop: px(story ? 14 : 8), lineHeight: 1, color: gold }}>{day}</div>
         <div style={{ display: "flex", fontSize: px(s.when), marginTop: px(8), color: "#efe6d8" }}>{when}</div>

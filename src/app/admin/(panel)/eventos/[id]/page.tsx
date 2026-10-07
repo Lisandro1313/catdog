@@ -75,7 +75,7 @@ export default async function AdminEventPage({
   const dateLong = `${formatWeekday(event.date)} ${formatDayNumber(event.date)} de ${formatMonth(event.date)}, ${formatTime(event.date)} hs`;
   const difusion = [
     `🍽️ ${event.title} · ${dateLong}`,
-    `Cena a puertas cerradas en una casa de La Plata${menuSteps.length ? `: ${menuSteps.length} pasos, cada uno con su cóctel de autor` : ", cada plato con su cóctel de autor"}. Cóctel de recepción incluido.`,
+    `Una cena en una casa de La Plata${menuSteps.length ? `: ${menuSteps.length} pasos, cada uno con su cóctel de autor` : ", cada plato con su cóctel de autor"}. Cóctel de recepción incluido.`,
     menuSteps.length ? menuSteps.map((st, i) => `${i + 1}. ${st.dish}${st.drink ? ` · ${st.drink}` : ""}`).join("\n") : null,
     `${formatPrice(event.price)} por persona · pocos lugares.`,
     `Reservá acá: ${publicLink}`,
