@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { HOLD_MINUTES, MAX_SEATS_PER_RESERVATION, SITE_NAME, formatPrice } from "@/lib/config";
-import { formatDayNumber, formatLong, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
+import { formatDayInline, formatDayNumber, formatMonth, formatTime, formatWeekday, weekOf } from "@/lib/dates";
 import { getUpcomingEvents } from "@/lib/reservations";
 import { parseBar, parseMenu, splitDrink } from "@/lib/menu";
 import { getAbout, getInstagram, getPhotos, getVideo } from "@/lib/photos";
@@ -168,7 +168,9 @@ export default async function HomePage() {
   const estadoInicial = textoDeEstado(estadoAhora(diasAbre, horaAbre, new Date(), excepcion));
   // Cuándo vuelve a abrir, con fecha: es lo que se agenda.
   const apertura = modoBarra ? proximaApertura(diasAbre, horaAbre, new Date(), excepcion) : null;
-  const proxima = apertura ? { cuando: formatLong(apertura.inicio), hora: formatTime(apertura.inicio) } : null;
+  const proxima = apertura
+    ? { cuando: formatDayInline(apertura.inicio), hora: formatTime(apertura.inicio).replace(/:00$/u, "") }
+    : null;
   // "Cómo llegar", no "ver el mapa": abre el navegador con el camino desde donde esté la persona.
   const mapa = comoLlegar();
 

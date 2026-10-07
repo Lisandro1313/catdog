@@ -145,6 +145,16 @@ export function todayIso(now: Date = new Date()): string {
   return argentinaDay(now).toISOString().slice(0, 10);
 }
 
+/**
+ * "jueves 8 de octubre": el día nombrado dentro de una frase, sin coma ni mayúscula.
+ * `formatLong` da "Jueves, 8 de octubre", que arranca una oración pero queda raro en el medio.
+ */
+export function formatDayInline(date: Date): string {
+  return new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long", timeZone: TIMEZONE })
+    .format(date)
+    .replace(",", "");
+}
+
 /** "lun 8/9" */
 export function formatDayShort(date: Date): string {
   return new Intl.DateTimeFormat("es-AR", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" }).format(date);
