@@ -2494,6 +2494,42 @@ details.faq > summary::-webkit-details-marker {
 }
 
 /* Fichas para elegir el juego en los récords */
+/* El Impostor: la tapa que se toca para ver la palabra, y la carta que la muestra. */
+.imp-tapa {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 11rem;
+  border: 1px dashed rgba(201, 169, 110, 0.55);
+  border-radius: 1.2rem;
+  background: rgba(201, 169, 110, 0.06);
+  color: var(--accent);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+}
+.imp-carta {
+  margin-top: 2rem;
+  padding: 2.25rem 1.25rem;
+  border: 1px solid rgba(201, 169, 110, 0.5);
+  border-radius: 1.2rem;
+  background: radial-gradient(ellipse 80% 70% at 50% 0%, rgba(201, 169, 110, 0.14), transparent 70%);
+}
+.imp-carta.is-impostor {
+  border-color: rgba(214, 90, 70, 0.6);
+  background: radial-gradient(ellipse 80% 70% at 50% 0%, rgba(214, 90, 70, 0.16), transparent 70%);
+}
+.jg-nuevo {
+  margin-left: 0.4rem;
+  border-radius: 999px;
+  background: rgba(201, 169, 110, 0.18);
+  padding: 0.05rem 0.45rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  vertical-align: middle;
+}
+
 .jg-tab {
   min-height: 2.75rem;
   padding: 0.6rem 0.9rem;

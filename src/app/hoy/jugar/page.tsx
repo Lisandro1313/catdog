@@ -4,6 +4,7 @@ import { getPhotos } from "@/lib/photos";
 import { getDemoEvent, getTonightEvent } from "@/lib/hoy";
 import { parseBar, parseMenu } from "@/lib/menu";
 import { MIMICA_BASE } from "@/lib/jugar";
+import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
 import { readDeviceKey } from "@/lib/device";
 import { PREMIO_MINIMO, getMarcas, getRecords, issuePrizeIfEarned, logrosParaPremio, type Marcas } from "@/lib/premios";
 import { JugarHub } from "@/components/jugar/JugarHub";
@@ -73,7 +74,7 @@ export default async function JugarPage({ searchParams }: { searchParams: Promis
           </a>
         </p>
       )}
-      <JugarHub photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} conCena={Boolean(tonight)} />
+      <JugarHub deLaCarta={SECCIONES_TRAGOS.flatMap((s) => s.items.map((t) => t.nombre))} photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} conCena={Boolean(tonight)} />
     </>
   );
 }

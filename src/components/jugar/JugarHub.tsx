@@ -38,8 +38,9 @@ const Copa = dynamic(() => import("./Copa").then((m) => m.Copa), { ssr: false, l
 const Simon = dynamic(() => import("./Simon").then((m) => m.Simon), { ssr: false, loading: cargando });
 const Mimica = dynamic(() => import("./Mimica").then((m) => m.Mimica), { ssr: false, loading: cargando });
 const Trivia = dynamic(() => import("./Trivia").then((m) => m.Trivia), { ssr: false, loading: cargando });
+const Impostor = dynamic(() => import("./Impostor").then((m) => m.Impostor), { ssr: false, loading: cargando });
 
-type View = "hub" | GameId | "premio" | "records" | "duelo" | "torneo";
+type View = "hub" | GameId | "premio" | "records" | "duelo" | "torneo" | "impostor";
 type Duelo = { game: GameId; names: [string, string]; scores: [number | null, number | null]; wins: [number, number]; turn: 0 | 1; stage: "setup" | "play" | "between" | "done"; torneo?: Torneo };
 /** Torneo de mesa: cuatro nombres, dos semis y una final. Cada cruce es un duelo a una partida. */
 type Torneo = { players: [string, string, string, string]; match: 0 | 1 | 2; winners: string[] };
@@ -47,9 +48,9 @@ const ROUND = ["Semifinal 1", "Semifinal 2", "Final"];
 
 const NAME_KEY = "catdog:jugar:nombre";
 
-type Props = { photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records; whatsapp: string | null; /** Si esta noche hay una cena de pasos: cambia a donde vuelve el link de arriba. */ conCena?: boolean };
+type Props = { /** Lo que hay en la carta de verdad: alimenta los juegos de la mesa. */ deLaCarta?: string[]; photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records; whatsapp: string | null; /** Si esta noche hay una cena de pasos: cambia a donde vuelve el link de arriba. */ conCena?: boolean };
 
-export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, whatsapp, conCena = false }: Props) {
+export function JugarHub({ deLaCarta = [], photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, whatsapp, conCena = false }: Props) {
   const [view, setViewRaw] = useState<View>("hub");
   const pushed = useRef(0);
   /** Entrar a un juego deja una entrada en el historial: "atrás" vuelve al hub en vez de salir. */
@@ -222,6 +223,7 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
     view === "simon" ? <Simon onDone={(v) => reportar("simon", v)} {...common} /> :
     view === "mimica" ? <Mimica cards={mimica} onDone={(v) => reportar("mimica", v)} {...common} /> :
     view === "trivia" ? <Trivia pairs={pairs} onDone={(v) => reportar("trivia", v)} {...common} /> :
+    view === "impostor" ? <Impostor deLaCarta={deLaCarta} onBack={salir} /> :
     null;
 
   if (game) {
@@ -626,7 +628,14 @@ export function JugarHub({ photos, mimica, pairs, drinks, initialMarcas = {}, in
         })}
       </ul>
 
-      <button type="button" className="jg-link mt-6 w-full text-left" onClick={() => { setDuelo({ game: "chef", names: ["", ""], scores: [null, null], wins: [0, 0], turn: 0, stage: "setup" }); setView("duelo"); }}>
+      {/* Para la mesa entera, con un celular que se pasa. No suma para el trago: no hay quién gane
+          por puntos, y es lo que más se juega en grupo. */}
+      <button type="button" className="jg-link jg-link-mesa mt-6 w-full text-left" onClick={() => setView("impostor")}>
+        <span className="jg-link-title">🕵️ El Impostor <span className="jg-nuevo">nuevo</span></span>
+        <span className="jg-link-sub">Para la mesa, de 3 a 12. A todos les toca la misma palabra menos a uno. Hablan en ronda y votan quién era.</span>
+      </button>
+
+      <button type="button" className="jg-link mt-3 w-full text-left" onClick={() => { setDuelo({ game: "chef", names: ["", ""], scores: [null, null], wins: [0, 0], turn: 0, stage: "setup" }); setView("duelo"); }}>
         <span className="jg-link-title">⚔️ Duelo</span>
         <span className="jg-link-sub">Dos personas, un celular: juega uno, después el otro, gana el mejor. Al mejor de 3. Sirve para cualquier juego menos la mímica.</span>
       </button>
