@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
 import { puntosDelVaso } from "@/lib/juegos-reglas";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { Shell, beep, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import { prepararLienzo, puntoEnLienzo, capturar } from "./lienzo";
+import { Emoji } from "./Emoji";
 
 const W = 360;
 const H = 600;
@@ -55,6 +56,9 @@ function calificar(pts: number): { texto: string; color: string } {
  * pasa del final de la barra, se cae. Cinco tiros, el posavasos cambia de lugar en cada uno.
  */
 export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["vidrio", "brindis", "vidrio-roto", "madera"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [puntos, setPuntos] = useState<number[]>([]);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -109,7 +113,7 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
         vaso.current = { s: 0, v: 0, fase: "listo", caida: 0, aparece: 0 };
         const b = blanco.current;
         blanco.current = { desde: b.hasta, hasta: azarBlanco(tirosRef.current.length), t: 0 };
-        beep(330, 60, "sine", 0.05);
+        sonar("vidrio", 0.2, 1.1);
       });
     };
 
@@ -200,20 +204,17 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
           g.fase = "cae";
           g.caida = 0;
           despues(280, () => {
-            buzz();
-            beep(2400, 50, "square", 0.04);
-            despues(60, () => beep(3100, 40, "square", 0.035));
-            despues(120, () => beep(1900, 60, "square", 0.03));
+            sonar("vidrio-roto", 0.6, 0.95 + Math.random() * 0.1);
+            tap(45);
           });
           terminarTiro(0, "¡Se cayó!", "#e07a5f");
         } else if (g.v <= 0) {
           g.v = 0;
           g.fase = "quieto";
           const pts = puntosDelVaso(g.s / LARGO, b.hasta);
-          beep(210, 80, "triangle", 0.12);
+          sonar("madera", 0.3, 0.9);
           if (pts >= 95) {
-            despues(120, () => beep(880, 100));
-            despues(210, () => beep(1320, 220));
+            despues(120, () => sonar("brindis", 0.55));
             tap(25);
             const y = yDe(g.s) - 30 * esc(g.s);
             chispas = Array.from({ length: 26 }, (_, i) => {
@@ -512,7 +513,7 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
     }
     g.v = v;
     g.fase = "anda";
-    beep(150, 110, "sine", 0.12);
+    sonar("madera", 0.35 + Math.min(0.25, v / 4000), 1.05);
     tap(8);
   }
 
@@ -529,7 +530,7 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🍺
+            <Emoji e="🍺" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Agarrá el vaso, empujalo para arriba y soltalo: sigue solo por la barra hasta que frena. Tiene que quedar arriba del posavasos. Si se
@@ -560,7 +561,7 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
                           : "border-transparent bg-surface-2 text-muted"
                   }`}
                 >
-                  {p == null ? (actual ? "🍺" : i + 1) : p}
+                  {p == null ? actual ? <Emoji e="🍺" size="1.5em" /> : i + 1 : p}
                 </li>
               );
             })}

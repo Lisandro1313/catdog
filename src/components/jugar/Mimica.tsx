@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, shuffle, keepAwake } from "./Shell";
+import { Shell, beep, shuffle, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
-import { FANFARRIA, chime, thud, tick, vibrate } from "./juice";
+import { chime, tick, vibrate } from "./juice";
 import css from "./Mimica.module.css";
+import { Emoji } from "./Emoji";
 
 const DURATION = 60;
 /** Entre un toque y el siguiente: que un doble toque sin querer no cuente dos aciertos. */
@@ -15,6 +16,9 @@ const COOLDOWN = 350;
 type Props = { cards: string[]; onDone: (hits: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
 export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["acierto", "carta", "tic", "logro"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "count" | "play" | "end">("idle");
   const [count, setCount] = useState(3);
   const [deck, setDeck] = useState<string[]>([]);
@@ -80,7 +84,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
   useEffect(() => {
     if (phase === "end" && !reported.current) {
       reported.current = true;
-      if (hits >= METAS.mimica) setTimeout(() => chime(FANFARRIA, 110, 200), 700);
+      if (hits >= METAS.mimica) setTimeout(() => sonar("logro", 0.6), 700);
       onDone(hits);
     }
   }, [phase, hits, onDone]);
@@ -103,7 +107,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
       {phase === "idle" && (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🎭
+            <Emoji e="🎭" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Uno de la mesa agarra el teléfono y actúa lo que dice la carta, sin hablar. Los demás adivinan. Un minuto. Para la marca: {METAS.mimica}{" "}
@@ -139,7 +143,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
                 if (!listo()) return;
                 setPasses((p) => p + 1);
                 setLast("pass");
-                thud();
+                sonar("carta", 0.45, 0.9);
                 vibrate(20);
                 setI((k) => k + 1);
               }}
@@ -153,7 +157,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
                 if (!listo()) return;
                 setHits((h) => h + 1);
                 setLast("hit");
-                chime([880, 1320], 90, 140);
+                sonar("acierto", 0.55);
                 vibrate([15, 30, 15]);
                 setI((k) => k + 1);
               }}

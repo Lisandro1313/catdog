@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, tap as vibrar } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap as vibrar } from "./Shell";
 import { Fin } from "./Fin";
 import { Cuenta } from "./Cuenta";
 import css from "./Lisandro.module.css";
+import { Emoji } from "./Emoji";
 
 const DURATION = 30;
 const HOLES = 9;
@@ -63,6 +64,9 @@ function pickHole(taken: number[]): number {
  * Racha de cinco sin errar: bonus. Tocar un agujero vacío corta la racha.
  */
 export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["golpe", "tic"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "count" | "play" | "over" | "end">("idle");
   const [left, setLeft] = useState(DURATION);
   const [score, setScore] = useState(0);
@@ -107,7 +111,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
         lastLeft.current = remaining;
         setLeft(remaining);
         // Los últimos cinco segundos hacen tic.
-        if (remaining > 0 && remaining <= 5) beep(remaining === 1 ? 1175 : 880, 45, "square", 0.05);
+        if (remaining > 0 && remaining <= 5) sonar("tic", remaining === 1 ? 0.5 : 0.35, remaining === 1 ? 1.2 : 1);
       }
       if (remaining <= 0) {
         clearInterval(id);
@@ -192,7 +196,8 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
     const bonus = streakRef.current % 5 === 0 ? 3 : 0;
     // Un "¡toc!" que sube con lo que vale y con la racha; los que valen más, dos notas.
     const f = 600 + w.points * 80 + Math.min(streakRef.current, 20) * 8;
-    beep(f, 70, "triangle", 0.2);
+    sonar("golpe", 0.5, 0.95 + (hole % 4) * 0.03);
+    beep(f, 70, "triangle", 0.1);
     if (w.points >= 2) setTimeout(() => beep(f * 1.26, 80, "triangle", 0.16), 60);
     if (bonus) [1047, 1319, 1568].forEach((fq, k) => setTimeout(() => beep(fq, 90, "triangle", 0.15), 140 + k * 80));
     vibrar(bonus ? 30 : 10);
@@ -293,7 +298,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
                         />
                       ) : (
                         <span key={pop.id} className={`jg-hole-emoji ${pop.who.points < 0 ? "is-bad" : ""} ${pop.leaving ? css.baja : ""}`} aria-hidden="true">
-                          {pop.emoji}
+                          {pop.emoji && <Emoji e={pop.emoji} size="1.15em" />}
                         </span>
                       ))}
                     {golpe?.hole === h && (
@@ -304,7 +309,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
                             <img src={golpe.who.img} alt="" draggable={false} className={`jg-hole-face ${golpe.bad ? "is-chef" : ""} ${css.golpe} ${golpe.bad ? css.golpeMal : ""}`} />
                           ) : (
                             <span className={`jg-hole-emoji ${golpe.bad ? "is-bad" : ""} ${css.golpe} ${golpe.bad ? css.golpeMal : ""}`} aria-hidden="true">
-                              {golpe.emoji}
+                              {golpe.emoji && <Emoji e={golpe.emoji} size="1.15em" />}
                             </span>
                           ))}
                         <span className={`${css.anillo} ${golpe.bad ? css.anilloMal : ""}`} aria-hidden="true" />

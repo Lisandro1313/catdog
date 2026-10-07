@@ -1,9 +1,11 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { METAS, logrado, type GameId, type Marcas, type Records } from "@/lib/juegos";
 import { GAME_INFO, Tabla } from "./info";
 import { ShareButton } from "@/components/ShareButton";
 import { CountUpLabel } from "./CountUp";
+import { sonar } from "./Shell";
 
 type Props = {
   game: GameId;
@@ -14,8 +16,8 @@ type Props = {
   again: () => void;
   onBack: () => void;
   /** Frase para cuando se logra la meta / cuando no. */
-  bien?: string;
-  mal?: string;
+  bien?: ReactNode;
+  mal?: ReactNode;
   /** Si este resultado acaba de mejorar la marca (lo dice el servidor). */
   nueva?: boolean;
 };
@@ -37,7 +39,10 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
         {best != null && !esMejor && ` Tu mejor: ${best}.`}
       </p>
       <div className="mt-5 flex flex-wrap justify-center gap-3">
-        <button className="btn btn-ghost btn-sm" type="button" onClick={again}>
+        <button className="btn btn-ghost btn-sm" type="button" onClick={() => {
+            sonar("clic", 0.3);
+            again();
+          }}>
           Otra vez
         </button>
         <button className="btn btn-primary btn-sm" type="button" onClick={onBack}>

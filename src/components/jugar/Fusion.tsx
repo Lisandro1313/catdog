@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { ESCALERA_2048, hayJugada, type Direccion } from "@/lib/juegos-reglas";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import { capturar } from "./lienzo";
 import { aTablero, deslizar, ponerNueva, type Ficha } from "./fusion-fichas";
 import s from "./Fusion.module.css";
+import { Emoji } from "./Emoji";
 
 const azar = () => Math.random();
 /** Cuánto hay que arrastrar el dedo (en px) para que cuente como deslizar. */
@@ -43,12 +44,15 @@ type Props = { onDone: (puntos: number) => void; onBack: () => void; marcas: Mar
  * cuando no queda ninguna jugada.
  */
 export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["pop", "ficha"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [fichas, setFichas] = useState<Ficha[]>([]);
   const [puntos, setPuntos] = useState(0);
   const [mejorFicha, setMejorFicha] = useState(2);
   const [suma, setSuma] = useState<{ k: number; n: number } | null>(null);
-  const [aviso, setAviso] = useState<{ k: number; texto: string } | null>(null);
+  const [aviso, setAviso] = useState<{ k: number; icono: string; texto: string } | null>(null);
   const [cerrado, setCerrado] = useState(false);
 
   // Lo que manda en la jugada vive en refs: dos deslizadas rápidas no pueden pisarse con un estado viejo.
@@ -105,8 +109,10 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
       setPuntos(puntosRef.current);
       setSuma((x) => ({ k: (x?.k ?? 0) + 1, n: r.puntos }));
       const orden = [...r.formadas].sort((a, b) => a - b);
-      beep(nota(orden[orden.length - 1]), 90, "triangle", 0.1);
-      if (orden.length > 1) despues(55, () => beep(nota(orden[orden.length - 1]) * 1.5, 90, "triangle", 0.07));
+      // El pop sube de tono con la ficha que se formó (4 → grave, 2048 → agudo).
+      const tono = 0.85 + Math.min(10, Math.log2(orden[orden.length - 1]) - 1) * 0.05;
+      sonar("pop", orden.length > 1 ? 0.6 : 0.5, tono);
+      if (orden.length > 1) despues(60, () => sonar("pop", 0.4, tono * 1.12));
       tap(orden.length > 1 ? 12 : 6);
       const maxima = orden[orden.length - 1];
       if (maxima > mejorRef.current) {
@@ -114,14 +120,14 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
         setMejorFicha(maxima);
         if (maxima >= 16) {
           const f = ficha(maxima);
-          setAviso((x) => ({ k: (x?.k ?? 0) + 1, texto: maxima === 2048 ? "✨ ¡El trago de la noche!" : `${f.icono} ¡${f.nombre}!` }));
+          setAviso((x) => ({ k: (x?.k ?? 0) + 1, icono: maxima === 2048 ? "✨" : f.icono, texto: maxima === 2048 ? "¡El trago de la noche!" : `¡${f.nombre}!` }));
           despues(140, () => beep(nota(maxima) * 2, 110, "sine", 0.12));
           despues(240, () => beep(nota(maxima) * 2.5, 200, "sine", 0.12));
           tap(maxima >= 128 ? 30 : 16);
         }
       }
     } else {
-      beep(190, 28, "sine", 0.035);
+      sonar("ficha", 0.25, 0.95 + Math.random() * 0.1);
     }
 
     if (!hayJugada(aTablero(nuevas))) {
@@ -181,8 +187,8 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
           records={records}
           again={start}
           onBack={onBack}
-          bien={`Llegaste a ${f.icono} ${f.nombre}. Bartender de verdad.`}
-          mal={`Llegaste a ${f.icono} ${f.nombre}. Para el trago: ${METAS.fusion} puntos.`}
+          bien={<>Llegaste a <Emoji e={f.icono} size="1.3em" /> {f.nombre}. Bartender de verdad.</>}
+          mal={<>Llegaste a <Emoji e={f.icono} size="1.3em" /> {f.nombre}. Para el trago: {METAS.fusion} puntos.</>}
         />
       </Shell>
     );
@@ -195,7 +201,7 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
           <div className={s.muestra} aria-hidden="true">
             {[2, 4, 8, 16, 32, 64, 128].map((v) => (
               <span key={v} className={s.muestraFicha} style={estilo(v)}>
-                {ficha(v).icono}
+                <Emoji e={ficha(v).icono} />
                 <small>{ficha(v).nombre}</small>
               </span>
             ))}
@@ -235,7 +241,7 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
         <div className={`${s.caja} ${s.ahora}`}>
           <span className={s.cajaRotulo}>Llegaste a</span>
           <span className={s.cajaValor}>
-            {ahora.icono} {ahora.nombre}
+            <Emoji e={ahora.icono} size="1.1em" /> {ahora.nombre}
           </span>
         </div>
       </div>
@@ -279,7 +285,7 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
                 <div className={s.cara}>
                   <span className={s.valor}>{x.v}</span>
                   <span className={s.icono} aria-hidden="true">
-                    {f.icono}
+                    <Emoji e={f.icono} style={{ display: "block" }} />
                   </span>
                   <span className={s.nombre}>{f.nombre}</span>
                 </div>
@@ -289,14 +295,14 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
         </div>
         {aviso && !cerrado && (
           <p key={aviso.k} className={s.aviso} aria-live="polite">
-            {aviso.texto}
+            <Emoji e={aviso.icono} size="1.2em" /> {aviso.texto}
           </p>
         )}
         {cerrado && (
           <div className={s.cierre} role="status">
             <strong>Sin jugadas</strong>
             <span>
-              {puntos} puntos · {ahora.icono} {ahora.nombre}
+              {puntos} puntos · <Emoji e={ahora.icono} size="1.2em" /> {ahora.nombre}
             </span>
           </div>
         )}
@@ -305,11 +311,19 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
       <div className={s.escalera} aria-label={proximo ? `Próximo: ${ficha(proximo).nombre}` : "Escalera completa"}>
         {LADDER.map((v) => (
           <span key={v} className={`${s.peldano} ${v <= mejorFicha ? s.logrado : ""} ${v === proximo ? s.proximo : ""}`} title={ficha(v).nombre}>
-            {ficha(v).icono}
+            <Emoji e={ficha(v).icono} size="1.15em" />
           </span>
         ))}
       </div>
-      <p className={s.ayuda}>{proximo ? `Próximo: ${ficha(proximo).icono} ${ficha(proximo).nombre} · deslizá o usá las flechas` : "¡Escalera completa! Seguí sumando."}</p>
+      <p className={s.ayuda}>
+        {proximo ? (
+          <>
+            Próximo: <Emoji e={ficha(proximo).icono} size="1.3em" /> {ficha(proximo).nombre} · deslizá o usá las flechas
+          </>
+        ) : (
+          "¡Escalera completa! Seguí sumando."
+        )}
+      </p>
     </Shell>
   );
 }

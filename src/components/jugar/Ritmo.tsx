@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, keepAwake, tap } from "./Shell";
+import { Shell, beep, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import { prepararLienzo, puntoEnLienzo } from "./lienzo";
 import css from "./Ritmo.module.css";
+import { Emoji } from "./Emoji";
 
 /** Notas como [nombre, duración en tiempos]. "-" es silencio. Todas de dominio público. */
 type Song = { title: string; by: string; bpm: number; notes: [string, number][] };
@@ -201,6 +202,9 @@ function chart(song: Song, tempo = 1): Note[] {
  * suena esa nota. Si la errás, silencio. Canciones de dominio público con sabor de acá.
  */
 export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["tic"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "over" | "end">("idle");
   const [songIx, setSongIx] = useState(0);
   const [tempo, setTempo] = useState<0.8 | 1 | 1.25>(1);
@@ -423,7 +427,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       if (phase === "play") {
         // Cuenta de cuatro, a tempo.
         while (countIx.current < 4 && t >= first - beat * (4 - countIx.current)) {
-          beep(countIx.current === 3 ? 1320 : 880, 50, "square", 0.06);
+          sonar("tic", countIx.current === 3 ? 0.55 : 0.4, countIx.current === 3 ? 1.3 : 1);
           countIx.current += 1;
         }
         for (const n of notes.current) {
@@ -556,7 +560,7 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🎸
+            <Emoji e="🎸" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Bajan notas por cuatro carriles: tocá el carril justo cuando la nota llega al aro y suena. Si la errás, silencio y −1. Clavarla en el momento exacto vale doble; cada 10 seguidas, +5. Antes de

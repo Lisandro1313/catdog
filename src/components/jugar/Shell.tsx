@@ -2,6 +2,7 @@
 
 import { flushSync } from "react-dom";
 import { useEffect, useState } from "react";
+import { Emoji } from "./Emoji";
 
 /** Marco común de cada juego: volver + título arriba, el juego abajo. */
 export function Shell({ title, onBack, children, right }: { title: string; onBack: () => void; children?: React.ReactNode; right?: React.ReactNode }) {
@@ -51,7 +52,7 @@ export function MuteButton() {
   }
   return (
     <button type="button" onClick={toggle} className="text-base leading-none" aria-label={on ? "Activar sonido" : "Silenciar"} title={on ? "Con sonido" : "Silencio"}>
-      {on ? "🔇" : "🔊"}
+      <Emoji e={on ? "🔇" : "🔊"} size="1.2em" />
     </button>
   );
 }
@@ -168,4 +169,72 @@ export function tap(ms = 10) {
 export function buzz() {
   beep(110, 320, "sawtooth", 0.12);
   tap(45);
+}
+
+/**
+ * Los sonidos grabados (Kenney, CC0), en public/sonidos. Los arma scripts/sonidos.mjs.
+ * Para lo que suena a algo de verdad (bolas, vidrio, cartas, fichas); los tonos de beep siguen
+ * para las melodías.
+ */
+export type Sonido =
+  | "clic" | "elegir" | "acierto" | "logro" | "error" | "tic" | "pop" | "carta" | "barajar" | "monedas" | "ficha" | "dado"
+  | "vidrio" | "brindis" | "vidrio-roto" | "bola" | "banda" | "tronera" | "madera" | "golpe" | "paleta" | "campana" | "glitch" | "pagina";
+
+const buffers = new Map<Sonido, Promise<AudioBuffer | null>>();
+
+function contexto(): AudioContext | null {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return null;
+    audio ??= new Ctx();
+    if (audio.state === "suspended") void audio.resume();
+    return audio;
+  } catch {
+    return null;
+  }
+}
+
+function cargar(s: Sonido): Promise<AudioBuffer | null> {
+  let p = buffers.get(s);
+  if (!p) {
+    const ctx = contexto();
+    p = ctx
+      ? fetch(`/sonidos/${s}.mp3`)
+          .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+          .then((b) => ctx.decodeAudioData(b))
+          .catch(() => null)
+      : Promise.resolve(null);
+    buffers.set(s, p);
+  }
+  return p;
+}
+
+/** Deja listos los sonidos de un juego antes de que suenen (el primero no llega tarde). */
+export function precargarSonidos(lista: Sonido[]) {
+  if (typeof window === "undefined") return;
+  lista.forEach((s) => void cargar(s));
+}
+
+/**
+ * Suena una grabación. `tono` cambia la velocidad (1 = normal, 1.2 = más agudo): sirve para que
+ * diez choques de bolas no suenen todos iguales. Respeta el silencio del juego.
+ */
+export function sonar(s: Sonido, volumen = 0.6, tono = 1) {
+  if (muted || typeof window === "undefined") return;
+  const ctx = contexto();
+  if (!ctx) return;
+  void cargar(s).then((buf) => {
+    if (!buf || muted) return;
+    try {
+      const src = ctx.createBufferSource();
+      const g = ctx.createGain();
+      src.buffer = buf;
+      src.playbackRate.value = tono;
+      g.gain.value = Math.max(0, Math.min(1, volumen));
+      src.connect(g).connect(ctx.destination);
+      src.start();
+    } catch {
+      // sin audio
+    }
+  });
 }

@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, tap as vibrar } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap as vibrar } from "./Shell";
 import { Fin } from "./Fin";
 import css from "./Servicio.module.css";
+import { Emoji } from "./Emoji";
 
 type Ing = { id: string; label: string; emoji: string };
 const ING: Ing[] = [
@@ -108,6 +109,9 @@ function newOrder(served: number, avoid: string[] = []): Order {
  * Rápido = propina. Desde el nivel 3 la receta se esconde a los pocos segundos.
  */
 export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["campana", "pop", "acierto", "monedas"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [served, setServed] = useState(0);
   const [tips, setTips] = useState(0);
@@ -211,8 +215,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
         const o = newOrder(servedRef.current, cur.map((x) => x.c.name));
         cur = [...cur, o];
         nextArrival = t + 900 + Math.random() * 1500;
-        beep(1046, 80, "sine", 0.12);
-        later(() => beep(1318, 120, "sine", 0.12), 90);
+        sonar("campana", 0.4);
         vibrar(15);
       }
       if (cur !== ordersRef.current) setOrdersBoth(cur);
@@ -242,7 +245,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
     if (o.recipe.steps.includes(id)) {
       setFb({ id, ok: true, n: fbN.current });
       const got = [...o.got, id];
-      beep(500 + got.length * 60, 60, "triangle", 0.16);
+      sonar("pop", 0.5, 0.9 + got.length * 0.07);
       vibrar(6);
       if (got.length === o.recipe.steps.length) {
         const lvlAntes = Math.floor(servedRef.current / 3) + 1;
@@ -253,12 +256,8 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
         const tip = o.vip ? 1000 : speedy > 0.6 ? 500 : speedy > 0.3 ? 200 : 0;
         if (tip) setTips((x) => x + tip);
         // Campanita de entrega; con propina, monedas.
-        beep(880, 90, "triangle", 0.16);
-        later(() => beep(1320, 160, "triangle", 0.15), 85);
-        if (tip) {
-          later(() => beep(1760, 60, "square", 0.05), 210);
-          later(() => beep(2093, 90, "square", 0.05), 280);
-        }
+        sonar("acierto", 0.5);
+        if (tip) later(() => sonar("monedas", 0.55), 200);
         if (o.vip) {
           later(() => beep(1200, 120), 350);
           later(() => beep(1500, 240), 480);
@@ -305,7 +304,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
       <Shell title="Servicio" onBack={onBack}>
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🧑‍🍳
+            <Emoji e="🧑‍🍳" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Llegan clientes y piden algo de la casa. Tocá los ingredientes que lleva (en cualquier orden) antes de que se les acabe la paciencia: los apurados se
@@ -328,8 +327,9 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
       onBack={onBack}
       right={
         <span key={lives} className={lives < LIVES ? css.vidaMenos : ""} aria-label={`${lives} vidas`}>
-          {"❤".repeat(lives)}
-          {"♡".repeat(Math.max(0, LIVES - lives))}
+          {Array.from({ length: LIVES }, (_, k) => (
+            <Emoji key={k} e="❤️" size="1.05em" style={k < lives ? undefined : { filter: "grayscale(1)", opacity: 0.3 }} />
+          ))}
         </span>
       }
     >
@@ -376,11 +376,11 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
                   <img src={o.c.img} alt="" className="jg-cliente-img" />
                 ) : (
                   <span className="jg-cliente-face" aria-hidden="true">
-                    {o.c.face}
+                    <Emoji e={o.c.face} />
                   </span>
                 )}
                 <span key={humor} className={css.humor} aria-hidden="true">
-                  {humor}
+                  <Emoji e={humor} style={{ display: "block" }} />
                 </span>
               </span>
               <div className="min-w-0 flex-1 text-left">
@@ -392,7 +392,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
                 <p className="mt-1 flex flex-wrap gap-1 text-sm">
                   {o.recipe.steps.map((s) => (
                     <span key={s} className={`jg-ing ${o.got.includes(s) ? `is-got ${css.puesto}` : o.hidden ? "is-hidden" : ""}`}>
-                      {o.got.includes(s) || !o.hidden ? byId.get(s)?.emoji : "?"}
+                      {o.got.includes(s) || !o.hidden ? <Emoji e={byId.get(s)?.emoji ?? ""} size="1.3em" /> : "?"}
                     </span>
                   ))}
                 </p>
@@ -416,7 +416,9 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
             aria-label={i.label}
             disabled={!current}
           >
-            <span aria-hidden="true">{i.emoji}</span>
+            <span aria-hidden="true">
+              <Emoji e={i.emoji} size="1.15em" />
+            </span>
             <span>{i.label}</span>
             {fb?.id === i.id && <span key={fb.n} className={`${css.toque} ${fb.ok ? css.toqueBien : css.toqueMal}`} aria-hidden="true" />}
           </button>

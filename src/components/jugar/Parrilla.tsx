@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
 import { puntoDelCorte } from "@/lib/juegos-reglas";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import { prepararLienzo, puntoEnLienzo } from "./lienzo";
+import { Emoji } from "./Emoji";
 import {
   correrTemblor,
   dibujarFlotantes,
@@ -118,6 +119,9 @@ function nuevoJuego(): Juego {
  * Quemado, resta.
  */
 export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["golpe", "tic"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [puntos, setPuntos] = useState(0);
   const [quedan, setQuedan] = useState(DURACION);
@@ -166,7 +170,7 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
       if (seg !== ultimoSeg) {
         ultimoSeg = seg;
         setQuedan(seg);
-        if (seg <= 5 && seg > 0) beep(seg === 1 ? 880 : 660, 70, "square", 0.06);
+        if (seg <= 5 && seg > 0) sonar("tic", seg === 1 ? 0.5 : 0.35, seg === 1 ? 1.2 : 1);
       }
       if (resto <= 0 && !j.fin) {
         j.fin = true;
@@ -325,7 +329,7 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
     const p = centro(i);
     if (!c) {
       j.cortes[i] = { desde: t, dura: tiempoDeCoccion(), puesto: t, chispa: 0 };
-      beep(200, 70, "sawtooth", 0.04);
+      sonar("golpe", 0.3, 1.1 + Math.random() * 0.1);
       beep(3200, 60, "square", 0.012);
       tap(6);
       soltar(j.part, p.x, p.y, 8, { color: ["#e8e2d8", "#c9c2b8"], vel: 60, r: 5, g: -50, dura: 0.9, humo: true, roce: 1 });
@@ -376,7 +380,7 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🔥
+            <Emoji e="🔥" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Un minuto de parrilla. Tocá un lugar para poner un chori y tocalo de nuevo para sacarlo. Pasa de rosado a dorado: cuando está tostado

@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import { capturar, prepararLienzo, puntoEnLienzo } from "./lienzo";
+import { Emoji } from "./Emoji";
 import {
   correrTemblor,
   dibujarFlotantes,
@@ -53,6 +54,9 @@ type Props = { onDone: (golpes: number) => void; onBack: () => void; marcas: Mar
  * abierto. Tres errores y afuera.
  */
 export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["paleta", "madera"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [golpes, setGolpes] = useState(0);
   const [vidas, setVidas] = useState(VIDAS);
@@ -113,8 +117,7 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
       vuelo.pico = false;
       haciaMi = true;
       rival.golpe = 1;
-      beep(1150, 26, "square", 0.04);
-      beep(480, 50, "triangle", 0.07);
+      sonar("paleta", 0.4, 1.05 + Math.random() * 0.1);
     };
 
     let raf = 0;
@@ -156,7 +159,7 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
           bola.x = limitar(bola.x, MIN_X + RADIO, MAX_X - RADIO);
           bola.vx = -bola.vx;
           bola.efecto *= -0.5;
-          beep(700, 30, "square", 0.04);
+          sonar("madera", 0.2, 1.4);
           soltar(part, bola.x, bola.y, 5, { color: "#fff4e0", vel: 90, r: 1.6, dura: 0.25 });
         }
 
@@ -165,7 +168,7 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
         bola.z = p < PIQUE ? 16 * (1 - p / PIQUE) + 34 * Math.sin((Math.PI * p) / PIQUE) : 16 * Math.sin((Math.PI / 2) * Math.min(1.4, (p - PIQUE) / (1 - PIQUE)));
         if (!vuelo.pico && p >= PIQUE) {
           vuelo.pico = true;
-          beep(haciaMi ? 900 : 760, 18, "sine", 0.07);
+          sonar("madera", haciaMi ? 0.3 : 0.22, (haciaMi ? 1.35 : 1.25) + Math.random() * 0.08);
           soltar(part, bola.x, bola.y, 4, { color: "rgba(255,255,255,0.7)", vel: 40, r: 1.4, dura: 0.3 });
         }
 
@@ -189,8 +192,8 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
             paleta.golpe = 1;
             setGolpes(hits);
             const centro = Math.abs(offset) < 0.18;
-            beep(centro ? 1500 : 1300, 24, "square", 0.05);
-            beep(560 + Math.min(hits, 40) * 8, 60, "triangle", 0.11);
+            sonar("paleta", centro ? 0.65 : 0.5, (centro ? 1 : 0.92) + Math.random() * 0.08);
+            beep(560 + Math.min(hits, 40) * 8, 60, "triangle", 0.05);
             tap(centro ? 14 : 8);
             soltar(part, bola.x, PALETA_Y - 4, centro ? 14 : 8, { color: ["#fff4e0", "#ffd38a"], vel: 220, r: 2, dura: 0.35, dir: -Math.PI / 2, abanico: 2.2 });
             if (Math.abs(bola.efecto) > 160) flotar(flot, bola.x, PALETA_Y - 34, "¡Con efecto!", "#9fd6ff", 15, 0.7);
@@ -343,7 +346,7 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🏓
+            <Emoji e="🏓" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Jugás contra el gato de la casa. Deslizá el dedo para mover la paleta: si le pegás con la punta sale cruzada, y si la movés al pegarle,

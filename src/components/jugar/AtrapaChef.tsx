@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
-import { FANFARRIA, chime, hitTone, thud, tick, vibrate } from "./juice";
+import { chime, thud, tick, vibrate } from "./juice";
 import css from "./AtrapaChef.module.css";
+import { Emoji } from "./Emoji";
 
 const DURATION = 30;
 const FRASES = ["¡Eh!", "Ni cerca", "Casi", "Se fue a la cocina", "Ja", "Qué manos", "Se te escapa", "Aire"];
@@ -24,6 +25,9 @@ function reducedMotion(): boolean {
  * y más rápida. Tocarlo suma; tres seguidos suman bonus; si aparece rojo (enojado) resta.
  */
 export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["pop", "tic", "logro"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "count" | "play" | "end">("idle");
   const [count, setCount] = useState(3);
   const [left, setLeft] = useState(DURATION);
@@ -138,7 +142,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     if (phase === "end" && !reported.current) {
       reported.current = true;
-      if (score >= METAS.chef) setTimeout(() => chime(FANFARRIA, 110, 200), 450);
+      if (score >= METAS.chef) setTimeout(() => sonar("logro", 0.6), 450);
       onDone(score);
     }
   }, [phase, score, onDone]);
@@ -188,8 +192,8 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
       setScore((s) => s + (bonus ? 2 : 1));
       say(bonus ? `¡Racha ×${streakRef.current}!` : ATRAPADO[Math.floor(Math.random() * ATRAPADO.length)], p.x, p.y - 10, bonus);
       setFx({ id: fxId.current, x: p.x + p.size / 2 - 14, y: p.y, size: p.size, text: bonus ? "+2" : "+1", kind: bonus ? "gold" : "ok" });
-      if (bonus) chime([880, 1175, 1568], 60, 120, "triangle", 0.14);
-      else hitTone(streakRef.current);
+      sonar("pop", 0.5, 0.9 + Math.min(streakRef.current, 12) * 0.03);
+      if (bonus) chime([880, 1175, 1568], 60, 120, "triangle", 0.1);
       vibrate(bonus ? [15, 30, 15] : 15);
     }
     place(elapsed());
@@ -271,7 +275,12 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img key={hits} src="/chef.png" alt="" draggable={false} className={hits ? "jg-squash" : ""} />
-                {pos.angry && <span className="jg-chef-mark">💢</span>}
+                {pos.angry && (
+                  <span className="jg-chef-mark">
+                    {/* Sin el borde ni el filtro que .jg-chef le pone a la foto del chef. */}
+                    <Emoji e="💢" size="1.3em" style={{ border: "none", borderRadius: 0, filter: "none" }} />
+                  </span>
+                )}
               </button>
             )}
             {fx && (

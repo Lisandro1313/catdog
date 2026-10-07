@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { TRIVIA, type TriviaItem } from "@/lib/jugar";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, buzz, keepAwake, shuffle } from "./Shell";
+import { Shell, keepAwake, precargarSonidos, shuffle, sonar } from "./Shell";
 import { Fin } from "./Fin";
-import { FANFARRIA, chime, hitTone, tick, vibrate } from "./juice";
+import { FANFARRIA, chime, tick, vibrate } from "./juice";
 import css from "./Trivia.module.css";
+import { Emoji } from "./Emoji";
 
 /** Milisegundos ahora (helper: el compilador de React no lo cuenta como impureza del render). */
 function now(): number {
@@ -46,6 +47,9 @@ function fromMenu(pairs: Pair[]): TriviaItem[] {
  * El puntaje es la racha, así que no tiene techo.
  */
 export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deLaCarta = [] }: Props) {
+  useEffect(() => {
+    precargarSonidos(["acierto", "error", "logro", "tic"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [deck, setDeck] = useState<TriviaItem[]>([]);
   const [i, setI] = useState(0);
@@ -89,7 +93,7 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
       }
       if (ms <= 0) {
         clearInterval(id);
-        buzz();
+        sonar("error", 0.55);
         answeredAt.current = now();
         setAnswer("⏱");
       }
@@ -112,12 +116,13 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
     answeredAt.current = now();
     if (v === q.answer) {
       const s = streak + 1;
-      if (s === METAS.trivia || s % 5 === 0) chime(FANFARRIA, 90, 160);
-      else hitTone(s);
+      if (s === METAS.trivia) sonar("logro", 0.6);
+      else if (s % 5 === 0) chime(FANFARRIA, 90, 160);
+      else sonar("acierto", 0.5, 0.95 + Math.min(s, 12) * 0.02);
       vibrate(15);
       setStreak(s);
     } else {
-      buzz();
+      sonar("error", 0.55);
       vibrate([60, 40, 60]);
     }
   }
@@ -159,7 +164,7 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
       <Shell title="Verdadero o falso" onBack={onBack}>
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🍸
+            <Emoji e="🍸" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Barra, cocina y {deLaCarta.length > 0 ? "los tragos de la carta" : "la carta de esta noche"}, verdadero o falso. Seguís hasta el primer error; el reloj se achica con la racha. Sin googlear. Para la marca: {METAS.trivia} seguidos.

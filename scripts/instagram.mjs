@@ -21,7 +21,6 @@ const CREMA = "#f3ece1";
 const SERIF = "Georgia, 'Times New Roman', serif";
 const SANS = "'Segoe UI', Arial, sans-serif";
 
-const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 async function png(nombre, svg) {
   await sharp(Buffer.from(svg)).png().toFile(resolve(OUT, nombre));

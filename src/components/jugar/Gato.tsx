@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import { Cuenta } from "./Cuenta";
-import { capturar, emoji, prepararLienzo } from "./lienzo";
+import { capturar, emoji, precargarEmojis, prepararLienzo } from "./lienzo";
 import css from "./Gato.module.css";
+import { Emoji } from "./Emoji";
 
 const N = 15; // celdas por lado
 const W = 360; // el tablero se piensa en 360 × 360 y se estira al ancho del celu
@@ -31,6 +32,9 @@ function speedFor(eaten: number): number {
  * el dedo sobre el tablero o con las flechas.
  */
 export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["pop", "golpe", "logro"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "count" | "play" | "dying" | "end">("idle");
   const [eaten, setEaten] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -65,6 +69,8 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
       return img;
     };
     faces.current = { gato: load("/gato.png"), perros: [load("/perro.png"), load("/perro2.png")] };
+    // Los ingredientes y el choque en 3D, pedidos desde la pantalla de inicio para que ya estén.
+    void precargarEmojis([...FOOD, "🐕", "🐈", "💥"]);
   }, []);
 
   /** Un lugar libre. El perro, además, nunca cae justo adelante del gato. */
@@ -207,7 +213,7 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
       s.deathAt = t;
       s.prev = [];
       buzz();
-      beep(80, 400, "square", 0.08);
+      sonar("golpe", 0.6, 0.8);
       try {
         navigator.vibrate?.([80, 40, 80]);
       } catch {
@@ -241,12 +247,12 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
         setTimeout(() => beep(1760, 160, "triangle", 0.14), 140);
         tap(25);
       } else {
-        beep(520 + Math.min(s.eaten, 40) * 12, 70, "triangle", 0.18);
+        sonar("pop", 0.5, 0.9 + Math.min(s.eaten, 40) * 0.01);
         tap(10);
       }
       if (antes < METAS.gato && s.eaten >= METAS.gato) {
         addFx({ kind: "texto", x: W / 2, y: W / 2, text: "¡Marca!", color: "#f0d590" });
-        [784, 988, 1175, 1568].forEach((fq, k) => setTimeout(() => beep(fq, 110, "triangle", 0.14), 220 + k * 90));
+        setTimeout(() => sonar("logro", 0.6), 220);
       }
       s.food = randomFree();
       s.foodIx = Math.floor(Math.random() * FOOD.length);
@@ -390,7 +396,7 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🐈
+            <Emoji e="🐈" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             El gato de la casa (sí, ese) come lo que encuentra en la cocina y crece. Deslizá el dedo sobre el tablero (o usá las flechas) para guiarlo. Si choca la pared,

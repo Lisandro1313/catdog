@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, shuffle, tap } from "./Shell";
+import { Shell, precargarSonidos, shuffle, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import css from "./Maridaje.module.css";
+import { Emoji } from "./Emoji";
 
 /** Milisegundos ahora (helper: el compilador de React no lo cuenta como impureza del render). */
 function now(): number {
@@ -41,6 +42,9 @@ function nextRound(pairs: Pair[], extra: string[], avoid: string | null): Omit<R
  * El puntaje es la racha: no tiene techo, y sirve de repaso de la carta antes de sentarse.
  */
 export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["acierto", "error", "logro", "tic"]);
+  }, []);
   const carta = modo === "carta";
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [round, setRound] = useState<Round | null>(null);
@@ -99,12 +103,13 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
       setLeft(Math.max(0, (ms / total) * 100));
       // Los últimos tres segundos hacen tic.
       const sec = Math.ceil(ms / 1000);
-      if (sec < lastSec.current && sec <= 3 && sec > 0) beep(sec === 1 ? 1100 : 880, 40, "square", 0.05);
+      if (sec < lastSec.current && sec <= 3 && sec > 0) sonar("tic", sec === 1 ? 0.5 : 0.35, sec === 1 ? 1.2 : 1);
       lastSec.current = Math.min(lastSec.current, sec);
       if (ms <= 0 && !resolved.current) {
         resolved.current = true;
         if (timer.current) clearInterval(timer.current);
-        buzz();
+        sonar("error", 0.55);
+        tap(45);
         setPicked("⏱");
         later(() => setPhase("end"), 1100);
       }
@@ -127,18 +132,17 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
     setPicked(o);
     if (o === round.answer) {
       const s = streak + 1;
-      const base = 523 * Math.pow(2, Math.min(s, 16) / 12);
-      beep(base, 90, "triangle", 0.16);
-      later(() => beep(base * 1.5, 150, "triangle", 0.15), 80);
+      sonar("acierto", 0.5, 0.95 + Math.min(s, 12) * 0.02);
       tap(12);
       setStreak(s);
       if (s === METAS.maridaje) {
         setCartel({ text: "¡Marca para el trago!", id: s });
-        [784, 988, 1175, 1568].forEach((f, k) => later(() => beep(f, 120, "triangle", 0.14), 200 + k * 90));
+        later(() => sonar("logro", 0.6), 200);
       } else if (s > METAS.maridaje && s % 5 === 0) setCartel({ text: `¡${s} seguidos!`, id: s });
       later(() => serve(s, round.dish), 650);
     } else {
-      buzz();
+      sonar("error", 0.55);
+      tap(45);
       later(() => setPhase("end"), 1400);
     }
   }
@@ -148,7 +152,7 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
       <Shell title="Maridaje" onBack={onBack}>
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🍷
+            <Emoji e="🍷" size="1.2em" />
           </p>
           <p className="mt-4 text-sm text-muted">Este juego usa la carta. Cuando esté cargada, aparece acá.</p>
         </div>
@@ -180,7 +184,7 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
       <Shell title="Maridaje" onBack={onBack}>
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🍷
+            <Emoji e="🍷" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             {carta

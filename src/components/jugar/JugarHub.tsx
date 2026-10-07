@@ -5,7 +5,8 @@ import Link from "next/link";
 import { reportScoreAction, setNameAction, startGameAction, type ReportResult } from "@/app/hoy/jugar/actions";
 import { GAMES, PREMIO_MINIMO, ganaDuelo, logrado, logrosParaPremio, retoDelDia, type GameId, type Marcas, type Records } from "@/lib/juegos";
 import { GAME_INFO, Tabla } from "./info";
-import { letSleep, withTransition } from "./Shell";
+import { Emoji } from "./Emoji";
+import { letSleep, precargarSonidos, sonar, withTransition } from "./Shell";
 import { Confetti } from "./Confetti";
 import { NovelaBoton } from "./novela/NovelaBoton";
 import { ShareButton } from "@/components/ShareButton";
@@ -68,8 +69,12 @@ type Props = {
 export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, whatsapp, conCena = false }: Props) {
   const [view, setViewRaw] = useState<View>("hub");
   const pushed = useRef(0);
+  useEffect(() => {
+    precargarSonidos(["clic"]);
+  }, []);
   /** Entrar a un juego deja una entrada en el historial: "atrás" vuelve al hub en vez de salir. */
   const setView = (v: View) => {
+    sonar("clic", 0.3);
     if (v === "hub") letSleep();
     if (v !== "hub") {
       if (pushed.current === 0) {
@@ -324,13 +329,13 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         {duelo.stage === "setup" && (
           <div className="jg-center">
             <p className="text-4xl" aria-hidden="true">
-              ⚔️
+              <Emoji e="⚔️" size="1.2em" />
             </p>
             <p className="mt-3 text-sm text-muted">Dos personas, un celular. Juega uno, después el otro, y gana el mejor. Al mejor de 3. Elegí el juego y pongan los nombres.</p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {GAMES.filter((g) => g !== "mimica").map((g) => (
                 <button key={g} type="button" className={`jg-tab ${duelo.game === g ? "is-on" : ""}`} onClick={() => setDuelo({ ...duelo, game: g })}>
-                  <span aria-hidden="true">{GAME_INFO[g].icon}</span> {GAME_INFO[g].title}
+                  <span aria-hidden="true"><Emoji e={GAME_INFO[g].icon} size="1.25em" /></span> {GAME_INFO[g].title}
                 </button>
               ))}
             </div>
@@ -353,7 +358,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         )}
         {duelo.stage === "between" && (
           <div className="jg-center">
-            <p className="ap-eyebrow">{info.icon} {info.title}</p>
+            <p className="ap-eyebrow"><Emoji e={info.icon} size="1.4em" /> {info.title}</p>
             <p className="ap-display mt-3 text-3xl">
               {duelo.names[0]}: {duelo.scores[0]} {info.unit}
             </p>
@@ -373,8 +378,8 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         {duelo.stage === "done" && (
           <div className="jg-center">
             <Confetti count={campeon ? 90 : serie != null ? 60 : w == null ? 0 : 30} />
-            <p className="ap-eyebrow">{info.icon} {info.title}</p>
-            <h2 className="ap-display mt-3 text-4xl">{campeon ? `🏆 ${campeon}, campeón de la mesa` : serie != null ? `${duelo.names[serie]} se lleva la serie` : w == null ? "Empate" : `Ganó ${duelo.names[w]}`}</h2>
+            <p className="ap-eyebrow"><Emoji e={info.icon} size="1.4em" /> {info.title}</p>
+            <h2 className="ap-display mt-3 text-4xl">{campeon ? <><Emoji e="🏆" /> {campeon}, campeón de la mesa</> : serie != null ? `${duelo.names[serie]} se lleva la serie` : w == null ? "Empate" : `Ganó ${duelo.names[w]}`}</h2>
             {!tor && partidas > 0 && (
               <p className="mt-2 text-sm text-muted">
                 Serie: {duelo.names[0]} {duelo.wins[0]} · {duelo.names[1]} {duelo.wins[1]}
@@ -385,7 +390,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
               {([0, 1] as const).map((k) => (
                 <li key={k} className={`flex items-baseline justify-between py-2 ${w === k ? "text-accent" : ""}`}>
                   <span>
-                    {w === k ? "🏆 " : ""}
+                    {w === k ? <><Emoji e="🏆" />{" "}</> : null}
                     {duelo.names[k]}
                   </span>
                   <span className="tabular-nums">
@@ -465,13 +470,13 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         </div>
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🏆
+            <Emoji e="🏆" size="1.2em" />
           </p>
           <p className="mt-3 text-sm text-muted">Cuatro personas, un celular. Dos semifinales y una final, a una partida cada cruce. Elegí el juego y pongan los nombres.</p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             {GAMES.filter((g) => g !== "mimica").map((g) => (
               <button key={g} type="button" className={`jg-tab ${torneoSetup.game === g ? "is-on" : ""}`} onClick={() => setTorneoSetup({ ...torneoSetup, game: g })}>
-                <span aria-hidden="true">{GAME_INFO[g].icon}</span> {GAME_INFO[g].title}
+                <span aria-hidden="true"><Emoji e={GAME_INFO[g].icon} size="1.25em" /></span> {GAME_INFO[g].title}
               </button>
             ))}
           </div>
@@ -523,13 +528,13 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         <div className="mt-2 flex flex-wrap gap-2">
           {GAMES.map((g) => (
             <button key={g} type="button" className={`jg-tab ${recordGame === g ? "is-on" : ""}`} onClick={() => setRecordGame(g)}>
-              <span aria-hidden="true">{GAME_INFO[g].icon}</span> {GAME_INFO[g].title}
+              <span aria-hidden="true"><Emoji e={GAME_INFO[g].icon} size="1.25em" /></span> {GAME_INFO[g].title}
             </button>
           ))}
         </div>
         <section className="jg-mimica-card mt-5 text-left">
           <p className="ap-eyebrow">
-            {GAME_INFO[recordGame].icon} {GAME_INFO[recordGame].title}
+            <Emoji e={GAME_INFO[recordGame].icon} size="1.4em" /> {GAME_INFO[recordGame].title}
           </p>
           <p className="mt-1 text-xs text-muted">Meta para el trago: {GAME_INFO[recordGame].meta.toLowerCase()}.</p>
           <Tabla rows={records[recordGame]} unit={GAME_INFO[recordGame].unit} mine={marcas[recordGame]} myName={name} />
@@ -588,7 +593,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         <ul className="mt-4 flex flex-wrap gap-2" aria-label="Insignias">
           {insignias.map((b) => (
             <li key={b.label} className="jg-insignia" title={b.label}>
-              <span aria-hidden="true">{b.icon}</span> {b.label}
+              <span aria-hidden="true"><Emoji e={b.icon} size="1.25em" /></span> {b.label}
             </li>
           ))}
         </ul>
@@ -597,7 +602,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
       <button type="button" className="jg-reto mt-4" onClick={() => setView(reto)}>
         <span className="jg-reto-badge">Reto del día</span>
         <span className="jg-reto-title">
-          {GAME_INFO[reto].icon} {GAME_INFO[reto].title}
+          <Emoji e={GAME_INFO[reto].icon} size="1.15em" /> {GAME_INFO[reto].title}
         </span>
         <span className="jg-reto-sub">{logrado(reto, marcas[reto]) ? "✓ Logrado: contó doble." : `Hoy vale doble para el trago: ${GAME_INFO[reto].meta.toLowerCase()}.`}</span>
       </button>
@@ -628,19 +633,19 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
       <h2 className="jg-seccion">Para toda la mesa</h2>
       <div className="jg-mesa-grid">
         <button type="button" className="jg-link jg-link-mesa text-left" onClick={() => setView("impostor")}>
-          <span className="jg-link-title">🕵️ El Impostor</span>
+          <span className="jg-link-title"><Emoji e="🕵️" size="1.15em" /> El Impostor</span>
           <span className="jg-link-sub">De 3 a 12. A todos les toca la misma palabra menos a uno: hablan en ronda y votan quién era.</span>
         </button>
         <button type="button" className="jg-link text-left" onClick={() => { setDuelo({ game: "chef", names: ["", ""], scores: [null, null], wins: [0, 0], turn: 0, stage: "setup" }); setView("duelo"); }}>
-          <span className="jg-link-title">⚔️ Duelo</span>
+          <span className="jg-link-title"><Emoji e="⚔️" size="1.15em" /> Duelo</span>
           <span className="jg-link-sub">Dos personas, un celular, al mejor de 3. En el juego que quieran.</span>
         </button>
         <button type="button" className="jg-link text-left" onClick={() => setView("torneo")}>
-          <span className="jg-link-title">🏆 Torneo</span>
+          <span className="jg-link-title"><Emoji e="🏆" size="1.15em" /> Torneo</span>
           <span className="jg-link-sub">Cuatro personas: dos semis y una final. Sale un campeón.</span>
         </button>
         <a href="https://basas-online.vercel.app/" target="_blank" rel="noopener noreferrer" className="jg-link">
-          <span className="jg-link-title">🃏 Basas online</span>
+          <span className="jg-link-title"><Emoji e="🃏" size="1.15em" /> Basas online</span>
           <span className="jg-link-sub">El juego de cartas de Lisandro, entre varios. Se abre aparte.</span>
         </a>
       </div>
@@ -658,12 +663,12 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
             <li key={g}>
               <button type="button" className={`jg-tile ${ok ? "is-done" : ""} ${g === reto ? "is-reto" : ""}`} onClick={() => setView(g)}>
                 <span className="jg-tile-icon" aria-hidden="true">
-                  {info.icon}
+                  <Emoji e={info.icon} />
                 </span>
                 <span className="jg-tile-title">{info.title}</span>
                 <span className="jg-tile-meta">{ok ? "✓ Logrado" : g === reto ? "Reto del día" : info.meta}</span>
                 {(mine != null || top) && (
-                  <span className="jg-tile-record">{mine != null ? `Tuyo: ${mine}` : `🏆 ${top!.name}: ${top!.best}`}</span>
+                  <span className="jg-tile-record">{mine != null ? `Tuyo: ${mine}` : <><Emoji e="🏆" /> {top!.name}: {top!.best}</>}</span>
                 )}
               </button>
             </li>

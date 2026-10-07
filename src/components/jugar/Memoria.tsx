@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, shuffle, tap } from "./Shell";
+import { Shell, beep, precargarSonidos, shuffle, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import css from "./Memoria.module.css";
+import { Emoji } from "./Emoji";
 
 const PAIRS = 8;
 const PEEK_MS = 1800;
@@ -58,10 +59,11 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
 
   // Se reparte en el cliente (aleatorio) después de montar, para no pelear con la hidratación.
   useEffect(() => {
+    precargarSonidos(["carta", "barajar", "logro"]);
     const id = setTimeout(() => setCards(deal(photos)), 0);
     const p = setTimeout(() => {
       setPeek(false);
-      beep(330, 70, "triangle", 0.06);
+      sonar("carta", 0.35, 0.9);
     }, PEEK_MS);
     const pending = timers.current;
     return () => {
@@ -99,7 +101,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
     if (current.includes(i)) return;
     const next = [...current, i];
     setOpen(next);
-    beep(440 + i * 9, 45, "triangle", 0.1);
+    sonar("carta", 0.5, 0.95 + (i % 5) * 0.03);
     tap(6);
     if (next.length < 2) return;
 
@@ -121,7 +123,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
         tap(c > 1 ? 25 : 15);
         if (nf.size === PAIRS) {
           setCartel({ text: "¡Completo!", id: Date.now() });
-          [784, 988, 1175, 1568].forEach((f, k) => later(() => beep(f, k === 3 ? 320 : 120, "triangle", 0.16), 220 + k * 110));
+          later(() => sonar("logro", 0.6), 220);
           later(() => setShowFin(true), 1300);
         } else if (c >= 2) setCartel({ text: c >= 4 ? `¡Imparable! ×${c}` : `¡Seguidos ×${c}!`, id: Date.now() });
       }, 280);
@@ -142,6 +144,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
     lock.current = false;
     if (missTimer.current) clearTimeout(missTimer.current);
     setCards(deal(photos));
+    sonar("barajar", 0.5);
     setRound((r) => r + 1);
     setOpen([]);
     setMiss([]);
@@ -154,7 +157,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
     setPeek(true);
     later(() => {
       setPeek(false);
-      beep(330, 70, "triangle", 0.06);
+      sonar("carta", 0.35, 0.9);
     }, PEEK_MS);
   }
 
@@ -210,7 +213,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={chica(c.img)} alt="" loading="eager" decoding="async" draggable={false} />
                           ) : (
-                            <span className="jg-emoji">{c.emoji}</span>
+                            <span className="jg-emoji">{c.emoji && <Emoji e={c.emoji} size="1.3em" />}</span>
                           )}
                         </span>
                       </span>

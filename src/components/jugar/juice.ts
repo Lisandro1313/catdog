@@ -1,6 +1,6 @@
 "use client";
 
-import { beep } from "./Shell";
+import { beep, sonar } from "./Shell";
 
 /**
  * Sonidos y gestos chicos que comparten Atrapá al chef, la copa, Simón, mímica, trivia y el impostor.
@@ -22,7 +22,7 @@ export function hitTone(streak: number) {
 
 /** Tic del reloj en los últimos segundos. */
 export function tick(urgent = false) {
-  beep(urgent ? 1180 : 940, 45, "square", 0.05);
+  sonar("tic", urgent ? 0.5 : 0.35, urgent ? 1.2 : 1);
 }
 
 /** Error suave (no tan áspero como buzz): para pasar una carta o un toque al aire. */

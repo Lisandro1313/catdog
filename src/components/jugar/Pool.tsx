@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import { prepararLienzo, puntoEnLienzo, capturar } from "./lienzo";
+import { Emoji } from "./Emoji";
 
 const W = 360;
 const H = 640;
@@ -19,6 +20,14 @@ const TIRON_MAX = 190;
 const FRENO = 210;
 const REBOTE_BANDA = 0.74;
 const REBOTE_BOLA = 0.95;
+/** En el saque chocan diez bolas a la vez: con un choque cada 20 ms alcanza para que suene a pool sin saturar. */
+let ultimoChoque = 0;
+function choque(s: "bola" | "banda", vol: number) {
+  const ahora = performance.now();
+  if (ahora - ultimoChoque < 20) return;
+  ultimoChoque = ahora;
+  sonar(s, vol, 0.9 + Math.random() * 0.25);
+}
 const COLORES = ["#e8c12f", "#2350b0", "#c8322a", "#5f3596", "#e2701f", "#23824f", "#7a1d2b"];
 const CABECERA = { x: W / 2, y: H * 0.77 };
 
@@ -86,6 +95,9 @@ function trazar(bs: Bola[], ux: number, uy: number): { t: number; bola: Bola | n
  * resta una.
  */
 export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["bola", "banda", "tronera", "golpe", "acierto"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [adentro, setAdentro] = useState(0);
   const [tiros, setTiros] = useState(TIROS);
@@ -157,8 +169,8 @@ export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
             } else {
               estado.current.adentro += 1;
               estado.current.metioEnElTiro += 1;
-              beep(330, 120, "triangle", 0.14);
-              setTimeout(() => beep(495, 160, "triangle", 0.14), 90);
+              sonar("tronera", 0.65, 0.95 + Math.random() * 0.1);
+              setTimeout(() => beep(495, 160, "triangle", 0.1), 160);
               tap(15);
               setAdentro(estado.current.adentro);
               const n = b.n;
@@ -169,7 +181,7 @@ export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
 
           const enLaBoca = TRONERAS.some((p) => Math.hypot(b.x - p.x, b.y - p.y) < p.boca);
           if (!enLaBoca) {
-            const golpe = (vel: number) => vel > 120 && beep(140, 30, "sine", Math.min(0.08, vel / 9000));
+            const golpe = (vel: number) => vel > 120 && choque("banda", Math.min(0.55, 0.12 + vel / 2400));
             if (b.x < BANDA + R) {
               b.x = BANDA + R;
               golpe(Math.abs(b.vx));
@@ -223,7 +235,7 @@ export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
             b.vx += imp * nx;
             b.vy += imp * ny;
             moviendo = true;
-            if (rel > 40) beep(1100 + Math.random() * 300, 22, "sine", Math.min(0.14, rel / 3500));
+            if (rel > 40) choque("bola", Math.min(0.7, 0.12 + rel / 1600));
           }
         }
       }
@@ -290,7 +302,7 @@ export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🎱
+            <Emoji e="🎱" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Apoyá el dedo en cualquier lado y tirá para atrás, como una gomera. La guía te muestra a qué bola le pega la blanca y para dónde sale.
@@ -349,7 +361,7 @@ export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
               estado.current.tiros -= 1;
               setTiros(estado.current.tiros);
               setAviso("");
-              beep(160 + f * 80, 70, "triangle", 0.12 + f * 0.1);
+              sonar("golpe", 0.25 + f * 0.3, 1.1 - f * 0.15);
               tap(10 + f * 20);
             }}
             onPointerCancel={() => {

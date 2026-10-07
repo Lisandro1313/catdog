@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { FANFARRIA, chime, vibrate } from "./juice";
 import css from "./Copa.module.css";
+import { Emoji } from "./Emoji";
 
 const COPAS = 5;
 /** Cada copa vale hasta 100: 100 en la línea exacta, 0 si te pasás por mucho o servís de menos. */
@@ -20,6 +21,9 @@ type Props = { onDone: (points: number) => void; onBack: () => void; marcas: Mar
  * Cinco copas distintas, cada una con su línea. Puntos por precisión.
  */
 export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["vidrio", "brindis"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [i, setI] = useState(0);
   const [level, setLevel] = useState(0);
@@ -100,8 +104,11 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
     // El "clin" de la copa al apoyarla, y después cómo salió.
     if (over) buzz();
     else {
-      beep(2400, 60, "sine", 0.06);
-      if (pts >= 95) chime([880, 1320, 1760], 90, 200);
+      sonar("vidrio", 0.45, 0.95 + Math.random() * 0.1);
+      if (pts >= 95) {
+        setTimeout(() => sonar("brindis", 0.55), 120);
+        chime([880, 1320, 1760], 90, 200, "sine", 0.1);
+      }
       else if (pts >= 80) chime([660, 880], 90, 160);
       else if (pts >= 50) beep(520, 180, "triangle");
       else beep(300, 220, "triangle");
@@ -151,7 +158,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🍷
+            <Emoji e="🍷" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Mantené apretada la copa para servir y soltá justo en la línea dorada. Cinco copas, cada una sube más rápido. Si rebalsa, cero.

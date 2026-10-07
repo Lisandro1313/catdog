@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { Shell, beep, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
-import { emoji, prepararLienzo, puntoEnLienzo, capturar } from "./lienzo";
+import { emoji, precargarEmojis, prepararLienzo, puntoEnLienzo, capturar } from "./lienzo";
+import { Emoji } from "./Emoji";
 import {
   correrTemblor,
   dibujarFlotantes,
@@ -120,6 +121,9 @@ function spriteBotella(escala: number): HTMLCanvasElement {
  * tajo es combo. Si una cae entera, perdés una vida. Las botellas no se tocan: cortar una termina el juego.
  */
 export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["vidrio-roto", "golpe"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [cortadas, setCortadas] = useState(0);
   const [vidas, setVidas] = useState(VIDAS);
@@ -145,7 +149,11 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
     if (!ctx) return;
     const escala = cv.width / W;
     const fondo = fondoFijo(cv, W, H, pintarTabla);
-    const sprites = FRUTAS.map((f) => sprite(f.e, RADIO * 2, escala));
+    let sprites = FRUTAS.map((f) => sprite(f.e, RADIO * 2, escala));
+    // Las frutas en 3D llegan un instante después: cuando están, se vuelven a armar los dibujos.
+    precargarEmojis(FRUTAS.map((f) => f.e)).then(() => {
+      sprites = FRUTAS.map((f) => sprite(f.e, RADIO * 2, escala));
+    });
     const botella = spriteBotella(escala);
     const quieto = pocoMovimiento();
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -204,7 +212,8 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
     const cortar = (c: Cosa, a: Punto, b: Punto, t: number) => {
       const ang = Math.atan2(b.y - a.y, b.x - a.x);
       if (c.botella) {
-        buzz();
+        sonar("vidrio-roto", 0.7);
+        tap(60);
         termino = t;
         rojo = 1;
         temblar(temblor, 14);
@@ -286,7 +295,7 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
           if (!c.botella && !termino) {
             vidasLocal -= 1;
             setVidas(vidasLocal);
-            beep(160, 220, "sawtooth", 0.08);
+            sonar("golpe", 0.45, 0.8);
             tap(30);
             temblar(temblor, 5);
             cruces.push({ x: Math.max(24, Math.min(W - 24, c.x)), vida: 1.2 });
@@ -501,7 +510,7 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🍋
+            <Emoji e="🍋" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Saltan limones, naranjas y frutillas: cortalas deslizando el dedo, rápido. Varias de un tajo es combo. Si una cae entera, perdés una

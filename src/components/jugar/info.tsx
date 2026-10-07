@@ -1,6 +1,7 @@
 "use client";
 
 import { METAS, type GameId } from "@/lib/juegos";
+import { Emoji } from "./Emoji";
 
 export const GAME_INFO: Record<GameId, { title: string; blurb: string; meta: string; icon: string; unit: string }> = {
   maridaje: { title: "Maridaje", blurb: "¿Qué trago es, por lo que lleva? Con cena, ¿con qué cóctel va cada plato? Hasta el primer error, con reloj.", meta: `Racha de ${METAS.maridaje}`, icon: "🍷", unit: "seguidos" },
@@ -36,7 +37,7 @@ export function Tabla({ rows, unit, mine, myName }: { rows: { name: string; best
         return (
           <li key={i} className={`flex items-baseline justify-between gap-3 py-1.5 ${me ? "text-accent" : ""}`}>
             <span className="truncate">
-              <span className="mr-2 inline-block w-5 text-xs text-muted">{["🥇", "🥈", "🥉"][i] ?? `${i + 1}.`}</span>
+              <span className="mr-2 inline-block w-5 text-xs text-muted">{i < 3 ? <Emoji e={["🥇", "🥈", "🥉"][i]} size="1.5em" /> : `${i + 1}.`}</span>
               {r.name}
             </span>
             <span className="tabular-nums">

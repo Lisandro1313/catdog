@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { armarRonda, categorias, leerNombres, MAX_JUGADORES, MAX_NOMBRE, MIN_JUGADORES, nombreDe, ordenDeRonda, type Ronda } from "@/lib/impostor";
-import { Shell, beep, keepAwake, tap } from "./Shell";
+import { Shell, beep, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { FANFARRIA, chime, vibrate } from "./juice";
 import css from "./Impostor.module.css";
+import { Emoji } from "./Emoji";
 
 type Fase =
   | { que: "armar" }
@@ -57,6 +58,9 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
   const [fase, setFase] = useState<Fase>({ que: "armar" });
   /** Hasta cuándo se ignora la tapa: el "Tapar y pasar" queda justo encima y un doble toque mostraría la palabra del siguiente. */
   const tapaBloqueada = useRef(0);
+  useEffect(() => {
+    precargarSonidos(["barajar", "carta", "elegir"]);
+  }, []);
 
   const nombres = useMemo(() => editados ?? leerNombres(guardados) ?? VACIA, [editados, guardados]);
   const jugadores = nombres.length;
@@ -85,7 +89,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
     const r = armarRonda(jugadores, categoria.palabras, Math.random, salieron);
     setRonda(r);
     setSalieron((s) => [...s, r.palabra]);
-    chime([392, 523], 90, 120, "triangle");
+    sonar("barajar", 0.55);
     tapaBloqueada.current = performance.now() + 500;
     setFase({ que: "pasar", turno: 0, viendo: false });
   }
@@ -94,6 +98,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
     if (performance.now() < tapaBloqueada.current) return;
     // Mismo toque y misma vibración para todos: el sonido no puede delatar al impostor.
     tap(30);
+    sonar("carta", 0.5);
     setFase({ que: "pasar", turno, viendo: true });
   }
 
@@ -103,7 +108,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
       chime([523, 659, 784], 90, 140);
       setFase({ que: "charla" });
     } else {
-      beep(440, 70, "triangle", 0.1);
+      sonar("carta", 0.35, 0.9);
       setFase({ que: "pasar", turno: turno + 1, viendo: false });
     }
   }
@@ -224,7 +229,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
               {fase.turno === ronda.impostor ? (
                 <div className={`imp-carta is-impostor ${css.flip}`}>
                   <p className="text-5xl" aria-hidden="true">
-                    🤫
+                    <Emoji e="🤫" size="1.2em" />
                   </p>
                   <p className="ap-display mt-4 text-3xl">Sos el impostor</p>
                   <p className="mx-auto mt-3 max-w-xs text-sm text-muted">
@@ -287,7 +292,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
                 aria-pressed={fase.elegido === k}
                 onClick={() => {
                   tap(12);
-                  beep(fase.elegido === k ? 330 : 520, 60, "triangle", 0.1);
+                  sonar("elegir", 0.4, fase.elegido === k ? 0.85 : 1);
                   setFase({ que: "votar", elegido: fase.elegido === k ? null : k });
                 }}
               >
@@ -308,7 +313,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
         <div className="mt-16 text-center" aria-live="polite">
           <p className="ap-eyebrow">{fase.elegido == null ? "El impostor era…" : `¿Es ${nombre(fase.elegido)}?`}</p>
           <p className={`mt-8 ${css.drum}`} aria-hidden="true">
-            🥁
+            <Emoji e="🥁" size="1.2em" />
           </p>
         </div>
       )}

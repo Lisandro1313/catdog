@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
 import { apilar } from "@/lib/juegos-reglas";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
 import { Fin } from "./Fin";
 import { prepararLienzo } from "./lienzo";
+import { Emoji } from "./Emoji";
 import {
   correrTemblor,
   dibujarFlotantes,
@@ -95,6 +96,9 @@ const baseDe = (i: number, cam: number) => PISO - i * ALTO + cam;
  * seguidas y vuelve a crecer un poco. Cada capa corre un poco más rápido.
  */
 export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["golpe"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [capas, setCapas] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -305,8 +309,9 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
         const ancho = Math.min(PAN.ancho, capa.ancho + 12);
         capa = { ...capa, x: limitar(capa.x - (ancho - capa.ancho) / 2, 0, W - ancho), ancho };
       }
-      beep(NOTAS[Math.min(j.racha - 1, NOTAS.length - 1)], 120, "triangle", 0.14);
-      setTimeout(() => beep(NOTAS[Math.min(j.racha, NOTAS.length - 1)] * 2, 90, "sine", 0.06), 60);
+      sonar("golpe", 0.4, 1.05 + Math.random() * 0.08);
+      beep(NOTAS[Math.min(j.racha - 1, NOTAS.length - 1)], 120, "triangle", 0.12);
+      setTimeout(() => beep(NOTAS[Math.min(j.racha, NOTAS.length - 1)] * 2, 90, "sine", 0.05), 60);
       tap(14);
       j.anillos.push({ x: capa.x, y: base, w: capa.ancho, vida: 1 });
       soltar(j.part, capa.x + capa.ancho / 2, base - ALTO / 2, 18, { color: ["#fff2c4", "#ffd36e", "#ffffff"], vel: 220, r: 2.2, dura: 0.6, g: 120 });
@@ -317,8 +322,8 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
       if (x < top.x) j.pedazos.push({ x, y: base - 6, w: top.x - x, vx: -70, vy: -60, rot: 0, vr: -2.5 - Math.random() * 2, tipo: ing.tipo });
       if (x + top.ancho > top.x + top.ancho) j.pedazos.push({ x: top.x + top.ancho, y: base - 6, w: x - top.x, vx: 70, vy: -60, rot: 0, vr: 2.5 + Math.random() * 2, tipo: ing.tipo });
       const perdio = top.ancho - r.ancho;
-      beep(420 + Math.min(n, 20) * 15, 70, "triangle", 0.12);
-      beep(140, 50, "sawtooth", 0.04);
+      sonar("golpe", 0.45, 0.9 + Math.random() * 0.1);
+      beep(420 + Math.min(n, 20) * 15, 70, "triangle", 0.06);
       tap(8);
       soltar(j.part, x < top.x ? top.x : top.x + top.ancho, base - ALTO / 2, 6, { color: ing.color, vel: 120, r: 2, g: 500, dura: 0.5 });
       if (perdio > top.ancho * 0.4) flotar(j.flot, W / 2, base - ALTO - 40, "¡Uh, finito!", "#f2a5a5", 18, 0.8);
@@ -342,7 +347,7 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🥪
+            <Emoji e="🥪" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Cada capa va y viene arriba del pan. Tocá para soltarla: lo que sobresale se corta y el sánguche se achica. Si cae justo, no perdés nada;

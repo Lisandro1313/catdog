@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, shuffle, keepAwake } from "./Shell";
+import { Shell, beep, buzz, shuffle, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { FANFARRIA, chime, vibrate } from "./juice";
 import css from "./Simon.module.css";
+import { Emoji } from "./Emoji";
 
 /** La alacena del bartender: cada partida toma cuatro al azar, cada uno con su nota. */
 const ALACENA = [
@@ -35,6 +36,9 @@ function randomIndex(): number {
  * hay que repetirlo en orden. Cada ronda suma uno y va más rápido. Los ingredientes cambian por partida.
  */
 export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
+  useEffect(() => {
+    precargarSonidos(["logro"]);
+  }, []);
   const [phase, setPhase] = useState<"idle" | "show" | "input" | "fail" | "end">("idle");
   const [ings, setIngs] = useState<Ing[]>(ALACENA.slice(0, 4));
   const [seq, setSeq] = useState<number[]>([]);
@@ -117,7 +121,7 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
       setSeq(next);
       const hito = r + 1 === METAS.simon;
       setCheer({ text: hito ? `¡Ronda ${r + 1}: la del trago!` : r % 5 === 0 ? `¡${r} al hilo!` : ["¡Bien!", "¡Eso!", "Salud", "¡Sale!"][r % 4], id: r });
-      timers.current.push(setTimeout(() => (hito || r % 5 === 0 ? chime(FANFARRIA, 90, 150) : chime([784, 1047], 80, 130, "triangle")), 180));
+      timers.current.push(setTimeout(() => (hito ? sonar("logro", 0.6) : r % 5 === 0 ? chime(FANFARRIA, 90, 150) : chime([784, 1047], 80, 130, "triangle")), 180));
       vibrate(20);
       timers.current.push(setTimeout(() => show(next, ings), hito || r % 5 === 0 ? 1100 : 800));
       setPhase("show");
@@ -157,7 +161,7 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
-            🧉
+            <Emoji e="🧉" size="1.2em" />
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
             El bartender arma el trago ingrediente por ingrediente, cada uno con su sonido. Miralo, escuchalo y repetilo en el mismo orden. Cada ronda suma uno
@@ -176,7 +180,7 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
             ) : phase === "show" ? (
               <>
                 <span className="jg-shake text-base" aria-hidden="true">
-                  🍸
+                  <Emoji e="🍸" size="1.2em" />
                 </span>
                 Mirá…
               </>
@@ -212,7 +216,7 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
                 aria-label={ing.label}
               >
                 <span className="text-3xl" aria-hidden="true">
-                  {ing.emoji}
+                  <Emoji e={ing.emoji} size="1.1em" />
                 </span>
                 <span className="text-xs">{ing.label}</span>
               </button>
