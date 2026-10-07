@@ -10,6 +10,7 @@ describe("grupoDe", () => {
     const esperado: Record<string, string> = {
       "/admin/salon": "Salón",
       "/admin/mesitas": "Salón",
+      "/admin/historia": "Salón",
       "/admin": "Cenas",
       "/admin/fiestas": "Cenas",
       "/admin/productos": "Cenas",
