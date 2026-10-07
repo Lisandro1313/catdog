@@ -3337,6 +3337,30 @@ details.faq > summary::-webkit-details-marker {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* La foto de un plato en la carta. Chica y al costado: el que busca el precio lo sigue
+   encontrando de un vistazo, y el que duda ve de qué se trata. */
+.carta-lista li.con-foto {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.carta-foto {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(201, 169, 110, 0.25);
+}
+.carta-foto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.carta-lista li.con-foto .relleno {
+  transform: none;
+}
+
 .carta-pie {
   margin-top: 2.5rem;
   text-align: center;

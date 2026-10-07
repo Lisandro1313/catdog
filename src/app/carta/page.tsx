@@ -3,12 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SITE_NAME, ZONE, casaWhatsapp, comoLlegar } from "@/lib/config";
 import { getBarra, getExcepcion } from "@/lib/barra";
-import { getInstagram } from "@/lib/photos";
+import { getInstagram, getPhotos } from "@/lib/photos";
+import { porPlato } from "@/lib/carta-fotos";
 import { InstagramLink } from "@/components/InstagramLink";
 import { getConfigCaja } from "@/lib/caja-rapida";
 import { CartaBarra } from "@/components/home/BarraHero";
 import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
-import { diasQueAbre, estadoAhora, horaDeApertura, textoDeEstado } from "@/lib/horario";
+import { diasQueAbre, estadoAhora, horaDeApertura, proximaApertura, textoDeEstado } from "@/lib/horario";
+import { formatDayInline, formatTime } from "@/lib/dates";
 import { EstadoCasa } from "@/components/home/EstadoCasa";
 import { Reveal } from "@/components/Reveal";
 import { TrackVisit } from "@/components/TrackVisit";
@@ -33,11 +35,12 @@ export const metadata: Metadata = {
 export default async function CartaPage() {
   const barra = await getBarra();
   if (!barra.activa) notFound();
-  const [caja, excepcion, instagram] = await Promise.all([getConfigCaja(), getExcepcion(), getInstagram()]);
+  const [caja, excepcion, instagram, photos] = await Promise.all([getConfigCaja(), getExcepcion(), getInstagram(), getPhotos()]);
 
   const dias = diasQueAbre(barra.dias);
   const hora = horaDeApertura(barra.horario) ?? 20;
   const estadoInicial = textoDeEstado(estadoAhora(dias, hora, new Date(), excepcion));
+  const apertura = proximaApertura(dias, hora, new Date(), excepcion);
   const mapa = comoLlegar();
   const wa = casaWhatsapp("Hola! Estaba viendo la carta y quería preguntar.");
 
@@ -56,9 +59,29 @@ export default async function CartaPage() {
         <p className="mt-4">
           <EstadoCasa dias={dias} hora={hora} inicial={estadoInicial} excepcion={excepcion} />
         </p>
+        {/* Esta es la página de las historias, y el que llega desde una historia casi nunca puede
+            venir en ese momento. Lo que sí puede hacer es dejarse el recordatorio, arriba de todo,
+            antes de bajar a los precios. */}
+        {apertura && (
+          <p className="mt-3 text-sm text-muted">
+            La próxima: <span className="text-ink">{formatDayInline(apertura.inicio)}</span> a las{" "}
+            {formatTime(apertura.inicio).replace(/:00$/u, "")}.{" "}
+            <a className="agendalo" href="/api/agenda" data-mide="agenda">
+              Agendalo
+            </a>
+          </p>
+        )}
       </div>
 
-      <CartaBarra barra={barra} productos={caja.productos} mesaHora={caja.mesas > 0 ? caja.tarifaHora : 0} tragos={SECCIONES_TRAGOS} />
+      {/* Esta es la página a la que mandan las historias: la del que todavía está decidiendo si
+          viene. Es donde más rinde ver el plato. */}
+      <CartaBarra
+        barra={barra}
+        productos={caja.productos}
+        mesaHora={caja.mesas > 0 ? caja.tarifaHora : 0}
+        tragos={SECCIONES_TRAGOS}
+        fotos={porPlato(photos)}
+      />
 
       <div className="mx-auto w-full max-w-2xl px-6 pb-20 text-center">
         <p className="text-sm text-muted">

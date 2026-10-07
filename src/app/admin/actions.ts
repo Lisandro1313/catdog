@@ -26,7 +26,7 @@ import { PARTNERS } from "@/lib/ledger-categories";
 import { storeReceipt } from "@/lib/receipts";
 import { ensureFixedEntries, refreshCurrentWeekEntry, weeklyAmount } from "@/lib/fixed-expenses";
 import { formatPrice, siteUrl } from "@/lib/config";
-import { addPhoto, movePhoto, removePhoto } from "@/lib/photos";
+import { addPhoto, movePhoto, removePhoto, setPhotoPlato } from "@/lib/photos";
 import { renderReservationConfirmed, sendNewEventBlast, sendReminder, sendReservationCancelled, sendReviewRequests } from "@/lib/email";
 import { isEmailConfigured, sendMail } from "@/lib/mailer";
 import { icsFor } from "@/lib/calendar";
@@ -719,6 +719,17 @@ export async function addPhotoAction(_prev: ActionState, formData: FormData): Pr
   revalidatePath("/fechas");
   revalidatePath("/admin/ajustes");
   return { ok: true, message: "Foto agregada. Ya se ve en el home." };
+}
+
+/** A qué plato de la carta va una foto. Vacío = no va en la carta (sigue en el home). */
+export async function photoPlatoAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await setPhotoPlato(id, String(formData.get("plato") ?? ""));
+  revalidatePath("/admin/ajustes");
+  revalidatePath("/");
+  revalidatePath("/carta");
 }
 
 export async function movePhotoAction(formData: FormData) {

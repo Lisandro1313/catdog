@@ -277,6 +277,8 @@ model Photo {
   id        String   @id @default(cuid())
   url       String
   caption   String?
+  /// El plato de la carta al que acompana, tal como se lee en la carta. Null = no va en la carta.
+  plato     String?
   sort      Int      @default(0)
   createdAt DateTime @default(now())
 }

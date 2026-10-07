@@ -17,6 +17,8 @@ import { getBarra, getOpcionesRaw } from "@/lib/barra";
 import { BarraPanel } from "@/components/admin/BarraPanel";
 import { CajaConfigPanel } from "@/components/admin/CajaConfigPanel";
 import { getConfigCaja } from "@/lib/caja-rapida";
+import { nombresDeLaCarta } from "@/lib/carta-fotos";
+import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
 import { PaymentForm, TestMailForm } from "@/components/admin/ActionForms";
 import { getPaymentConfig } from "@/lib/payment";
 import { logoutAction, toggleHoyAction } from "../../actions";
@@ -37,6 +39,9 @@ export default async function AjustesPage() {
     getOpcionesRaw(),
     getConfigCaja(),
   ]);
+  // Los platos tal como se leen en la carta: el panel elige de esta lista y no se escribe a mano,
+  // así una foto no queda colgada de un nombre que no existe.
+  const platos = nombresDeLaCarta({ opciones: barra.opciones, productos: caja.productos, tragos: SECCIONES_TRAGOS });
   const me = session?.role === "user" ? session.name : null;
   const missing = PARTNERS.filter((p) => !users.some((u) => u.name === p));
 
@@ -147,7 +152,7 @@ export default async function AjustesPage() {
           Van al home, en la sección “Un anticipo” (sirven fotos de los cócteles, los platos, la mesa o la casa); la portada queda de fondo del afiche (muy oscurecida). Sacalas con el celular con luz natural o con las velas prendidas: la fachada, la mesa
           puesta, un plato, la barra. Se achican solas antes de subir.
         </p>
-        <PhotosPanel photos={photos} />
+        <PhotosPanel photos={photos} platos={platos} />
       </section>
 
       <section id="quienes-somos" className="scroll-mt-24 card p-5 sm:p-6">

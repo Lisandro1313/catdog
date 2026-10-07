@@ -4,7 +4,20 @@ import type { Barra } from "@/lib/barra";
 import type { Producto } from "@/lib/caja-rapida-tipos";
 import type { SeccionTragos } from "@/lib/carta-tragos";
 import { FORMAS_DE_PAGO, FRASE_DE_LA_CASA, SITE_NAME, formatPrice } from "@/lib/config";
+import { clavePlato, nombreDeOpcion, nombreDeProducto, repartirProductos } from "@/lib/carta-fotos";
 import { Brasas } from "./Brasas";
+
+/** La foto de un plato, si ese plato tiene una. Chica y al costado: acompaña, no manda. */
+type FotoDePlato = { url: string; caption: string | null };
+
+function Foto({ foto, nombre }: { foto: FotoDePlato | undefined; nombre: string }) {
+  if (!foto) return null;
+  return (
+    <span className="carta-foto">
+      <Image src={foto.url} alt={foto.caption ?? nombre} width={128} height={128} sizes="72px" />
+    </span>
+  );
+}
 
 /**
  * El afiche de la casa en formato barra. Nada de precios acá arriba: la primera impresión es el lugar,
@@ -146,7 +159,6 @@ export function LaSemana({ barra, mesaHora, proxima }: { barra: Barra; mesaHora:
   );
 }
 
-const DE_COMER = /s[aá]ng|chori|plato|tapa|papa|picada|empanada|pizza|burger|hamb/iu;
 
 /**
  * La carta, como una carta de bar y no como un volante: secciones, nombres con aire y el precio
@@ -157,17 +169,18 @@ export function CartaBarra({
   productos,
   mesaHora,
   tragos = [],
+  fotos,
 }: {
   barra: Barra;
   productos: Producto[];
   mesaHora: number;
   /** Los tragos con nombre y descripción. Si vienen, el "Trago" suelto no se repite en "Para tomar". */
   tragos?: SeccionTragos[];
+  /** Las fotos de los platos, por nombre normalizado. No todos tienen: van las de los que valen. */
+  fotos?: Map<string, FotoDePlato>;
 }) {
-  const combos = new Set(barra.opciones.map((o) => o.que.toLowerCase()));
-  const sueltos = productos.filter((p) => !combos.has(p.nombre.toLowerCase()));
-  const comer = sueltos.filter((p) => DE_COMER.test(p.nombre));
-  const tomar = sueltos.filter((p) => !DE_COMER.test(p.nombre) && !(tragos.length > 0 && /^trago/iu.test(p.nombre)));
+  const foto = (nombre: string) => fotos?.get(clavePlato(nombre));
+  const { comer, tomar } = repartirProductos(barra.opciones, productos, tragos.length > 0);
 
   return (
     <section id="la-carta" className="reveal mx-auto w-full max-w-3xl scroll-mt-16 px-4 py-16 sm:px-6 sm:py-24">
@@ -183,14 +196,19 @@ export function CartaBarra({
             <p className="carta-titulo">La de la casa</p>
             <p className="carta-bajada">{barra.incluye}</p>
             <ul className="carta-lista">
-              {barra.opciones.map((o) => (
-                <li key={o.que} className={o.desc ? "con-nota" : ""}>
-                  <span className="nombre">Sánguche {o.que.toLowerCase()}</span>
-                  <span className="relleno" aria-hidden="true" />
-                  <span className="precio">{formatPrice(o.precio)}</span>
-                  {o.desc && <span className="nota">{o.desc}</span>}
-                </li>
-              ))}
+              {barra.opciones.map((o) => {
+                const nombre = nombreDeOpcion(o.que);
+                const f = foto(nombre);
+                return (
+                  <li key={o.que} className={[o.desc ? "con-nota" : "", f ? "con-foto" : ""].filter(Boolean).join(" ")}>
+                    <Foto foto={f} nombre={nombre} />
+                    <span className="nombre">{nombre}</span>
+                    <span className="relleno" aria-hidden="true" />
+                    <span className="precio">{formatPrice(o.precio)}</span>
+                    {o.desc && <span className="nota">{o.desc}</span>}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -200,13 +218,18 @@ export function CartaBarra({
             <div className="carta-bloque">
               <p className="carta-titulo">Para tomar</p>
               <ul className="carta-lista">
-                {tomar.map((p) => (
-                  <li key={p.nombre}>
-                    <span className="nombre">{p.nombre.replace(/\s+sol[oa]$/iu, "")}</span>
-                    <span className="relleno" aria-hidden="true" />
-                    <span className="precio">{formatPrice(p.precio)}</span>
-                  </li>
-                ))}
+                {tomar.map((p) => {
+                  const nombre = nombreDeProducto(p.nombre);
+                  const f = foto(nombre);
+                  return (
+                    <li key={p.nombre} className={f ? "con-foto" : ""}>
+                      <Foto foto={f} nombre={nombre} />
+                      <span className="nombre">{nombre}</span>
+                      <span className="relleno" aria-hidden="true" />
+                      <span className="precio">{formatPrice(p.precio)}</span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -216,13 +239,18 @@ export function CartaBarra({
               <>
                 <p className="carta-titulo">Para comer</p>
                 <ul className="carta-lista">
-                  {comer.map((p) => (
-                    <li key={p.nombre}>
-                      <span className="nombre">{p.nombre.replace(/\s+sol[oa]$/iu, "")}</span>
-                      <span className="relleno" aria-hidden="true" />
-                      <span className="precio">{formatPrice(p.precio)}</span>
-                    </li>
-                  ))}
+                  {comer.map((p) => {
+                    const nombre = nombreDeProducto(p.nombre);
+                    const f = foto(nombre);
+                    return (
+                      <li key={p.nombre} className={f ? "con-foto" : ""}>
+                        <Foto foto={f} nombre={nombre} />
+                        <span className="nombre">{nombre}</span>
+                        <span className="relleno" aria-hidden="true" />
+                        <span className="precio">{formatPrice(p.precio)}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </>
             )}
@@ -247,12 +275,16 @@ export function CartaBarra({
               {s.nombre} · {formatPrice(s.precio)}
             </p>
             <ul className="carta-lista">
-              {s.items.map((t) => (
-                <li key={t.nombre} className={t.desc ? "con-nota" : ""}>
-                  <span className="nombre">{t.nombre}</span>
-                  {t.desc && <span className="nota">{t.desc}</span>}
-                </li>
-              ))}
+              {s.items.map((t) => {
+                const f = foto(t.nombre);
+                return (
+                  <li key={t.nombre} className={[t.desc ? "con-nota" : "", f ? "con-foto" : ""].filter(Boolean).join(" ")}>
+                    <Foto foto={f} nombre={t.nombre} />
+                    <span className="nombre">{t.nombre}</span>
+                    {t.desc && <span className="nota">{t.desc}</span>}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ))}

@@ -41,6 +41,7 @@ import { BarraFija } from "@/components/home/BarraFija";
 import { diasQueAbre, estadoAhora, horaDeApertura, horarioSchema, proximaApertura, textoDeEstado } from "@/lib/horario";
 import { getConfigCaja } from "@/lib/caja-rapida";
 import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
+import { porPlato } from "@/lib/carta-fotos";
 
 /**
  * El home se genera y se guarda un minuto (ISR): responde al instante y los metadatos
@@ -166,6 +167,9 @@ export default async function HomePage() {
   const diasAbre = diasQueAbre(barra.dias);
   const horaAbre = horaDeApertura(barra.horario) ?? 20;
   const estadoInicial = textoDeEstado(estadoAhora(diasAbre, horaAbre, new Date(), excepcion));
+  // Las fotos que acompañan a un plato de la carta. No están todas a propósito: una carta con una
+  // foto por renglón se amontona y dejan de ayudar.
+  const fotosDePlato = porPlato(photos);
   // Cuándo vuelve a abrir, con fecha: es lo que se agenda.
   const apertura = modoBarra ? proximaApertura(diasAbre, horaAbre, new Date(), excepcion) : null;
   const proxima = apertura
@@ -400,7 +404,13 @@ export default async function HomePage() {
             </section>
           )}
 
-          <CartaBarra barra={barra} productos={caja?.productos ?? []} mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0} tragos={SECCIONES_TRAGOS} />
+          <CartaBarra
+            barra={barra}
+            productos={caja?.productos ?? []}
+            mesaHora={caja && caja.mesas > 0 ? caja.tarifaHora : 0}
+            tragos={SECCIONES_TRAGOS}
+            fotos={fotosDePlato}
+          />
           {/* El boca a boca es como llegó la mayoría; lo único que falta es hacerlo de un toque. */}
           <Pasala frase={FRASE_DE_LA_CASA} texto={textoParaCompartir} />
 

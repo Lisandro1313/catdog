@@ -1,11 +1,11 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { setVideoAction, addPhotoAction, movePhotoAction, removePhotoAction, setAboutAction, setInstagramAction } from "@/app/admin/actions";
+import { setVideoAction, addPhotoAction, movePhotoAction, photoPlatoAction, removePhotoAction, setAboutAction, setInstagramAction } from "@/app/admin/actions";
 import { compressImage, replaceInputFile } from "@/lib/client-image";
 import type { PhotoRow } from "@/lib/photos";
 
-export function PhotosPanel({ photos }: { photos: PhotoRow[] }) {
+export function PhotosPanel({ photos, platos = [] }: { photos: PhotoRow[]; platos?: string[] }) {
   const [state, action, pending] = useActionState(addPhotoAction, null);
   const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -25,7 +25,7 @@ export function PhotosPanel({ photos }: { photos: PhotoRow[] }) {
       {photos.length > 0 ? (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {photos.map((p, i) => (
-            <PhotoCard key={p.id} photo={p} index={i} total={photos.length} />
+            <PhotoCard key={p.id} photo={p} index={i} total={photos.length} platos={platos} />
           ))}
         </ul>
       ) : (
@@ -54,7 +54,7 @@ export function PhotosPanel({ photos }: { photos: PhotoRow[] }) {
   );
 }
 
-function PhotoCard({ photo, index, total }: { photo: PhotoRow; index: number; total: number }) {
+function PhotoCard({ photo, index, total, platos }: { photo: PhotoRow; index: number; total: number; platos: string[] }) {
   const [state, action, pending] = useActionState(removePhotoAction, null);
   const [confirm, setConfirm] = useState(false);
   if (state?.ok) return null;
@@ -96,6 +96,32 @@ function PhotoCard({ photo, index, total }: { photo: PhotoRow; index: number; to
           </form>
         )}
       </div>
+      {/* A qué plato acompaña. No van todas: la carta con una foto por renglón se amontona y
+          dejan de ayudar. Van las de los platos que valen y el resto sigue siendo texto. */}
+      {platos.length > 0 && (
+        <form action={photoPlatoAction} className="px-2 pt-2">
+          <label className="sr-only" htmlFor={`plato-${photo.id}`}>
+            Plato de la carta
+          </label>
+          <input type="hidden" name="id" value={photo.id} />
+          <select
+            id={`plato-${photo.id}`}
+            name="plato"
+            className="input !min-h-0 py-1 text-xs"
+            defaultValue={photo.plato ?? ""}
+            onChange={(e) => e.currentTarget.form?.requestSubmit()}
+          >
+            <option value="">— No va en la carta —</option>
+            {platos.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+            {photo.plato && !platos.includes(photo.plato) && <option value={photo.plato}>{photo.plato} (ya no está en la carta)</option>}
+          </select>
+        </form>
+      )}
+
       <div className="flex items-center justify-between gap-2 p-2 text-xs">
         <span className="truncate text-muted">{photo.caption ?? "Sin pie de foto"}</span>
         {confirm ? (

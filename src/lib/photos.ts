@@ -3,7 +3,13 @@ import { prisma } from "./prisma";
 
 const MAX_BYTES = 6 * 1024 * 1024;
 
-export type PhotoRow = { id: string; url: string; caption: string | null };
+export type PhotoRow = {
+  id: string;
+  url: string;
+  caption: string | null;
+  /** El plato de la carta que acompaña, si acompaña alguno. */
+  plato: string | null;
+};
 
 /**
  * Las fotos viven en el store privado de Blob (el mismo de los comprobantes) y se sirven desde /foto/[id],
@@ -11,7 +17,7 @@ export type PhotoRow = { id: string; url: string; caption: string | null };
  */
 export async function getPhotos(): Promise<PhotoRow[]> {
   const rows = await prisma.photo.findMany({ orderBy: [{ sort: "asc" }, { createdAt: "asc" }] });
-  return rows.map((p) => ({ id: p.id, url: publicPhotoUrl(p), caption: p.caption }));
+  return rows.map((p) => ({ id: p.id, url: publicPhotoUrl(p), caption: p.caption, plato: p.plato }));
 }
 
 function publicPhotoUrl(p: { id: string; url: string }): string {
@@ -37,7 +43,16 @@ export async function addPhoto(file: File, caption: string | null): Promise<Phot
   const blob = await put(`fotos/lugar.${ext}`, file, { access: "private", addRandomSuffix: true, contentType: file.type });
   const last = await prisma.photo.aggregate({ _max: { sort: true } });
   const row = await prisma.photo.create({ data: { url: blob.url, caption, sort: (last._max.sort ?? 0) + 1 } });
-  return { id: row.id, url: publicPhotoUrl(row), caption: row.caption };
+  return { id: row.id, url: publicPhotoUrl(row), caption: row.caption, plato: row.plato };
+}
+
+/**
+ * A qué plato de la carta acompaña una foto. Vacío la saca de la carta (sigue en el home).
+ * El nombre se guarda tal como se lee en la carta: no hay id de plato, la carta es texto.
+ */
+export async function setPhotoPlato(id: string, plato: string): Promise<void> {
+  const limpio = plato.replace(/\s+/gu, " ").trim().slice(0, 80);
+  await prisma.photo.update({ where: { id }, data: { plato: limpio || null } });
 }
 
 /** Mueve una foto un lugar hacia adelante o atrás; "portada" la pone primera (queda de fondo del afiche). */
