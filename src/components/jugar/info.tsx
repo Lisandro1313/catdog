@@ -3,7 +3,7 @@
 import { METAS, type GameId } from "@/lib/juegos";
 
 export const GAME_INFO: Record<GameId, { title: string; blurb: string; meta: string; icon: string; unit: string }> = {
-  maridaje: { title: "Maridaje", blurb: "¿Con qué cóctel va cada plato? Seguís hasta el primer error y el reloj corre.", meta: `Racha de ${METAS.maridaje}`, icon: "🍷", unit: "seguidos" },
+  maridaje: { title: "Maridaje", blurb: "¿Qué trago es, por lo que lleva? Con cena, ¿con qué cóctel va cada plato? Hasta el primer error, con reloj.", meta: `Racha de ${METAS.maridaje}`, icon: "🍷", unit: "seguidos" },
   servicio: { title: "Servicio", blurb: "Llegan clientes (hasta dos a la vez), piden, y vos armás el pedido tocando los ingredientes. Propina si sos rápido.", meta: `${METAS.servicio} pedidos`, icon: "🧑‍🍳", unit: "pedidos" },
   ritmo: { title: "Ritmo de la casa", blurb: "Bajan notas por cuatro carriles: tocá a tiempo y suena la canción. Tangos, clásicos y tradicionales.", meta: `${METAS.ritmo} puntos`, icon: "🎸", unit: "pts" },
   gato: { title: "El gato de la casa", blurb: "El gato de la casa come ingredientes y crece. Ojo con los perros y con tu propia cola.", meta: `${METAS.gato} ingredientes`, icon: "🐈", unit: "ingr." },
@@ -13,6 +13,14 @@ export const GAME_INFO: Record<GameId, { title: string; blurb: string; meta: str
   copa: { title: "Llená la copa", blurb: "Mantené apretado para servir y soltá justo en la línea. Cinco copas.", meta: `${METAS.copa} de 500 puntos`, icon: "🍷", unit: "pts" },
   simon: { title: "Simón de la barra", blurb: "El bartender arma un trago: repetí los ingredientes en orden.", meta: `Llegar a la ronda ${METAS.simon}`, icon: "🧉", unit: "rondas" },
   mimica: { title: "Mímica", blurb: "Para la mesa: uno actúa, los demás adivinan.", meta: `${METAS.mimica} aciertos en un minuto`, icon: "🎭", unit: "aciertos" },
+  pingpong: { title: "Ping pong", blurb: "Como en la mesa de la casa: devolvé la pelota con la paleta. Cada golpe va más rápido. Tres errores y afuera.", meta: `${METAS.pingpong} devoluciones`, icon: "🏓", unit: "golpes" },
+  pool: { title: "Embocá", blurb: "Siete bolas, diez tiros. Tirá para atrás desde la blanca para apuntar y soltá. Si metés la blanca, resta.", meta: `${METAS.pool} bolas adentro`, icon: "🎱", unit: "bolas" },
+  sanguche: { title: "Armá el sánguche", blurb: "Cada capa va y viene: tocá para soltarla. Lo que sobresale se cae. Justo arriba, no perdés nada.", meta: `${METAS.sanguche} capas`, icon: "🥪", unit: "capas" },
+  parrilla: { title: "La parrilla", blurb: "Un minuto de parrilla. Tocá un lugar para poner un chori y tocalo de nuevo cuando esté a punto. Quemado, resta.", meta: `${METAS.parrilla} puntos en un minuto`, icon: "🔥", unit: "pts" },
+  fruta: { title: "Cortá la fruta", blurb: "Saltan limones, naranjas y frutillas: cortalas deslizando el dedo. Las botellas no se tocan.", meta: `${METAS.fruta} frutas`, icon: "🍋", unit: "frutas" },
+  vaso: { title: "Deslizá el vaso", blurb: "Empujá el vaso por la barra para que frene en el blanco. Cinco tiros. Si se cae, cero.", meta: `${METAS.vaso} de 500 puntos`, icon: "🍺", unit: "pts" },
+  palabra: { title: "La palabra de la casa", blurb: "Cinco letras, seis intentos. Verde: está y en su lugar. Amarillo: está, en otro lado.", meta: `En ${METAS.palabra} intentos o menos`, icon: "🟩", unit: "intentos" },
+  fusion: { title: "2048 de la barra", blurb: "Deslizá para juntar: dos hielos hacen un limón, dos limones una menta… hasta el trago de la noche.", meta: `${METAS.fusion} puntos`, icon: "🧊", unit: "pts" },
   trivia: { title: "Verdadero o falso", blurb: "Barra y cocina. Seguís hasta el primer error, con reloj.", meta: `Racha de ${METAS.trivia}`, icon: "🍸", unit: "seguidos" },
 };
 

@@ -2,10 +2,18 @@
  * Metas, tipos y reglas puras de los juegos de /hoy/jugar. Sin base de datos: lo importan los componentes cliente.
  */
 
-/** Cuántos juegos hay que lograr para el trago (todos menos dos: la mímica necesita mesa, y uno de yapa). */
+/**
+ * Cuántos logros hacen falta para el trago. Eran "todos menos dos" cuando había once juegos.
+ * Con diecinueve no se sube: más juegos es más para elegir, no más para hacer. Pedir diecisiete
+ * en una noche sería que no lo gane nadie.
+ */
 export const PREMIO_MINIMO = 9;
 
-export const GAMES = ["maridaje", "servicio", "gato", "ritmo", "memoria", "chef", "lisandro", "copa", "simon", "mimica", "trivia"] as const;
+export const GAMES = [
+  "maridaje", "servicio", "gato", "ritmo", "memoria", "chef", "lisandro", "copa", "simon", "mimica", "trivia",
+  // Los ocho del 2026-10-07. Las metas son a ojo hasta que haya marcas reales: recalibrar como las otras.
+  "pingpong", "pool", "sanguche", "parrilla", "fruta", "vaso", "palabra", "fusion",
+] as const;
 export type GameId = (typeof GAMES)[number];
 
 /**
@@ -38,10 +46,29 @@ export const METAS: Record<GameId, number> = {
   mimica: 8,
   /** Trivia: racha de aciertos seguidos (con reloj). Mejor marca real 12. */
   trivia: 12,
+  /** Ping pong: devoluciones antes de errar tres. La pelota acelera en cada golpe. */
+  pingpong: 40,
+  /** Embocá: bolas adentro en diez tiros (son siete; meter la blanca resta una). */
+  pool: 5,
+  /** Armá el sánguche: capas apiladas. Cada capa corre más rápido. */
+  sanguche: 18,
+  /** La parrilla: puntos en un minuto, sacando cada corte en su punto. */
+  parrilla: 45,
+  /** Cortá la fruta: frutas cortadas antes de dejar caer tres. */
+  fruta: 45,
+  /** Deslizá el vaso: puntos sobre 500 en cinco tiros. */
+  vaso: 330,
+  /** La palabra de la casa: intentos usados (menos es mejor; no adivinarla cuenta 7). */
+  palabra: 4,
+  /** 2048 de la barra: puntos. Llegar a 2500 es armar un Negroni y algo más. */
+  fusion: 2500,
 };
 
 /** En memoria gana el número más bajo; en el resto, el más alto. */
-export const LOWER_IS_BETTER: Record<GameId, boolean> = { maridaje: false, servicio: false, gato: false, ritmo: false, memoria: true, chef: false, lisandro: false, copa: false, simon: false, mimica: false, trivia: false };
+export const LOWER_IS_BETTER: Record<GameId, boolean> = {
+  maridaje: false, servicio: false, gato: false, ritmo: false, memoria: true, chef: false, lisandro: false, copa: false, simon: false, mimica: false, trivia: false,
+  pingpong: false, pool: false, sanguche: false, parrilla: false, fruta: false, vaso: false, palabra: true, fusion: false,
+};
 
 export type Marcas = Partial<Record<GameId, number>> & { premio?: string | null; premioAt?: string | null; name?: string | null };
 export type RecordRow = { name: string; best: number };
@@ -63,11 +90,16 @@ export function mejora(game: GameId, value: number, current: number | undefined 
 }
 
 /** Valores imposibles se descartan sin guardar (un memotest de 8 pares no baja de 8 movimientos, etc.). */
-const MAX: Record<GameId, number> = { maridaje: 80, servicio: 200, gato: 400, ritmo: 400, memoria: 200, chef: 90, lisandro: 200, copa: 500, simon: 30, mimica: 40, trivia: 80 };
+const MAX: Record<GameId, number> = {
+  maridaje: 80, servicio: 200, gato: 400, ritmo: 400, memoria: 200, chef: 90, lisandro: 200, copa: 500, simon: 30, mimica: 40, trivia: 80,
+  pingpong: 400, pool: 7, sanguche: 200, parrilla: 300, fruta: 600, vaso: 500, palabra: 7, fusion: 200000,
+};
 
 export function plausible(game: GameId, value: number): boolean {
   if (!Number.isInteger(value) || value < 0) return false;
   if (game === "memoria" && value < 8) return false;
+  // Adivinar la palabra lleva por lo menos un intento.
+  if (game === "palabra" && value < 1) return false;
   return value <= MAX[game];
 }
 
@@ -92,6 +124,14 @@ export const MIN_MS: Record<GameId, number> = {
   simon: 20000,
   mimica: 45000,
   trivia: 10000,
+  pingpong: 20000,
+  pool: 20000,
+  sanguche: 15000,
+  parrilla: 55000,
+  fruta: 20000,
+  vaso: 8000,
+  palabra: 12000,
+  fusion: 60000,
 };
 
 /** Nombre para los récords: corto, sin saltos de línea ni links. */

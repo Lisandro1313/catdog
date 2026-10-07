@@ -20,6 +20,7 @@ function premioMsg(m: Marcas, name: string): string {
 }
 import dynamic from "next/dynamic";
 import type { Pair } from "./Maridaje";
+import type { TriviaItem } from "@/lib/jugar";
 
 /** Cada juego se baja recién cuando se abre: el hub queda liviano en datos móviles. */
 const cargando = () => (
@@ -39,6 +40,14 @@ const Simon = dynamic(() => import("./Simon").then((m) => m.Simon), { ssr: false
 const Mimica = dynamic(() => import("./Mimica").then((m) => m.Mimica), { ssr: false, loading: cargando });
 const Trivia = dynamic(() => import("./Trivia").then((m) => m.Trivia), { ssr: false, loading: cargando });
 const Impostor = dynamic(() => import("./Impostor").then((m) => m.Impostor), { ssr: false, loading: cargando });
+const PingPong = dynamic(() => import("./PingPong").then((m) => m.PingPong), { ssr: false, loading: cargando });
+const Pool = dynamic(() => import("./Pool").then((m) => m.Pool), { ssr: false, loading: cargando });
+const Sanguche = dynamic(() => import("./Sanguche").then((m) => m.Sanguche), { ssr: false, loading: cargando });
+const Parrilla = dynamic(() => import("./Parrilla").then((m) => m.Parrilla), { ssr: false, loading: cargando });
+const Fruta = dynamic(() => import("./Fruta").then((m) => m.Fruta), { ssr: false, loading: cargando });
+const Vaso = dynamic(() => import("./Vaso").then((m) => m.Vaso), { ssr: false, loading: cargando });
+const Palabra = dynamic(() => import("./Palabra").then((m) => m.Palabra), { ssr: false, loading: cargando });
+const Fusion = dynamic(() => import("./Fusion").then((m) => m.Fusion), { ssr: false, loading: cargando });
 
 type View = "hub" | GameId | "premio" | "records" | "duelo" | "torneo" | "impostor";
 type Duelo = { game: GameId; names: [string, string]; scores: [number | null, number | null]; wins: [number, number]; turn: 0 | 1; stage: "setup" | "play" | "between" | "done"; torneo?: Torneo };
@@ -48,9 +57,13 @@ const ROUND = ["Semifinal 1", "Semifinal 2", "Final"];
 
 const NAME_KEY = "catdog:jugar:nombre";
 
-type Props = { /** Lo que hay en la carta de verdad: alimenta los juegos de la mesa. */ deLaCarta?: string[]; photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records; whatsapp: string | null; /** Si esta noche hay una cena de pasos: cambia a donde vuelve el link de arriba. */ conCena?: boolean };
+type Props = {
+  /** Lo que hay en la carta de verdad: alimenta los juegos de la mesa. */ deLaCarta?: string[];
+  /** Sin cena esa noche, Maridaje y Verdadero o falso juegan con la carta de tragos. */
+  modoCarta?: boolean;
+  triviaCarta?: TriviaItem[]; photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records; whatsapp: string | null; /** Si esta noche hay una cena de pasos: cambia a donde vuelve el link de arriba. */ conCena?: boolean };
 
-export function JugarHub({ deLaCarta = [], photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, whatsapp, conCena = false }: Props) {
+export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, whatsapp, conCena = false }: Props) {
   const [view, setViewRaw] = useState<View>("hub");
   const pushed = useRef(0);
   /** Entrar a un juego deja una entrada en el historial: "atrás" vuelve al hub en vez de salir. */
@@ -212,7 +225,7 @@ export function JugarHub({ deLaCarta = [], photos, mimica, pairs, drinks, initia
   const common = { records, marcas, nueva, onBack: salir };
 
   const game =
-    view === "maridaje" ? <Maridaje pairs={pairs} extraDrinks={drinks} onDone={(v) => reportar("maridaje", v)} {...common} /> :
+    view === "maridaje" ? <Maridaje pairs={pairs} extraDrinks={drinks} modo={modoCarta ? "carta" : "cena"} onDone={(v) => reportar("maridaje", v)} {...common} /> :
     view === "servicio" ? <Servicio onDone={(v) => reportar("servicio", v)} {...common} /> :
     view === "gato" ? <Gato onDone={(v) => reportar("gato", v)} {...common} /> :
     view === "lisandro" ? <Lisandro onDone={(v) => reportar("lisandro", v)} {...common} /> :
@@ -222,8 +235,16 @@ export function JugarHub({ deLaCarta = [], photos, mimica, pairs, drinks, initia
     view === "copa" ? <Copa onDone={(v) => reportar("copa", v)} {...common} /> :
     view === "simon" ? <Simon onDone={(v) => reportar("simon", v)} {...common} /> :
     view === "mimica" ? <Mimica cards={mimica} onDone={(v) => reportar("mimica", v)} {...common} /> :
-    view === "trivia" ? <Trivia pairs={pairs} onDone={(v) => reportar("trivia", v)} {...common} /> :
+    view === "trivia" ? <Trivia pairs={pairs} deLaCarta={triviaCarta} onDone={(v) => reportar("trivia", v)} {...common} /> :
     view === "impostor" ? <Impostor deLaCarta={deLaCarta} onBack={salir} /> :
+    view === "pingpong" ? <PingPong onDone={(v) => reportar("pingpong", v)} {...common} /> :
+    view === "pool" ? <Pool onDone={(v) => reportar("pool", v)} {...common} /> :
+    view === "sanguche" ? <Sanguche onDone={(v) => reportar("sanguche", v)} {...common} /> :
+    view === "parrilla" ? <Parrilla onDone={(v) => reportar("parrilla", v)} {...common} /> :
+    view === "fruta" ? <Fruta onDone={(v) => reportar("fruta", v)} {...common} /> :
+    view === "vaso" ? <Vaso onDone={(v) => reportar("vaso", v)} {...common} /> :
+    view === "palabra" ? <Palabra onDone={(v) => reportar("palabra", v)} {...common} /> :
+    view === "fusion" ? <Fusion onDone={(v) => reportar("fusion", v)} {...common} /> :
     null;
 
   if (game) {
@@ -270,7 +291,7 @@ export function JugarHub({ deLaCarta = [], photos, mimica, pairs, drinks, initia
                 Mandar por WhatsApp
               </a>
             )}
-            <ShareButton className="btn btn-ghost btn-sm" text={premioMsg(marcas, name)} />
+            <ShareButton className="btn btn-ghost btn-sm" label="Mandar el código" text={premioMsg(marcas, name)} />
           </div>
           <button className="btn btn-ghost btn-sm mt-6" type="button" onClick={() => setView("hub")}>
             Volver
@@ -378,7 +399,7 @@ export function JugarHub({ deLaCarta = [], photos, mimica, pairs, drinks, initia
                   </button>
                 ) : campeon ? (
                   <>
-                    <ShareButton className="btn btn-primary btn-sm" text={`🏆 ${campeon} es el campeón de la mesa en ${info.title}, en los juegos de CatDog. Finalistas: ${duelo.names[0]} y ${duelo.names[1]}.`} />
+                    <ShareButton className="btn btn-primary btn-sm" label="Contar quién ganó" text={`🏆 ${campeon} es el campeón de la mesa en ${info.title}, en los juegos de CatDog. Finalistas: ${duelo.names[0]} y ${duelo.names[1]}.`} />
                     <button className="btn btn-ghost btn-sm" type="button" onClick={() => { setDuelo(null); setView("torneo"); }}>
                       Otro torneo
                     </button>
@@ -540,7 +561,7 @@ export function JugarHub({ deLaCarta = [], photos, mimica, pairs, drinks, initia
       </div>
       <h1 className="ap-display mt-6 text-4xl">Para la espera</h1>
       <p className="mt-3 text-sm leading-relaxed text-muted">
-        Once juegos, ninguno obligatorio. Si llegás a la marca en {PREMIO_MINIMO} de los {GAMES.length}, la casa te invita un trago.
+        {GAMES.length} juegos, ninguno obligatorio. Si llegás a la marca en {PREMIO_MINIMO} de ellos, la casa te invita un trago.
         Es difícil a propósito.
       </p>
 

@@ -45,6 +45,8 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
         </button>
         <ShareButton
           className="btn btn-ghost btn-sm"
+          label="Desafiá a alguien"
+          copiado="Copiado: mandáselo"
           text={`Hice ${label} en “${GAME_INFO[game].title}”, los juegos de la mesa de CatDog (una casa abierta en La Plata). ¿Me ganás? ${typeof location !== "undefined" ? location.origin : ""}/hoy/jugar`}
         />
       </div>

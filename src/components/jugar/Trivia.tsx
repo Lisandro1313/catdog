@@ -12,7 +12,16 @@ function now(): number {
 }
 
 type Pair = { dish: string; drink: string };
-type Props = { onDone: (streak: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean; pairs?: Pair[] };
+type Props = {
+  onDone: (streak: number) => void;
+  onBack: () => void;
+  marcas: Marcas;
+  records: Records;
+  nueva?: boolean;
+  pairs?: Pair[];
+  /** Preguntas de la carta de tragos: van en vez de las de la cena cuando esa noche no hay cena. */
+  deLaCarta?: TriviaItem[];
+};
 
 /** Preguntas armadas con la carta de la noche: la mitad verdaderas, la mitad con el cóctel cambiado. */
 function fromMenu(pairs: Pair[]): TriviaItem[] {
@@ -34,7 +43,7 @@ function fromMenu(pairs: Pair[]): TriviaItem[] {
  * Verdadero o falso: preguntas al azar (sin repetir en la partida) hasta el primer error, con reloj.
  * El puntaje es la racha, así que no tiene techo.
  */
-export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [] }: Props) {
+export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deLaCarta = [] }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [deck, setDeck] = useState<TriviaItem[]>([]);
   const [i, setI] = useState(0);
@@ -49,7 +58,7 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [] }: P
   function start() {
     reported.current = false;
     // Las de la carta van intercaladas cerca del principio, para que salgan casi siempre.
-    const menu = shuffle(fromMenu(pairs));
+    const menu = shuffle(deLaCarta.length > 0 ? deLaCarta : fromMenu(pairs));
     const base = shuffle(TRIVIA);
     setDeck(menu.length ? [base[0], ...shuffle([...menu, ...base.slice(1, 6)]), ...base.slice(6)] : base);
     setI(0);
@@ -133,7 +142,7 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [] }: P
             🍸
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
-            Barra, cocina y la carta de esta noche, verdadero o falso. Seguís hasta el primer error; el reloj se achica con la racha. Sin googlear. Para la marca: {METAS.trivia} seguidos.
+            Barra, cocina y {deLaCarta.length > 0 ? "los tragos de la carta" : "la carta de esta noche"}, verdadero o falso. Seguís hasta el primer error; el reloj se achica con la racha. Sin googlear. Para la marca: {METAS.trivia} seguidos.
           </p>
           <button className="btn btn-primary mt-6" type="button" onClick={start}>
             Empezar

@@ -8,7 +8,7 @@ import { useState } from "react";
  */
 export function ShareButton({
   text,
-  label = "Compartir la cena",
+  label = "Compartir",
   copiado = "Copiado, pegalo donde quieras",
   className = "btn btn-ghost btn-sm",
 }: {

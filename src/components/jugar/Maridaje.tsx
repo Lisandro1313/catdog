@@ -14,7 +14,17 @@ export type Pair = { dish: string; drink: string };
 
 type Round = { dish: string; answer: string; options: string[] };
 
-type Props = { pairs: Pair[]; extraDrinks: string[]; onDone: (streak: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
+type Props = {
+  pairs: Pair[];
+  extraDrinks: string[];
+  /** "cena": un plato de la cena y su cóctel. "carta": lo que lleva un trago de la carta, y cuál es. */
+  modo?: "cena" | "carta";
+  onDone: (streak: number) => void;
+  onBack: () => void;
+  marcas: Marcas;
+  records: Records;
+  nueva?: boolean;
+};
 
 /** Una ronda al azar: un plato de la noche con su cóctel y tres señuelos distintos cada vez. */
 function nextRound(pairs: Pair[], extra: string[], avoid: string | null): Round {
@@ -29,7 +39,8 @@ function nextRound(pairs: Pair[], extra: string[], avoid: string | null): Round 
  * Maridaje: ¿qué cóctel va con este plato? Seguís hasta el primer error; el reloj por pregunta se acorta.
  * El puntaje es la racha: no tiene techo, y sirve de repaso de la carta antes de sentarse.
  */
-export function Maridaje({ pairs, extraDrinks, onDone, onBack, marcas, records, nueva }: Props) {
+export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, marcas, records, nueva }: Props) {
+  const carta = modo === "carta";
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [round, setRound] = useState<Round | null>(null);
   const [streak, setStreak] = useState(0);
@@ -104,7 +115,7 @@ export function Maridaje({ pairs, extraDrinks, onDone, onBack, marcas, records, 
           <p className="text-4xl" aria-hidden="true">
             🍷
           </p>
-          <p className="mt-4 text-sm text-muted">Este juego usa la carta de la noche. Cuando esté cargada, aparece acá.</p>
+          <p className="mt-4 text-sm text-muted">Este juego usa la carta. Cuando esté cargada, aparece acá.</p>
         </div>
       </Shell>
     );
@@ -137,7 +148,10 @@ export function Maridaje({ pairs, extraDrinks, onDone, onBack, marcas, records, 
             🍷
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted">
-            Te muestro un plato de la noche y cuatro cócteles: tocá el que va con ese plato. Seguís hasta el primer error, y el reloj se achica. Para la marca:{" "}
+            {carta
+              ? "Te muestro lo que lleva un trago de la carta y cuatro nombres: tocá cuál es."
+              : "Te muestro un plato de la noche y cuatro cócteles: tocá el que va con ese plato."}{" "}
+            Seguís hasta el primer error, y el reloj se achica. Para la marca:{" "}
             {METAS.maridaje} seguidos.
           </p>
           <button className="btn btn-primary mt-6" type="button" onClick={start}>
@@ -157,13 +171,14 @@ export function Maridaje({ pairs, extraDrinks, onDone, onBack, marcas, records, 
         <span style={{ width: `${left}%` }} className={left < 30 ? "is-low" : ""} />
       </div>
       <div className="jg-mimica-card mt-4">
-        <p className="ap-eyebrow">¿Con qué cóctel va?</p>
+        <p className="ap-eyebrow">{carta ? "¿Qué trago es?" : "¿Con qué cóctel va?"}</p>
         <p className="mt-4 font-display text-2xl leading-snug">{round.dish}</p>
         {picked != null && (
           <div className="mt-5 border-t border-accent/20 pt-4">
             <p className={`ap-eyebrow ${correct ? "text-ok" : "text-danger"}`}>{correct ? "Ese mismo" : timedOut ? "Se pasó el tiempo" : "No"}</p>
             <p className="mt-2 text-sm text-muted">
-              Va con <span className="text-accent">{round.answer}</span>.
+              {carta ? "Es el " : "Va con "}
+              <span className="text-accent">{round.answer}</span>.
             </p>
           </div>
         )}

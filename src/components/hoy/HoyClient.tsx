@@ -338,6 +338,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
           <div className="mt-6 flex flex-col items-center gap-3">
             <ShareButton
               className="btn btn-primary btn-sm"
+              label="Desafiá a alguien"
               text={`Le pegué a ${score.hits} de ${playable.length} ingredientes escondidos en “Puertas adentro” de ${title} · ${score.stars} ✦. Una casa abierta en La Plata: ${siteUrl}`}
             />
             <TarjetaButton
@@ -457,7 +458,7 @@ export function HoyClient({ eventId, title, dateLabel, acts, ready, bar, barPric
           </Link>
           <Link href="/hoy/jugar" className="jg-link mt-4">
             <span className="jg-link-title">Para la espera: once juegos</span>
-            <span className="jg-link-sub">Maridaje, servicio, el gato, ritmo, memotest, atrapá al chef, los de la casa, llená la copa, Simón, mímica y trivia. Si lográs {PREMIO_MINIMO}, hay un trago.</span>
+            <span className="jg-link-sub">Ping pong, pool, la parrilla, el sánguche, la palabra de la casa, 2048, maridaje, el gato y más: diecinueve, y El Impostor para la mesa. Si lográs {PREMIO_MINIMO}, hay un trago.</span>
           </Link>
         </div>
       </Stage>

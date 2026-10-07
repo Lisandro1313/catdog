@@ -5,6 +5,7 @@ import { getDemoEvent, getTonightEvent } from "@/lib/hoy";
 import { parseBar, parseMenu } from "@/lib/menu";
 import { MIMICA_BASE } from "@/lib/jugar";
 import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
+import { mimicaDeLaCarta, paresDeLaCarta, triviaDeLaCarta } from "@/lib/juegos-carta";
 import { readDeviceKey } from "@/lib/device";
 import { PREMIO_MINIMO, getMarcas, getRecords, issuePrizeIfEarned, logrosParaPremio, type Marcas } from "@/lib/premios";
 import { JugarHub } from "@/components/jugar/JugarHub";
@@ -53,14 +54,22 @@ export default async function JugarPage({ searchParams }: { searchParams: Promis
   }
   if (jugador) marcas = { ...marcas, name: jugador.nombre };
 
+  // Con una cena esa noche, los juegos de preguntas usan su carta. Sin cena (la casa abierta, lo de
+  // todos los días), usan la carta de tragos: antes caían en la última cena que hubo y preguntaban
+  // por platos que ya no estaban.
+  const modoCarta = !tonight;
   const steps = event ? parseMenu(event.menu) : [];
   const dishes = steps.map((s) => s.dish);
   const drinks = event ? [...steps.map((s) => s.drink).filter((d): d is string => Boolean(d)), ...parseBar(event.bar).map((b) => b.name)] : [];
-  const mimica = [...MIMICA_BASE, ...dishes.map((d) => `Comer: ${d}`), ...drinks.map((d) => `Preparar: ${d}`)];
+  const mimica = modoCarta
+    ? [...MIMICA_BASE, ...mimicaDeLaCarta(SECCIONES_TRAGOS)]
+    : [...MIMICA_BASE, ...dishes.map((d) => `Comer: ${d}`), ...drinks.map((d) => `Preparar: ${d}`)];
   // Maridaje: platos con su cóctel (nombre antes del guion largo), más la barra y clásicos como señuelos.
   const shortDrink = (d: string) => d.split(/\s+[—–-]\s+/)[0].trim();
-  const pairs = steps.filter((s) => s.drink).map((s) => ({ dish: s.dish, drink: shortDrink(s.drink!) }));
-  const extraDrinks = [...(event ? parseBar(event.bar).map((b) => b.name) : []), "Negroni", "Gin tonic", "Aperol Spritz", "Mojito", "Whisky sour", "Vermut con soda"];
+  const pairs = modoCarta ? paresDeLaCarta(SECCIONES_TRAGOS) : steps.filter((s) => s.drink).map((s) => ({ dish: s.dish, drink: shortDrink(s.drink!) }));
+  const extraDrinks = modoCarta
+    ? SECCIONES_TRAGOS.flatMap((s) => s.items.map((t) => t.nombre))
+    : [...(event ? parseBar(event.bar).map((b) => b.name) : []), "Negroni", "Gin tonic", "Aperol Spritz", "Mojito", "Whisky sour", "Vermut con soda"];
 
   return (
     <>
@@ -74,7 +83,7 @@ export default async function JugarPage({ searchParams }: { searchParams: Promis
           </a>
         </p>
       )}
-      <JugarHub deLaCarta={SECCIONES_TRAGOS.flatMap((s) => s.items.map((t) => t.nombre))} photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} conCena={Boolean(tonight)} />
+      <JugarHub modoCarta={modoCarta} triviaCarta={modoCarta ? triviaDeLaCarta(SECCIONES_TRAGOS) : []} deLaCarta={SECCIONES_TRAGOS.flatMap((s) => s.items.map((t) => t.nombre))} photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} conCena={Boolean(tonight)} />
     </>
   );
 }

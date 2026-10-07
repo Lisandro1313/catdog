@@ -911,6 +911,7 @@ export default async function HomePage() {
               <p className="text-sm text-muted">¿Conocés a alguien que tiene que venir?</p>
               <ShareButton
                 className="btn btn-ghost btn-sm mt-3"
+                label="Compartir la cena"
                 text={`Mirá esto: una cena en una casa de La Plata, ${dateLong(event.date)}. Cada plato con su cóctel de autor. ${siteUrl()}`}
               />
             </div>
