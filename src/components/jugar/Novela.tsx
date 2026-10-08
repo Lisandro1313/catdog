@@ -64,6 +64,8 @@ import { Cg } from "./novela/Cg";
 import { Ambiente, RankUp } from "./novela/Efectos";
 import { SONIDOS_FANFARRIA, barrer, estallido, fanfarria, papelPicado, reducido, sacudir } from "./novela/fx";
 import { FUENTES } from "./novela/fuentes";
+import { CompartirResultado } from "./CompartirResultado";
+import { nombreArchivo, textoNovela } from "@/lib/compartir";
 import fx from "./novela/Fx.module.css";
 import s from "./Novela.module.css";
 
@@ -810,6 +812,9 @@ export function Novela({ onBack }: { onBack: () => void }) {
   if (pantalla === "fin" && ultimoFinal) {
     const f = FINALES.find((x) => x.id === ultimoFinal)!;
     const deTemporada = FINALES.filter((x) => x.temporada === f.temporada);
+    // Los romances de la temporada 2 son "t2-<confidente>": con quién terminó, sin contar cómo.
+    const pareja = f.id.startsWith("t2-") ? CONFIDENTES.find((c) => `t2-${c}` === f.id) : undefined;
+    const conQuien = pareja ? NOMBRES[pareja] : null;
     return (
       <div className={`${s.root} ${s.portada} ${FUENTES}`}>
         <div className={s.marco}>
@@ -839,6 +844,14 @@ export function Novela({ onBack }: { onBack: () => void }) {
               >
                 <span className={s.rombo}>★</span> Finales {logrados.length}/{FINALES.length}
               </button>
+              <CompartirResultado
+                className={s.menuBtn}
+                label="Compartir la carta del final"
+                carta={{ tipo: "novela", titulo: f.titulo, conQuien, logrados: logrados.length, total: FINALES.length, verdadero: Boolean(f.verdadero), temporada: f.temporada }}
+                texto={textoNovela({ titulo: f.titulo, conQuien, logrados: logrados.length, total: FINALES.length })}
+                archivo={nombreArchivo(`final-${f.id}`)}
+                avisoClassName={s.compartirAviso}
+              />
               <button type="button" className={s.menuBtn} onClick={() => setPantalla("titulo")}>
                 <span className={s.rombo}>◆</span> Menú
               </button>

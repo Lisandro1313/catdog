@@ -1579,3 +1579,13 @@
   background: var(--blanco);
   color: var(--negro);
 }
+
+/* El aviso del botón de compartir la carta del final ("Imagen descargada…"). */
+.compartirAviso {
+  margin: 0;
+  padding: 0.35rem 0.8rem;
+  background: var(--negro);
+  color: var(--blanco);
+  font-size: 0.78rem;
+  transform: skewX(-8deg);
+}

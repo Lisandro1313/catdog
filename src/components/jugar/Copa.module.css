@@ -57,9 +57,10 @@
   }
 }
 
-/* La línea respira para que se vea dónde está */
+/* La línea respira para que se vea dónde está (y, cuando se mueve, se desliza entre los pasos de 50 ms). */
 .line {
   animation: breathe 1.4s ease-in-out infinite;
+  transition: bottom 0.05s linear;
 }
 @keyframes breathe {
   50% {
@@ -147,5 +148,8 @@
   .sparkle,
   .chipOn {
     animation: none;
+  }
+  .line {
+    transition: none;
   }
 }

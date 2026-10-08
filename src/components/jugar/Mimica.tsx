@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, beep, shuffle, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
-import { chime, tick, vibrate } from "./juice";
+import { chime, tick } from "./juice";
+import { Salta } from "./Salta";
+import { vibrar } from "./sensacion";
 import css from "./Mimica.module.css";
 import { Emoji } from "./Emoji";
 
@@ -31,6 +33,14 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
   const startAt = useRef(0);
   const reported = useRef(false);
   const lastTap = useRef(0);
+  /** El festejo demorado del final: se cancela si se sale del juego antes. */
+  const festejo = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (festejo.current) clearTimeout(festejo.current);
+    },
+    [],
+  );
 
   function start() {
     keepAwake();
@@ -42,6 +52,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
     setLeft(DURATION);
     setCount(3);
     reported.current = false;
+    if (festejo.current) clearTimeout(festejo.current);
     setPhase("count");
   }
 
@@ -69,12 +80,12 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
       if (remaining === prev) return;
       prev = remaining;
       setLeft(remaining);
-      if (remaining === 10) vibrate(40);
+      if (remaining === 10) vibrar("medio");
       if (remaining > 0 && remaining <= 10) tick(remaining <= 5);
       if (remaining <= 0) {
         clearInterval(id);
         chime([523, 392], 200, 300);
-        vibrate([60, 40, 60]);
+        vibrar("fuerte");
         setPhase("end");
       }
     }, 200);
@@ -84,7 +95,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
   useEffect(() => {
     if (phase === "end" && !reported.current) {
       reported.current = true;
-      if (hits >= METAS.mimica) setTimeout(() => sonar("logro", 0.6), 700);
+      if (hits >= METAS.mimica) festejo.current = setTimeout(() => sonar("logro", 0.6), 700);
       onDone(hits);
     }
   }, [phase, hits, onDone]);
@@ -144,7 +155,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
                 setPasses((p) => p + 1);
                 setLast("pass");
                 sonar("carta", 0.45, 0.9);
-                vibrate(20);
+                vibrar("suave");
                 setI((k) => k + 1);
               }}
             >
@@ -158,7 +169,7 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
                 setHits((h) => h + 1);
                 setLast("hit");
                 sonar("acierto", 0.55);
-                vibrate([15, 30, 15]);
+                vibrar("medio");
                 setI((k) => k + 1);
               }}
             >
@@ -166,8 +177,8 @@ export function Mimica({ cards, onDone, onBack, marcas, records, nueva }: Props)
             </button>
           </div>
           <p className="mt-4 text-center text-xs text-muted">
-            <span key={hits} className={hits ? css.score : ""}>
-              <span className="text-ink">{hits}</span> {hits === 1 ? "acierto" : "aciertos"}
+            <span>
+              <Salta valor={hits} className={`text-ink ${css.score}`} fuerza={0.5} /> {hits === 1 ? "acierto" : "aciertos"}
             </span>{" "}
             · {passes} {passes === 1 ? "pasada" : "pasadas"}
             {hits < METAS.mimica && ` · faltan ${METAS.mimica - hits} para la marca`}

@@ -1,13 +1,17 @@
 "use client";
 
 import { flushSync } from "react-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Emoji } from "./Emoji";
+import { instalarTactil } from "./sensacion";
 
 /** Marco común de cada juego: volver + título arriba, el juego abajo. */
 export function Shell({ title, onBack, children, right }: { title: string; onBack: () => void; children?: React.ReactNode; right?: React.ReactNode }) {
+  const escena = useRef<HTMLDivElement>(null);
+  // Todos los botones del juego se hunden al apoyar el dedo y vuelven con rebote (sensacion.ts).
+  useEffect(() => instalarTactil(escena.current), []);
   return (
-    <div className="jg-stage">
+    <div ref={escena} className="jg-stage">
       <div className="flex items-center justify-between gap-2 text-xs text-muted">
         <button type="button" className="-m-2 inline-flex min-h-11 items-center p-2 hover:text-ink" onClick={onBack}>
           ← Juegos

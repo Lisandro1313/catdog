@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { armarRonda, categorias, leerNombres, MAX_JUGADORES, MAX_NOMBRE, MIN_JUGADORES, nombreDe, ordenDeRonda, type Ronda } from "@/lib/impostor";
-import { Shell, beep, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, beep, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { FANFARRIA, chime, vibrate } from "./juice";
+import { vibrar } from "./sensacion";
 import css from "./Impostor.module.css";
 import { Emoji } from "./Emoji";
 
@@ -73,14 +74,14 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
   function sumar() {
     if (jugadores >= MAX_JUGADORES) return;
     setEditados([...nombres, ""]);
-    tap(10);
+    vibrar("suave");
     const id = `imp-nombre-${jugadores}`;
     requestAnimationFrame(() => document.getElementById(id)?.focus());
   }
   function sacar(i: number) {
     if (jugadores <= MIN_JUGADORES) return;
     setEditados(nombres.filter((_, k) => k !== i));
-    tap(10);
+    vibrar("suave");
   }
 
   function empezar() {
@@ -97,7 +98,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
   function ver(turno: number) {
     if (performance.now() < tapaBloqueada.current) return;
     // Mismo toque y misma vibración para todos: el sonido no puede delatar al impostor.
-    tap(30);
+    vibrar("medio");
     sonar("carta", 0.5);
     setFase({ que: "pasar", turno, viendo: true });
   }
@@ -252,7 +253,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
       )}
 
       {fase.que === "charla" && ronda && (
-        <div className="mt-10 text-center">
+        <div className={`mt-10 text-center ${css.entra}`}>
           <p className="ap-eyebrow">Ya vieron todos</p>
           <p className={`ap-display mt-6 text-3xl ${css.name} ${css.flip}`}>Arranca {nombre(ronda.empieza)}</p>
           <ol className={`mx-auto mt-5 max-w-sm ${css.orden}`} aria-label="Orden de la ronda">
@@ -279,7 +280,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
       )}
 
       {fase.que === "votar" && ronda && (
-        <div className="mt-8 text-center">
+        <div className={`mt-8 text-center ${css.entra}`}>
           <p className="ap-eyebrow">La votación</p>
           <p className="ap-display mt-4 text-2xl">¿Quién es el impostor?</p>
           <p className="mx-auto mt-2 max-w-xs text-xs text-muted">A la cuenta de tres, todos señalan. Tocá al más votado.</p>
@@ -291,7 +292,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
                 className={`${css.voto} ${fase.elegido === k ? css.votoOn : ""}`}
                 aria-pressed={fase.elegido === k}
                 onClick={() => {
-                  tap(12);
+                  vibrar("suave");
                   sonar("elegir", 0.4, fase.elegido === k ? 0.85 : 1);
                   setFase({ que: "votar", elegido: fase.elegido === k ? null : k });
                 }}
@@ -310,7 +311,7 @@ export function Impostor({ deLaCarta, onBack }: { deLaCarta: string[]; onBack: (
       )}
 
       {fase.que === "suspenso" && (
-        <div className="mt-16 text-center" aria-live="polite">
+        <div className={`mt-16 text-center ${css.entra}`} aria-live="polite">
           <p className="ap-eyebrow">{fase.elegido == null ? "El impostor era…" : `¿Es ${nombre(fase.elegido)}?`}</p>
           <p className={`mt-8 ${css.drum}`} aria-hidden="true">
             <Emoji e="🥁" size="1.2em" />

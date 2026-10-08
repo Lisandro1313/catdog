@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, precargarSonidos, shuffle, sonar, tap } from "./Shell";
+import { Shell, precargarSonidos, shuffle, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import css from "./Maridaje.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { vibrar } from "./sensacion";
 
 /** Milisegundos ahora (helper: el compilador de React no lo cuenta como impureza del render). */
 function now(): number {
@@ -109,7 +111,7 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
         resolved.current = true;
         if (timer.current) clearInterval(timer.current);
         sonar("error", 0.55);
-        tap(45);
+        vibrar("fuerte");
         setPicked("⏱");
         later(() => setPhase("end"), 1100);
       }
@@ -133,7 +135,7 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
     if (o === round.answer) {
       const s = streak + 1;
       sonar("acierto", 0.5, 0.95 + Math.min(s, 12) * 0.02);
-      tap(12);
+      vibrar("medio");
       setStreak(s);
       if (s === METAS.maridaje) {
         setCartel({ text: "¡Marca para el trago!", id: s });
@@ -142,7 +144,7 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
       later(() => serve(s, round.dish), 650);
     } else {
       sonar("error", 0.55);
-      tap(45);
+      vibrar("fuerte");
       later(() => setPhase("end"), 1400);
     }
   }
@@ -210,9 +212,7 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
       title="Maridaje"
       onBack={onBack}
       right={
-        <span key={streak} className={streak ? "jg-pop" : ""}>
-          racha {streak}
-        </span>
+        <Salta valor={streak}>racha {streak}</Salta>
       }
     >
       <div className={`jg-timebar mt-4 ${css.reloj}`} aria-hidden="true">

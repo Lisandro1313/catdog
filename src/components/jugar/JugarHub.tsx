@@ -13,6 +13,10 @@ import { fanfarria, precargarFanfarrias } from "./juice";
 import { musica, pararMusica } from "./musica";
 import { NovelaBoton } from "./novela/NovelaBoton";
 import { ShareButton } from "@/components/ShareButton";
+import { insigniaRacha } from "@/lib/racha";
+import { nombreSemana, semanaDe } from "@/lib/ranking";
+import { dayKey } from "@/lib/juegos";
+import { anotarNoche, useRacha } from "./racha-store";
 
 function fmtPremioAt(iso: string): string {
   const d = new Date(iso);
@@ -75,9 +79,9 @@ type Props = {
   /** Lo que hay en la carta de verdad: alimenta los juegos de la mesa. */ deLaCarta?: string[];
   /** Sin cena esa noche, Maridaje y Verdadero o falso juegan con la carta de tragos. */
   modoCarta?: boolean;
-  triviaCarta?: TriviaItem[]; photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records; whatsapp: string | null; /** Si esta noche hay una cena de pasos: cambia a donde vuelve el link de arriba. */ conCena?: boolean };
+  triviaCarta?: TriviaItem[]; photos: string[]; mimica: string[]; pairs: Pair[]; drinks: string[]; initialMarcas: Marcas; initialRecords: Records; /** El top 5 de esta semana (lunes a domingo). */ initialSemana?: Records; whatsapp: string | null; /** Si esta noche hay una cena de pasos: cambia a donde vuelve el link de arriba. */ conCena?: boolean };
 
-export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, whatsapp, conCena = false }: Props) {
+export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], photos, mimica, pairs, drinks, initialMarcas = {}, initialRecords, initialSemana, whatsapp, conCena = false }: Props) {
   const [view, setViewRaw] = useState<View>("hub");
   const pushed = useRef(0);
   useEffect(() => {
@@ -108,6 +112,9 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
   };
   const [marcas, setMarcas] = useState<Marcas>(initialMarcas);
   const [records, setRecords] = useState<Records>(initialRecords);
+  const [semana, setSemana] = useState<Records>(initialSemana ?? initialRecords);
+  const [recordTab, setRecordTab] = useState<"semana" | "historico">(initialSemana ? "semana" : "historico");
+  const noches = useRacha();
   const tokenRef = useRef<string | null>(null);
   const [sinSenal, setSinSenal] = useState(false);
   const [name, setName] = useState<string>(initialMarcas.name ?? "");
@@ -234,12 +241,15 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
     const before = marcas.premio;
     setMarcas(res.marcas);
     setRecords(res.records);
+    if (res.semana) setSemana(res.semana);
     if (res.marcas.name) setName(res.marcas.name);
     if (!before && res.marcas.premio) setJustWon(true);
   }
 
   /** Cada juego reporta su resultado al terminar; el servidor decide si es marca y si hay premio. */
   async function reportar(game: GameId, value: number) {
+    // Terminó una partida: esta noche cuenta para la racha (aunque sea en duelo: vino a jugar igual).
+    anotarNoche();
     if (duelo && duelo.stage === "play" && duelo.game === game) {
       const scores: [number | null, number | null] = [...duelo.scores] as [number | null, number | null];
       scores[duelo.turn] = value;
@@ -319,6 +329,8 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
   if (topEn.length) insignias.push({ icon: "🥇", label: `Récord de la casa en ${topEn.map((g) => GAME_INFO[g].title).join(", ")}` });
   if (marcas.premio) insignias.push({ icon: "🍸", label: "Trago ganado" });
   if (completos >= 5) insignias.push({ icon: "🔥", label: `${completos} juegos logrados hoy` });
+  const deRacha = insigniaRacha(noches);
+  if (deRacha) insignias.push(deRacha);
   if (duelosGanados > 0) insignias.push({ icon: "⚔️", label: `Duelo${duelosGanados > 1 ? "s" : ""} en la mesa` });
   if (logrado("gato", marcas.gato) && logrado("lisandro", marcas.lisandro)) insignias.push({ icon: "🐾", label: "Amigo de la casa" });
   const common = { records, marcas, nueva, onBack: salir };
@@ -619,6 +631,21 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
           </button>
           <span className="tracking-[0.2em] uppercase">Récords de la casa</span>
         </div>
+        <div className="mt-4 flex gap-2" role="tablist" aria-label="Qué récords ver">
+          {(
+            [
+              ["semana", "Esta semana"],
+              ["historico", "Histórico"],
+            ] as const
+          ).map(([t, l]) => (
+            <button key={t} type="button" role="tab" aria-selected={recordTab === t} className={`jg-tab ${recordTab === t ? "is-on" : ""}`} onClick={() => setRecordTab(t)}>
+              {l}
+            </button>
+          ))}
+        </div>
+        {recordTab === "semana" && (
+          <p className="mt-2 text-[11px] text-muted">Del {nombreSemana(semanaDe(dayKey()))}. El lunes arranca de cero: los primeros de cada juego los anuncia la casa.</p>
+        )}
         <p className="mt-4 text-xs text-muted">Elegí el juego:</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {GAMES.map((g) => (
@@ -632,7 +659,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
             <Emoji e={GAME_INFO[recordGame].icon} size="1.4em" /> {GAME_INFO[recordGame].title}
           </p>
           <p className="mt-1 text-xs text-muted">Meta para el trago: {GAME_INFO[recordGame].meta.toLowerCase()}.</p>
-          <Tabla rows={records[recordGame]} unit={GAME_INFO[recordGame].unit} mine={marcas[recordGame]} myName={name} />
+          <Tabla rows={(recordTab === "semana" ? semana : records)[recordGame] ?? []} unit={GAME_INFO[recordGame].unit} mine={marcas[recordGame]} myName={name} />
           {marcas[recordGame] != null && (
             <p className="mt-3 text-xs text-muted">
               Tu marca de esta noche: <span className="text-ink">{marcas[recordGame]}</span> {GAME_INFO[recordGame].unit}.
@@ -667,6 +694,11 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         {GAMES.length} juegos, ninguno obligatorio. Si llegás a la marca en {PREMIO_MINIMO} de ellos, la casa te invita un trago.
         Es difícil a propósito.
       </p>
+      {noches >= 2 && (
+        <p data-hub className="mt-2 text-xs text-accent" title="Noches que viniste a jugar, sin dejar pasar más de una semana entre una y otra">
+          <Emoji e="🔥" size="1.2em" /> {noches} noches
+        </p>
+      )}
 
       <div data-hub className="mt-6 flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">

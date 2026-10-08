@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap as vibrar } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { Cuenta } from "./Cuenta";
 import css from "./Lisandro.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { sacudir, vibrar } from "./sensacion";
 
 const DURATION = 30;
 const HOLES = 9;
@@ -79,6 +81,16 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
   const streakRef = useRef(0);
   const lastHitAt = useRef<Record<number, number>>({});
   const lastLeft = useRef(DURATION);
+  const puntajeRef = useRef<HTMLParagraphElement>(null);
+  /** Las notas diferidas de un golpe (segunda nota, arpegio del bonus): se cortan al salir. */
+  const notas = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const despues = (ms: number, fn: () => void) => {
+    notas.current.push(setTimeout(fn, ms));
+  };
+  useEffect(() => {
+    const lista = notas.current;
+    return () => lista.forEach(clearTimeout);
+  }, []);
 
   function setPopsBoth(next: Pop[]) {
     popsRef.current = next;
@@ -171,6 +183,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
         streakRef.current = 0;
         setStreak(0);
         beep(150, 80, "triangle", 0.08);
+        vibrar("suave");
         setGolpe({ hole, who: null, id: now(), bad: true, text: "Nada ahí" });
       }
       return;
@@ -183,6 +196,7 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
       streakRef.current = 0;
       setStreak(0);
       setScore((s) => Math.max(0, s + w.points));
+      sacudir(puntajeRef.current, 5);
       setGolpe({ hole, who: w, emoji: pop.emoji, id: now(), bad: true, text: w.say[0] });
       try {
         navigator.vibrate?.([40, 30, 40]);
@@ -198,9 +212,9 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
     const f = 600 + w.points * 80 + Math.min(streakRef.current, 20) * 8;
     sonar("golpe", 0.5, 0.95 + (hole % 4) * 0.03);
     beep(f, 70, "triangle", 0.1);
-    if (w.points >= 2) setTimeout(() => beep(f * 1.26, 80, "triangle", 0.16), 60);
-    if (bonus) [1047, 1319, 1568].forEach((fq, k) => setTimeout(() => beep(fq, 90, "triangle", 0.15), 140 + k * 80));
-    vibrar(bonus ? 30 : 10);
+    if (w.points >= 2) despues(60, () => beep(f * 1.26, 80, "triangle", 0.16));
+    if (bonus) [1047, 1319, 1568].forEach((fq, k) => despues(140 + k * 80, () => beep(fq, 90, "triangle", 0.15)));
+    vibrar(bonus ? "fuerte" : "medio");
     setScore((s) => s + w.points + bonus);
     setGolpe({ hole, who: w, emoji: pop.emoji, id: now(), bad: false, text: bonus ? `¡Racha ×${streakRef.current}! +${w.points + bonus}` : w.say[rnd(w.say.length)] });
   }
@@ -272,8 +286,8 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
                 <em>{streak >= 2 ? `racha ${streak}` : "5 seguidos: +3"}</em>
               </div>
             </div>
-            <p key={score} className={`ap-display shrink-0 text-3xl tabular-nums jg-pop ${score >= METAS.lisandro ? "text-accent" : ""}`}>
-              {score}
+            <p ref={puntajeRef} className={`ap-display shrink-0 text-3xl tabular-nums ${score >= METAS.lisandro ? "text-accent" : ""}`}>
+              <Salta valor={score} />
             </p>
           </div>
           <div className={css.tiempo} aria-hidden="true">
@@ -285,7 +299,12 @@ export function Lisandro({ onDone, onBack, marcas, records, nueva }: Props) {
                 const pop = pops.find((p) => p.hole === h);
                 const col = h % 3;
                 return (
-                  <button key={h} type="button" className={`jg-hole ${css.agujero}`} onPointerDown={() => tap(h)} aria-label={pop && !pop.leaving ? pop.who.label : "Agujero vacío"}>
+                  <button key={h} type="button" className={`jg-hole ${css.agujero}`} onPointerDown={() => tap(h)}
+                    onClick={(e) => {
+                      // Teclado (Enter/Espacio): el dedo y el mouse ya golpearon en pointerdown.
+                      if (e.detail === 0) tap(h);
+                    }}
+                    aria-label={pop && !pop.leaving ? pop.who.label : "Agujero vacío"}>
                     {pop &&
                       (pop.who.img ? (
                         // eslint-disable-next-line @next/next/no-img-element

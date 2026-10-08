@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { evaluar, PALABRAS, type Pista } from "@/lib/juegos-reglas";
-import { Shell, beep, buzz, keepAwake, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake } from "./Shell";
 import { Fin } from "./Fin";
+import { Salta } from "./Salta";
+import { rebotar, sacudir, vibrar } from "./sensacion";
 import s from "./Palabra.module.css";
 
 const INTENTOS = 6;
@@ -61,7 +63,6 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
   const [intentos, setIntentos] = useState<Intento[]>([]);
   const [escrito, setEscrito] = useState("");
   const [aviso, setAviso] = useState<{ k: number; texto: string; queda?: boolean } | null>(null);
-  const [sacudida, setSacudida] = useState({ n: 0, fila: -1 });
   const [revelando, setRevelando] = useState(false);
   /** Cuántos intentos ya terminaron de darse vuelta: el teclado se pinta recién ahí (si no, adelanta el resultado). */
   const [listos, setListos] = useState(0);
@@ -69,6 +70,9 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
   const [cerrada, setCerrada] = useState(false);
   const reported = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  /** La fila que se está escribiendo: se sacude (sin re-montarse) cuando el intento no vale. */
+  const filaActual = useRef<HTMLDivElement>(null);
+  const grilla = useRef<HTMLDivElement>(null);
 
   const despues = (ms: number, fn: () => void) => {
     timers.current.push(setTimeout(fn, ms));
@@ -91,7 +95,6 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
     setIntentos([]);
     setEscrito("");
     setAviso(null);
-    setSacudida({ n: 0, fila: -1 });
     setRevelando(false);
     setListos(0);
     setGano(false);
@@ -101,7 +104,7 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
 
   function rechazar(texto: string) {
     avisar(texto);
-    setSacudida((x) => ({ n: x.n + 1, fila: intentos.length }));
+    sacudir(filaActual.current, 7);
     buzz();
   }
 
@@ -122,7 +125,7 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
       pistas.forEach((p, j) => {
         despues(j * ESCALON_MS + VUELTA_MS / 2, () => {
           beep(p === "bien" ? 784 : p === "esta" ? 587 : 330, 70, "triangle", p === "no" ? 0.05 : 0.09);
-          if (p !== "no") tap(5);
+          if (p !== "no") vibrar("suave");
         });
       });
       const acerto = pistas.every((p) => p === "bien");
@@ -137,7 +140,8 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
           beep(660, 120);
           despues(110, () => beep(880, 120));
           despues(220, () => beep(1320, 240));
-          tap(25);
+          vibrar("fuerte");
+          rebotar(grilla.current, 0.05);
           despues(2000, () => setPhase("end"));
         } else if (ultima) {
           avisar(palabra, true);
@@ -148,13 +152,13 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
       return;
     }
     if (k === "⌫") {
-      if (escrito) tap(3);
+      if (escrito) vibrar("suave");
       setEscrito((e) => e.slice(0, -1));
       return;
     }
     if (escrito.length < LARGO) {
       setEscrito((e) => (e.length < LARGO ? e + k : e));
-      tap(4);
+      vibrar("suave");
     }
   }
 
@@ -240,12 +244,31 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   const teclado = pistasDelTeclado(intentos.slice(0, listos));
+  /**
+   * Las teclas de pantalla escriben al apoyar el dedo (no al soltarlo, como el click): responde al
+   * instante y no se pierden letras cuando se tipea rápido con dos pulgares. El click queda sólo para
+   * el teclado (Espacio sobre una tecla con foco: detail 0), así no escribe dos veces.
+   */
+  const pulsar = (k: string) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      e.preventDefault();
+      tecla(k);
+    },
+    onClick: (e: React.MouseEvent) => {
+      if (e.detail === 0) tecla(k);
+    },
+  });
   const actual = intentos.length;
 
   return (
-    <Shell title="La palabra de la casa" onBack={onBack} right={<>{Math.min(actual + 1, INTENTOS)}/{INTENTOS}</>}>
+    <Shell title="La palabra de la casa" onBack={onBack} right={
+        <>
+          <Salta valor={Math.min(actual + 1, INTENTOS)} fuerza={0.2} />/{INTENTOS}
+        </>
+      }>
       <div className={s.juego}>
-        <div className={s.grilla} role="grid" aria-label="Intentos">
+        <div ref={grilla} className={s.grilla} role="grid" aria-label="Intentos">
           {aviso && (
             <p key={aviso.k} className={`${s.aviso} ${aviso.queda ? s.queda : ""}`} role="status">
               {aviso.texto}
@@ -256,7 +279,7 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
             const texto = it ? it.palabra : i === actual ? escrito : "";
             const festeja = gano && i === actual - 1;
             return (
-              <div key={i === actual ? `f${i}-${sacudida.n}` : `f${i}`} className={`${s.fila} ${i === actual && sacudida.fila === i ? s.sacude : ""}`} role="row">
+              <div key={i} ref={i === actual ? filaActual : undefined} className={s.fila} role="row">
                 {Array.from({ length: LARGO }, (_, j) => {
                   const l = texto[j] ?? "";
                   const cls = it ? `${s[it.pistas[j]]} ${festeja ? s.salta : ""}` : l ? s.escrita : i === actual ? s.actual : "";
@@ -282,7 +305,7 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
           {FILAS_TECLADO.map((fila, i) => (
             <div key={fila} className={s.teclas}>
               {i === 2 && (
-                <button type="button" className={`${s.tecla} ${s.ancha} ${s.enviar}`} onMouseDown={(e) => e.preventDefault()} onClick={() => tecla("OK")}>
+                <button type="button" className={`${s.tecla} ${s.ancha} ${s.enviar}`} onMouseDown={(e) => e.preventDefault()} {...pulsar("OK")}>
                   ENVIAR
                 </button>
               )}
@@ -292,13 +315,13 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
                   type="button"
                   className={`${s.tecla} ${teclado[k] ? s[teclado[k]] : ""}`}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => tecla(k)}
+                  {...pulsar(k)}
                 >
                   {k}
                 </button>
               ))}
               {i === 2 && (
-                <button type="button" className={`${s.tecla} ${s.ancha}`} onMouseDown={(e) => e.preventDefault()} onClick={() => tecla("⌫")} aria-label="Borrar">
+                <button type="button" className={`${s.tecla} ${s.ancha}`} onMouseDown={(e) => e.preventDefault()} {...pulsar("⌫")} aria-label="Borrar">
                   ⌫
                 </button>
               )}

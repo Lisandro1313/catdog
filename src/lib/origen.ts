@@ -19,7 +19,14 @@ export const ORIGENES = [
   { clave: "tarjeta-gastro", label: "Tarjeta gastronómicos", donde: "La de los lunes, para la gente del rubro" },
   { clave: "mail", label: "Mail", donde: "Los avisos que salen por mail" },
   { clave: "agenda", label: "Calendario", donde: "El que se agendó el día y volvió desde el recordatorio" },
+  // Este no se pega a mano: lo lleva solo el resultado que comparten desde los juegos, y entra a /hoy/jugar.
+  { clave: "compartir", label: "Compartido por jugadores", donde: "El resultado de un juego o de la novela que alguien compartió", ruta: "/hoy/jugar" },
 ] as const;
+
+/** La página a la que lleva el link de un origen (casi todos, al home). */
+export function rutaDeOrigen(o: (typeof ORIGENES)[number]): string {
+  return "ruta" in o ? o.ruta : "/";
+}
 
 const LABELS = new Map(ORIGENES.map((o) => [o.clave as string, o.label as string]));
 

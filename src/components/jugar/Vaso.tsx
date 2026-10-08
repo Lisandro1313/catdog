@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
 import { puntosDelVaso } from "@/lib/juegos-reglas";
-import { Shell, beep, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, beep, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { prepararLienzo, puntoEnLienzo, capturar } from "./lienzo";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { correrTemblor, pocoMovimiento, temblar, type Temblor } from "./efectos";
+import { APLASTE, HIT_STOP, TEMBLOR, aplastar, crearAplaste, crearHitStop, escalaAplaste, hitStop, pasoSimulado, rebotar, sacudir, vibrar } from "./sensacion";
 
 const W = 360;
 const H = 600;
@@ -62,6 +65,10 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [puntos, setPuntos] = useState<number[]>([]);
   const canvas = useRef<HTMLCanvasElement>(null);
+  /** La fila de tiros de arriba: el casillero del tiro rebota (o se sacude) cuando se anota. */
+  const filaTiros = useRef<HTMLOListElement>(null);
+  /** El squash del vaso: se estira al salir de la mano y se aplasta al frenar. Lo usa el lienzo y el soltar. */
+  const aplaste = useRef(crearAplaste());
   const vaso = useRef<{ s: number; v: number; fase: Fase; caida: number; aparece: number }>({ s: 0, v: 0, fase: "listo", caida: 0, aparece: 1 });
   const blanco = useRef({ desde: 0.6, hasta: 0.6, t: 1 });
   const agarre = useRef<{ dedo0: number; vaso0: number; muestras: { s: number; t: number }[] } | null>(null);
@@ -90,6 +97,11 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
     let rumor = 0;
     const timers: ReturnType<typeof setTimeout>[] = [];
     const despues = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+    const quieto = pocoMovimiento();
+    const temblor: Temblor = { f: 0 };
+    /** Hit-stop en el frenado bueno: las chispas del brindis esperan un instante antes de saltar. */
+    const hs = crearHitStop();
+    const ap = aplaste.current;
 
     // Lo fijo del dibujo: vetas de la madera, botellas del fondo. Se sortea una vez.
     const vetas = Array.from({ length: 70 }, () => ({ x: -MEDIO + Math.random() * MEDIO * 2, s0: -70 + Math.random() * LARGO, largo: 20 + Math.random() * 70, a: 0.05 + Math.random() * 0.08 }));
@@ -102,6 +114,9 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
     const terminarTiro = (pts: number, texto: string, color: string) => {
       tirosRef.current = [...tirosRef.current, pts];
       setPuntos(tirosRef.current);
+      const casillero = filaTiros.current?.children[tirosRef.current.length - 1];
+      if (pts >= 55) rebotar(casillero, pts >= 95 ? 0.2 : 0.12);
+      else if (pts === 0) sacudir(casillero);
       flotante = { texto, sub: pts > 0 ? `+${pts}` : "", color, s: vaso.current.s, t0: performance.now() };
       despues(1500, () => {
         if (tirosRef.current.length >= TIROS) {
@@ -117,12 +132,13 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
       });
     };
 
-    const dibujarVaso = (x: number, base: number, k: number, alfa: number, giro: number, ahora: number, conSombra: boolean) => {
+    const dibujarVaso = (x: number, base: number, k: number, alfa: number, giro: number, ahora: number, conSombra: boolean, sx = 1, sy = 1) => {
       ctx.save();
       ctx.globalAlpha = alfa;
       ctx.translate(x, base);
       ctx.rotate(giro);
-      ctx.scale(k, k);
+      // El squash se aplica desde la base: el vaso se aplasta contra la barra, no flota.
+      ctx.scale(k * sx, k * sy);
       if (conSombra) {
         ctx.fillStyle = "rgba(0,0,0,0.38)";
         ctx.beginPath();
@@ -185,6 +201,7 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
     const paso = (ahora: number) => {
       const dt = Math.min(0.033, (ahora - antes) / 1000);
       antes = ahora;
+      const dtSim = pasoSimulado(hs, dt, ahora);
       const g = vaso.current;
       const b = blanco.current;
       if (b.t < 1) b.t = Math.min(1, b.t + dt * 2.5);
@@ -205,7 +222,8 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
           g.caida = 0;
           despues(280, () => {
             sonar("vidrio-roto", 0.6, 0.95 + Math.random() * 0.1);
-            tap(45);
+            vibrar("fuerte");
+            temblar(temblor, TEMBLOR.chico);
           });
           terminarTiro(0, "¡Se cayó!", "#e07a5f");
         } else if (g.v <= 0) {
@@ -213,9 +231,12 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
           g.fase = "quieto";
           const pts = puntosDelVaso(g.s / LARGO, b.hasta);
           sonar("madera", 0.3, 0.9);
+          // Frena y se asienta: un aplaste chico siempre (más marcado si quedó bien); en el clavado, además, el hit-stop.
+          aplastar(ap, pts >= 80 ? APLASTE.medio : APLASTE.suave);
           if (pts >= 95) {
+            hitStop(hs, HIT_STOP.medio, ahora);
             despues(120, () => sonar("brindis", 0.55));
-            tap(25);
+            vibrar("medio");
             const y = yDe(g.s) - 30 * esc(g.s);
             chispas = Array.from({ length: 26 }, (_, i) => {
               const ang = (i / 26) * Math.PI * 2;
@@ -232,7 +253,14 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
         g.s += Math.max(0, g.v) * dt * 0.4;
       }
 
-      // --- Fondo: la pared de atrás con botellas, y el piso a los costados
+      // --- Fondo: la pared de atrás con botellas, y el piso a los costados (con el temblor si se rompió)
+      const sac = correrTemblor(temblor, dt, quieto);
+      if (sac.x || sac.y) {
+        ctx.fillStyle = "#0f0b08";
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.save();
+      ctx.translate(sac.x, sac.y);
       const pared = ctx.createLinearGradient(0, 0, 0, Y_FIN);
       pared.addColorStop(0, "#1a120c");
       pared.addColorStop(1, "#2b1c12");
@@ -386,7 +414,8 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
         }
         const sube = (1 - g.aparece) * 18;
         const agarrado = g.fase === "agarrado";
-        dibujarVaso(W / 2 + tiembla, base + sube, k * (agarrado ? 1.03 : 1), g.aparece, tiembla * 0.01, ahora, true);
+        const sq = escalaAplaste(ap, dt);
+        dibujarVaso(W / 2 + tiembla, base + sube, k * (agarrado ? 1.03 : 1), g.aparece, tiembla * 0.01, ahora, true, sq.x, sq.y);
       }
 
       // --- Ayuda para el primer tiro: flechas que suben
@@ -417,10 +446,11 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
         chispas = chispas.filter((c) => c.vida > 0);
         ctx.fillStyle = "#ffe7a8";
         for (const c of chispas) {
-          c.x += c.vx * dt;
-          c.y += c.vy * dt;
-          c.vy += 160 * dt;
-          c.vida -= dt * 1.3;
+          // Con el paso simulado: durante el hit-stop quedan juntas en el vaso y después salen todas.
+          c.x += c.vx * dtSim;
+          c.y += c.vy * dtSim;
+          c.vy += 160 * dtSim;
+          c.vida -= dtSim * 1.3;
           ctx.globalAlpha = Math.max(0, c.vida);
           ctx.beginPath();
           ctx.arc(c.x, c.y, 2.2, 0, Math.PI * 2);
@@ -453,6 +483,7 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
         }
         ctx.restore();
       }
+      ctx.restore();
 
       raf = requestAnimationFrame(paso);
     };
@@ -478,7 +509,7 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
     const y = puntoEnLienzo(e, e.currentTarget, W, H).y;
     agarre.current = { dedo0: sDeY(y), vaso0: g.s, muestras: [{ s: g.s, t: reloj() }] };
     g.fase = "agarrado";
-    tap(6);
+    vibrar("suave");
   }
 
   function arrastrar(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -514,7 +545,9 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
     g.v = v;
     g.fase = "anda";
     sonar("madera", 0.35 + Math.min(0.25, v / 4000), 1.05);
-    tap(8);
+    // Sale de la mano: se estira un poco en la dirección del empujón.
+    aplastar(aplaste.current, -APLASTE.suave);
+    vibrar("suave");
   }
 
   if (phase === "end") {
@@ -526,7 +559,13 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   return (
-    <Shell title="Deslizá el vaso" onBack={onBack} right={phase === "play" ? <>{total} pts</> : null}>
+    <Shell title="Deslizá el vaso" onBack={onBack} right={
+        phase === "play" ? (
+          <>
+            <Salta valor={total} /> pts
+          </>
+        ) : null
+      }>
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">
@@ -542,7 +581,7 @@ export function Vaso({ onDone, onBack, marcas, records, nueva }: Props) {
         </div>
       ) : (
         <>
-          <ol className="mt-3 flex justify-center gap-1.5" aria-label="Tiros">
+          <ol ref={filaTiros} className="mt-3 flex justify-center gap-1.5" aria-label="Tiros">
             {Array.from({ length: TIROS }, (_, i) => {
               const p = puntos[i];
               const actual = i === puntos.length;

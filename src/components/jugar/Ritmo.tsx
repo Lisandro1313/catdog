@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, beep, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { prepararLienzo, puntoEnLienzo } from "./lienzo";
 import css from "./Ritmo.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { APLASTE, aplastar, crearAplaste, escalaAplaste, sacudir, vibrar, type Aplaste } from "./sensacion";
 
 /** Notas como [nombre, duración en tiempos]. "-" es silencio. Todas de dominio público. */
 type Song = { title: string; by: string; bpm: number; notes: [string, number][] };
@@ -226,6 +228,19 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
   const scoreRef = useRef(0);
   const hitsRef = useRef(0);
   const reported = useRef(false);
+  /**
+   * El aro de cada carril se aplasta al acertar y vuelve con resorte. Sin hit-stop: acá manda la
+   * música, y congelar las notas las correría del pulso.
+   */
+  const aros = useRef<Aplaste[]>([crearAplaste(), crearAplaste(), crearAplaste(), crearAplaste()]);
+  const ultimoDibujo = useRef(0);
+  const puntajeRef = useRef<HTMLParagraphElement>(null);
+  /** La nota extra del bonus: se corta si se sale del juego. */
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => {
+    const lista = timers.current;
+    return () => lista.forEach(clearTimeout);
+  }, []);
   const song = SONGS[songIx];
 
   function start() {
@@ -234,6 +249,8 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
     notes.current = chart(song, tempo);
     fx.current = [];
     pressed.current = [-1e9, -1e9, -1e9, -1e9];
+    aros.current = [crearAplaste(), crearAplaste(), crearAplaste(), crearAplaste()];
+    ultimoDibujo.current = 0;
     countIx.current = 0;
     setTotal(notes.current.length);
     startAt.current = now();
@@ -288,14 +305,18 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
     ctx.moveTo(0, LINE_Y);
     ctx.lineTo(W, LINE_Y);
     ctx.stroke();
-    // Los "receptores": un aro por carril donde tiene que caer la nota.
+    // Los "receptores": un aro por carril donde tiene que caer la nota (al acertar, se aplasta y rebota).
+    const dtReal = ultimoDibujo.current ? Math.max(0, Math.min(0.05, (t - ultimoDibujo.current) / 1000)) : 0;
+    ultimoDibujo.current = t;
     for (let l = 0; l < 4; l++) {
       const x = l * LANE_W + LANE_W / 2;
       const lit = t - pressed.current[l] < 120;
+      const sc = escalaAplaste(aros.current[l], dtReal);
+      const r = lit ? 19 : 17;
       ctx.strokeStyle = hexA(LANE_COLORS[l], lit ? 1 : 0.55);
       ctx.lineWidth = lit ? 3 : 2;
       ctx.beginPath();
-      ctx.arc(x, LINE_Y, lit ? 19 : 17, 0, Math.PI * 2);
+      ctx.ellipse(x, LINE_Y, r * sc.x, r * sc.y, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
 
@@ -496,7 +517,8 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       const perfect = Math.abs(n.t - t) <= PERFECT;
       n.perfect = perfect;
       beep(n.f, 260, "triangle", 0.22);
-      tap(perfect ? 18 : 8);
+      vibrar(perfect ? "medio" : "suave");
+      aplastar(aros.current[lane], perfect ? APLASTE.fuerte : APLASTE.medio);
       comboRef.current += 1;
       comboAt.current = t;
       hitsRef.current += 1;
@@ -510,11 +532,12 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       setFlash({ lane, ok: true, id: t, perfect });
       fx.current.push({ lane, t0: t, kind: "anillo", color: perfect ? "#f0d590" : LANE_COLORS[lane] });
       fx.current.push({ lane, t0: t, kind: "texto", text: bonus ? `+5 ×${comboRef.current}` : perfect ? "¡Perfecta!" : "Bien", color: perfect || bonus ? "#f0d590" : "#f3ede4" });
-      if (bonus) setTimeout(() => beep(n.f * 2, 160, "sine", 0.1), 120);
+      if (bonus) timers.current.push(setTimeout(() => beep(n.f * 2, 160, "sine", 0.1), 120));
     } else {
       // Tocar donde no hay nota resta 1: así no sirve aporrear los cuatro carriles. Suena seco, sin tapar la música.
       beep(130, 70, "square", 0.06);
-      tap(25);
+      vibrar("fuerte");
+      if (scoreRef.current > 0) sacudir(puntajeRef.current, 4);
       comboRef.current = 0;
       setCombo(0);
       scoreRef.current = Math.max(0, scoreRef.current - 1);
@@ -551,9 +574,9 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
       onBack={onBack}
       right={
         phase !== "idle" && combo > 1 ? (
-          <span key={combo} className={`jg-pop ${combo >= 10 ? "text-accent" : ""}`}>
+          <Salta valor={combo} className={combo >= 10 ? "text-accent" : ""}>
             ×{combo}
-          </span>
+          </Salta>
         ) : null
       }
     >
@@ -595,8 +618,8 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
         <>
           <div className="mt-3 flex items-baseline justify-between gap-3">
             <p className="truncate text-xs text-muted">{song.title}</p>
-            <p key={score} className={`ap-display text-3xl tabular-nums jg-pop ${total && Math.round((score * 40) / total) >= METAS.ritmo ? "text-accent" : ""}`}>
-              {score}
+            <p ref={puntajeRef} className={`ap-display text-3xl tabular-nums ${total && Math.round((score * 40) / total) >= METAS.ritmo ? "text-accent" : ""}`}>
+              <Salta valor={score} fuerza={0.2} />
             </p>
           </div>
           <canvas
@@ -620,6 +643,10 @@ export function Ritmo({ onDone, onBack, marcas, records, nueva }: Props) {
                 className={`jg-lane ${css.carril} ${flash?.lane === l ? (flash.ok ? (flash.perfect ? "is-perfect" : "is-hit") : "is-miss") : ""}`}
                 style={{ "--c": c } as React.CSSProperties}
                 onPointerDown={() => strum(l)}
+                onClick={(e) => {
+                  // Teclado (Enter/Espacio sobre el carril); el dedo ya tocó en pointerdown.
+                  if (e.detail === 0) strum(l);
+                }}
                 aria-label={`Carril ${l + 1}`}
               >
                 <span key={flash?.lane === l ? flash.id : "q"} />

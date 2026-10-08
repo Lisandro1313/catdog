@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
+import { Salta } from "./Salta";
+import { APLASTE, HIT_STOP, TEMBLOR, aplastar, crearAplaste, crearHitStop, escalaAplaste, hitStop, pasoSimulado, vibrar } from "./sensacion";
 import { Fin } from "./Fin";
 import { capturar, prepararLienzo, puntoEnLienzo } from "./lienzo";
 import { Emoji } from "./Emoji";
@@ -103,6 +105,10 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
     const part: Particula[] = [];
     const flot: Flotante[] = [];
     const temblor: Temblor = { f: 0 };
+    /** Hit-stop de los golpes buenos y el aplaste de la pelota (con el eje del golpe: 0 = de frente, π/2 = de costado). */
+    const hs = crearHitStop();
+    const aplBola = crearAplaste();
+    let aplEje = 0;
 
     /** El gato le pega: apunta a algún lado de tu mitad, cada vez más abierto. */
     const tiroDelGato = (saque: boolean) => {
@@ -130,6 +136,8 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
     const paso = (t: number) => {
       const dt = Math.min(0.033, (t - antes) / 1000);
       antes = t;
+      // La simulación (pelota y gato) se congela en el hit-stop; la paleta sigue al dedo y el dibujo sigue.
+      const dtSim = pasoSimulado(hs, dt, t);
       const ancho = anchoPaleta(hits);
 
       // La paleta sigue al dedo, suave pero sin demora; su velocidad es la que da el efecto.
@@ -142,7 +150,7 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
 
       // El gato va a buscar la pelota cuando viene para él; si no, vuelve al medio.
       const rivalVa = haciaMi ? W / 2 + (bola.x - W / 2) * 0.3 : bola.x;
-      const maxRival = (640 + hits * 5) * dt;
+      const maxRival = (640 + hits * 5) * dtSim;
       rival.x += limitar(rivalVa - rival.x, -maxRival, maxRival);
 
       if (sacar) {
@@ -155,16 +163,18 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
         }
       } else if (!fin || bola.y < H + 40) {
         const yAntes = bola.y;
-        bola.vx += bola.efecto * dt;
-        bola.efecto *= Math.exp(-dt * 1.1);
-        bola.giro += bola.efecto * dt * 0.08 + dt * 4;
-        bola.x += bola.vx * dt;
-        bola.y += bola.vy * dt;
+        bola.vx += bola.efecto * dtSim;
+        bola.efecto *= Math.exp(-dtSim * 1.1);
+        bola.giro += bola.efecto * dtSim * 0.08 + dtSim * 4;
+        bola.x += bola.vx * dtSim;
+        bola.y += bola.vy * dtSim;
         if (bola.x < MIN_X + RADIO || bola.x > MAX_X - RADIO) {
           bola.x = limitar(bola.x, MIN_X + RADIO, MAX_X - RADIO);
           bola.vx = -bola.vx;
           bola.efecto *= -0.5;
           sonar("madera", 0.2, 1.4);
+          aplastar(aplBola, APLASTE.suave);
+          aplEje = Math.PI / 2;
           soltar(part, bola.x, bola.y, 5, { color: "#fff4e0", vel: 90, r: 1.6, dura: 0.25 });
         }
 
@@ -173,6 +183,8 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
         bola.z = p < PIQUE ? 16 * (1 - p / PIQUE) + 34 * Math.sin((Math.PI * p) / PIQUE) : 16 * Math.sin((Math.PI / 2) * Math.min(1.4, (p - PIQUE) / (1 - PIQUE)));
         if (!vuelo.pico && p >= PIQUE) {
           vuelo.pico = true;
+          aplastar(aplBola, APLASTE.suave);
+          aplEje = 0;
           sonar("madera", haciaMi ? 0.3 : 0.22, (haciaMi ? 1.35 : 1.25) + Math.random() * 0.08);
           soltar(part, bola.x, bola.y, 4, { color: "rgba(255,255,255,0.7)", vel: 40, r: 1.4, dura: 0.3 });
         }
@@ -199,7 +211,12 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
             const centro = Math.abs(offset) < 0.18;
             sonar("paleta", centro ? 0.65 : 0.5, (centro ? 1 : 0.92) + Math.random() * 0.08);
             beep(560 + Math.min(hits, 40) * 8, 60, "triangle", 0.05);
-            tap(centro ? 14 : 8);
+            vibrar(centro ? "medio" : "suave");
+            aplastar(aplBola, centro ? APLASTE.fuerte : APLASTE.medio);
+            aplEje = 0;
+            // Hit-stop sólo en los golpes buenos: al centro, o el de cada diez.
+            if (hits % 10 === 0) hitStop(hs, HIT_STOP.medio, t);
+            else if (centro) hitStop(hs, HIT_STOP.corto, t);
             soltar(part, bola.x, PALETA_Y - 4, centro ? 12 : 7, { color: ["#fff4e0", "#ffd38a"], vel: 220, r: 2.6, dura: 0.35, dir: -Math.PI / 2, abanico: 2.2, sprite: CHISPA, luz: true, giro: 8 });
             if (Math.abs(bola.efecto) > 160) flotar(flot, bola.x, PALETA_Y - 34, "¡Con efecto!", "#9fd6ff", 15, 0.7);
             if (hits % 10 === 0) {
@@ -213,13 +230,15 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
           rival.x += (bola.x - rival.x) * 0.85;
           bola.y = RIVAL_Y + 8;
           tiroDelGato(false);
+          aplastar(aplBola, APLASTE.suave);
+          aplEje = 0;
         }
 
         if (haciaMi && !fin && bola.y > H + 16) {
           lives -= 1;
           setVidas(lives);
           buzz();
-          temblar(temblor, 9);
+          temblar(temblor, TEMBLOR.fuerte);
           flotar(flot, limitar(bola.x, 60, W - 60), PALETA_Y - 40, lives > 0 ? "¡Se te pasó!" : "¡Afuera!", "#ff7a63", 22);
           if (lives <= 0) {
             fin = t;
@@ -279,6 +298,14 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
         }
         ctx.globalAlpha = 1;
       }
+      // La pelota se aplasta en cada golpe y vuelve con resorte (dt real: respira durante el hit-stop).
+      const apl = escalaAplaste(aplBola, dt);
+      ctx.save();
+      ctx.translate(vis.x, vis.y);
+      ctx.rotate(aplEje);
+      ctx.scale(apl.x, apl.y);
+      ctx.rotate(-aplEje);
+      ctx.translate(-vis.x, -vis.y);
       const r = RADIO * (1 + bola.z / 110);
       const g = ctx.createRadialGradient(vis.x - r * 0.35, vis.y - r * 0.4, r * 0.15, vis.x, vis.y, r);
       g.addColorStop(0, "#ffffff");
@@ -293,6 +320,7 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
       ctx.beginPath();
       ctx.ellipse(vis.x, vis.y, r * 0.85, r * 0.35, bola.giro, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.restore();
 
       dibujarPaleta(ctx, paleta.x, PALETA_Y, ancho, "#c7322b", true, paleta.golpe);
 
@@ -346,7 +374,7 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
       right={
         phase === "play" ? (
           <>
-            {golpes} · {"●".repeat(vidas)}
+            <Salta valor={golpes} /> · {"●".repeat(vidas)}
             {"○".repeat(VIDAS - vidas)}
           </>
         ) : null

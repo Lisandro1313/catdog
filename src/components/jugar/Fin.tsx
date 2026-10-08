@@ -3,7 +3,8 @@
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { METAS, logrado, type GameId, type Marcas, type Records } from "@/lib/juegos";
 import { GAME_INFO, Tabla } from "./info";
-import { ShareButton } from "@/components/ShareButton";
+import { destaque, nombreArchivo, textoJuego } from "@/lib/compartir";
+import { CompartirResultado } from "./CompartirResultado";
 import { CountUpLabel } from "./CountUp";
 import { sonar } from "./Shell";
 import { Confetti, festejar } from "./Confetti";
@@ -33,6 +34,10 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
   const meta = logrado(game, value);
   const best = marcas[game];
   const esMejor = nueva && best != null && best === value;
+  const primero = records[game]?.[0];
+  const recordCasa = esMejor && primero != null && primero.best === value && Boolean(marcas.name) && primero.name === marcas.name;
+  const d = destaque({ meta, recordCasa, recordPropio: esMejor });
+  const info = GAME_INFO[game];
   const raiz = useRef<HTMLDivElement>(null);
   /** Hasta cuándo suena la fanfarria de la meta: la del récord espera a que termine. */
   const libre = useRef(0);
@@ -124,11 +129,12 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
         <button className="btn btn-primary btn-sm" type="button" onClick={onBack}>
           Volver a los juegos
         </button>
-        <ShareButton
+        <CompartirResultado
           className="btn btn-ghost btn-sm"
-          label="Desafiá a alguien"
-          copiado="Copiado: mandáselo"
-          text={`Hice ${label} en “${GAME_INFO[game].title}”, los juegos de la mesa de CatDog (una casa abierta en La Plata). ¿Me ganás? ${typeof location !== "undefined" ? location.origin : ""}/hoy/jugar`}
+          carta={{ tipo: "juego", icon: info.icon, title: info.title, label, destaque: d }}
+          texto={textoJuego({ icon: info.icon, title: info.title, label, d })}
+          archivo={nombreArchivo(game)}
+          avisoClassName="basis-full text-center text-[11px] text-muted"
         />
       </div>
       <section data-fin="tabla" className="mt-8 text-left">

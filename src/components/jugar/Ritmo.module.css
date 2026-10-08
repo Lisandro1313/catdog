@@ -8,3 +8,11 @@
 .carril:active {
   background: color-mix(in srgb, var(--c) 45%, var(--surface));
 }
+/* El hundido al apretar lo pone instalarTactil (Shell): se apaga el scale(0.96) genérico de .jg-lane
+   para que no se sumen dos y el carril no baje de más. */
+.carril.carril {
+  transition: none;
+}
+.carril.carril:active {
+  transform: none;
+}

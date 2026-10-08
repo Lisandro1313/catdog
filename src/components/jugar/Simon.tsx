@@ -7,6 +7,8 @@ import { Fin } from "./Fin";
 import { FANFARRIA, chime, vibrate } from "./juice";
 import css from "./Simon.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { vibrar } from "./sensacion";
 
 /** La alacena del bartender: cada partida toma cuatro al azar, cada uno con su nota. */
 const ALACENA = [
@@ -50,10 +52,14 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
   const [cheer, setCheer] = useState<{ text: string; id: number } | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const reported = useRef(false);
+  /** El apagado del botón que tocaste: uno solo, así un toque rápido no apaga antes de tiempo al siguiente. */
+  const litTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function clearTimers() {
     timers.current.forEach(clearTimeout);
     timers.current = [];
+    if (litTimer.current) clearTimeout(litTimer.current);
+    litTimer.current = null;
   }
   useEffect(() => clearTimers, []);
 
@@ -98,7 +104,9 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
     if (phase !== "input") return;
     setLit(id);
     beep(ings[id].note, 140);
-    timers.current.push(setTimeout(() => setLit(null), 160));
+    vibrar("suave");
+    if (litTimer.current) clearTimeout(litTimer.current);
+    litTimer.current = setTimeout(() => setLit(null), 160);
     if (seq[pos] !== id) {
       // Antes de la pantalla final, se ve cuál era: el correcto parpadea y el tocado queda en rojo.
       setWrong(id);
@@ -122,7 +130,7 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
       const hito = r + 1 === METAS.simon;
       setCheer({ text: hito ? `¡Ronda ${r + 1}: la del trago!` : r % 5 === 0 ? `¡${r} al hilo!` : ["¡Bien!", "¡Eso!", "Salud", "¡Sale!"][r % 4], id: r });
       timers.current.push(setTimeout(() => (hito ? sonar("logro", 0.6) : r % 5 === 0 ? chime(FANFARRIA, 90, 150) : chime([784, 1047], 80, 130, "triangle")), 180));
-      vibrate(20);
+      vibrar("medio");
       timers.current.push(setTimeout(() => show(next, ings), hito || r % 5 === 0 ? 1100 : 800));
       setPhase("show");
       return;
@@ -157,7 +165,7 @@ export function Simon({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   return (
-    <Shell title="Simón de la barra" onBack={onBack} right={phase !== "idle" ? <>ronda {round + 1}</> : null}>
+    <Shell title="Simón de la barra" onBack={onBack} right={phase !== "idle" ? <Salta valor={round + 1}>ronda {round + 1}</Salta> : null}>
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">

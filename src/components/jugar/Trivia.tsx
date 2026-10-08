@@ -5,7 +5,9 @@ import { TRIVIA, type TriviaItem } from "@/lib/jugar";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, keepAwake, precargarSonidos, shuffle, sonar } from "./Shell";
 import { Fin } from "./Fin";
-import { FANFARRIA, chime, tick, vibrate } from "./juice";
+import { FANFARRIA, chime, tick } from "./juice";
+import { Salta } from "./Salta";
+import { rebotar, sacudir, vibrar } from "./sensacion";
 import css from "./Trivia.module.css";
 import { Emoji } from "./Emoji";
 
@@ -60,6 +62,8 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
   const reported = useRef(false);
   /** Cuándo se respondió: el botón "Siguiente" aparece donde estaban los otros y un doble toque lo saltearía. */
   const answeredAt = useRef(0);
+  /** La carta de la pregunta: rebota con un acierto, se sacude con un error. */
+  const carta = useRef<HTMLDivElement>(null);
 
   const secondsFor = (s: number) => Math.max(5, 14 - s * 0.6);
 
@@ -94,6 +98,8 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
       if (ms <= 0) {
         clearInterval(id);
         sonar("error", 0.55);
+        vibrar("fuerte");
+        sacudir(carta.current);
         answeredAt.current = now();
         setAnswer("⏱");
       }
@@ -119,11 +125,13 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
       if (s === METAS.trivia) sonar("logro", 0.6);
       else if (s % 5 === 0) chime(FANFARRIA, 90, 160);
       else sonar("acierto", 0.5, 0.95 + Math.min(s, 12) * 0.02);
-      vibrate(15);
+      vibrar("medio");
+      rebotar(carta.current, 0.04);
       setStreak(s);
     } else {
       sonar("error", 0.55);
-      vibrate([60, 40, 60]);
+      vibrar("fuerte");
+      sacudir(carta.current);
     }
   }
 
@@ -184,15 +192,15 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
       title="Verdadero o falso"
       onBack={onBack}
       right={
-        <span key={streak} className={streak ? css.bump : ""}>
-          racha {streak}
+        <span>
+          racha <Salta valor={streak} />
         </span>
       }
     >
       <div className="jg-timebar mt-4" aria-hidden="true">
         <span style={{ width: `${left}%` }} className={left < 30 ? "is-low" : ""} />
       </div>
-      <div key={i} className={`jg-mimica-card mt-4 ${css.card} ${answer == null ? "" : correct ? css.ok : css.bad}`}>
+      <div key={i} ref={carta} className={`jg-mimica-card mt-4 ${css.card} ${answer == null ? "" : correct ? css.ok : css.bad}`}>
         <p className="ap-eyebrow">¿Verdadero o falso?</p>
         <p className="mt-4 font-display text-2xl leading-snug">{q.text}</p>
         {answer != null && (

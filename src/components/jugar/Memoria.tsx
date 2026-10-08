@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, precargarSonidos, shuffle, sonar, tap } from "./Shell";
+import { Shell, beep, precargarSonidos, shuffle, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import css from "./Memoria.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { vibrar } from "./sensacion";
 
 const PAIRS = 8;
 const PEEK_MS = 1800;
@@ -102,7 +104,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
     const next = [...current, i];
     setOpen(next);
     sonar("carta", 0.5, 0.95 + (i % 5) * 0.03);
-    tap(6);
+    vibrar("suave");
     if (next.length < 2) return;
 
     setMoves((m) => m + 1);
@@ -120,7 +122,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
         const nota = ESCALA[Math.min(ESCALA.length - 1, c - 1)];
         beep(nota, 90, "triangle", 0.16);
         later(() => beep(nota * 1.5, 140, "triangle", 0.14), 80);
-        tap(c > 1 ? 25 : 15);
+        vibrar(c > 1 ? "fuerte" : "medio");
         if (nf.size === PAIRS) {
           setCartel({ text: "¡Completo!", id: Date.now() });
           later(() => sonar("logro", 0.6), 220);
@@ -132,7 +134,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
       setMiss(next);
       later(() => {
         beep(196, 120, "triangle", 0.1);
-        tap(25);
+        vibrar("fuerte");
       }, 300);
       missTimer.current = setTimeout(closeMiss, 1050);
     }
@@ -143,6 +145,7 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
     timers.current.length = 0;
     lock.current = false;
     if (missTimer.current) clearTimeout(missTimer.current);
+    missTimer.current = null;
     setCards(deal(photos));
     sonar("barajar", 0.5);
     setRound((r) => r + 1);
@@ -168,9 +171,9 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
       title="Memotest"
       onBack={onBack}
       right={
-        <span key={moves} className={`jg-pop ${sobreMeta && !showFin ? "text-danger" : ""}`}>
+        <Salta valor={moves} className={sobreMeta && !showFin ? "text-danger" : ""}>
           {moves} mov.
-        </span>
+        </Salta>
       }
     >
       {showFin ? (
@@ -201,7 +204,14 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
                       type="button"
                       className={`jg-flip ${css.carta} ${up ? "is-up" : ""} ${isFound ? css.encontrada : ""} ${isMiss ? css.error : ""}`}
                       style={{ "--i": i } as React.CSSProperties}
-                      onPointerDown={() => flip(i)}
+                      onPointerDown={(e) => {
+                        if (e.pointerType === "mouse" && e.button !== 0) return;
+                        flip(i);
+                      }}
+                      // Teclado (Enter/Espacio llegan como click sin puntero): el toque ya se resolvió en pointerdown.
+                      onClick={(e) => {
+                        if (e.detail === 0) flip(i);
+                      }}
                       aria-label={up ? "Carta dada vuelta" : "Carta boca abajo"}
                     >
                       <span className="jg-flip-inner">

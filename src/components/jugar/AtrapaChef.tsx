@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
-import { chime, thud, tick, vibrate } from "./juice";
+import { chime, thud, tick } from "./juice";
 import css from "./AtrapaChef.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { TEMBLOR, sacudir, vibrar } from "./sensacion";
 
 const DURATION = 30;
 const FRASES = ["¡Eh!", "Ni cerca", "Casi", "Se fue a la cocina", "Ja", "Qué manos", "Se te escapa", "Aire"];
@@ -15,10 +17,6 @@ const ATRAPADO = ["¡Ay!", "¡Auch!", "¡Soltame!", "¡Se quema!", "¡Tengo bond
 type Pos = { x: number; y: number; size: number; angry: boolean; ms: number };
 type Fx = { id: number; x: number; y: number; size: number; text: string; kind: "ok" | "gold" | "bad" };
 type Props = { onDone: (points: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
-
-function reducedMotion(): boolean {
-  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 /**
  * Atrapá al chef: la cara de Agustín se desliza de un lado a otro de la cocina, cada vez más chica
@@ -45,6 +43,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
   const reported = useRef(false);
   const streakRef = useRef(0);
   const fxId = useRef(0);
+  const logro = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function elapsed() {
     return (Date.now() - startAt.current) / 1000;
@@ -142,7 +141,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     if (phase === "end" && !reported.current) {
       reported.current = true;
-      if (score >= METAS.chef) setTimeout(() => sonar("logro", 0.6), 450);
+      if (score >= METAS.chef) logro.current = setTimeout(() => sonar("logro", 0.6), 450);
       onDone(score);
     }
   }, [phase, score, onDone]);
@@ -150,6 +149,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
+      if (logro.current) clearTimeout(logro.current);
     },
     [],
   );
@@ -159,14 +159,6 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
     const w = area.current?.clientWidth ?? 320;
     const approx = Math.min(w - 8, 18 + text.length * 7.5);
     setBubble({ text, x: Math.max(4, Math.min(x, w - approx - 4)), y: Math.max(4, y), id: Date.now(), gold });
-  }
-
-  function shake() {
-    if (reducedMotion()) return;
-    area.current?.animate(
-      [{ transform: "translateX(0)" }, { transform: "translateX(-7px)" }, { transform: "translateX(6px)" }, { transform: "translateX(-3px)" }, { transform: "translateX(0)" }],
-      { duration: 280, easing: "ease-out" },
-    );
   }
 
   function hit(e: React.PointerEvent) {
@@ -182,8 +174,9 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
       setFx({ id: fxId.current, x: p.x + p.size / 2 - 16, y: p.y, size: p.size, text: "−2", kind: "bad" });
       setFlash(fxId.current);
       buzz();
-      vibrate([40, 30, 40]);
-      shake();
+      vibrar("fuerte");
+      // La cocina entera acusa el golpe (la sacudida común, con menos movimiento no se mueve).
+      sacudir(area.current, TEMBLOR.fuerte);
     } else {
       setHits((h) => h + 1);
       streakRef.current += 1;
@@ -194,7 +187,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
       setFx({ id: fxId.current, x: p.x + p.size / 2 - 14, y: p.y, size: p.size, text: bonus ? "+2" : "+1", kind: bonus ? "gold" : "ok" });
       sonar("pop", 0.5, 0.9 + Math.min(streakRef.current, 12) * 0.03);
       if (bonus) chime([880, 1175, 1568], 60, 120, "triangle", 0.1);
-      vibrate(bonus ? [15, 30, 15] : 15);
+      vibrar(bonus ? "fuerte" : "medio");
     }
     place(elapsed());
   }
@@ -205,6 +198,7 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
     if (!r) return;
     if (streakRef.current >= 2) thud();
     else beep(240, 50, "triangle", 0.06);
+    vibrar("suave");
     streakRef.current = 0;
     setStreak(0);
     say(FRASES[Math.floor(Math.random() * FRASES.length)], e.clientX - r.left - 30, e.clientY - r.top - 30);
@@ -230,8 +224,8 @@ export function AtrapaChef({ onDone, onBack, marcas, records, nueva }: Props) {
           <div className="mt-3 flex items-baseline justify-between gap-3">
             <p className="text-xs text-muted">Se escapó de la cocina. Tocalo antes de que se mueva. Tres seguidos: bonus. Si está rojo, ni se te ocurra.</p>
             <div className="shrink-0 text-right">
-              <p key={score} className="ap-display text-3xl tabular-nums jg-pop">
-                {score}
+              <p className="ap-display text-3xl tabular-nums">
+                <Salta valor={score} />
               </p>
               {phase === "play" && (
                 <div className={css.dots} aria-label={`racha ${streak}`}>

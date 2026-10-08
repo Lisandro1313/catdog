@@ -1,7 +1,7 @@
 /* Mímica: la carta entra con cada consigna y se tiñe según cómo se fue la anterior. */
 
 .card {
-  animation: cardIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both !important;
+  animation: cardIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both !important;
 }
 .hit {
   border-color: var(--ok) !important;
@@ -31,15 +31,9 @@
   }
 }
 
+/* El número de aciertos salta con <Salta> (sensacion.ts). */
 .score {
-  display: inline-block;
-  animation: bump 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.5);
-}
-@keyframes bump {
-  from {
-    transform: scale(1.5);
-    color: var(--accent-strong);
-  }
+  font-weight: 700;
 }
 
 /* Últimos diez segundos: el reloj late */
@@ -55,7 +49,6 @@
 @media (prefers-reduced-motion: reduce) {
   .card,
   .count,
-  .score,
   .hurry {
     animation: none !important;
   }

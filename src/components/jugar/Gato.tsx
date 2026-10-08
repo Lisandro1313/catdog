@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { Cuenta } from "./Cuenta";
 import { capturar, emoji, precargarEmojis, prepararLienzo } from "./lienzo";
 import css from "./Gato.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { APLASTE, HIT_STOP, aplastar, crearAplaste, crearHitStop, escalaAplaste, hitStop, pasoSimulado, vibrar } from "./sensacion";
 
 const N = 15; // celdas por lado
 const W = 360; // el tablero se piensa en 360 × 360 y se estira al ancho del celu
@@ -57,7 +59,20 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
     crash: null as P | null,
     deathAt: 0,
     fx: [] as Fx[],
+    /** Squash & stretch de la cabeza al comer, y el hit-stop del dorado. */
+    aplaste: crearAplaste(),
+    hs: crearHitStop(),
+    lastDraw: 0,
   });
+  /** Los sonidos diferidos (el arpegio del dorado, el logro): se cortan si se sale del juego. */
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const despues = (ms: number, fn: () => void) => {
+    timers.current.push(setTimeout(fn, ms));
+  };
+  useEffect(() => {
+    const lista = timers.current;
+    return () => lista.forEach(clearTimeout);
+  }, []);
   const reported = useRef(false);
   const swipe = useRef<P | null>(null);
   /** Las caras de la casa: el gato, y los dos perros (se turnan). */
@@ -149,11 +164,21 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
       ctx.stroke();
     }
     const h = pts[0];
+    // El aplaste corre con el reloj real (también durante el hit-stop).
+    const dtReal = s.lastDraw ? Math.min(0.05, (t - s.lastDraw) / 1000) : 0;
+    s.lastDraw = t;
+    const sc = escalaAplaste(s.aplaste, dtReal);
     if (h) {
       s.bump *= 0.86;
       const size = (C + 8) * (1 + s.bump * 0.35);
-      if (f?.gato.complete && f.gato.naturalWidth) ctx.drawImage(f.gato, h.x - size / 2, h.y - size / 2, size, size);
-      else emoji(ctx, "🐈", h.x, h.y, size * 0.8);
+      // Al tragar, la cabeza se aplasta en el sentido en que avanza y vuelve con resorte.
+      const horizontal = s.dir === "L" || s.dir === "R";
+      ctx.save();
+      ctx.translate(h.x, h.y);
+      ctx.scale(horizontal ? sc.y : sc.x, horizontal ? sc.x : sc.y);
+      if (f?.gato.complete && f.gato.naturalWidth) ctx.drawImage(f.gato, -size / 2, -size / 2, size, size);
+      else emoji(ctx, "🐈", 0, 0, size * 0.8);
+      ctx.restore();
     }
 
     // chispas, "+1" y humo
@@ -237,22 +262,25 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
       s.eaten += gold ? 3 : 1;
       setEaten(s.eaten);
       s.bump = 1;
+      aplastar(s.aplaste, gold ? APLASTE.fuerte : APLASTE.medio);
+      // El dorado es el bocado que importa: un instante de pausa para que se sienta.
+      if (gold) hitStop(s.hs, HIT_STOP.corto, t);
       const cx = head.x * C + C / 2;
       const cy = head.y * C + C / 2;
       addFx({ kind: "chispas", x: cx, y: cy, color: gold ? "#f0d590" : "#c9a96e" });
       addFx({ kind: "texto", x: cx, y: cy - 10, text: gold ? "+3" : "+1", color: gold ? "#f0d590" : "#f3ede4" });
       if (gold) {
         beep(990, 90, "triangle", 0.18);
-        setTimeout(() => beep(1320, 90, "triangle", 0.16), 70);
-        setTimeout(() => beep(1760, 160, "triangle", 0.14), 140);
-        tap(25);
+        despues(70, () => beep(1320, 90, "triangle", 0.16));
+        despues(140, () => beep(1760, 160, "triangle", 0.14));
+        vibrar("fuerte");
       } else {
         sonar("pop", 0.5, 0.9 + Math.min(s.eaten, 40) * 0.01);
-        tap(10);
+        vibrar("medio");
       }
       if (antes < METAS.gato && s.eaten >= METAS.gato) {
         addFx({ kind: "texto", x: W / 2, y: W / 2, text: "¡Marca!", color: "#f0d590" });
-        setTimeout(() => sonar("logro", 0.6), 220);
+        despues(220, () => sonar("logro", 0.6));
       }
       s.food = randomFree();
       s.foodIx = Math.floor(Math.random() * FOOD.length);
@@ -286,7 +314,10 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
       const s = state.current;
       // Volvió de otra app o se bloqueó la pantalla: el gato espera, no da el salto de golpe.
       if (t - lastFrame > 250) s.stepAt = t;
+      const dt = t - lastFrame;
       lastFrame = t;
+      // Hit-stop: el reloj del paso se corre con la pausa, así el gato se queda quieto (y no salta después).
+      if (pasoSimulado(s.hs, dt, t) === 0) s.stepAt += dt;
       if (phase === "play" && s.alive) {
         const speed = speedFor(s.eaten);
         if (t - s.stepAt >= speed) {
@@ -358,6 +389,8 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
     s.bump = 0;
     s.crash = null;
     s.fx = [];
+    s.aplaste = crearAplaste();
+    s.hs = crearHitStop();
     setEaten(0);
     setPhase("count");
   }
@@ -387,9 +420,7 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
       onBack={onBack}
       right={
         phase !== "idle" ? (
-          <span key={eaten} className={`jg-pop ${eaten >= METAS.gato ? "text-accent" : ""}`}>
-            {eaten}
-          </span>
+          <Salta valor={eaten} className={eaten >= METAS.gato ? "text-accent" : ""} />
         ) : null
       }
     >
@@ -454,8 +485,12 @@ export function Gato({ onDone, onBack, marcas, records, nueva }: Props) {
                 type="button"
                 className={css.flecha}
                 onPointerDown={() => {
-                  tap(5);
+                  vibrar("suave");
                   turn(d);
+                }}
+                onClick={(e) => {
+                  // Teclado (Enter/Espacio sobre la flecha): el toque ya giró en pointerdown.
+                  if (e.detail === 0) turn(d);
                 }}
                 aria-label={label}
                 style={{ gridArea: area }}

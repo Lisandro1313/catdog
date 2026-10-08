@@ -1,11 +1,9 @@
 /* Los de la casa: asoman, bajan, se aplastan al tocarlos; reloj y racha a la vista. */
 
+/* El hundido al apretar lo pone instalarTactil (Shell), al instante en pointerdown. */
 .agujero {
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.08s;
-}
-.agujero:active {
-  transform: scale(0.96);
+  touch-action: manipulation;
 }
 
 /* El que se va sin que lo toquen: baja al agujero. */
@@ -21,6 +19,8 @@
 
 /* El que tocaste: se aplasta y se va (el chef y el fuego, además, se ponen rojos y tiemblan). */
 .agujero .golpe {
+  /* Se aplasta contra el borde del agujero, no contra el centro. */
+  transform-origin: 50% 100%;
   animation: lis-golpe 0.42s cubic-bezier(0.3, 1.4, 0.5, 1) forwards;
 }
 @keyframes lis-golpe {

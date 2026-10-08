@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatShort, nowMs } from "@/lib/dates";
-import { GAMES, LOWER_IS_BETTER, PREMIO_MINIMO, dayKey } from "@/lib/premios";
+import { GAMES, LOWER_IS_BETTER, PREMIO_MINIMO, dayKey, getRecordsSemana, type Records } from "@/lib/premios";
+import { nombreSemana, semanaAnterior, semanaDe } from "@/lib/ranking";
 import { GAME_INFO } from "@/components/jugar/info";
 import { deleteRecordAction, redeemPrizeAction } from "../../actions";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
@@ -17,6 +18,9 @@ export default async function PremiosPage() {
     prisma.gameScore.groupBy({ by: ["game"], _count: { _all: true }, _avg: { best: true } }),
     prisma.guess.groupBy({ by: ["stepIndex"], where: { event: { date: { gt: new Date(nowMs() - 30 * 24 * 60 * 60 * 1000) } } }, _count: { _all: true } }),
   ]);
+  const estaSemana = semanaDe(today);
+  const pasada = semanaAnterior(today);
+  const [campeones, campeonesPasada] = await Promise.all([getRecordsSemana(estaSemana, 3), getRecordsSemana(pasada, 3)]);
   const playedTonight = await prisma.gameScore.groupBy({ by: ["game"], where: { day: today }, _count: { _all: true } });
   const tonightCount = new Map(playedTonight.map((p) => [p.game, p._count._all]));
   const allCount = new Map(played.map((p) => [p.game, { n: p._count._all, avg: p._avg.best ?? 0 }]));
@@ -59,6 +63,18 @@ export default async function PremiosPage() {
           </ul>
         </section>
       )}
+
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-2xl">Campeones de la semana</h2>
+        <p className="mt-1 text-sm text-muted">
+          El primero de cada juego, de lunes a domingo (lo mismo que ven en la pestaña “Esta semana” de los récords). Para anunciarlos en Instagram y
+          regalarles algo: la semana pasada ya está cerrada; la de ahora todavía se puede dar vuelta. Solo aparecen los que pusieron nombre.
+        </p>
+        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          <Campeones titulo={`Semana pasada · ${nombreSemana(pasada)}`} rows={campeonesPasada} cerrada />
+          <Campeones titulo={`Esta semana · ${nombreSemana(estaSemana)}`} rows={campeones} />
+        </div>
+      </section>
 
       <section className="card p-5 sm:p-6">
         <h2 className="font-display text-2xl">Cómo se juega</h2>
@@ -128,6 +144,41 @@ export default async function PremiosPage() {
         </div>
       </section>
     </>
+  );
+}
+
+function Campeones({ titulo, rows, cerrada = false }: { titulo: string; rows: Records; cerrada?: boolean }) {
+  const conAlguien = GAMES.filter((g) => rows[g]?.length);
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-[0.2em] text-accent">
+        {titulo}
+        {!cerrada && <span className="ml-2 normal-case tracking-normal text-muted">(en curso)</span>}
+      </p>
+      {conAlguien.length === 0 ? (
+        <p className="mt-2 text-xs text-muted">Nadie con nombre todavía.</p>
+      ) : (
+        <ul className="mt-2 divide-y divide-line text-sm">
+          {conAlguien.map((g) => {
+            const [primero, ...resto] = rows[g];
+            return (
+              <li key={g} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-1.5">
+                <span className="min-w-0">
+                  {GAME_INFO[g].icon} {GAME_INFO[g].title}
+                </span>
+                <span className="text-right">
+                  <strong className="font-medium">{primero.name}</strong>{" "}
+                  <span className="tabular-nums text-muted">
+                    {primero.best} {GAME_INFO[g].unit}
+                  </span>
+                  {resto.length > 0 && <span className="block text-xs text-muted">después: {resto.map((r) => `${r.name} (${r.best})`).join(", ")}</span>}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 

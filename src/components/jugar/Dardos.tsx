@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { Cabin_Sketch } from "next/font/google";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { ANILLOS_DARDOS, SECTORES_DARDOS, puntoDelDardo, type Impacto } from "@/lib/juegos-reglas";
-import { Shell, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { capturar, prepararLienzo, puntoEnLienzo } from "./lienzo";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { APLASTE, HIT_STOP, TEMBLOR, aplastar, crearAplaste, crearHitStop, escalaAplaste, hitStop, pasoSimulado, vibrar, type Aplaste } from "./sensacion";
 import {
   cargarTexturas,
   correrTemblor,
@@ -68,7 +70,8 @@ const TORCIDO = 45;
 const BLANCO_INICIAL = { x: C.x, y: C.y - ((ANILLOS_DARDOS.tripleDentro + ANILLOS_DARDOS.tripleFuera) / 2) * PX };
 
 type P = { x: number; y: number };
-type Clavado = P & { t0: number; meneo: number };
+/** `t0`: cuándo arranca el meneo (después del hit-stop). `ap`: el squash del dardo al clavarse. */
+type Clavado = P & { t0: number; meneo: number; ap: Aplaste };
 type Vuelo = { desde: P; hasta: P; t0: number; dura: number; imp: Impacto; nota: string };
 type Cae = P & { vy: number; giro: number };
 type Agarre = { f0: P; aim0: P; lento: P & { t: number }; ultimo: P & { t: number }; t0: number };
@@ -179,6 +182,8 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
     const part: Particula[] = [];
     const flot = j.avisos;
     const temblor: Temblor = { f: 0 };
+    /** Hit-stop al clavar: el dardo queda clavado y quieto un instante antes de menearse. */
+    const hs = crearHitStop();
 
     const nuevoDardo = (t: number) => {
       j.fase = fasesNuevas();
@@ -229,9 +234,14 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
       const imp = v.imp;
       const r = Math.hypot(v.hasta.x - C.x, v.hasta.y - C.y);
       if (imp.puntos > 0) {
-        j.clavados.push({ ...v.hasta, t0: t, meneo: 0.5 + Math.random() * 0.3 });
+        // Los golpes buenos (bull, triple) frenan un poco más; uno común, apenas.
+        const pausa = imp.puntos >= 25 || imp.mult === 3 ? HIT_STOP.medio : HIT_STOP.corto;
+        hitStop(hs, pausa, t);
+        const ap = crearAplaste();
+        aplastar(ap, imp.puntos >= 25 || imp.mult === 3 ? APLASTE.fuerte : APLASTE.medio);
+        j.clavados.push({ ...v.hasta, t0: t + pausa, meneo: 0.5 + Math.random() * 0.3, ap });
         sonar("madera", 0.75, 0.92 + Math.random() * 0.12);
-        tap(12);
+        vibrar("medio");
         // Al clavarse salta un poco de polvo de sisal y una chispa chica.
         soltar(part, v.hasta.x, v.hasta.y, 3, { color: ["#d8c8a8", "#b8a37a"], vel: 70, r: 2.6, g: 260, dura: 0.45, sprite: ASTILLA, giro: 6 });
         soltar(part, v.hasta.x, v.hasta.y, 4, { color: ["#fff4e0", "#ffd36e"], vel: 150, r: 2.4, dura: 0.3, g: 120, sprite: CHISPA, luz: true, giro: 8 });
@@ -239,7 +249,7 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
         // En el aro de los números o en el ladrillo: rebota y se cae.
         j.caidos.push({ ...v.hasta, vy: -60, giro: 0 });
         sonar("golpe", r < R_NUMEROS ? 0.4 : 0.55, r < R_NUMEROS ? 1.25 : 0.9);
-        tap(25);
+        vibrar("fuerte");
       }
       j.tirados += 1;
       j.total += imp.puntos;
@@ -253,9 +263,9 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
         flotar(flot, x, arriba, "¡Bull!", "#ffd36e", 34, 1.1);
         soltar(part, x, y, 20, { color: ["#ffd36e", "#fff4e0", "#e2453a"], vel: 240, r: 3, dura: 0.7, g: 200, sprite: CHISPA, luz: true, giro: 8 });
         soltar(part, x, y, 1, { color: "#ffe7a8", vel: 0, r: 18, dura: 0.4, sprite: "flare_01", luz: true });
-        temblar(temblor, 5);
+        temblar(temblor, TEMBLOR.chico);
         sonar("acierto", 0.6);
-        tap(30);
+        vibrar("fuerte");
       } else if (imp.puntos === 25) {
         flotar(flot, x, arriba, "¡Bull 25!", "#8fe0a6", 26);
         soltar(part, x, y, 14, { color: ["#8fe0a6", "#fff4e0"], vel: 180, r: 2, dura: 0.5, g: 200 });
@@ -265,9 +275,7 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
         flotar(flot, x, arriba, `¡${imp.nombre}!`, t20 ? "#ffd36e" : "#ffb38a", t20 ? 32 : 26, 1.1);
         soltar(part, x, y, t20 ? 20 : 14, { color: ["#ffd36e", "#fff4e0", "#e8d9b0"], vel: 220, r: 2.8, dura: 0.6, g: 220, sprite: CHISPA, luz: true, giro: 8 });
         soltar(part, x, y, 1, { color: t20 ? "#ffd36e" : "#ffb38a", vel: 0, r: t20 ? 15 : 12, dura: 0.35, sprite: "star_07", luz: true, giro: 3 });
-        temblar(temblor, t20 ? 4 : 2.5);
         sonar("acierto", t20 ? 0.55 : 0.4, t20 ? 1.05 : 1);
-        tap(20);
       } else if (imp.mult === 2) {
         flotar(flot, x, arriba, imp.nombre, "#9fd6ff", 22);
         soltar(part, x, y, 8, { color: "#e8d9b0", vel: 120, r: 1.6, dura: 0.4, g: 200 });
@@ -276,7 +284,6 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
         soltar(part, x, y, 5, { color: "#e8d9b0", vel: 90, r: 1.4, dura: 0.35, g: 200 });
       } else {
         flotar(flot, limitar(x, 60, W - 60), limitar(arriba, 30, H - 120), "¡Afuera!", "#ff7a63", 24);
-        temblar(temblor, 3);
       }
       // Qué hizo el tirón, para aprender: sólo si desvió de verdad.
       if (v.nota) flotar(flot, W / 2, MANO_Y - 40, v.nota, "#d8c8a8", 14, 1.3);
@@ -300,6 +307,8 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
     const paso = (t: number) => {
       const dt = Math.min(0.033, Math.max(0, (t - antes) / 1000));
       antes = t;
+      // Lo que se mueve en el mundo (dardos que caen, sacarlos) usa el paso simulado; el dibujo, el real.
+      const dtSim = pasoSimulado(hs, dt, t);
 
       // La mano se cansa si se sostiene mucho; al soltar, se recupera de a poco.
       const ag = agarre.current;
@@ -312,11 +321,11 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
         j.vuelo = null;
         clavar(v, t);
       }
-      if (j.sacando > 0) j.sacando = Math.min(1, j.sacando + dt * 3);
+      if (j.sacando > 0) j.sacando = Math.min(1, j.sacando + dtSim * 3);
       for (const c of j.caidos) {
-        c.vy += 1400 * dt;
-        c.y += c.vy * dt;
-        c.giro += dt * 7;
+        c.vy += 1400 * dtSim;
+        c.y += c.vy * dtSim;
+        c.giro += dtSim * 7;
       }
       moverParticulas(part, dt);
 
@@ -330,9 +339,10 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
       // Los dardos clavados, con el meneo del golpe.
       ctx.globalAlpha = 1 - j.sacando;
       for (const c of j.clavados) {
-        const pas = (t - c.t0) / 1000;
+        const pas = Math.max(0, (t - c.t0) / 1000);
         const meneo = Math.sin(pas * 38) * Math.exp(-pas * 7) * c.meneo;
-        dibujarDardo(ctx, c.x, c.y - j.sacando * 18, 0.78, 0.12 + meneo, true);
+        const sq = escalaAplaste(c.ap, dt);
+        dibujarDardo(ctx, c.x, c.y - j.sacando * 18, 0.78, 0.12 + meneo, true, sq.x, sq.y);
       }
       ctx.globalAlpha = 1;
       for (const c of j.caidos) if (c.y < H + 60) dibujarDardo(ctx, c.x, c.y, 0.78, 0.12 + c.giro, true);
@@ -405,7 +415,7 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
     j.vuelo = { desde: { x: W / 2 + (j.aim.x - W / 2) * 0.35, y: MANO_Y }, hasta, t0: t, dura: 260, imp, nota };
     j.primerTiro = false;
     sonar("tic", 0.18, 0.7);
-    tap(8);
+    vibrar("suave");
   }
 
   if (phase === "end") {
@@ -423,7 +433,7 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
       right={
         phase === "play" ? (
           <>
-            R{ronda} · {total} · {"▲".repeat(quedan)}
+            R{ronda} · <Salta valor={total} /> · {"▲".repeat(quedan)}
             {"△".repeat(POR_RONDA - quedan)}
           </>
         ) : null
@@ -541,11 +551,12 @@ function mira(ctx: CanvasRenderingContext2D, x: number, y: number, apuntando: bo
  * Un dardo visto desde el que tira: la punta arriba (o clavada) y el cuerpo hacia abajo, hacia uno.
  * `inclina` lo tuerce un poco (el meneo al clavarse); `sombra` lo despega del tablero.
  */
-function dibujarDardo(ctx: CanvasRenderingContext2D, x: number, y: number, escala: number, inclina: number, sombra: boolean) {
+function dibujarDardo(ctx: CanvasRenderingContext2D, x: number, y: number, escala: number, inclina: number, sombra: boolean, sx = 1, sy = 1) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-inclina);
-  ctx.scale(escala, escala);
+  // El squash se aplica desde la punta: el cuerpo se acorta contra el tablero y vuelve.
+  ctx.scale(escala * sx, escala * sy);
   if (sombra) {
     ctx.fillStyle = "rgba(0,0,0,0.32)";
     ctx.beginPath();

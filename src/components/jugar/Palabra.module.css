@@ -22,28 +22,6 @@
   grid-template-columns: repeat(5, var(--t));
   gap: 0.32rem;
 }
-.sacude {
-  animation: sacudir 0.42s ease;
-}
-@keyframes sacudir {
-  10%,
-  90% {
-    transform: translateX(-2px);
-  }
-  20%,
-  80% {
-    transform: translateX(4px);
-  }
-  30%,
-  50%,
-  70% {
-    transform: translateX(-7px);
-  }
-  40%,
-  60% {
-    transform: translateX(7px);
-  }
-}
 
 .letra {
   display: grid;
@@ -207,12 +185,10 @@
   font-weight: 700;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  transition:
-    background 0.25s,
-    transform 0.06s;
+  transition: background 0.25s;
 }
+/* El hundimiento lo pone instalarTactil (Shell); acá sólo el color al apretar. */
 .tecla:active {
-  transform: scale(0.93);
   background: #5d554c;
 }
 .ancha {
@@ -265,7 +241,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sacude,
   .escrita,
   .salta {
     animation: none;

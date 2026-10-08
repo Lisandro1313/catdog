@@ -7,7 +7,7 @@ import { MIMICA_BASE } from "@/lib/jugar";
 import { SECCIONES_TRAGOS } from "@/lib/carta-tragos";
 import { mimicaDeLaCarta, paresDeLaCarta, triviaDeLaCarta } from "@/lib/juegos-carta";
 import { readDeviceKey } from "@/lib/device";
-import { PREMIO_MINIMO, getMarcas, getRecords, issuePrizeIfEarned, logrosParaPremio, type Marcas } from "@/lib/premios";
+import { PREMIO_MINIMO, getMarcas, getRecords, getRecordsSemana, issuePrizeIfEarned, logrosParaPremio, type Marcas } from "@/lib/premios";
 import { JugarHub } from "@/components/jugar/JugarHub";
 import { TrackVisit } from "@/components/TrackVisit";
 
@@ -34,17 +34,25 @@ export default async function JugarPage({ searchParams }: { searchParams: Promis
   const conGoogle = googleConfigurado();
   if (!jugador && conGoogle) {
     const error = q.entrar === "error" ? "error" : undefined;
-    return <Puerta error={error} />;
+    // La visita se cuenta igual (con su `?de=`): si no, los que llegan por un resultado compartido
+    // y todavía no entraron con Google no aparecerían en ningún lado.
+    return (
+      <>
+        <TrackVisit path="/hoy/jugar" />
+        <Puerta error={error} />
+      </>
+    );
   }
 
   const deviceKey = await readDeviceKey();
   // La cena de esta noche, si la hay: decide a dónde vuelve el link de arriba.
   const tonight = await getTonightEvent();
-  const [photos, event, marcasIniciales, records] = await Promise.all([
+  const [photos, event, marcasIniciales, records, semana] = await Promise.all([
     getPhotos(),
     Promise.resolve(tonight).then((t) => t ?? getDemoEvent()),
     deviceKey ? getMarcas(deviceKey) : Promise.resolve<Marcas>({}),
     getRecords(),
+    getRecordsSemana(),
   ]);
   // Si ya tenía los logros de hoy y todavía no tiene código (por ejemplo, los hizo antes de este cambio), se emite ahora.
   let marcas = marcasIniciales;
@@ -83,7 +91,7 @@ export default async function JugarPage({ searchParams }: { searchParams: Promis
           </a>
         </p>
       )}
-      <JugarHub modoCarta={modoCarta} triviaCarta={modoCarta ? triviaDeLaCarta(SECCIONES_TRAGOS) : []} deLaCarta={SECCIONES_TRAGOS.flatMap((s) => s.items.map((t) => t.nombre))} photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} whatsapp={CONTACT_PHONES[0] ?? null} conCena={Boolean(tonight)} />
+      <JugarHub modoCarta={modoCarta} triviaCarta={modoCarta ? triviaDeLaCarta(SECCIONES_TRAGOS) : []} deLaCarta={SECCIONES_TRAGOS.flatMap((s) => s.items.map((t) => t.nombre))} photos={photos.map((p) => p.url)} mimica={mimica} pairs={pairs} drinks={extraDrinks} initialMarcas={marcas} initialRecords={records} initialSemana={semana} whatsapp={CONTACT_PHONES[0] ?? null} conCena={Boolean(tonight)} />
     </>
   );
 }

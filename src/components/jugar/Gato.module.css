@@ -14,11 +14,11 @@
   30%,
   50%,
   70% {
-    transform: translate(-6px, 2px);
+    transform: translate(-5px, 2px);
   }
   40%,
   60% {
-    transform: translate(6px, -1px);
+    transform: translate(5px, -1px);
   }
 }
 
@@ -26,10 +26,10 @@
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
-  transition: transform 0.06s, background 0.06s;
+  transition: background 0.06s;
 }
+/* El hundido lo hace instalarTactil (Shell); acá sólo el color. */
 .flecha:active {
-  transform: scale(0.9);
   background: rgba(201, 169, 110, 0.28) !important;
 }
 

@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { GAMES, LOWER_IS_BETTER, PREMIO_MINIMO, dayKey, logrosParaPremio, mejora, type GameId, type Marcas, type Records } from "./juegos";
+import { rankingPorJuego, semanaDe } from "./ranking";
 
 export { GAMES, METAS, PREMIO_MINIMO, LOWER_IS_BETTER, MIN_MS, clampScore, logrado, logrosParaPremio, retoDelDia, mejora, plausible, cleanName, dayKey, type GameId, type Marcas, type Records, type RecordRow } from "./juegos";
 
@@ -54,6 +55,18 @@ export async function getRecords(): Promise<Records> {
     }),
   );
   return out;
+}
+
+/**
+ * Top 5 por juego de una semana (lunes a domingo; por defecto, la de hoy). Mismas reglas que los
+ * récords: solo con nombre, un lugar por teléfono (su mejor marca de esa semana).
+ */
+export async function getRecordsSemana(semana: { desde: string; hasta: string } = semanaDe(dayKey()), top = 5): Promise<Records> {
+  const filas = await prisma.gameScore.findMany({
+    where: { day: { gte: semana.desde, lte: semana.hasta }, name: { not: null } },
+    select: { game: true, deviceKey: true, name: true, best: true, updatedAt: true },
+  });
+  return rankingPorJuego(filas, top);
 }
 
 const ABC = "BCDFGHJKLMNPQRSTVWXZ";

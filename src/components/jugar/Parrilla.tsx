@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
 import { puntoDelCorte } from "@/lib/juegos-reglas";
-import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
+import { APLASTE, HIT_STOP, TEMBLOR, aplastar, crearAplaste, crearHitStop, escalaAplaste, hitStop, pasoSimulado, vibrar, type Aplaste, type HitStop } from "./sensacion";
 import { Fin } from "./Fin";
 import { prepararLienzo, puntoEnLienzo } from "./lienzo";
 import { Emoji } from "./Emoji";
@@ -51,8 +52,13 @@ const centro = (i: number) => ({ x: GRILLA.x + CELDA_W * ((i % COLS) + 0.5), y: 
 /** Cada lugar con su inclinación, para que la parrilla no parezca una planilla. */
 const INCLINA = [-0.1, 0.08, 0.06, -0.07, -0.05, 0.1];
 
-type Corte = { desde: number; dura: number; puesto: number; chispa: number } | null;
-type Sacado = { x: number; y: number; coccion: number; ang: number; t: number };
+type Corte = { desde: number; dura: number; puesto: number; chispa: number; apoyado: boolean } | null;
+/** `f`: cuánto lleva del vuelo (0 a 1); avanza con el paso simulado, así el hit-stop lo congela al salir. */
+type Sacado = { x: number; y: number; coccion: number; ang: number; f: number; apl: Aplaste };
+/** Lo que tarda el chori en volar al marcador (s). */
+const VUELO = 0.38;
+/** Sacarlo antes de esto es un doble toque (el mismo dedo que lo puso), no una decisión. */
+const DOBLE_TOQUE = 180;
 type Juego = {
   inicio: number;
   cortes: Corte[];
@@ -64,6 +70,9 @@ type Juego = {
   temblor: Temblor;
   golpe: number;
   fin: boolean;
+  /** Hit-stop del "a punto" y el aplaste de cada lugar (al caer en la rejilla). */
+  hs: HitStop;
+  apl: Aplaste[];
 };
 type Props = { onDone: (puntos: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
@@ -115,7 +124,7 @@ function resplandor(): HTMLCanvasElement {
 }
 
 function nuevoJuego(): Juego {
-  return { inicio: performance.now(), cortes: Array(LUGARES).fill(null), puntos: 0, racha: 0, part: [], flot: [], sacados: [], temblor: { f: 0 }, golpe: 1, fin: false };
+  return { inicio: performance.now(), cortes: Array(LUGARES).fill(null), puntos: 0, racha: 0, part: [], flot: [], sacados: [], temblor: { f: 0 }, golpe: 1, fin: false, hs: crearHitStop(), apl: Array.from({ length: LUGARES }, crearAplaste) };
 }
 
 /**
@@ -135,6 +144,12 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const juego = useRef<Juego | null>(null);
   const reported = useRef(false);
+  /** Las notas que suenan después (racha, fin): se limpian al desmontar. */
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => {
+    const lista = timers.current;
+    return () => lista.forEach(clearTimeout);
+  }, []);
 
   function start() {
     keepAwake();
@@ -171,6 +186,7 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
     const paso = (t: number) => {
       const dt = Math.min(0.033, (t - antes) / 1000);
       antes = t;
+      const dtSim = pasoSimulado(j.hs, dt, t);
       const pasado = (t - j.inicio) / 1000;
       const resto = Math.max(0, DURACION - pasado);
       const seg = Math.ceil(resto);
@@ -182,7 +198,7 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
       if (resto <= 0 && !j.fin) {
         j.fin = true;
         beep(523, 120, "triangle", 0.12);
-        setTimeout(() => beep(392, 260, "triangle", 0.12), 120);
+        timers.current.push(setTimeout(() => beep(392, 260, "triangle", 0.12), 120));
         setPhase("end");
         return;
       }
@@ -200,7 +216,7 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
           flotar(j.flot, p.x, p.y - 26, "Quemado −2", "#ff7a63", 20);
           soltar(j.part, p.x, p.y, 14, { color: ["#1c1a19", "#3a3532", "#55504b"], vel: 70, r: 8, g: -60, dura: 1.6, humo: true, roce: 1, sprite: HUMO, giro: 0.8 });
           soltar(j.part, p.x, p.y, 6, { color: ["#ff8a2a", "#ffc94a"], vel: 60, r: 7, g: -180, dura: 0.5, roce: 0.6, sprite: LLAMA, luz: true });
-          temblar(j.temblor, 6);
+          temblar(j.temblor, TEMBLOR.fuerte);
           buzz();
           return;
         }
@@ -261,23 +277,32 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
           return;
         }
         const k = (t - c.desde) / c.dura;
+        // Cae a la rejilla acelerando (como con gravedad) y al apoyar se aplasta y rebota.
         const entra = Math.min(1, (t - c.puesto) / 220);
-        const caida = (1 - entra) * -26;
-        const escala = 1 + (1 - entra) * 0.25;
-        dibujarChori(ctx, p.x, p.y + caida, k, INCLINA[i], escala, t);
+        const caida = (1 - entra * entra) * -26;
+        const escala = 1 + (1 - entra * entra) * 0.25;
+        if (entra >= 1 && !c.apoyado) {
+          c.apoyado = true;
+          aplastar(j.apl[i], APLASTE.medio);
+        }
+        const s = escalaAplaste(j.apl[i], dt);
+        dibujarChori(ctx, p.x, p.y + caida, k, INCLINA[i], escala, t, s.x, s.y);
       });
 
       // Los que salen volando hacia el marcador.
       for (let i = j.sacados.length - 1; i >= 0; i--) {
         const s = j.sacados[i];
-        const f = (t - s.t) / 380;
+        s.f += dtSim / VUELO;
+        const f = s.f;
         if (f >= 1) {
           j.sacados.splice(i, 1);
           continue;
         }
         const e = f * f;
+        // Se da vuelta en el aire: sale estirado del tirón y vuelve con resorte.
+        const st = escalaAplaste(s.apl, dt);
         ctx.globalAlpha = 1 - f;
-        dibujarChori(ctx, s.x + (40 - s.x) * e, s.y + (28 - s.y) * e - Math.sin(f * Math.PI) * 40, s.coccion, s.ang + f * 2, 1 - f * 0.6, t);
+        dibujarChori(ctx, s.x + (40 - s.x) * e, s.y + (28 - s.y) * e - Math.sin(f * Math.PI) * 40, s.coccion, s.ang + f * 2, 1 - f * 0.6, t, st.x, st.y);
         ctx.globalAlpha = 1;
       }
 
@@ -336,24 +361,30 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
     const t = performance.now();
     const p = centro(i);
     if (!c) {
-      j.cortes[i] = { desde: t, dura: tiempoDeCoccion(), puesto: t, chispa: 0 };
+      j.cortes[i] = { desde: t, dura: tiempoDeCoccion(), puesto: t, chispa: 0, apoyado: false };
       sonar("golpe", 0.3, 1.1 + Math.random() * 0.1);
       beep(3200, 60, "square", 0.012);
-      tap(6);
+      vibrar("suave");
       soltar(j.part, p.x, p.y, 6, { color: ["#e8e2d8", "#c9c2b8"], vel: 60, r: 6, g: -50, dura: 0.9, humo: true, roce: 1, sprite: HUMO, giro: 0.8 });
       return;
     }
+    // Un segundo toque pegado al que lo puso (dedo que rebota, dos dedos) no lo saca crudo.
+    if (t - c.puesto < DOBLE_TOQUE) return;
     const k = (t - c.desde) / c.dura;
     const r = puntoDelCorte(k);
     j.cortes[i] = null;
-    j.sacados.push({ x: p.x, y: p.y, coccion: k, ang: INCLINA[i], t });
+    const apl = crearAplaste();
+    // Estirado a lo largo (x) del tirón: más fuerte si salió a punto.
+    aplastar(apl, r.como === "perfecto" ? APLASTE.fuerte : APLASTE.medio);
+    j.sacados.push({ x: p.x, y: p.y, coccion: k, ang: INCLINA[i], f: 0, apl });
     sumar(j, r.puntos, setPuntos);
     if (r.como === "perfecto") {
       j.racha += 1;
       beep(880, 90);
-      setTimeout(() => beep(1175, 140), 80);
-      if (j.racha >= 3) setTimeout(() => beep(1568, 160), 170);
-      tap(15);
+      timers.current.push(setTimeout(() => beep(1175, 140), 80));
+      if (j.racha >= 3) timers.current.push(setTimeout(() => beep(1568, 160), 170));
+      vibrar("medio");
+      hitStop(j.hs, HIT_STOP.corto, t);
       flotar(j.flot, p.x, p.y - 24, "¡A punto! +3", "#ffd36e", 22);
       if (j.racha >= 2) flotar(j.flot, p.x, p.y - 54, `Racha x${j.racha}`, "#fff4e0", 15, 1);
       soltar(j.part, p.x, p.y, 18, { color: ["#ffd36e", "#fff2c4", "#ff9a3c"], vel: 240, r: 3, g: 200, dura: 0.7, sprite: CHISPA, luz: true, giro: 8 });
@@ -371,7 +402,7 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
       j.racha = 0;
       buzz();
       flotar(j.flot, p.x, p.y - 24, "Quemado −2", "#ff7a63", 20);
-      temblar(j.temblor, 5);
+      temblar(j.temblor, TEMBLOR.fuerte);
     }
   }
 
@@ -407,12 +438,13 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
 }
 
 /** Un chori: la tripa con su brillo, las marcas de la parrilla que aparecen al dorarse, y el punto. */
-function dibujarChori(ctx: CanvasRenderingContext2D, x: number, y: number, k: number, ang: number, escala: number, t: number) {
+function dibujarChori(ctx: CanvasRenderingContext2D, x: number, y: number, k: number, ang: number, escala: number, t: number, sx = 1, sy = 1) {
   const c = colorDe(k);
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(ang);
-  ctx.scale(escala, escala);
+  // El aplaste va en los ejes del chori: x a lo largo, y a lo ancho.
+  ctx.scale(escala * sx, escala * sy);
   const L = LARGO;
   const G = GROSOR;
   // Sombra sobre la rejilla

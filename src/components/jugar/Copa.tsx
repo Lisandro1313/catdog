@@ -7,6 +7,8 @@ import { Fin } from "./Fin";
 import { FANFARRIA, chime, vibrate } from "./juice";
 import css from "./Copa.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { rebotar, sacudir, vibrar } from "./sensacion";
 
 const COPAS = 5;
 /** Cada copa vale hasta 100: 100 en la línea exacta, 0 si te pasás por mucho o servís de menos. */
@@ -40,13 +42,24 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
   /** Si el dedo está apoyado (ref, para que el chorro y el soltar no lean estado viejo). */
   const active = useRef(false);
   const nextTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Sonidos diferidos (brindis, fanfarria): se cancelan si se sale del juego. */
+  const sfxTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  /** La copa (vidrio): rebota al acertar, se sacude al rebalsar o quedar lejos. */
+  const glassRef = useRef<HTMLDivElement>(null);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const sfx = sfxTimers.current;
+    return () => {
       if (nextTimer.current) clearTimeout(nextTimer.current);
-    },
-    [],
-  );
+      sfx.forEach(clearTimeout);
+    };
+  }, []);
+
+  function empezarChorro() {
+    active.current = true;
+    setPouring(true);
+    vibrar("suave");
+  }
 
   function start() {
     keepAwake();
@@ -106,7 +119,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
     else {
       sonar("vidrio", 0.45, 0.95 + Math.random() * 0.1);
       if (pts >= 95) {
-        setTimeout(() => sonar("brindis", 0.55), 120);
+        sfxTimers.current.push(setTimeout(() => sonar("brindis", 0.55), 120));
         chime([880, 1320, 1760], 90, 200, "sine", 0.1);
       }
       else if (pts >= 80) chime([660, 880], 90, 160);
@@ -114,6 +127,8 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
       else beep(300, 220, "triangle");
     }
     vibrate(over ? [40, 30, 40] : pts >= 95 ? [20, 30, 20] : 15);
+    if (over || pts < 50) sacudir(glassRef.current);
+    else if (pts >= 80) rebotar(glassRef.current, pts >= 95 ? 0.1 : 0.06);
     const next = [...scores, pts];
     setScores(next);
     if (nextTimer.current) clearTimeout(nextTimer.current);
@@ -139,7 +154,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     if (phase === "end" && !reported.current) {
       reported.current = true;
-      if (total >= METAS.copa) setTimeout(() => chime(FANFARRIA, 110, 200), 400);
+      if (total >= METAS.copa) sfxTimers.current.push(setTimeout(() => chime(FANFARRIA, 110, 200), 400));
       onDone(total);
     }
   }, [phase, total, onDone]);
@@ -174,7 +189,9 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
               {NOMBRES[i]}
               {i >= 3 && <span className="ml-2 text-xs text-accent">la línea se mueve</span>}
             </p>
-            <p key={total} className="ap-display text-3xl tabular-nums jg-pop">{total}</p>
+            <p className="ap-display text-3xl">
+              <Salta valor={total} />
+            </p>
           </div>
           <div
             className={`jg-copa ${css.copa} ${pouring ? "is-pouring" : ""} ${level > 1 ? "is-spill" : ""}`}
@@ -187,8 +204,7 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
               } catch {
                 // sin captura: igual funciona mientras el dedo quede adentro
               }
-              active.current = true;
-              setPouring(true);
+              empezarChorro();
             }}
             onPointerUp={release}
             onPointerCancel={release}
@@ -197,13 +213,15 @@ export function Copa({ onDone, onBack, marcas, records, nueva }: Props) {
             tabIndex={0}
             aria-label="Servir: mantené apretado"
             onKeyDown={(e) => {
-              if (e.key !== " " || flash || active.current) return;
-              active.current = true;
-              setPouring(true);
+              if (e.key !== " ") return;
+              // Que la barra espaciadora no scrollee la página mientras se sirve.
+              e.preventDefault();
+              if (flash || active.current) return;
+              empezarChorro();
             }}
             onKeyUp={(e) => e.key === " " && release()}
           >
-            <div key={i} className={`jg-copa-glass ${css.enter}`}>
+            <div key={i} ref={glassRef} className={`jg-copa-glass ${css.enter}`}>
               <div className={`jg-copa-line ${css.line}`} style={{ bottom: `${target * 100}%` }} />
               <div className="jg-copa-liquid" style={{ height: `${Math.min(level, 1) * 100}%`, background: COLORES[i] }}>
                 {pouring && (

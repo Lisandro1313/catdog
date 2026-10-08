@@ -4,11 +4,11 @@ import { z } from "zod";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { ensureDeviceKey } from "@/lib/device";
-import { GAMES, MIN_MS, clampScore, cleanName, getMarcas, getRecords, issuePrizeIfEarned, logrado, plausible, saveScore, type GameId, type Marcas, type Records } from "@/lib/premios";
+import { GAMES, MIN_MS, clampScore, cleanName, getMarcas, getRecords, getRecordsSemana, issuePrizeIfEarned, logrado, plausible, saveScore, type GameId, type Marcas, type Records } from "@/lib/premios";
 
 const scoreSchema = z.object({ game: z.enum(GAMES), value: z.number().int(), name: z.string().max(40).optional(), token: z.string().max(200).optional() });
 
-export type ReportResult = { marcas: Marcas; records: Records; nuevaMarca: boolean; rechazada?: boolean };
+export type ReportResult = { marcas: Marcas; records: Records; semana: Records; nuevaMarca: boolean; rechazada?: boolean };
 
 function secret(): string {
   return process.env.CRON_SECRET || process.env.ADMIN_PASSWORD || "catdog-dev";
@@ -65,8 +65,8 @@ export async function reportScoreAction(input: unknown): Promise<ReportResult> {
       }
     }
   }
-  const [marcas, records] = await Promise.all([getMarcas(deviceKey), getRecords()]);
-  return { marcas, records, nuevaMarca, rechazada };
+  const [marcas, records, semana] = await Promise.all([getMarcas(deviceKey), getRecords(), getRecordsSemana()]);
+  return { marcas, records, semana, nuevaMarca, rechazada };
 }
 
 /** El jugador elige (o cambia) cómo aparece en los récords. Se aplica a todas sus marcas. */
@@ -74,6 +74,6 @@ export async function setNameAction(raw: unknown): Promise<ReportResult> {
   const deviceKey = await ensureDeviceKey();
   const name = cleanName(raw);
   if (name) await prisma.gameScore.updateMany({ where: { deviceKey }, data: { name } });
-  const [marcas, records] = await Promise.all([getMarcas(deviceKey), getRecords()]);
-  return { marcas, records, nuevaMarca: false };
+  const [marcas, records, semana] = await Promise.all([getMarcas(deviceKey), getRecords(), getRecordsSemana()]);
+  return { marcas, records, semana, nuevaMarca: false };
 }

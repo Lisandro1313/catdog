@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
 import { apilar } from "@/lib/juegos-reglas";
-import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
+import { Salta } from "./Salta";
+import { APLASTE, HIT_STOP, TEMBLOR, aplastar, crearAplaste, crearHitStop, escalaAplaste, hitStop, pasoSimulado, vibrar, type Aplaste, type HitStop } from "./sensacion";
 import { Fin } from "./Fin";
 import { prepararLienzo } from "./lienzo";
 import { Emoji } from "./Emoji";
@@ -55,7 +57,7 @@ const INGREDIENTES: { tipo: Tipo; nombre: string; color: string }[] = [
 /** Notas para las perfectas seguidas: cada una más aguda, como una escalera. */
 const NOTAS = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568];
 
-type Capa = { x: number; ancho: number; tipo: Tipo; golpe: number };
+type Capa = { x: number; ancho: number; tipo: Tipo };
 type Pedazo = { x: number; y: number; w: number; vx: number; vy: number; rot: number; vr: number; tipo: Tipo };
 type Anillo = { x: number; y: number; w: number; vida: number };
 type Juego = {
@@ -70,6 +72,11 @@ type Juego = {
   racha: number;
   cayo: boolean;
   pop: number;
+  /** Hit-stop de las justas: congela la cámara y los pedazos que caen (y la capa nueva espera lo mismo). */
+  hs: HitStop;
+  /** El aplaste de la última capa apoyada (y uno más suave para la de abajo, que la recibe). */
+  apl: Aplaste;
+  aplAbajo: Aplaste;
 };
 type Props = { onDone: (capas: number) => void; onBack: () => void; marcas: Marcas; records: Records; nueva?: boolean };
 
@@ -109,12 +116,18 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const juego = useRef<Juego | null>(null);
   const reported = useRef(false);
+  /** Los setTimeout sueltos (el fin, la segunda nota): se limpian al desmontar. */
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => {
+    const lista = timers.current;
+    return () => lista.forEach(clearTimeout);
+  }, []);
 
   function start() {
     keepAwake();
     reported.current = false;
     juego.current = {
-      pila: [{ x: PAN.x, ancho: PAN.ancho, tipo: "pan", golpe: 0 }],
+      pila: [{ x: PAN.x, ancho: PAN.ancho, tipo: "pan" }],
       t0: performance.now() + 350,
       cam: 0,
       pedazos: [],
@@ -125,6 +138,9 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
       racha: 0,
       cayo: false,
       pop: 1,
+      hs: crearHitStop(),
+      apl: crearAplaste(),
+      aplAbajo: crearAplaste(),
     };
     setCapas(0);
     setPhase("play");
@@ -142,21 +158,23 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
     const paso = (t: number) => {
       const dt = Math.min(0.033, (t - antes) / 1000);
       antes = t;
+      const dtSim = pasoSimulado(j.hs, dt, t);
       const n = j.pila.length;
       const top = j.pila[n - 1];
 
       // La cámara sube suave para que la capa nueva quede siempre a la vista.
       const objetivo = Math.max(0, TECHO - baseDe(n, 0));
-      j.cam += (objetivo - j.cam) * (1 - Math.exp(-dt * 6));
+      j.cam += (objetivo - j.cam) * (1 - Math.exp(-dtSim * 6));
       j.pop += (1 - j.pop) * (1 - Math.exp(-dt * 10));
-      for (const c of j.pila) c.golpe = Math.max(0, c.golpe - dt * 5);
+      const apl = escalaAplaste(j.apl, dt);
+      const aplAbajo = escalaAplaste(j.aplAbajo, dt);
 
       for (let i = j.pedazos.length - 1; i >= 0; i--) {
         const p = j.pedazos[i];
-        p.vy += 1500 * dt;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.rot += p.vr * dt;
+        p.vy += 1500 * dtSim;
+        p.x += p.vx * dtSim;
+        p.y += p.vy * dtSim;
+        p.rot += p.vr * dtSim;
         if (p.y + j.cam > H + 200) j.pedazos.splice(i, 1);
       }
       moverParticulas(j.part, dt);
@@ -194,8 +212,19 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
       j.pila.forEach((c, i) => {
         const base = baseDe(i, j.cam);
         if (base < -ALTO || base - ALTO > H + 10) return;
-        const aplasta = c.golpe * 0.25;
-        dibujarCapa(ctx, c.x, base - ALTO * (1 - aplasta), c.ancho, ALTO * (1 - aplasta), c.tipo, i);
+        // La recién apoyada se aplasta contra su base y vuelve con resorte; la de abajo acusa el golpe.
+        const s = i === j.pila.length - 1 && i > 0 ? apl : i === j.pila.length - 2 ? aplAbajo : null;
+        if (!s || (s.x === 1 && s.y === 1)) {
+          dibujarCapa(ctx, c.x, base - ALTO, c.ancho, ALTO, c.tipo, i);
+          return;
+        }
+        const cx = c.x + c.ancho / 2;
+        ctx.save();
+        ctx.translate(cx, base);
+        ctx.scale(s.x, s.y);
+        ctx.translate(-cx, -base);
+        dibujarCapa(ctx, c.x, base - ALTO, c.ancho, ALTO, c.tipo, i);
+        ctx.restore();
       });
 
       // La capa que viene, yendo y viniendo, con su nombre arriba.
@@ -300,13 +329,13 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
       j.pedazos.push({ x, y: base - 6, w: top.ancho, vx: x < top.x ? -90 : 90, vy: -80, rot: 0, vr: x < top.x ? -3 : 3, tipo: ing.tipo });
       j.racha = 0;
       buzz();
-      temblar(j.temblor, 10);
+      temblar(j.temblor, TEMBLOR.fuerte);
       flotar(j.flot, W / 2, base - 70, "¡Se cayó!", "#ff7a63", 30, 1.4);
-      setTimeout(() => setPhase("end"), 1100);
+      timers.current.push(setTimeout(() => setPhase("end"), 1100));
       return;
     }
 
-    let capa: Capa = { x: r.x, ancho: r.ancho, tipo: ing.tipo, golpe: 1 };
+    let capa: Capa = { x: r.x, ancho: r.ancho, tipo: ing.tipo };
     if (r.perfecta) {
       j.racha += 1;
       const crece = j.racha >= PARA_CRECER && capa.ancho < PAN.ancho;
@@ -316,8 +345,14 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
       }
       sonar("golpe", 0.4, 1.05 + Math.random() * 0.08);
       beep(NOTAS[Math.min(j.racha - 1, NOTAS.length - 1)], 120, "triangle", 0.12);
-      setTimeout(() => beep(NOTAS[Math.min(j.racha, NOTAS.length - 1)] * 2, 90, "sine", 0.05), 60);
-      tap(14);
+      const racha = j.racha;
+      timers.current.push(setTimeout(() => beep(NOTAS[Math.min(racha, NOTAS.length - 1)] * 2, 90, "sine", 0.05), 60));
+      vibrar("medio");
+      aplastar(j.apl, APLASTE.fuerte);
+      aplastar(j.aplAbajo, APLASTE.suave);
+      // Hit-stop en la justa (más largo si además crece). La capa nueva arranca después, así no se come el tiempo.
+      const ms = crece ? HIT_STOP.medio : HIT_STOP.corto;
+      if (hitStop(j.hs, ms, t)) j.t0 = t + ms;
       j.anillos.push({ x: capa.x, y: base, w: capa.ancho, vida: 1 });
       soltar(j.part, capa.x + capa.ancho / 2, base - ALTO / 2, 14, { color: ["#fff2c4", "#ffd36e", "#ffffff"], vel: 220, r: 3, dura: 0.6, g: 120, sprite: BRILLO, luz: true, giro: 6 });
       // Un destello que recorre la capa justa, de punta a punta.
@@ -331,12 +366,14 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
       const perdio = top.ancho - r.ancho;
       sonar("golpe", 0.45, 0.9 + Math.random() * 0.1);
       beep(420 + Math.min(n, 20) * 15, 70, "triangle", 0.06);
-      tap(8);
+      vibrar("suave");
+      aplastar(j.apl, APLASTE.medio);
+      aplastar(j.aplAbajo, APLASTE.suave * 0.6);
       soltar(j.part, x < top.x ? top.x : top.x + top.ancho, base - ALTO / 2, 6, { color: ing.color, vel: 120, r: 2, g: 500, dura: 0.5 });
       if (perdio > top.ancho * 0.4) flotar(j.flot, W / 2, base - ALTO - 40, "¡Uh, finito!", "#f2a5a5", 18, 0.8);
     }
     j.pila = [...j.pila, capa];
-    j.t0 = t;
+    j.t0 = Math.max(j.t0, t);
     j.pop = 1.3;
     setCapas(j.pila.length - 1);
   }
@@ -350,7 +387,7 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   return (
-    <Shell title="Armá el sánguche" onBack={onBack} right={phase === "play" ? <>{capas} {capas === 1 ? "capa" : "capas"}</> : null}>
+    <Shell title="Armá el sánguche" onBack={onBack} right={phase === "play" ? <><Salta valor={capas} /> {capas === 1 ? "capa" : "capas"}</> : null}>
       {phase === "idle" ? (
         <div className="jg-center">
           <p className="text-4xl" aria-hidden="true">

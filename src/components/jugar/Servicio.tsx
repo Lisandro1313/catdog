@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
-import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap as vibrar } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import css from "./Servicio.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { vibrar } from "./sensacion";
 
 type Ing = { id: string; label: string; emoji: string };
 const ING: Ing[] = [
@@ -216,7 +218,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
         cur = [...cur, o];
         nextArrival = t + 900 + Math.random() * 1500;
         sonar("campana", 0.4);
-        vibrar(15);
+        vibrar("medio");
       }
       if (cur !== ordersRef.current) setOrdersBoth(cur);
       setActive((a) => (a != null && cur.some((o) => o.id === a) ? a : (cur[0]?.id ?? null)));
@@ -246,7 +248,7 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
       setFb({ id, ok: true, n: fbN.current });
       const got = [...o.got, id];
       sonar("pop", 0.5, 0.9 + got.length * 0.07);
-      vibrar(6);
+      vibrar("suave");
       if (got.length === o.recipe.steps.length) {
         const lvlAntes = Math.floor(servedRef.current / 3) + 1;
         servedRef.current += o.vip ? 2 : 1;
@@ -261,8 +263,8 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
         if (o.vip) {
           later(() => beep(1200, 120), 350);
           later(() => beep(1500, 240), 480);
-          vibrar(30);
-        } else vibrar(15);
+          vibrar("fuerte");
+        } else vibrar("medio");
         if (lvl > lvlAntes && (lvl === 2 || lvl === 3 || lvl === 5)) {
           toast(lvl === 2 ? "Nivel 2: ahora vienen de a dos" : lvl === 3 ? "Nivel 3: la receta se esconde" : "¡Hora pico! Tres a la vez", "nivel", 1700);
           [659, 784, 988].forEach((f, k) => later(() => beep(f, 110, "triangle", 0.13), 420 + k * 100));
@@ -343,8 +345,8 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
             </span>
           )}
         </p>
-        <p key={served} className="ap-display text-3xl tabular-nums jg-pop">
-          {served}
+        <p className="ap-display text-3xl">
+          <Salta valor={served} />
         </p>
       </div>
 
@@ -366,7 +368,14 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
             <button
               key={o.id}
               type="button"
-              onClick={() => setActive(o.id)}
+              // Elegir cliente en pointerdown (en hora pico cada décima cuenta); el teclado llega por click sin puntero.
+              onPointerDown={(e) => {
+                if (e.pointerType === "mouse" && e.button !== 0) return;
+                setActive(o.id);
+              }}
+              onClick={(e) => {
+                if (e.detail === 0) setActive(o.id);
+              }}
               className={`jg-cliente ${css.cliente} ${on ? "is-on" : "is-off"} ${o.shake ? (o.shake % 2 ? css.sacudeA : css.sacudeB) : ""} ${o.vip ? "is-vip" : ""} ${left < 25 ? css.urgente : ""}`}
               aria-pressed={on}
             >
@@ -412,7 +421,13 @@ export function Servicio({ onDone, onBack, marcas, records, nueva }: Props) {
             key={i.id}
             type="button"
             className={`jg-ing-btn ${css.ing} ${current?.got.includes(i.id) ? "is-got" : ""}`}
-            onPointerDown={() => tap(i.id)}
+            onPointerDown={(e) => {
+              if (e.pointerType === "mouse" && e.button !== 0) return;
+              tap(i.id);
+            }}
+            onClick={(e) => {
+              if (e.detail === 0) tap(i.id);
+            }}
             aria-label={i.label}
             disabled={!current}
           >

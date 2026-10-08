@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { ESCALERA_2048, hayJugada, type Direccion } from "@/lib/juegos-reglas";
-import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { capturar } from "./lienzo";
 import { aTablero, deslizar, ponerNueva, type Ficha } from "./fusion-fichas";
 import s from "./Fusion.module.css";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { rebotar, sacudir, vibrar } from "./sensacion";
 
 const azar = () => Math.random();
 /** Cuánto hay que arrastrar el dedo (en px) para que cuente como deslizar. */
@@ -64,6 +66,7 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
   const inicio = useRef<{ x: number; y: number; usado: boolean } | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const reported = useRef(false);
+  const tableroRef = useRef<HTMLDivElement>(null);
 
   const nid = () => ++idRef.current;
   const despues = (ms: number, fn: () => void) => {
@@ -97,7 +100,9 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
     if (phase !== "play" || terminado.current) return;
     const r = deslizar(fichasRef.current, dir, nid);
     if (!r.cambio) {
-      tap(4);
+      // Para ese lado no se mueve nada: un amague corto del tablero, así se entiende que el gesto llegó.
+      vibrar("suave");
+      sacudir(tableroRef.current, 3);
       return;
     }
     const nuevas = ponerNueva(r.fichas, azar, nid);
@@ -113,8 +118,13 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
       const tono = 0.85 + Math.min(10, Math.log2(orden[orden.length - 1]) - 1) * 0.05;
       sonar("pop", orden.length > 1 ? 0.6 : 0.5, tono);
       if (orden.length > 1) despues(60, () => sonar("pop", 0.4, tono * 1.12));
-      tap(orden.length > 1 ? 12 : 6);
       const maxima = orden[orden.length - 1];
+      vibrar(orden.length > 1 || maxima >= 128 ? "medio" : "suave");
+      // Una fusión grande (o varias juntas) empuja el tablero entero, justo cuando la ficha nueva aplasta.
+      if (maxima >= 128 || orden.length > 2) {
+        const tablero = tableroRef.current;
+        despues(105, () => rebotar(tablero, maxima >= 512 ? 0.035 : 0.02));
+      }
       if (maxima > mejorRef.current) {
         mejorRef.current = maxima;
         setMejorFicha(maxima);
@@ -123,7 +133,7 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
           setAviso((x) => ({ k: (x?.k ?? 0) + 1, icono: maxima === 2048 ? "✨" : f.icono, texto: maxima === 2048 ? "¡El trago de la noche!" : `¡${f.nombre}!` }));
           despues(140, () => beep(nota(maxima) * 2, 110, "sine", 0.12));
           despues(240, () => beep(nota(maxima) * 2.5, 200, "sine", 0.12));
-          tap(maxima >= 128 ? 30 : 16);
+          vibrar(maxima >= 128 ? "fuerte" : "medio");
         }
       }
     } else {
@@ -227,7 +237,9 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
       <div className={s.marcador}>
         <div className={s.caja}>
           <span className={s.cajaRotulo}>Puntos</span>
-          <span className={s.cajaValor}>{puntos}</span>
+          <span className={s.cajaValor}>
+            <Salta valor={puntos} fuerza={0.22} />
+          </span>
           {suma && (
             <span key={suma.k} className={s.suma} aria-hidden="true">
               +{suma.n}
@@ -236,7 +248,9 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
         </div>
         <div className={s.caja}>
           <span className={s.cajaRotulo}>Mejor</span>
-          <span className={`${s.cajaValor} ${s.dorado}`}>{mejor}</span>
+          <span className={`${s.cajaValor} ${s.dorado}`}>
+            <Salta valor={mejor} fuerza={0.18} />
+          </span>
         </div>
         <div className={`${s.caja} ${s.ahora}`}>
           <span className={s.cajaRotulo}>Llegaste a</span>
@@ -247,6 +261,7 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
       </div>
 
       <div
+        ref={tableroRef}
         className={s.tablero}
         onPointerDown={(e) => {
           capturar(e);
@@ -279,7 +294,7 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
         <div className={s.capa}>
           {fichas.map((x) => {
             const f = ficha(x.v);
-            const clases = [s.ficha, x.fuera ? s.fuera : "", x.nace === "nueva" ? s.nueva : "", x.nace === "fusion" ? s.fusion : "", x.v >= 1024 ? s.cumbre : ""].join(" ");
+            const clases = [s.ficha, x.fuera ? s.fuera : "", x.nace === "nueva" ? s.nueva : "", x.nace === "fusion" ? s.fusion : "", x.nace === "fusion" && x.v >= 128 ? s.fusionGrande : "", x.v >= 1024 ? s.cumbre : ""].join(" ");
             return (
               <div key={x.id} className={clases} style={{ ...estilo(x.v), "--f": x.f, "--c": x.c } as React.CSSProperties} aria-hidden={x.fuera || undefined}>
                 <div className={s.cara}>

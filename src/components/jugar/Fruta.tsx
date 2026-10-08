@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Marcas, Records } from "@/lib/juegos";
-import { Shell, beep, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { Shell, beep, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { emoji, precargarEmojis, prepararLienzo, puntoEnLienzo, capturar } from "./lienzo";
 import { Emoji } from "./Emoji";
+import { Salta } from "./Salta";
+import { HIT_STOP, TEMBLOR, crearHitStop, hitStop, pasoSimulado, vibrar } from "./sensacion";
 import {
   cargarTexturas,
   correrTemblor,
@@ -172,6 +174,8 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
     const flot: Flotante[] = [];
     const cruces: { x: number; vida: number }[] = [];
     const temblor: Temblor = { f: 0 };
+    /** El hit-stop: congela las frutas un instante en el primer corte de un tajo y en el combo de tres. */
+    const hs = crearHitStop();
     let vidasLocal = VIDAS;
     let proxima = performance.now() + 600;
     const arranque = performance.now();
@@ -220,10 +224,11 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
       const ang = Math.atan2(b.y - a.y, b.x - a.x);
       if (c.botella) {
         sonar("vidrio-roto", 0.7);
-        tap(60);
+        vibrar("fuerte");
         termino = t;
         rojo = 1;
-        temblar(temblor, 14);
+        hitStop(hs, HIT_STOP.largo, t);
+        temblar(temblor, TEMBLOR.fuerte);
         soltar(part, c.x, c.y, 26, { color: ["#2f8a55", "#bfe8cf", "#0f3b22", "#ffffff"], vel: 420, r: 2.6, g: 700, dura: 0.9 });
         soltar(part, c.x, c.y, 8, { color: ["#e8fff2", "#bfe8cf"], vel: 300, r: 3, g: 500, dura: 0.6, sprite: "spark_05", luz: true, giro: 10 });
         flotar(flot, c.x, c.y - 30, "¡La botella no!", "#ff7a63", 26, 1.4);
@@ -238,9 +243,12 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
       tajo.ultima = t;
       tajo.x = c.x;
       tajo.y = c.y;
+      // El golpe se siente en el primer corte del tajo y cuando llega a tres; no en cada fruta de una tanda.
+      if (tajo.n === 1) hitStop(hs, HIT_STOP.corto, t);
+      else if (tajo.n === 3) hitStop(hs, HIT_STOP.medio, t);
       beep(620 + Math.min(tajo.n, 6) * 110 + Math.random() * 60, 70, "triangle", 0.1);
       beep(180, 40, "sawtooth", 0.03);
-      tap(8);
+      vibrar(tajo.n >= 3 ? "medio" : "suave");
       for (const lado of [-1, 1] as const) {
         const nx = -Math.sin(ang) * lado;
         const ny = Math.cos(ang) * lado;
@@ -267,6 +275,8 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
     const paso = (t: number) => {
       const dt = Math.min(0.033, (t - antes) / 1000);
       antes = t;
+      // La física de las frutas usa el paso simulado (0 durante el hit-stop); el dibujo y las partículas, el real.
+      const dtSim = pasoSimulado(hs, dt, t);
       if (!termino && t >= proxima) lanzar(t);
 
       // Cuando el tajo terminó (o pasó un ratito), se canta el combo.
@@ -298,18 +308,18 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
 
       for (let i = cosas.length - 1; i >= 0; i--) {
         const c = cosas[i];
-        c.vy += GRAVEDAD * dt;
-        c.x += c.vx * dt;
-        c.y += c.vy * dt;
-        c.giro += c.vg * dt;
+        c.vy += GRAVEDAD * dtSim;
+        c.x += c.vx * dtSim;
+        c.y += c.vy * dtSim;
+        c.giro += c.vg * dtSim;
         if (c.y > H + 60 && c.vy > 0) {
           cosas.splice(i, 1);
           if (!c.botella && !termino) {
             vidasLocal -= 1;
             setVidas(vidasLocal);
             sonar("golpe", 0.45, 0.8);
-            tap(30);
-            temblar(temblor, 5);
+            vibrar("fuerte");
+            temblar(temblor, TEMBLOR.chico);
             cruces.push({ x: Math.max(24, Math.min(W - 24, c.x)), vida: 1.2 });
             if (vidasLocal <= 0) {
               termino = t;
@@ -321,11 +331,11 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
       }
       for (let i = mitades.length - 1; i >= 0; i--) {
         const m = mitades[i];
-        m.vy += GRAVEDAD * dt;
-        m.x += m.vx * dt;
-        m.y += m.vy * dt;
-        m.giro += m.vg * dt;
-        m.vida -= dt;
+        m.vy += GRAVEDAD * dtSim;
+        m.x += m.vx * dtSim;
+        m.y += m.vy * dtSim;
+        m.giro += m.vg * dtSim;
+        m.vida -= dtSim;
         if (m.vida <= 0 || m.y > H + 80) mitades.splice(i, 1);
       }
       moverParticulas(part, dt);
@@ -513,7 +523,7 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
       right={
         phase === "play" ? (
           <>
-            {cortadas} · {"●".repeat(vidas)}
+            <Salta valor={cortadas} /> · {"●".repeat(vidas)}
             {"○".repeat(VIDAS - vidas)}
           </>
         ) : null

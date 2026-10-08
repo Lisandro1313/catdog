@@ -34,7 +34,7 @@
   opacity: 0.25;
 }
 .rowIn {
-  animation: rowIn 0.25s ease both;
+  animation: rowIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes rowIn {
   from {
@@ -105,16 +105,25 @@
   background: var(--surface);
   font-size: 0.9rem;
   overflow-wrap: anywhere;
-  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  transition: border-color 0.15s, background 0.15s;
   touch-action: manipulation;
 }
-.voto:active {
-  transform: scale(0.97);
-}
+/* El hundimiento al apretar lo pone instalarTactil (Shell). */
 .votoOn {
   border-color: var(--danger);
   background: rgba(181, 83, 60, 0.18);
   color: var(--text);
+}
+
+/* Cambio de pantalla (charla, votación, suspenso): entra corta, TIEMPO.transicion + CURVA.outQuint. */
+.entra {
+  animation: entra 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 /* Redoble antes de revelar */
@@ -148,6 +157,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rowIn,
+  .entra,
   .tapa,
   .flip,
   .drum,

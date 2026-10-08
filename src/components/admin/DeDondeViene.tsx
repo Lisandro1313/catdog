@@ -1,5 +1,5 @@
 import { CopyButton } from "@/components/CopyButton";
-import { ACCION_LABEL, ACCIONES, ORIGENES, etiquetaDe, rutaDeAccion } from "@/lib/origen";
+import { ACCION_LABEL, ACCIONES, ORIGENES, etiquetaDe, rutaDeAccion, rutaDeOrigen } from "@/lib/origen";
 
 /**
  * De dónde llega la gente y qué hace cuando llega.
@@ -18,7 +18,7 @@ export function DeDondeViene({
   avisados: { de: string; cuantos: number }[];
 }) {
   const cuenta = (ruta: string) => visitas.find((v) => v.path === ruta)?.count ?? 0;
-  const llegaron = ORIGENES.map((o) => ({ ...o, visitas: cuenta(`/?de=${o.clave}`) }));
+  const llegaron = ORIGENES.map((o) => ({ ...o, visitas: cuenta(`${rutaDeOrigen(o)}?de=${o.clave}`) }));
   const hubo = llegaron.some((o) => o.visitas > 0);
   const clics = ACCIONES.map((a) => ({ a, n: cuenta(rutaDeAccion(a)) })).filter((c) => c.n > 0);
   const anotados = new Map(avisados.map((a) => [a.de, a.cuantos]));
@@ -41,7 +41,7 @@ export function DeDondeViene({
             </span>
             <span className="flex shrink-0 items-center gap-2">
               <code className="text-xs text-muted">?de={o.clave}</code>
-              <CopyButton text={`${url}/?de=${o.clave}`} label="Copiar" />
+              <CopyButton text={`${url}${rutaDeOrigen(o)}?de=${o.clave}`} label="Copiar" />
             </span>
           </li>
         ))}
