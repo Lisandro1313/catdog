@@ -1,6 +1,7 @@
 /**
  * Tipos y formato chico del guion de ¿Quién te contó?. Sin datos de historia: eso vive en
- * `guion.ts` (temporada 1), `t2/*` (temporada 2) y `confidentes/*` (los vínculos con rangos).
+ * `historia/*` (las cinco semanas, los finales, la acusación), `confidentes/*` (los vínculos con
+ * rangos) y `tablero.ts` (las pistas del traidor).
  *
  * Formato de líneas:
  *
@@ -13,20 +14,28 @@
  *   [en:vera] ...               → solo si el romance con Vera está vivo
  *   [rango:vera:5] ...          → solo si Vera está en rango 5 o más ([-rango:vera:5]: menos de 5)
  *   [stat:labia:3] ...          → solo con Labia 3 o más
+ *   [@salvada] ...              → una condición con nombre (ver `DERIVADAS`)
  *
  * `{nombre}` se reemplaza por el nombre que puso quien juega.
  */
 
-/** Vínculos de la temporada 1 (afinidad suelta, sin rangos). */
-export const VINCULOS = ["vera", "teo", "mora", "gris"] as const;
-export type Vinculo = (typeof VINCULOS)[number];
-
-/** Confidentes de la temporada 2: rangos del 1 al 10, una escena por rango. */
+/** Los vínculos: rangos del 1 al 10, una escena por rango. */
 export const CONFIDENTES = ["vera", "teo", "mora", "dante", "sol", "luna", "bruno", "cami", "evelyn"] as const;
 export type Confidente = (typeof CONFIDENTES)[number];
 export const RANGO_MAX = 10;
-/** Los que ya conocés de la temporada 1. El resto aparece en la 2 (marca `conoce:x`). */
+/** Los que se conocen la primera semana. El resto aparece después (marca `conoce:x`). */
 export const CONOCIDOS: readonly Confidente[] = ["vera", "teo", "mora"];
+
+/**
+ * El traidor: alguien de la casa le pasa información a Altamira. Cambia en cada partida (se sortea
+ * al empezar y queda como marca `traidor:x`). Dante es la pista falsa obvia: nunca es. Lisandro y
+ * Agustín ni siquiera son sospechosos.
+ */
+export const TRAIDORES = ["vera", "teo", "mora", "cami"] as const;
+export type Traidor = (typeof TRAIDORES)[number];
+/** Los que aparecen en el tablero (los posibles y las pistas falsas). */
+export const SOSPECHOSOS = ["vera", "teo", "mora", "cami", "dante", "bruno"] as const;
+export type Sospechoso = (typeof SOSPECHOSOS)[number];
 
 /** Cualidades de quien juega (a la manera de Persona). */
 export const STATS = ["encanto", "coraje", "labia"] as const;
@@ -108,14 +117,15 @@ export type CgId = (typeof CGS)[number];
 export const DIAS = ["lunes", "jueves", "viernes", "sabado", "epilogo"] as const;
 export type Dia = (typeof DIAS)[number];
 
+/** Cinco semanas, un capítulo cada una. La firma es el sábado de la quinta. */
+export const SEMANAS = 5;
+
 export type Condicion =
-  | { vinculo: Vinculo; min: number }
   | { rango: Confidente; min: number }
   | { stat: Stat; min: number }
   | { marca: string }
   | { no: string }
   | { ni: Condicion }
-  | { total: number }
   | { todas: Condicion[] }
   | { alMenos: number; de: Condicion[] };
 
@@ -131,7 +141,6 @@ export type Linea = {
 
 export type Opcion = {
   texto: string;
-  efectos?: Partial<Record<Vinculo, number>>;
   stats?: Partial<Record<Stat, number>>;
   marcas?: string[];
   /** Si no se cumple, la opción no aparece. */
@@ -148,21 +157,22 @@ export type Escena = {
   id: string;
   /** Si falta (escenas de vínculo), es el día de la escena a la que se vuelve. */
   dia?: Dia;
-  /** Temporada 2: semana 2 a 5. Si falta, semana 1 (o la de la vuelta). */
+  /** Semana (= capítulo) 1 a 5. Si falta, la de la vuelta. */
   semana?: number;
-  temporada?: 1 | 2;
   /** Tiempo libre de viernes y sábado: 1 = antes de la una, 2 = de madrugada. */
   turno?: 1 | 2;
   fondo: Fondo;
   hora: string;
-  /** Marca que se gana con solo entrar a la escena. */
-  marca?: string;
+  /** Marca (o marcas) que se ganan con solo entrar a la escena. */
+  marca?: string | string[];
   /** Escena ilustrada (reemplaza fondo y retrato). */
   cg?: CgId;
   /** Los personajes con ropa de salir. */
   noche?: boolean;
   /** Tiempo libre: elegir cualquier opción deja anotado volver a `sigue`. */
   libre?: boolean;
+  /** La acusación: la pantalla la muestra a la manera de un interrogatorio. */
+  acusar?: boolean;
   /** Escena de vínculo: entrar sube el rango. */
   rango?: { de: Confidente; n: number };
   /** Lo que pide la escena de vínculo para estar disponible, y cómo se explica si falta. */
@@ -187,38 +197,50 @@ export type TemaNovela = (typeof TEMAS_NOVELA)[number];
 
 export const FINALES_IDS = [
   "verdadero",
-  "vera",
-  "teo",
-  "mora",
+  "celos",
+  "engano",
+  "amor-vera",
+  "amor-teo",
+  "amor-mora",
+  "amor-dante",
+  "amor-sol",
+  "amor-luna",
+  "amor-bruno",
+  "amor-cami",
+  "amor-evelyn",
+  "silla",
   "casa",
   "abrigo",
-  "lunes",
-  "t2-verdadero",
-  "t2-vera",
-  "t2-teo",
-  "t2-mora",
-  "t2-dante",
-  "t2-sol",
-  "t2-luna",
-  "t2-bruno",
-  "t2-cami",
-  "t2-evelyn",
-  "t2-celos",
-  "t2-casa",
-  "t2-abrigo",
-  "t2-cerrado",
+  "cerrado",
 ] as const;
 export type FinalId = (typeof FINALES_IDS)[number];
 
 export type Final = {
   id: FinalId;
-  temporada: 1 | 2;
   titulo: string;
   /** Lo que se ve en la lista de finales cuando todavía no se consiguió. */
   pista: string;
   verdadero?: boolean;
   condicion: Condicion;
   escena: string;
+};
+
+// ─── Condiciones con nombre ──────────────────────────────────────────────────────────────────
+
+const SALVADA: Condicion = { todas: [{ marca: "acuso:bien" }, { marca: "carta:amalia" }] };
+
+/**
+ * Condiciones que se usan mucho en el guion, con nombre: `[@salvada]`, `[-@salvada]`.
+ * - salvada: acusaste bien y Amalia supo la verdad a tiempo. La casa no se vende.
+ * - catalogada: no se salvó, pero Cami logró que no se pueda tirar.
+ * - perdida: ni una cosa ni la otra.
+ * - desconfianza: la casa se enteró por otro de dónde trabajaste, y nunca se lo contaste vos.
+ */
+export const DERIVADAS: Record<string, Condicion> = {
+  salvada: SALVADA,
+  catalogada: { todas: [{ ni: SALVADA }, { marca: "patrimonio" }] },
+  perdida: { todas: [{ ni: SALVADA }, { no: "patrimonio" }] },
+  desconfianza: { todas: [{ marca: "expuesto" }, { no: "confeso" }] },
 };
 
 // ─── El formato chico ────────────────────────────────────────────────────────────────────────
@@ -235,11 +257,14 @@ function huella(t: string): string {
   return (h >>> 0).toString(36).slice(0, 5);
 }
 
-/** Lee una condición entre corchetes: `marca`, `en:vera`, `rango:vera:5`, `stat:labia:3`. */
+/** Lee una condición entre corchetes: `marca`, `en:vera`, `rango:vera:5`, `stat:labia:3`, `@salvada`. */
 function condicionDe(neg: boolean, raw: string, donde: string): Condicion {
   const partes = raw.split(":");
   let c: Condicion | null = null;
-  if (partes[0] === "en" && partes.length === 2 && ES_CONFIDENTE.has(partes[1])) {
+  if (raw.startsWith("@")) {
+    c = DERIVADAS[raw.slice(1)] ?? null;
+    if (!c) throw new Error(`Condición con nombre desconocida "${raw}" en ${donde}`);
+  } else if (partes[0] === "en" && partes.length === 2 && ES_CONFIDENTE.has(partes[1])) {
     c = enPareja(partes[1] as Confidente);
   } else if (partes[0] === "rango" && partes.length === 3) {
     if (!ES_CONFIDENTE.has(partes[1]) || !Number(partes[2])) throw new Error(`Condición rara "${raw}" en ${donde}`);
@@ -261,7 +286,7 @@ export function parseLineas(base: string, src: string): Linea[] {
       let t = raw;
       const conds: Condicion[] = [];
       const id = `${base}:${i}`;
-      for (let cond = /^\[(-?)([\w:-]+)\]\s*/.exec(t); cond; cond = /^\[(-?)([\w:-]+)\]\s*/.exec(t)) {
+      for (let cond = /^\[(-?)(@?[\w:-]+)\]\s*/.exec(t); cond; cond = /^\[(-?)(@?[\w:-]+)\]\s*/.exec(t)) {
         const [, neg, marca] = cond;
         conds.push(condicionDe(!!neg, marca, id));
         t = t.slice(cond[0].length);
@@ -296,7 +321,7 @@ export function armar(src: Record<string, EscenaSrc>): Record<string, Escena> {
   return out;
 }
 
-export type RangoSrc = Omit<EscenaSrc, "rango" | "dia" | "semana" | "temporada"> & { pide?: Condicion; motivo?: string; premio: string };
+export type RangoSrc = Omit<EscenaSrc, "rango" | "dia" | "semana"> & { pide?: Condicion; motivo?: string; premio: string };
 
 /**
  * Arma las diez escenas de un confidente: ids `vera-r1` … `vera-r10`, suben el rango al entrar y
@@ -307,15 +332,15 @@ export function armarRangos(de: Confidente, lista: RangoSrc[]): Record<string, E
   if (lista.length !== RANGO_MAX) throw new Error(`${de}: tiene ${lista.length} rangos, se esperaban ${RANGO_MAX}`);
   const src: Record<string, EscenaSrc> = {};
   lista.forEach((r, i) => {
-    src[`${de}-r${i + 1}`] = { temporada: 2, sigue: "@vuelta", ...r, rango: { de, n: i + 1 } };
+    src[`${de}-r${i + 1}`] = { sigue: "@vuelta", ...r, rango: { de, n: i + 1 } };
   });
   return armar(src);
 }
 
 /** Una escena que sigue a un rango (o una mañana siguiente): vuelve sola a la noche. */
-export function aparte(src: Record<string, Omit<EscenaSrc, "temporada" | "sigue"> & { sigue?: string }>): Record<string, Escena> {
+export function aparte(src: Record<string, Omit<EscenaSrc, "sigue"> & { sigue?: string }>): Record<string, Escena> {
   const out: Record<string, EscenaSrc> = {};
-  for (const [id, e] of Object.entries(src)) out[id] = { temporada: 2, sigue: "@vuelta", ...e };
+  for (const [id, e] of Object.entries(src)) out[id] = { sigue: "@vuelta", ...e };
   return armar(out);
 }
 

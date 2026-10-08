@@ -226,6 +226,8 @@ export const CAMI = {
         "Camila. ¿Qué es esto? ¿Un bar? ¿Estás trabajando gratis para un bar?"
         cami/serio: Para una casa, papá. Es una casa.
         "Es un bar sin habilitación de cartel con un contrato de palabra. Es un caso perdido. Y nosotros no perdemos."
+        "Además, Camila, Altamira es cliente de este estudio desde hace veinte años. ¿Lo sabías?"
+        cami/serio: ...Lo sé, papá. Lo sé desde el primer lunes.
         Cami se queda callada. Por primera vez la ves sin una sola palabra en la boca.
       `,
       opciones: [
@@ -252,6 +254,7 @@ export const CAMI = {
           `,
         },
       ],
+      ramas: [{ si: { marca: "traidor:cami" }, va: "cami-sombra" }],
     },
     // ─── Rango 7 ───
     {
@@ -267,6 +270,7 @@ export const CAMI = {
         Desenrollan el plano sobre la mesa. Tinta azul, letra de otra época. La casa: la cocina donde ahora está la barra, el cuarto donde ahora está el pool.
         Y en el cuarto donde ahora está el pool, escrito con lápiz, con letra de chico, alguien agregó algo al plano hace muchísimos años.
         !"Cuarto de Gervasio."
+        Y encima, en birome roja, de otra época: "Incendio, agosto 1987. Reconstruido."
         cami/sorpresa: ...¿Gervasio? ¿Como el señor de la esquina?
         yo: Como el señor de la esquina. Ahí dormía.
         cami/feliz: Esto no es un plano. Es una prueba. Es una prueba hermosa.
@@ -435,6 +439,18 @@ export const CAMI = {
           `,
         },
       ],
+    },
+    "cami-sombra": {
+      fondo: "estudio",
+      hora: "19:40",
+      marca: "motivo:cami",
+      texto: `
+        Cami acompaña a su viejo hasta el ascensor. La laptop queda abierta en el escritorio.
+        Un documento a medio escribir:
+        !"Informe semanal — Diagonal y 10 — para E. Altamira. Horarios confirmados. Ledesma, adentro."
+        Cuando vuelve, la tapa está cerrada. Ella la mira. Te mira.
+        cami/sonrisa: Mi viejo y sus informes. Todo lo escribe. Hasta el clima.
+      `,
     },
     "cami-manana": {
       fondo: "depto",

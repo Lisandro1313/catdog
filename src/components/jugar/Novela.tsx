@@ -3,7 +3,7 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { gsap } from "gsap";
 import {
-  ARCANOS,
+  CAPITULOS,
   CGS,
   CG_INFO,
   CONFIDENTES,
@@ -11,35 +11,38 @@ import {
   DIA_INFO,
   ESCENAS,
   FINALES,
+  FINALES_IDS,
   NIVELES_STAT,
   NOMBRES,
-  NOMBRE_PISTA,
   NOMBRE_STAT,
-  PISTAS,
-  PISTAS2,
   RANGO_MAX,
   STATS,
   STAT_MAX,
-  VINCULOS,
+  TRAIDORES,
   type CgId,
   type Dia,
   type FinalId,
   type Linea,
+  type Sospechoso,
 } from "@/lib/novela/guion";
 import {
   agendaTexto,
+  anotar,
   avanzar,
   cargar,
   conoce,
+  diasParaFirma,
   disponible,
   elegir,
-  empezarT2,
+  esPartidaVieja,
   escenaDe,
   inicial,
   interpolar,
   lineaActual,
   lineaEnPantalla,
+  marcasNuevas,
   momento,
+  notas,
   opcionesVista,
   parejas,
   proximoRango,
@@ -47,12 +50,14 @@ import {
   resumen,
   retratoEn,
   serializar,
-  subieron,
   subieronRangos,
   subieronStats,
+  traidor,
   type Estado,
+  type Nota,
   type Partida,
 } from "@/lib/novela/motor";
+import { MOTIVOS, NOMBRE_87, NOMBRE_SOSPECHOSO, PISTAS_87, PISTAS_T, PISTA_T, RUMORES, cruzar, type PistaT } from "@/lib/novela/tablero";
 import { LOGROS, nuevosLogros } from "@/lib/novela/logros";
 import { imagenCg, imagenFondo, imagenesDe } from "@/lib/novela/arte";
 import { VOLUMEN_TEMA, finalTriste, temaDeEscena, temaDeFinal } from "@/lib/novela/musica";
@@ -82,6 +87,8 @@ const K_GALERIA = "catdog:novela:galeria";
 const K_LOGROS = "catdog:novela:logros";
 /** Guardado rápido: una foto de la partida en cualquier línea, aparte de las ranuras. */
 const K_RAPIDO = "catdog:novela:rapido";
+/** Ya se mostró el aviso de que la novela cambió de punta a punta (las partidas viejas no siguen). */
+const K_AVISO_V3 = "catdog:novela:aviso-v3";
 const SLOTS = [1, 2, 3] as const;
 
 /** Avance automático: apagado, lento, normal, rápido. Pausa por línea = base + por letra. */
@@ -218,9 +225,9 @@ const eleccionSonido = () => {
 // ─── El juego ────────────────────────────────────────────────────────────────────────────────
 
 type Pantalla = "titulo" | "slots" | "nombre" | "juego" | "fin" | "extras";
-type Panel = null | "log" | "vinculos" | "sistema";
+type Panel = null | "log" | "vinculos" | "sistema" | "tablero";
 type Registro = { quien: string; texto: string; eleccion?: boolean };
-type Aviso = { tipo: "vinculo" | "rango" | "stat" | "logro" | "cg" | "nota" | "sistema"; chico: string; texto: string; valor?: string };
+type Aviso = { tipo: "rango" | "stat" | "logro" | "cg" | "nota" | "sistema" | "pista"; chico: string; texto: string; valor?: string };
 const NOTAS = ["", "♪", "♪♪", "♪♪♪"] as const;
 const NOTA_TXT = ["", "Le gustó", "Le gustó mucho", "Le encantó"] as const;
 type Tab = "finales" | "galeria" | "logros";
@@ -234,9 +241,20 @@ function nombreDe(l: Pick<Linea, "quien">, nombre: string): string | null {
 function descripcionSlot(p: Partida): string {
   const m = momento(p.estado);
   const dia = DIA_INFO[m.dia].titulo;
-  if (m.temporada === 1) return `Temporada 1 · ${dia}`;
   const top = CONFIDENTES.filter((c) => p.estado.rangos[c] > 0).sort((a, b) => p.estado.rangos[b] - p.estado.rangos[a])[0];
-  return `Temporada 2 · Semana ${m.semana} · ${dia}${top ? ` · ${NOMBRES[top]} R${p.estado.rangos[top]}` : ""}`;
+  return `Capítulo ${m.semana} · ${dia} · faltan ${diasParaFirma(m)} días${top ? ` · ${NOMBRES[top]} R${p.estado.rangos[top]}` : ""}`;
+}
+
+const FINAL_CONOCIDO = new Set<string>(FINALES_IDS);
+
+/** Lo que dice cada marca nueva que vale la pena avisar (pistas, rumores, 1987, el tablero). */
+function avisoDeMarca(m: string): Aviso | null {
+  if ((PISTAS_T as readonly string[]).includes(m)) return { tipo: "pista", chico: "Pista", texto: PISTA_T[m as PistaT].titulo };
+  if ((PISTAS_87 as readonly string[]).includes(m)) return { tipo: "pista", chico: "1987", texto: "Un pedazo de la noche del incendio" };
+  if (RUMORES.some((r) => r.id === m)) return { tipo: "pista", chico: "Rumor", texto: "Al tablero" };
+  if (m.startsWith("motivo:")) return { tipo: "pista", chico: "Motivo", texto: "Lo que no se dice" };
+  if (m === "tablero") return { tipo: "pista", chico: "Nuevo", texto: "Tablero de sospechas" };
+  return null;
 }
 
 export function Novela({ onBack }: { onBack: () => void }) {
@@ -246,15 +264,20 @@ export function Novela({ onBack }: { onBack: () => void }) {
   const galeriaRaw = useGuardado(K_GALERIA);
   const logrosRaw = useGuardado(K_LOGROS);
   const rapidoRaw = useGuardado(K_RAPIDO);
+  const avisoV3 = useGuardado(K_AVISO_V3);
   const rapido = useMemo(() => cargar(rapidoRaw), [rapidoRaw]);
-  const logrados = useMemo(() => lista(finalesRaw) as FinalId[], [finalesRaw]);
+  // Los finales y logros de la versión anterior quedan guardados (no se borran), pero se cuentan aparte.
+  const todosLosFinales = useMemo(() => lista(finalesRaw), [finalesRaw]);
+  const logrados = useMemo(() => todosLosFinales.filter((f) => FINAL_CONOCIDO.has(f)) as FinalId[], [todosLosFinales]);
+  const finalesViejos = todosLosFinales.length - logrados.length;
   const galeria = useMemo(() => lista(galeriaRaw) as CgId[], [galeriaRaw]);
   const logros = useMemo(() => lista(logrosRaw), [logrosRaw]);
   const [c1, c2, c3] = crudos;
   const partidas = useMemo(() => {
     const raws = [crudoSlot(1, c1, vieja), c2, c3];
-    return raws.map((raw) => ({ raw, p: cargar(raw) }));
+    return raws.map((raw) => ({ raw, p: cargar(raw), vieja: esPartidaVieja(raw) }));
   }, [c1, c2, c3, vieja]);
+  const hayViejas = partidas.some((x) => x.vieja) || esPartidaVieja(rapidoRaw);
 
   const [pantalla, setPantalla] = useState<Pantalla>("titulo");
   const [modoSlots, setModoSlots] = useState<"cargar" | "nueva">("cargar");
@@ -286,7 +309,6 @@ export function Novela({ onBack }: { onBack: () => void }) {
   const listo = escrito >= texto.length;
   const lineaId = linea?.id ?? "";
   const jugando = pantalla === "juego" && !cal && !panel && !anterior;
-  const hayT1 = logrados.some((f) => FINALES.find((x) => x.id === f)?.temporada === 1);
 
   // Máquina de escribir: de a dos letras. Se reinicia sola al cambiar de línea (por el id).
   useEffect(() => {
@@ -356,7 +378,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
 
   // Las opciones entran escalonadas (las de diálogo de costado, las cartas de abajo).
   const opsKey = pantalla === "juego" && ops ? `${estado.escena}:${ops.map((o) => o.k).join(",")}` : "";
-  const libreVista = !!escena.libre;
+  const libreVista = !!escena.libre || !!escena.acusar;
   useLayoutEffect(() => {
     const el = opcionesRef.current;
     if (!opsKey || !el) return;
@@ -416,7 +438,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
       const b = momento(next);
       const antes = escenaDe(prev.escena);
       const despues = escenaDe(next.escena);
-      if (a.dia !== b.dia || a.semana !== b.semana || a.temporada !== b.temporada) {
+      if (a.dia !== b.dia || a.semana !== b.semana) {
         setCal(b);
         sonar("pagina", 0.5);
       } else if (despues.fondo !== antes.fondo || despues.cg) {
@@ -428,7 +450,10 @@ export function Novela({ onBack }: { onBack: () => void }) {
         items.push({ tipo: "cg", chico: "Galería", texto: CG_INFO[despues.cg].titulo });
       }
     }
-    for (const v of subieron(prev, next)) items.push({ tipo: "vinculo", chico: "Vínculo", texto: v === "gris" ? "La esquina" : NOMBRES[v], valor: `▲ ${next.afinidad[v]}` });
+    for (const m of marcasNuevas(prev, next)) {
+      const a = avisoDeMarca(m);
+      if (a) items.push(a);
+    }
     for (const c of subieronRangos(prev, next)) items.push({ tipo: "rango", chico: "Rango", texto: NOMBRES[c], valor: `${next.rangos[c]}` });
     for (const st of subieronStats(prev, next)) items.push({ tipo: "stat", chico: NOMBRE_STAT[st], texto: NIVELES_STAT[st][next.stats[st]], valor: `▲ ${next.stats[st]}` });
     const rx = reaccion(prev, next);
@@ -453,7 +478,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
         setTimeout(() => {
           if (rango) fanfarria(max ? "rango-max" : "rango");
           else if (logro) fanfarria("logro");
-          else if (items.some((x) => x.tipo === "cg")) fanfarria("cg", 0.4);
+          else if (items.some((x) => x.tipo === "cg" || x.tipo === "pista")) fanfarria("cg", 0.4);
           else sonar("acierto", 0.4);
         }, 160);
         if (max || logro) setTimeout(() => papelPicado(max), 520);
@@ -465,9 +490,8 @@ export function Novela({ onBack }: { onBack: () => void }) {
       const fin = next.terminado;
       sumar(K_FINALES, [fin]);
       setUltimoFinal(fin);
-      // Terminada la temporada 1, la ranura queda lista en el arranque de la 2. Terminada la 2, se libera.
-      const temporada = FINALES.find((f) => f.id === fin)?.temporada ?? 1;
-      guardarSlot(slot, temporada === 1 ? serializar(empezarT2(next), nombre, Date.now()) : null);
+      // Terminada la historia, la ranura se libera.
+      guardarSlot(slot, null);
       setSaltar(false);
       setPantalla("fin");
       golpeSonido();
@@ -531,9 +555,9 @@ export function Novela({ onBack }: { onBack: () => void }) {
     setPantalla("juego");
   }
 
-  function empezar(temporada: 1 | 2) {
+  function empezar() {
     const n = borrador.trim().slice(0, 16);
-    const e = temporada === 1 ? inicial() : empezarT2();
+    const e = inicial();
     guardar(e, n, slot);
     entrar(e, n, slot, null);
     sonar("campana", 0.5);
@@ -563,6 +587,13 @@ export function Novela({ onBack }: { onBack: () => void }) {
     guardar(rapido.estado, rapido.nombre, sl);
     entrar(rapido.estado, rapido.nombre, sl, null);
     golpeSonido();
+  }
+
+  function anotarNota(q: Sospechoso, n: Nota | null) {
+    const next = anotar(estado, q, n);
+    setEstado(next);
+    guardar(next);
+    sonar("clic", 0.3);
   }
 
   function cambiarAuto() {
@@ -631,6 +662,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
     }
     if (e.key === "l" || e.key === "L") setPanel((p) => (p === "log" ? null : "log"));
     if (e.key === "v" || e.key === "V") setPanel((p) => (p === "vinculos" ? null : "vinculos"));
+    if ((e.key === "t" || e.key === "T") && estado.marcas.includes("tablero")) setPanel((p) => (p === "tablero" ? null : "tablero"));
     if (e.key === "a" || e.key === "A") cambiarAuto();
     if (e.key === "q" || e.key === "Q") guardarRapido();
   });
@@ -659,11 +691,20 @@ export function Novela({ onBack }: { onBack: () => void }) {
 
           {pantalla === "titulo" && (
             <div className={s.portadaCuerpo}>
-              <p className={s.antetitulo}>Novelón en la casa · Temporadas 1 y 2</p>
+              <p className={s.antetitulo}>Novelón en la casa · Cinco capítulos · Un traidor</p>
               <h1 className={s.tituloGrande} aria-label={TITULO}>
                 <TituloRecortado />
               </h1>
               <p className={s.lema}>Si llegaste hasta acá, alguien te contó.</p>
+              {hayViejas && !avisoV3 && (
+                <div className={s.avisoVersion} role="status">
+                  <b>La novela cambió de punta a punta.</b> Hay una historia nueva, con un traidor que cambia en cada partida. Las partidas guardadas de antes no se pueden seguir:
+                  empezá de nuevo. Tus finales, la galería y los logros quedan.
+                  <button type="button" className={s.avisoVersionOk} onClick={() => escribir(K_AVISO_V3, "1")}>
+                    Entendido
+                  </button>
+                </div>
+              )}
 
               <div className={s.menu}>
                 {ultimaSlot > 0 && (
@@ -711,7 +752,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
                 </button>
               </div>
               <p className={s.nota}>
-                Entre 2 y 3 horas · {CONFIDENTES.length} vínculos · {FINALES.length} finales · se guarda solo
+                Capítulo 1: veinte minutos · Todo: entre 2 y 3 horas · {CONFIDENTES.length} vínculos · {FINALES.length} finales · se guarda solo
               </p>
             </div>
           )}
@@ -721,7 +762,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
               <p className={s.antetitulo}>{modoSlots === "nueva" ? "¿En qué ranura empezás?" : "Cargar partida"}</p>
               <ul className={s.slots}>
                 {SLOTS.map((n) => {
-                  const { raw, p } = partidas[n - 1];
+                  const { raw, p, vieja: deAntes } = partidas[n - 1];
                   const rota = !!raw && !p;
                   const deshab = modoSlots === "cargar" && !p;
                   return (
@@ -751,6 +792,8 @@ export function Novela({ onBack }: { onBack: () => void }) {
                             <span>{p.nombre || "Sin nombre"}</span>
                             <small>{descripcionSlot(p)}</small>
                           </>
+                        ) : deAntes ? (
+                          <small>Partida de la versión anterior: la historia cambió entera y no se puede seguir. Empezá de nuevo acá. Tus finales, la galería y los logros quedan.</small>
                         ) : rota ? (
                           <small>La partida guardada no encaja con esta versión de la novela. Si empezás acá, se reinicia.</small>
                         ) : (
@@ -771,7 +814,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
               className={s.portadaCuerpo}
               onSubmit={(e) => {
                 e.preventDefault();
-                empezar(1);
+                empezar();
               }}
             >
               <p className={s.antetitulo}>Pregunta de la casa · Ranura {slot}</p>
@@ -790,14 +833,11 @@ export function Novela({ onBack }: { onBack: () => void }) {
                 <button type="submit" className={`${s.menuBtn} ${s.menuBtnRojo}`}>
                   <span className={s.rombo}>◆</span> Tocar el timbre
                 </button>
-                <button type="button" className={s.menuBtn} disabled={!hayT1} onClick={() => empezar(2)} title={hayT1 ? "" : "Terminá la temporada 1 al menos una vez"}>
-                  <span className={s.rombo}>▶</span> {hayT1 ? "Ir directo a la temporada 2" : "Temporada 2 (terminá la 1 primero)"}
-                </button>
               </div>
             </form>
           )}
 
-          {pantalla === "extras" && <Extras tab={tab} setTab={setTab} logrados={logrados} galeria={galeria} logros={logros} onVer={setVerCg} />}
+          {pantalla === "extras" && <Extras tab={tab} setTab={setTab} logrados={logrados} finalesViejos={finalesViejos} galeria={galeria} logros={logros} onVer={setVerCg} />}
 
           {verCg && (
             <button type="button" className={s.cgVisor} onClick={() => setVerCg(null)} aria-label="Cerrar">
@@ -811,29 +851,41 @@ export function Novela({ onBack }: { onBack: () => void }) {
 
   if (pantalla === "fin" && ultimoFinal) {
     const f = FINALES.find((x) => x.id === ultimoFinal)!;
-    const deTemporada = FINALES.filter((x) => x.temporada === f.temporada);
-    // Los romances de la temporada 2 son "t2-<confidente>": con quién terminó, sin contar cómo.
-    const pareja = f.id.startsWith("t2-") ? CONFIDENTES.find((c) => `t2-${c}` === f.id) : undefined;
+    // Los romances son "amor-<confidente>": con quién terminó, sin contar cómo.
+    const pareja = CONFIDENTES.find((c) => `amor-${c}` === f.id);
     const conQuien = pareja ? NOMBRES[pareja] : null;
+    const quienVendia = traidor(estado);
     return (
       <div className={`${s.root} ${s.portada} ${FUENTES}`}>
         <div className={s.marco}>
           <div className={s.portadaFondo} aria-hidden="true" />
           <div className={`${s.portadaCuerpo} ${s.finCuerpo}`}>
             <p className={s.antetitulo}>
-              {f.verdadero ? `★ Final verdadero · Temporada ${f.temporada} ★` : `Temporada ${f.temporada} · Final ${deTemporada.indexOf(f) + 1} de ${deTemporada.length}`}
+              {f.verdadero ? "★ Final verdadero ★" : `Final ${FINALES.indexOf(f) + 1} de ${FINALES.length}`}
             </p>
             <h2 className={s.finTitulo}>
               <span>Fin</span>
             </h2>
             <p className={s.finNombre}>{f.titulo}</p>
-            {f.temporada === 1 ? <Vinculos estado={estado} compacto /> : <Confidentes estado={estado} compacto />}
+            {quienVendia && (
+              <p className={s.finTraidor}>
+                Esta vez, quien vendía la casa era <b>{NOMBRE_SOSPECHOSO[quienVendia]}</b>.{" "}
+                {estado.marcas.includes("acuso:bien") ? "Lo descubriste." : "No lo descubriste."} En la próxima partida puede ser otra persona.
+              </p>
+            )}
+            <Confidentes estado={estado} compacto />
             <div className={s.menu}>
-              {f.temporada === 1 && (
-                <button type="button" className={`${s.menuBtn} ${s.menuBtnRojo}`} onClick={() => cargarSlot(slot)}>
-                  <span className={s.rombo}>▶</span> Seguir: Temporada 2
-                </button>
-              )}
+              <button
+                type="button"
+                className={`${s.menuBtn} ${s.menuBtnRojo}`}
+                onClick={() => {
+                  setModoSlots("nueva");
+                  setPisar(null);
+                  setPantalla("slots");
+                }}
+              >
+                <span className={s.rombo}>▶</span> Otra partida (otro traidor)
+              </button>
               <button
                 type="button"
                 className={s.menuBtn}
@@ -847,7 +899,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
               <CompartirResultado
                 className={s.menuBtn}
                 label="Compartir la carta del final"
-                carta={{ tipo: "novela", titulo: f.titulo, conQuien, logrados: logrados.length, total: FINALES.length, verdadero: Boolean(f.verdadero), temporada: f.temporada }}
+                carta={{ tipo: "novela", titulo: f.titulo, conQuien, logrados: logrados.length, total: FINALES.length, verdadero: Boolean(f.verdadero), temporada: 1 }}
                 texto={textoNovela({ titulo: f.titulo, conQuien, logrados: logrados.length, total: FINALES.length })}
                 archivo={nombreArchivo(`final-${f.id}`)}
                 avisoClassName={s.compartirAviso}
@@ -871,8 +923,12 @@ export function Novela({ onBack }: { onBack: () => void }) {
   const habla = linea && retrato && linea.quien === retrato.quien;
   const m = momento(estado);
   const info = DIA_INFO[m.dia];
+  const dias = diasParaFirma(m);
   const enPareja = parejas(estado);
+  const tableroAbierto = estado.marcas.includes("tablero");
   const fanfarriaAviso = avisos?.items.find((x) => x.tipo === "rango") ?? avisos?.items.find((x) => x.tipo === "logro");
+  const cruce = cruzar(estado.marcas);
+  const misNotas = notas(estado);
 
   return (
     <div className={`${s.root} ${FUENTES}`}>
@@ -899,8 +955,9 @@ export function Novela({ onBack }: { onBack: () => void }) {
             ←
           </button>
           <span className={s.diaChip}>
-            {m.temporada === 2 && m.dia !== "epilogo" && <i>S{m.semana}</i>}
+            {m.dia !== "epilogo" && <i>C{m.semana}</i>}
             <b>{info.titulo}</b> {escena.hora}
+            {m.dia !== "epilogo" && <em className={s.cuentaChip}>{dias > 0 ? `${dias} días` : "Hoy firman"}</em>}
           </span>
           <span className={s.herramientas}>
             <button type="button" className={`${s.herr} ${saltar ? s.herrOn : ""}`} onClick={() => setSaltar((v) => !v)} aria-pressed={saltar} title="Saltar lo ya leído">
@@ -915,6 +972,11 @@ export function Novela({ onBack }: { onBack: () => void }) {
             >
               Auto{auto ? <i className={s.herrNivel}>{">".repeat(auto)}</i> : null}
             </button>
+            {tableroAbierto && (
+              <button type="button" className={`${s.herr} ${s.herrTablero}`} onClick={() => setPanel("tablero")} title="Tablero de sospechas (T)" aria-label="Tablero de sospechas">
+                ?
+              </button>
+            )}
             <button type="button" className={s.herr} onClick={() => setPanel("vinculos")} title="Vínculos (V)">
               ★
             </button>
@@ -974,7 +1036,31 @@ export function Novela({ onBack }: { onBack: () => void }) {
             </div>
           )}
 
-          {ops && !escena.libre && (
+          {ops && escena.acusar && (
+            <div className={s.acusar} ref={opcionesRef} onClick={(e) => e.stopPropagation()} role="group" aria-label="¿Quién te contó?">
+              <p className={s.acusarTitulo}>
+                <b>¿Quién te contó?</b> Si te equivocás, perdés a esa persona.
+              </p>
+              {ops.map(({ opcion, k }, i) => {
+                const quien = opcion.marcas?.find((x) => x.startsWith("acusado:"))?.slice(8) as Sospechoso | undefined;
+                const fila = quien ? cruce.filas.find((x) => x.quien === quien) : undefined;
+                const nota = quien ? misNotas[quien] : undefined;
+                return (
+                  <button key={k} type="button" className={`${s.sospechosoCarta} ${quien ? "" : s.sospechosoNadie} ${nota ? s[`nota_${nota}`] : ""}`} onClick={() => elegirOpcion(k)}>
+                    <span className={s.cartaNum}>{i + 1}</span>
+                    <span className={s.sospechosoNombre}>{quien ? NOMBRE_SOSPECHOSO[quien] : opcion.texto}</span>
+                    {fila && <small>{cruce.pistas.length ? `Encaja con ${fila.encaja} de ${fila.contra} pistas` : "Sin pistas"}</small>}
+                    {nota && <small className={s.notaChip}>{nota === "sospecho" ? "Sospechás" : "Descartaste"}</small>}
+                  </button>
+                );
+              })}
+              <button type="button" className={`${s.menuBtn} ${s.acusarTablero}`} onClick={() => setPanel("tablero")}>
+                <span className={s.rombo}>?</span> Mirar el tablero antes de decidir
+              </button>
+            </div>
+          )}
+
+          {ops && !escena.libre && !escena.acusar && (
             <div className={s.opciones} ref={opcionesRef} onClick={(e) => e.stopPropagation()} role="group" aria-label="¿Qué hacés?">
               {ops.map(({ opcion, k, bloqueo }, i) => {
                 const st = STATS.filter((x) => opcion.stats?.[x]);
@@ -992,7 +1078,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
             </div>
           )}
 
-          {linea && !(ops && escena.libre) && (
+          {linea && !(ops && (escena.libre || escena.acusar)) && (
             <div className={s.cajaMov} ref={cajaRef}>
             <div className={`${s.caja} ${quien ? "" : s.cajaNarra}`}>
               <span className={s.cajaFlash} ref={flashRef} aria-hidden="true" />
@@ -1040,15 +1126,15 @@ export function Novela({ onBack }: { onBack: () => void }) {
             <p className={s.anteriorChico}>Anteriormente en</p>
             <h2 className={s.anteriorTitulo}>¿Quién te contó?</h2>
             <p className={s.anteriorTexto}>{interpolar(anterior, nombre)}</p>
-            {m.temporada === 2 && enPareja.length > 0 && <p className={s.anteriorPareja}>♥ Con {enPareja.map((c) => NOMBRES[c]).join(" y ")}</p>}
+            {enPareja.length > 0 && <p className={s.anteriorPareja}>♥ Con {enPareja.map((c) => NOMBRES[c]).join(" y ")}</p>}
             <p className={s.calToca}>Tocá para seguir</p>
           </div>
         )}
 
         {panel && (
-          <div className={s.panel} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={panel === "log" ? "Historial" : panel === "sistema" ? "Sistema" : "Vínculos"}>
+          <div className={s.panel} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={TITULO_PANEL[panel]}>
             <div className={s.panelTop}>
-              <h2 className={s.panelTitulo}>{panel === "log" ? "Historial" : panel === "sistema" ? "Sistema" : "Vínculos"}</h2>
+              <h2 className={s.panelTitulo}>{TITULO_PANEL[panel]}</h2>
               <button type="button" className={s.cerrar} onClick={() => setPanel(null)} aria-label="Cerrar">
                 ✕
               </button>
@@ -1093,7 +1179,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
                   <button type="button" className={s.menuBtn} onClick={() => setPantalla("titulo")}>
                     <span className={s.rombo}>◇</span> Menú principal (se guarda solo)
                   </button>
-                  <p className={s.nota}>Teclado: espacio avanza · 1 a 9 eligen · A auto · Q guardado rápido · V vínculos · L historial</p>
+                  <p className={s.nota}>Teclado: espacio avanza · 1 a 9 eligen · A auto · Q guardado rápido · V vínculos · T tablero · L historial</p>
                 </div>
               </div>
             ) : panel === "log" ? (
@@ -1106,12 +1192,14 @@ export function Novela({ onBack }: { onBack: () => void }) {
                   </li>
                 ))}
               </ol>
-            ) : m.temporada === 2 ? (
+            ) : panel === "tablero" ? (
+              <div className={s.panelScroll}>
+                <Tablero estado={estado} onNota={anotarNota} />
+              </div>
+            ) : (
               <div className={s.panelScroll}>
                 <Confidentes estado={estado} hoy={m.dia} />
               </div>
-            ) : (
-              <Vinculos estado={estado} />
             )}
           </div>
         )}
@@ -1121,6 +1209,8 @@ export function Novela({ onBack }: { onBack: () => void }) {
 }
 
 // ─── Piezas ──────────────────────────────────────────────────────────────────────────────────
+
+const TITULO_PANEL: Record<Exclude<Panel, null>, string> = { log: "Historial", sistema: "Sistema", vinculos: "Vínculos", tablero: "Tablero" };
 
 /** El título en letras recortadas, como una nota anónima. */
 function TituloRecortado() {
@@ -1173,18 +1263,12 @@ function AvisosVista({ items }: { items: Aviso[] }) {
 const LETRAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 const ABIERTO = new Set([0, 3, 4, 5]);
 const ORDEN_DIA: Record<string, number> = { lunes: 1, jueves: 2, viernes: 3, sabado: 4 };
-const DESDE_LUNES: Record<string, number> = { lunes: 0, jueves: 3, viernes: 4, sabado: 5 };
-/** Días que faltan para la firma (el sábado de la semana 5). */
-const faltan = (semana: number, dia: string) => Math.max(0, (5 - semana) * 7 + 5 - (DESDE_LUNES[dia] ?? 0));
 
 function Calendario({ momento: m, onSeguir }: { momento: ReturnType<typeof momento>; onSeguir: () => void }) {
   const info = DIA_INFO[m.dia];
   const arriba =
-    m.dia === "epilogo"
-      ? "Tiempo después"
-      : m.temporada === 2
-        ? `Temporada 2 · Semana ${m.semana} · día ${ORDEN_DIA[m.dia]} de 4${m.semana === 5 ? " · la última" : ""}`
-        : `Semana en la casa · día ${ORDEN_DIA[m.dia]} de 4`;
+    m.dia === "epilogo" ? "Tiempo después" : `Capítulo ${m.semana} · ${CAPITULOS[m.semana] ?? ""} · día ${ORDEN_DIA[m.dia]} de 4${m.semana === 5 ? " · la última semana" : ""}`;
+  const faltan = diasParaFirma(m);
   const root = useRef<HTMLDivElement>(null);
 
   // Entra de golpe: se abre en diagonal, cruza la franja negra, el día cae con rebote y tiembla todo.
@@ -1231,7 +1315,7 @@ function Calendario({ momento: m, onSeguir }: { momento: ReturnType<typeof momen
       <p className={s.calSemana}>{arriba}</p>
       <h2 className={s.calDia}>{info.titulo}</h2>
       <p className={s.calBajada}>{info.bajada}</p>
-      {m.temporada === 2 && m.dia !== "epilogo" && <p className={s.calCuenta}>{faltan(m.semana, m.dia) === 0 ? "Hoy firman" : `Faltan ${faltan(m.semana, m.dia)} días para la firma`}</p>}
+      {m.dia !== "epilogo" && <p className={s.calCuenta}>{faltan === 0 ? "Hoy firman" : `Faltan ${faltan} días para la firma`}</p>}
       <ol className={s.calTira} aria-hidden="true">
         {LETRAS_SEMANA.map((l, i) => (
           <li key={i} className={`${s.calCelda} ${!ABIERTO.has(i) ? s.calCerrado : ""} ${i === info.letra ? s.calHoy : ""}`}>
@@ -1245,43 +1329,9 @@ function Calendario({ momento: m, onSeguir }: { momento: ReturnType<typeof momen
   );
 }
 
-function Vinculos({ estado, compacto }: { estado: Estado; compacto?: boolean }) {
-  return (
-    <div className={compacto ? s.vincCompacto : undefined}>
-      <ul className={s.vinculos}>
-        {VINCULOS.map((v) => {
-          const n = estado.afinidad[v];
-          return (
-            <li key={v} className={s.vinculo}>
-              <span className={s.vincNombre}>{v !== "gris" ? NOMBRES[v] : estado.terminado === "verdadero" ? NOMBRES.gervasio : "???"}</span>
-              <span className={s.vincLugar}>{ARCANOS[v].lugar}</span>
-              <span className={s.vincRango} aria-label={`Rango ${n}`}>
-                {Array.from({ length: 7 }, (_, i) => (
-                  <span key={i} className={i < n ? s.vincOn : s.vincOff}>
-                    ◆
-                  </span>
-                ))}
-              </span>
-              {!compacto && <span className={s.vincQuien}>{ARCANOS[v].quien}</span>}
-            </li>
-          );
-        })}
-      </ul>
-      <p className={s.pistasTitulo}>Pedazos de la verdad</p>
-      <ul className={s.pistas}>
-        {PISTAS.map((p) => (
-          <li key={p} className={estado.marcas.includes(p) ? s.pistaOn : s.pistaOff}>
-            {estado.marcas.includes(p) ? `✦ ${NOMBRE_PISTA[p]}` : "✦ ???"}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 /**
- * Temporada 2: los confidentes con su rango, qué trae el próximo (y qué pide), cuándo se los
- * encuentra, las cualidades y los pedazos de Amalia.
+ * Los vínculos con su rango, qué trae el próximo (y qué pide), cuándo se los encuentra y las
+ * cualidades. Lo del traidor y lo de 1987 están en el tablero.
  */
 function Confidentes({ estado, compacto, hoy }: { estado: Estado; compacto?: boolean; hoy?: Dia }) {
   const pareja = parejas(estado);
@@ -1352,19 +1402,105 @@ function Confidentes({ estado, compacto, hoy }: { estado: Estado; compacto?: boo
           </li>
         ))}
       </ul>
-      {!compacto && (
+    </div>
+  );
+}
+
+/**
+ * El tablero de sospechas: quién encaja con cada pista, lo que anotaste, los rumores, el motivo (si
+ * lo descubriste), lo que se sabe de 1987 y en qué quedó tu secreto.
+ */
+function Tablero({ estado, onNota }: { estado: Estado; onNota: (q: Sospechoso, n: Nota | null) => void }) {
+  const t = traidor(estado);
+  const { pistas, filas } = cruzar(estado.marcas);
+  const ns = notas(estado);
+  const rumores = RUMORES.filter((r) => estado.marcas.includes(r.id));
+  const motivo = TRAIDORES.find((x) => estado.marcas.includes(`motivo:${x}`));
+  const nombre = (q: Sospechoso) => (conoce(estado, q) ? NOMBRE_SOSPECHOSO[q] : "???");
+  const confeso = estado.marcas.includes("confeso");
+  const expuesto = estado.marcas.includes("expuesto");
+  return (
+    <div className={s.tablero}>
+      <p className={s.tableroLema}>
+        Alguien de la casa le vende la casa a Altamira. Cada pista señala a varios. Quien encaja con todas, vende. La noche antes de la firma vas a tener que decir un nombre.
+      </p>
+      <ul className={s.sospechosos}>
+        {filas.map((f) => {
+          const nota = ns[f.quien];
+          const todas = pistas.length > 0 && f.encaja === f.contra;
+          return (
+            <li key={f.quien} className={`${s.sospechoso} ${todas ? s.sospechosoEncaja : ""} ${nota ? s[`nota_${nota}`] : ""}`}>
+              <b className={s.sospechosoNombre}>{nombre(f.quien)}</b>
+              <small>
+                {pistas.length ? `Encaja con ${f.encaja} de ${f.contra}` : "Sin pistas todavía"}
+                {f.rumores ? ` · ${f.rumores} ${f.rumores === 1 ? "rumor" : "rumores"}` : ""}
+              </small>
+              <span className={s.notaBotones}>
+                <button type="button" aria-pressed={nota === "sospecho"} onClick={() => onNota(f.quien, nota === "sospecho" ? null : "sospecho")}>
+                  Sospecho
+                </button>
+                <button type="button" aria-pressed={nota === "descarto"} onClick={() => onNota(f.quien, nota === "descarto" ? null : "descarto")}>
+                  Descarto
+                </button>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className={s.pistasTitulo}>
+        Pistas · {pistas.length} de {PISTAS_T.length}
+      </p>
+      <ul className={s.pistaLista}>
+        {PISTAS_T.map((p) => {
+          const ok = pistas.includes(p) && t;
+          const v = t ? PISTA_T[p].por[t] : null;
+          return (
+            <li key={p} className={ok ? s.pistaCarta : `${s.pistaCarta} ${s.pistaCartaOff}`}>
+              <b>{ok ? PISTA_T[p].titulo : "? ? ?"}</b>
+              <small>{PISTA_T[p].cuando}</small>
+              {ok && v && <p>{v.texto}</p>}
+              {ok && v && <span className={s.senala}>Señala a: {v.senala.map(nombre).join(" · ")}</span>}
+            </li>
+          );
+        })}
+      </ul>
+      {rumores.length > 0 && (
         <>
-          <p className={s.pistasTitulo}>Los pedazos de Amalia</p>
+          <p className={s.pistasTitulo}>Rumores · suenan graves, no prueban nada</p>
           <ul className={s.pistas}>
-            {PISTAS2.map((p) => (
-              <li key={p} className={estado.marcas.includes(p) ? s.pistaOn : s.pistaOff}>
-                {estado.marcas.includes(p) ? `✦ ${NOMBRE_PISTA[p]}` : "✦ ???"}
+            {rumores.map((r) => (
+              <li key={r.id} className={s.rumor}>
+                <b>{NOMBRE_SOSPECHOSO[r.contra]}:</b> {r.texto}
               </li>
             ))}
-            {estado.marcas.includes("carta:amalia") && <li className={s.pistaOn}>✉ Le escribiste a Amalia</li>}
           </ul>
         </>
       )}
+      {motivo && (
+        <>
+          <p className={s.pistasTitulo}>Un motivo</p>
+          <p className={s.motivo}>{MOTIVOS[motivo]}</p>
+        </>
+      )}
+      <p className={s.pistasTitulo}>Agosto de 1987</p>
+      <ul className={s.pistas}>
+        {PISTAS_87.map((p) => (
+          <li key={p} className={estado.marcas.includes(p) ? s.pistaOn : s.pistaOff}>
+            {estado.marcas.includes(p) ? `✦ ${NOMBRE_87[p]}` : "✦ ???"}
+          </li>
+        ))}
+        {estado.marcas.includes("carta:amalia") && <li className={s.pistaOn}>✉ Le escribiste a Amalia. Con tu apellido abajo.</li>}
+      </ul>
+      <p className={s.pistasTitulo}>Tu secreto</p>
+      <p className={s.secreto}>
+        {confeso
+          ? expuesto
+            ? "La casa se enteró por otro de dónde trabajaste. Después lo contaste vos. Tarde, pero tuyo."
+            : "La casa sabe dónde trabajaste: se lo contaste vos."
+          : expuesto
+            ? "La casa se enteró por otro de dónde trabajaste. Todavía no lo contaste vos."
+            : "Nadie sabe que trabajaste en Altamira. Todavía."}
+      </p>
     </div>
   );
 }
@@ -1373,6 +1509,7 @@ function Extras({
   tab,
   setTab,
   logrados,
+  finalesViejos,
   galeria,
   logros,
   onVer,
@@ -1380,10 +1517,12 @@ function Extras({
   tab: Tab;
   setTab: (t: Tab) => void;
   logrados: FinalId[];
+  finalesViejos: number;
   galeria: CgId[];
   logros: string[];
   onVer: (c: CgId) => void;
 }) {
+  const logrosAhora = logros.filter((id) => LOGROS.some((l) => l.id === id));
   return (
     <div className={s.portadaCuerpo}>
       <div className={s.tabs} role="tablist">
@@ -1391,7 +1530,7 @@ function Extras({
           [
             ["finales", `Finales ${logrados.length}/${FINALES.length}`],
             ["galeria", `Galería ${galeria.length}/${CGS.length}`],
-            ["logros", `Logros ${logros.length}/${LOGROS.length}`],
+            ["logros", `Logros ${logrosAhora.length}/${LOGROS.length}`],
           ] as const
         ).map(([t, label]) => (
           <button key={t} type="button" role="tab" aria-selected={tab === t} className={`${s.tab} ${tab === t ? s.tabOn : ""}`} onClick={() => setTab(t)}>
@@ -1400,23 +1539,22 @@ function Extras({
         ))}
       </div>
 
-      {tab === "finales" &&
-        ([1, 2] as const).map((t) => (
-          <div key={t} className={s.extrasBloque}>
-            <p className={s.antetitulo}>Temporada {t}</p>
-            <ul className={s.finales}>
-              {FINALES.filter((f) => f.temporada === t).map((f) => {
-                const ok = logrados.includes(f.id);
-                return (
-                  <li key={f.id} className={`${s.finalItem} ${ok ? s.finalOk : ""} ${f.verdadero ? s.finalVerdadero : ""}`}>
-                    <b>{ok ? f.titulo : "? ? ?"}</b>
-                    <small>{ok ? (f.verdadero ? "Final verdadero" : "Conseguido") : f.pista || "El que sale si no te animás."}</small>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+      {tab === "finales" && (
+        <div className={s.extrasBloque}>
+          <ul className={s.finales}>
+            {FINALES.map((f) => {
+              const ok = logrados.includes(f.id);
+              return (
+                <li key={f.id} className={`${s.finalItem} ${ok ? s.finalOk : ""} ${f.verdadero ? s.finalVerdadero : ""}`}>
+                  <b>{ok ? f.titulo : "? ? ?"}</b>
+                  <small>{ok ? (f.verdadero ? "Final verdadero" : "Conseguido") : f.pista || "El que sale si no te animás."}</small>
+                </li>
+              );
+            })}
+          </ul>
+          {finalesViejos > 0 && <p className={s.nota}>Y {finalesViejos} de la versión anterior de la novela. Quedan guardados.</p>}
+        </div>
+      )}
 
       {tab === "galeria" && (
         <ul className={s.galeria}>
@@ -1437,7 +1575,7 @@ function Extras({
       {tab === "logros" && (
         <ul className={s.finales}>
           {LOGROS.map((l) => {
-            const ok = logros.includes(l.id);
+            const ok = logrosAhora.includes(l.id);
             return (
               <li key={l.id} className={`${s.finalItem} ${ok ? s.finalOk : ""}`}>
                 <b>{ok || !l.oculto ? l.titulo : "? ? ?"}</b>

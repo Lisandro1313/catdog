@@ -1,17 +1,24 @@
 /**
- * Piezas compartidas de la temporada 2: el tiempo libre, las pistas de Amalia y el cruce de celos.
+ * Piezas compartidas de la historia: el tiempo libre, el cruce de celos y las líneas que cambian
+ * según quién sea el traidor.
  */
-import { CONFIDENTES, CONOCIDOS, enPareja, type Condicion, type Confidente, type Dia, type EscenaSrc, type Fondo, type OpcionSrc } from "../tipos";
+import { CONFIDENTES, CONOCIDOS, TRAIDORES, enPareja, type Condicion, type Confidente, type Dia, type EscenaSrc, type Fondo, type OpcionSrc } from "../tipos";
+import { PISTAS_87, PISTA_T, type PistaT } from "../tablero";
 import { JUNTADA_EN } from "./juntadas";
 
-export const T2 = { temporada: 2 as const };
-export const T2_INICIO = "s2-lun";
-export const PISTAS2 = ["pista2:lista", "pista2:foto", "pista2:escritura"] as const;
-export const TODAS_PISTAS2: Condicion = { todas: PISTAS2.map((marca) => ({ marca })) };
+export const INICIO = "s1-lun";
+
+/** Saber lo de 1987 entero: los tres pedazos. Sin eso no se le puede escribir a Amalia. */
+export const TODO_87: Condicion = { todas: PISTAS_87.map((marca) => ({ marca })) };
 
 /** Dos romances vivos a la vez: tarde o temprano se cruzan. */
 export const HAY_CELOS: Condicion = { alMenos: 2, de: CONFIDENTES.map(enPareja) };
 export const CELOS = [{ si: HAY_CELOS, va: "celos" }];
+
+/** Una línea por traidor posible con el texto de la pista (el mismo que muestra el tablero). */
+export function pista(p: PistaT, golpe = true): string {
+  return TRAIDORES.map((t) => `[traidor:${t}] ${golpe ? "!" : ""}${PISTA_T[p].por[t].texto}`).join("\n");
+}
 
 /** Los nombres para las cartas del tiempo libre (sin importar guion.ts, que importa esto). */
 const CARTA: Record<Confidente, string> = {
@@ -43,7 +50,6 @@ export function libre(dia: Exclude<Dia, "epilogo">, semana: number, hora: string
   const cuando = turno === 2 ? "madrugada" : dia;
   const jun = JUNTADA_EN[`${semana}-${dia}-${turno ?? 0}`];
   return {
-    ...T2,
     dia,
     semana,
     fondo,

@@ -120,6 +120,8 @@ export const TEO = {
       texto: `
         Teo te muestra un mail en el celular. Lo leyó tantas veces que la pantalla tiene la marca del dedo.
         "El Galpón — Ciclo de canción — Buenos Aires — Miércoles 27 — Te queremos de cierre."
+        Abajo, chiquito, un logo: "Con el apoyo de Fundación Altamira".
+        teo/serio: ...Ya sé. Lo vi. No sabía cuando dije que sí. Ahora no sé si puedo decir que no.
         teo/sorpresa: Es un lugar enorme. Seiscientas personas. Con entradas. Con gente que paga para escucharme a mí.
         teo/serio: Y es el miércoles 27. El único día que la casa no abre. No tengo ni una excusa.
         teo/triste: Y yo no sé si puedo tocar delante de seiscientas personas. No sé si puedo delante de seis.
@@ -221,6 +223,7 @@ export const TEO = {
           `,
         },
       ],
+      ramas: [{ si: { marca: "traidor:teo" }, va: "teo-sombra" }],
     },
     // ─── Rango 7 ───
     {
@@ -394,6 +397,17 @@ export const TEO = {
           `,
         },
       ],
+    },
+    "teo-sombra": {
+      fondo: "barra",
+      hora: "23:40",
+      marca: "motivo:teo",
+      texto: `
+        Teo va al baño. El estuche de la guitarra queda abierto a tus pies.
+        Entre las cuerdas de repuesto, un contrato doblado: "Fundación Altamira. Honorarios. Cláusula de confidencialidad."
+        !Y una servilleta con su letra: "Lunes, Vera abre. Jueves, 21 en punto. Térmica: pasillo, al lado del perchero."
+        Lo cerrás antes de que vuelva. Teo vuelve silbando. Lo mirás silbar.
+      `,
     },
     "teo-manana": {
       fondo: "depto",

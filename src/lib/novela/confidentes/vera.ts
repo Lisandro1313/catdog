@@ -273,6 +273,8 @@ export const VERA = {
         vera/picara: Barra de arriba. Sin cartel. Con cuatro banquetas y la mejor vista de La Plata.
         Se apoya en la baranda. Tiene la campera de cuero abierta y el pelo moviéndose con el viento.
         vera/serio: ¿Sabés qué es lo peor? Que cuando pienso en Barcelona, pienso en quién no va a estar.
+        vera/serio: Y hay otra cosa. Me llamaron de una torre nueva. Quieren una barra en el último piso. Arriba de todo. Me pagan lo que pida.
+        vera/triste: No les dije que no. Tampoco que sí. Ya sé de quién es esa torre. No me mires así.
         Te mira. Se acerca. Un paso. Otro.
         !Y un perro salchicha aparece de la nada, ladrando como un poseído.
         "¡PIRULO! ¡Perdón, Vera!", grita una vecina en bata, persiguiéndolo.
@@ -298,6 +300,7 @@ export const VERA = {
           `,
         },
       ],
+      ramas: [{ si: { marca: "traidor:vera" }, va: "vera-sombra" }],
     },
     // ─── Rango 8 ───
     {
@@ -447,6 +450,18 @@ export const VERA = {
           `,
         },
       ],
+    },
+    "vera-sombra": {
+      fondo: "terraza",
+      hora: "22:40",
+      marca: "motivo:vera",
+      texto: `
+        Vera baja a buscar hielo. El celular le queda en la baranda, boca arriba.
+        Se prende la pantalla. Un mensaje.
+        !"ALTAMIRA: La barra del piso 14 es tuya. Con tu nombre. Recordá lo del viernes."
+        La pantalla se apaga sola. Vos te quedás mirando la ciudad, que de golpe parece más chica.
+        Vera vuelve con el hielo. Sonríe. Le sale casi igual que siempre.
+      `,
     },
     "vera-manana": {
       fondo: "depto",

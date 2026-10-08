@@ -5,46 +5,64 @@ import type { Escena, FinalId, Fondo, TemaNovela } from "./tipos";
  * escena (id, final, rango, fondo) y, si hace falta forzar algo, con `musica` en la escena.
  *
  * - barra: la casa, el día a día.            - noche: tensión, cierres de noche, el apagón.
- * - misterio: servilleta, Gervasio, la carta. - melancolia: lo triste, las despedidas.
+ * - misterio: servilleta, Gervasio, el 87.    - melancolia: lo triste, las confesiones.
  * - jazz-suave: citas, romance, mañanas.      - brass: fiesta, entrenar, la casa llena.
  */
 
 /** Escenas puntuales (se testea que existan todas). */
 export const MUSICA_ESCENA: Record<string, TemaNovela> = {
-  // El misterio: la servilleta, el cuaderno, Gervasio, la carta, Amalia.
-  "vie-cuaderno": "misterio",
-  "fin-verdadero": "misterio",
+  // El misterio: la servilleta, el cuaderno, Gervasio, el 87, el tablero.
+  "s1-lun": "misterio",
+  "s1-jue-cierre": "misterio",
+  "s1-vie-cuaderno": "misterio",
+  "s1-sab-cierre": "misterio",
+  "s1-sab-calco": "misterio",
+  "s2-jue-cierre": "misterio",
   "s2-sab-cierre": "misterio",
   "s3-lun": "misterio",
+  "s3-vie": "misterio",
   "s4-lun": "misterio",
   "s4-lun-b": "misterio",
+  "s4-lun-c": "misterio",
   "s4-sab": "misterio",
   "s4-sab-b": "misterio",
   "s5-lun-cierre": "misterio",
+  "s5-jue-b": "misterio",
   "s5-vie-medio": "misterio",
-  "f2-verdadero": "misterio",
+  "s5-acusacion": "misterio",
+  "f-verdadero": "misterio",
   "sol-r9": "misterio",
   "sol-r9-b": "misterio",
   "cami-r7": "misterio",
+  "vera-sombra": "misterio",
+  "teo-sombra": "misterio",
+  "mora-sombra": "misterio",
+  "cami-sombra": "misterio",
   // Lo que duele.
-  "jue-pan": "melancolia",
-  "s2-lun-b": "melancolia",
+  "s1-lun-cierre": "melancolia",
+  "s3-jue-expuesto": "melancolia",
   "mora-r5": "melancolia",
   "cami-r5-b": "melancolia",
+  "acu-bien-vera": "melancolia",
+  "acu-bien-teo": "melancolia",
+  "acu-bien-mora": "melancolia",
+  "acu-bien-cami": "melancolia",
+  "s5-madrugada-mal": "melancolia",
   "s5-sab": "melancolia",
   "s5-sab-final": "melancolia",
-  "f2-verdadero-b": "melancolia",
+  "f-verdadero-b": "melancolia",
   // Tensión.
   celos: "noche",
   "s4-lun-duelo": "noche",
   "s3-jue-apagon": "noche",
+  "s4-jue": "noche",
+  "s5-madrugada": "noche",
   // Fiesta.
   "jun-s2-lun": "brass",
   "s3-sab-luna": "brass",
   "s5-vie": "brass",
-  // Los epílogos buenos de verdad.
-  "epi-verdadero": "jazz-suave",
-  "f2-verdadero-c": "jazz-suave",
+  // El epílogo bueno de verdad.
+  "f-verdadero-c": "jazz-suave",
 };
 
 const POR_FONDO: Partial<Record<Fondo, TemaNovela>> = {
@@ -60,22 +78,20 @@ const POR_FONDO: Partial<Record<Fondo, TemaNovela>> = {
 
 /** El tema de cada final (el de la escena que lo cierra y el de la pantalla de "Fin"). */
 export function temaDeFinal(f: FinalId): TemaNovela {
-  if (f === "abrigo" || f === "lunes" || f === "t2-abrigo" || f === "t2-cerrado") return "melancolia";
-  if (f === "t2-celos") return "noche";
-  if (f === "casa" || f === "t2-casa") return "brass";
+  if (f === "abrigo" || f === "cerrado" || f === "silla" || f === "engano") return "melancolia";
+  if (f === "celos") return "noche";
+  if (f === "casa") return "brass";
   return "jazz-suave";
 }
 
 /** Si el final es de los tristes (sin papel picado). */
-export const finalTriste = (f: FinalId) => temaDeFinal(f) === "melancolia" || f === "t2-celos";
+export const finalTriste = (f: FinalId) => temaDeFinal(f) === "melancolia" || f === "celos";
 
 export function temaDeEscena(e: Escena): TemaNovela {
   if (e.musica) return e.musica;
   const fijo = MUSICA_ESCENA[e.id];
   if (fijo) return fijo;
   if (e.fin) return temaDeFinal(e.fin);
-  if (/^fin-(vera|teo|mora)$/.test(e.id)) return "jazz-suave";
-  if (e.id === "fin-abrigo" || e.id === "fin-lunes") return "melancolia";
   if (e.id.endsWith("-manana")) return "jazz-suave";
   if (e.id.startsWith("ent-")) return "brass";
   // Los rangos altos son los de las confesiones y el romance.

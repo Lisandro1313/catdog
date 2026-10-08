@@ -6,19 +6,21 @@
  * bloque que se está leyendo; si `pos` llegó al final de la escena y la escena tiene opciones,
  * se está en una decisión.
  *
- * Temporada 2: además hay rangos por confidente (1 a 10), cualidades (encanto, coraje, labia), una
- * agenda (no todos vienen todos los días) y una "vuelta": la escena a la que se regresa después de
- * pasar el tiempo libre con alguien.
+ * Además hay rangos por confidente (1 a 10), cualidades (encanto, coraje, labia), una agenda (no
+ * todos vienen todos los días), una "vuelta" (la escena a la que se regresa después de pasar el
+ * tiempo libre con alguien) y un traidor, que se sortea al empezar y queda como marca.
  */
-import { CONFIDENTE_INFO, ESCENAS, FINALES, INICIO, NOMBRE_STAT, RESUMENES, T2_INICIO, type Agenda } from "./guion";
+import { CONFIDENTE_INFO, ESCENAS, FINALES, INICIO, NOMBRE_STAT, RESUMENES, type Agenda } from "./guion";
 import {
   CONFIDENTES,
   CONOCIDOS,
   RANGO_MAX,
-  enPareja,
+  SEMANAS,
+  SOSPECHOSOS,
   STATS,
   STAT_MAX,
-  VINCULOS,
+  TRAIDORES,
+  enPareja,
   idRango,
   type Cara,
   type Condicion,
@@ -29,15 +31,15 @@ import {
   type Linea,
   type Opcion,
   type Quien,
+  type Sospechoso,
   type Stat,
-  type Vinculo,
+  type Traidor,
 } from "./tipos";
 
 export type Estado = {
   escena: string;
   bloque: number;
   pos: number;
-  afinidad: Record<Vinculo, number>;
   rangos: Record<Confidente, number>;
   stats: Record<Stat, number>;
   marcas: string[];
@@ -48,8 +50,9 @@ export type Estado = {
 
 export const FINAL = "@final";
 export const VUELTA = "@vuelta";
+/** Versión del guardado. Las partidas de antes (1 y 2) eran de otra historia: no se cargan. */
+export const VERSION_GUARDADO = 3;
 
-const ceroAfinidad = (): Record<Vinculo, number> => ({ vera: 0, teo: 0, mora: 0, gris: 0 });
 const ceroRangos = (): Record<Confidente, number> => Object.fromEntries(CONFIDENTES.map((c) => [c, 0])) as Record<Confidente, number>;
 const ceroStats = (): Record<Stat, number> => ({ encanto: 0, coraje: 0, labia: 0 });
 
@@ -59,22 +62,16 @@ export function escenaDe(id: string): Escena {
   return e;
 }
 
-type Contexto = Pick<Estado, "afinidad" | "marcas"> & Partial<Pick<Estado, "rangos" | "stats">>;
+type Contexto = Pick<Estado, "marcas"> & Partial<Pick<Estado, "rangos" | "stats">>;
 
 export function cumple(c: Condicion, e: Contexto): boolean {
-  if ("vinculo" in c) return (e.afinidad[c.vinculo] ?? 0) >= c.min;
   if ("rango" in c) return (e.rangos?.[c.rango] ?? 0) >= c.min;
   if ("stat" in c) return (e.stats?.[c.stat] ?? 0) >= c.min;
   if ("marca" in c) return e.marcas.includes(c.marca);
   if ("no" in c) return !e.marcas.includes(c.no);
   if ("ni" in c) return !cumple(c.ni, e);
-  if ("total" in c) return afinidadTotal(e.afinidad) >= c.total;
   if ("alMenos" in c) return c.de.filter((x) => cumple(x, e)).length >= c.alMenos;
   return c.todas.every((x) => cumple(x, e));
-}
-
-export function afinidadTotal(a: Record<Vinculo, number>): number {
-  return VINCULOS.reduce((n, v) => n + (a[v] ?? 0), 0);
 }
 
 export { enPareja };
@@ -82,9 +79,15 @@ export function parejas(e: Contexto): Confidente[] {
   return CONFIDENTES.filter((c) => cumple(enPareja(c), e));
 }
 
-/** Si ya se lo cruzó en la historia (los de la temporada 1 se conocen de entrada). */
-export function conoce(e: Pick<Estado, "marcas">, c: Confidente): boolean {
-  return CONOCIDOS.includes(c) || e.marcas.includes(`conoce:${c}`);
+/** Si ya se lo cruzó en la historia (los de la primera semana se conocen de entrada). */
+export function conoce(e: Pick<Estado, "marcas">, c: Confidente | Sospechoso): boolean {
+  return (CONOCIDOS as readonly string[]).includes(c) || e.marcas.includes(`conoce:${c}`);
+}
+
+/** El traidor de esta partida. */
+export function traidor(e: Pick<Estado, "marcas">): Traidor | null {
+  for (const t of TRAIDORES) if (e.marcas.includes(`traidor:${t}`)) return t;
+  return null;
 }
 
 function visibles(lineas: Linea[], e: Estado): Linea[] {
@@ -176,40 +179,22 @@ export function opciones(e: Estado): { opcion: Opcion; k: number }[] | null {
 
 // ─── Finales ─────────────────────────────────────────────────────────────────────────────────
 
-export function temporadaDe(e: Pick<Estado, "escena" | "vuelta">): 1 | 2 {
-  const esc = escenaDe(e.escena);
-  return esc.temporada ?? (e.vuelta ? (escenaDe(e.vuelta).temporada ?? 1) : 1);
-}
-
-export function calcularFinal(e: Contexto, temporada: 1 | 2 = 1): FinalId {
-  const f = FINALES.find((x) => x.temporada === temporada && cumple(x.condicion, e));
+export function calcularFinal(e: Contexto): FinalId {
+  const f = FINALES.find((x) => cumple(x.condicion, e));
   if (!f) throw new Error("Ningún final se cumple");
   return f.id;
 }
 
-// ─── Arranques ───────────────────────────────────────────────────────────────────────────────
-
-function base(): Omit<Estado, "escena"> {
-  return { bloque: -1, pos: 0, afinidad: ceroAfinidad(), rangos: ceroRangos(), stats: ceroStats(), marcas: [], vuelta: null, terminado: null };
-}
-
-export function inicial(): Estado {
-  return entrar({ ...base(), escena: INICIO }, INICIO);
-}
+// ─── Arranque ────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Arranca la temporada 2. Si viene de una partida terminada de la temporada 1, se lleva las
- * afinidades y lo que pasó (con una marca por el final: `t1:vera`, `t1:verdadero`…).
+ * Una partida nueva. El traidor se sortea entre los posibles (`azar` devuelve un número entre 0 y 1);
+ * los tests lo fuerzan pasándolo.
  */
-export function empezarT2(previo?: Estado | null): Estado {
-  const e: Estado = { ...base(), escena: T2_INICIO };
-  if (previo) {
-    e.afinidad = { ...previo.afinidad };
-    e.marcas = conMarcas(previo.marcas, previo.terminado ? [`t1:${previo.terminado}`] : []);
-  } else {
-    e.marcas = ["t1:salteada"];
-  }
-  return entrar(e, T2_INICIO);
+export function inicial(t?: Traidor, azar: () => number = Math.random): Estado {
+  const elegido = t ?? TRAIDORES[Math.min(TRAIDORES.length - 1, Math.floor(azar() * TRAIDORES.length))];
+  const e: Estado = { escena: INICIO, bloque: -1, pos: 0, rangos: ceroRangos(), stats: ceroStats(), marcas: [`traidor:${elegido}`], vuelta: null, terminado: null };
+  return entrar(e, INICIO);
 }
 
 function conMarcas(marcas: string[], nuevas: string[] = []): string[] {
@@ -225,7 +210,7 @@ function entrar(e: Estado, destino: string): Estado {
   let id = destino;
   let vuelta = e.vuelta;
   if (id === FINAL) {
-    const fid = calcularFinal(e, temporadaDe(e));
+    const fid = calcularFinal(e);
     id = FINALES.find((f) => f.id === fid)!.escena;
   } else if (id === VUELTA) {
     if (!e.vuelta) throw new Error(`"${e.escena}" quiere volver, pero no hay a dónde`);
@@ -234,7 +219,8 @@ function entrar(e: Estado, destino: string): Estado {
   }
   const esc = escenaDe(id);
   const rangos = esc.rango ? { ...e.rangos, [esc.rango.de]: Math.max(e.rangos[esc.rango.de] ?? 0, esc.rango.n) } : e.rangos;
-  const next: Estado = { ...e, escena: id, bloque: -1, pos: 0, vuelta, rangos, marcas: esc.marca ? conMarcas(e.marcas, [esc.marca]) : e.marcas };
+  const marcaEsc = esc.marca === undefined ? [] : Array.isArray(esc.marca) ? esc.marca : [esc.marca];
+  const next: Estado = { ...e, escena: id, bloque: -1, pos: 0, vuelta, rangos, marcas: marcaEsc.length ? conMarcas(e.marcas, marcaEsc) : e.marcas };
   return asentar(next);
 }
 
@@ -287,13 +273,32 @@ export function elegir(e: Estado, k: number): Estado {
   if (!elegida) return e;
   const { opcion } = elegida;
   const esc = escenaDe(e.escena);
-  const afinidad = { ...e.afinidad };
-  for (const v of VINCULOS) afinidad[v] = Math.max(0, afinidad[v] + (opcion.efectos?.[v] ?? 0));
   const stats = { ...e.stats };
   for (const s of STATS) stats[s] = Math.min(STAT_MAX, Math.max(0, stats[s] + (opcion.stats?.[s] ?? 0)));
   const vuelta = esc.libre ? (esc.sigue ?? null) : e.vuelta;
-  const next: Estado = { ...e, afinidad, stats, vuelta, marcas: conMarcas(e.marcas, opcion.marcas), bloque: k, pos: 0 };
+  const next: Estado = { ...e, stats, vuelta, marcas: conMarcas(e.marcas, opcion.marcas), bloque: k, pos: 0 };
   return asentar(next);
+}
+
+// ─── El tablero ──────────────────────────────────────────────────────────────────────────────
+
+export type Nota = "sospecho" | "descarto";
+
+/** Lo que quien juega anotó en el tablero sobre cada sospechoso (no cambia la historia). */
+export function notas(e: Pick<Estado, "marcas">): Partial<Record<Sospechoso, Nota>> {
+  const out: Partial<Record<Sospechoso, Nota>> = {};
+  for (const s of SOSPECHOSOS) {
+    if (e.marcas.includes(`nota:${s}:sospecho`)) out[s] = "sospecho";
+    else if (e.marcas.includes(`nota:${s}:descarto`)) out[s] = "descarto";
+  }
+  return out;
+}
+
+/** Anota (o borra, con null) una sospecha. Es solo para quien juega: ninguna escena la lee. */
+export function anotar(e: Estado, s: Sospechoso, nota: Nota | null): Estado {
+  const marcas = e.marcas.filter((m) => !m.startsWith(`nota:${s}:`));
+  if (nota) marcas.push(`nota:${s}:${nota}`);
+  return { ...e, marcas };
 }
 
 // ─── Para la pantalla ────────────────────────────────────────────────────────────────────────
@@ -316,29 +321,35 @@ export function retratoEn(e: Estado): { quien: Quien; cara: Cara } | null {
   return buscar(esc, esc.length - 1);
 }
 
-/** Día, semana y temporada de lo que se está leyendo (las escenas de vínculo heredan de la vuelta). */
-export function momento(e: Pick<Estado, "escena" | "vuelta">): { dia: Dia; semana: number; temporada: 1 | 2 } {
+/** Día y semana (= capítulo) de lo que se está leyendo (las escenas de vínculo heredan de la vuelta). */
+export function momento(e: Pick<Estado, "escena" | "vuelta">): { dia: Dia; semana: number } {
   const esc = escenaDe(e.escena);
   const ref = esc.dia || !e.vuelta ? esc : escenaDe(e.vuelta);
-  return { dia: esc.dia ?? ref.dia ?? "lunes", semana: esc.semana ?? ref.semana ?? 1, temporada: temporadaDe(e) };
+  return { dia: esc.dia ?? ref.dia ?? "lunes", semana: esc.semana ?? ref.semana ?? 1 };
 }
 
-/** "Anterior en ¿Quién te contó?": el resumen del día en que quedó la partida. */
+const DESDE_LUNES: Record<Dia, number> = { lunes: 0, jueves: 3, viernes: 4, sabado: 5, epilogo: 5 };
+
+/** Días que faltan para la firma (el sábado de la última semana). */
+export function diasParaFirma(m: { dia: Dia; semana: number }): number {
+  return Math.max(0, (SEMANAS - m.semana) * 7 + 5 - DESDE_LUNES[m.dia]);
+}
+
+/** "Anteriormente en ¿Quién te contó?": el resumen del día en que quedó la partida. */
 export function resumen(e: Estado): string {
   const m = momento(e);
-  const clave = `${m.temporada}-${m.semana}-${m.dia}`;
-  return RESUMENES[clave] ?? RESUMENES[`${m.temporada}-${m.semana}-lunes`] ?? "";
+  return RESUMENES[`${m.semana}-${m.dia}`] ?? RESUMENES[`${m.semana}-lunes`] ?? "";
 }
 
-/** Qué vínculos subieron entre dos estados (para el cartel de "vínculo ↑"). */
-export function subieron(antes: Estado, despues: Estado): Vinculo[] {
-  return VINCULOS.filter((v) => despues.afinidad[v] > antes.afinidad[v]);
-}
 export function subieronRangos(antes: Estado, despues: Estado): Confidente[] {
   return CONFIDENTES.filter((c) => despues.rangos[c] > antes.rangos[c]);
 }
 export function subieronStats(antes: Estado, despues: Estado): Stat[] {
   return STATS.filter((s) => despues.stats[s] > antes.stats[s]);
+}
+/** Las marcas que aparecieron (para avisar de pistas nuevas). */
+export function marcasNuevas(antes: Estado, despues: Estado): string[] {
+  return despues.marcas.filter((m) => !antes.marcas.includes(m));
 }
 
 /**
@@ -372,26 +383,43 @@ function numeros<K extends string>(claves: readonly K[], raw: unknown, max = Inf
 }
 
 /**
- * Lee una partida guardada (formato 1 de la temporada 1, o formato 2). Si el guion cambió y la
- * línea guardada ya no existe, la escena vuelve a empezar (no se pierde la partida). Si la escena
- * ya no existe o el guardado está roto, devuelve null.
+ * Una partida de la versión anterior de la novela (otra historia, otras escenas). No se puede seguir:
+ * la pantalla avisa con cariño y ofrece empezar de nuevo. Los finales, la galería y los logros se
+ * guardan aparte y no se tocan.
+ */
+export function esPartidaVieja(raw: string | null): boolean {
+  if (!raw) return false;
+  try {
+    const d = JSON.parse(raw) as { v?: unknown };
+    return d?.v === 1 || d?.v === 2;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Lee una partida guardada (formato 3). Si el guion cambió y la línea guardada ya no existe, la
+ * escena vuelve a empezar (no se pierde la partida). Si la escena ya no existe, el guardado está roto
+ * o es de la versión anterior, devuelve null.
  */
 export function cargar(raw: string | null): Partida | null {
   if (!raw) return null;
   try {
     const d = JSON.parse(raw) as { v?: number; estado?: Partial<Estado>; nombre?: unknown; t?: unknown };
     const s = d?.estado;
-    if ((d?.v !== 1 && d?.v !== 2) || !s || typeof s.escena !== "string" || !ESCENAS[s.escena]) return null;
-    if (typeof s.bloque !== "number" || typeof s.pos !== "number" || !Array.isArray(s.marcas) || !s.afinidad) return null;
+    if (d?.v !== VERSION_GUARDADO || !s || typeof s.escena !== "string" || !ESCENAS[s.escena]) return null;
+    if (typeof s.bloque !== "number" || typeof s.pos !== "number" || !Array.isArray(s.marcas)) return null;
     const vuelta = typeof s.vuelta === "string" && ESCENAS[s.vuelta] ? s.vuelta : null;
+    const marcas = s.marcas.filter((m): m is string => typeof m === "string");
+    // Sin traidor no hay partida: se sortea uno (pasa solo con guardados editados a mano).
+    if (!traidor({ marcas })) marcas.push(`traidor:${TRAIDORES[0]}`);
     const estado: Estado = {
       escena: s.escena,
       bloque: Math.floor(s.bloque),
       pos: Math.max(0, Math.floor(s.pos)),
-      afinidad: numeros(VINCULOS, s.afinidad),
       rangos: numeros(CONFIDENTES, s.rangos, RANGO_MAX),
       stats: numeros(STATS, s.stats, STAT_MAX),
-      marcas: s.marcas.filter((m): m is string => typeof m === "string"),
+      marcas,
       vuelta,
       terminado: null,
     };
@@ -410,5 +438,5 @@ export function cargar(raw: string | null): Partida | null {
 }
 
 export function serializar(estado: Estado, nombre: string, t = 0): string {
-  return JSON.stringify({ v: 2, estado, nombre, t });
+  return JSON.stringify({ v: VERSION_GUARDADO, estado, nombre, t });
 }

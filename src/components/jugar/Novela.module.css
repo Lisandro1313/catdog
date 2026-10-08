@@ -1589,3 +1589,306 @@
   font-size: 0.78rem;
   transform: skewX(-8deg);
 }
+
+/* ═══════════════ El tablero de sospechas y la acusación ═══════════════ */
+
+.cuentaChip {
+  font-style: normal;
+  margin-left: 0.4rem;
+  padding: 0 0.35em;
+  background: var(--rojo);
+  color: var(--blanco);
+}
+.herrTablero {
+  background: var(--rojo);
+  font-size: 1.05rem;
+}
+
+.aviso_pista {
+  background: #6dff9e;
+  color: var(--negro);
+  box-shadow: 0 4px 0 var(--negro);
+}
+.aviso_pista small {
+  background: var(--negro);
+  color: #6dff9e;
+}
+
+.avisoVersion {
+  max-width: 30rem;
+  margin: 0.9rem auto 0;
+  padding: 0.8rem 1rem;
+  background: var(--blanco);
+  color: var(--negro);
+  font-family: var(--cuerpo);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-align: left;
+  box-shadow: 6px 6px 0 var(--rojo);
+  transform: rotate(-1deg);
+}
+.avisoVersion b {
+  display: block;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--rojo);
+}
+.avisoVersionOk {
+  display: block;
+  margin-top: 0.6rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  background: var(--negro);
+  color: var(--blanco);
+  border: none;
+  font-family: var(--display);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.finTraidor {
+  max-width: 26rem;
+  margin: 0.6rem auto 0;
+  font-family: var(--cuerpo);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.finTraidor b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  color: var(--rojo);
+  text-transform: uppercase;
+}
+
+/* La acusación: cartas grandes, a lo interrogatorio */
+.acusar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  max-height: 76dvh;
+  overflow-y: auto;
+  padding: 0.4rem 0.3rem 0.6rem;
+  cursor: default;
+}
+.acusarTitulo {
+  grid-column: 1 / -1;
+  margin: 0 0 0.3rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--rojo);
+  color: var(--blanco);
+  font-family: var(--cuerpo);
+  font-size: 0.8rem;
+  transform: skewX(-8deg) rotate(-1.5deg);
+  box-shadow: 5px 5px 0 var(--negro);
+}
+.acusarTitulo b {
+  display: block;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.9rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.sospechosoCarta {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 0.15rem;
+  min-height: 5rem;
+  padding: 0.5rem 0.6rem 0.5rem 1.9rem;
+  background: var(--negro);
+  color: var(--blanco);
+  border: 3px solid var(--blanco);
+  box-shadow: 6px 6px 0 var(--rojo);
+  font: inherit;
+  text-align: left;
+  transform: skewX(-6deg);
+  cursor: pointer;
+}
+.sospechosoCarta > * {
+  transform: skewX(6deg);
+}
+.sospechosoCarta:hover,
+.sospechosoCarta:focus-visible {
+  background: var(--rojo);
+  outline: none;
+}
+.sospechosoCarta small {
+  font-family: var(--cuerpo);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.sospechosoNadie {
+  grid-column: 1 / -1;
+  min-height: 3rem;
+  background: #1b1b1b;
+  box-shadow: 5px 5px 0 var(--negro);
+}
+.sospechosoNombre {
+  font-size: 1.5rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.notaChip {
+  justify-self: start;
+  padding: 0 0.35em;
+  background: var(--blanco);
+  color: var(--negro);
+}
+.acusarTablero {
+  grid-column: 1 / -1;
+  margin-top: 0.2rem;
+}
+.nota_sospecho {
+  box-shadow: 6px 6px 0 #f2c230;
+}
+.nota_descarto {
+  opacity: 0.55;
+}
+
+/* El tablero */
+.tablero {
+  display: grid;
+  gap: 0.2rem;
+  padding-bottom: 1rem;
+}
+.tableroLema {
+  margin: 0 0 0.8rem;
+  font-family: var(--cuerpo);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.sospechosos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sospechoso {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--blanco);
+  color: var(--negro);
+  transform: skewX(-6deg);
+  box-shadow: 5px 5px 0 var(--negro);
+}
+.sospechoso > * {
+  transform: skewX(6deg);
+}
+.sospechoso small {
+  font-family: var(--cuerpo);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.sospechosoEncaja {
+  box-shadow: 5px 5px 0 var(--rojo);
+  outline: 3px solid var(--rojo);
+}
+.notaBotones {
+  display: flex;
+  gap: 0.3rem;
+}
+.notaBotones button {
+  flex: 1;
+  min-height: 2rem;
+  padding: 0 0.3rem;
+  background: transparent;
+  color: var(--negro);
+  border: 2px solid var(--negro);
+  font-family: var(--display);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.notaBotones button[aria-pressed="true"] {
+  background: var(--negro);
+  color: var(--blanco);
+}
+.pistaLista {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pistaCarta {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.6rem 0.8rem;
+  background: #161616;
+  border-left: 6px solid #6dff9e;
+}
+.pistaCarta b {
+  font-weight: 400;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+}
+.pistaCarta small {
+  font-family: var(--cuerpo);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.pistaCarta p {
+  margin: 0.2rem 0 0;
+  font-family: var(--cuerpo);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+.pistaCartaOff {
+  border-left-color: #444;
+  opacity: 0.55;
+}
+.senala {
+  justify-self: start;
+  margin-top: 0.2rem;
+  padding: 0.05rem 0.4rem;
+  background: var(--rojo);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+.rumor {
+  font-family: var(--cuerpo);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  opacity: 0.85;
+}
+.rumor b {
+  font-family: var(--display);
+  font-weight: 400;
+  color: #f2c230;
+  text-transform: uppercase;
+}
+.motivo,
+.secreto {
+  margin: 0;
+  font-family: var(--cuerpo);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.motivo {
+  padding: 0.5rem 0.7rem;
+  background: var(--rojo);
+}
+
+@media (max-width: 360px) {
+  .sospechosos,
+  .acusar {
+    grid-template-columns: 1fr;
+  }
+}
+.acusar,
+.panelScroll {
+  overflow-x: hidden;
+}
+.sospechosos,
+.acusar {
+  padding-right: 0.5rem;
+}

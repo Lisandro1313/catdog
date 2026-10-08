@@ -3,9 +3,8 @@
  * de viernes y sábados). Vuelven solas a la noche.
  */
 import type { EscenaSrc } from "../tipos";
-import { T2 } from "./comun";
 
-const V = { ...T2, sigue: "@vuelta" };
+const V = { sigue: "@vuelta" };
 
 export const ENTRENAMIENTOS: Record<string, EscenaSrc> = {
   // ─── Encanto: la barra con Lisandro ───

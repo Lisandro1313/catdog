@@ -5,8 +5,7 @@
  */
 import type { EscenaSrc } from "../tipos";
 
-// Sin importar comun.ts (que importa esto): la temporada va escrita acá.
-const J = { temporada: 2 as const, sigue: "@vuelta" };
+const J = { sigue: "@vuelta" };
 
 export const JUNTADAS: Record<string, EscenaSrc> = {
   "jun-s2-lun": {

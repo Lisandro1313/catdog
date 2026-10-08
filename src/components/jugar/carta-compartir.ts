@@ -273,7 +273,8 @@ function cartel(
 async function dibujarNovela(ctx: CanvasRenderingContext2D, c: CartaNovela, f: Fuentes) {
   const disp = (px: number) => `400 ${px}px ${f.display}`;
   const cuerpo = (px: number, peso = 400) => `${peso} ${px}px ${f.cuerpo}`;
-  const anteTitulo = c.verdadero ? `★ FINAL VERDADERO · TEMPORADA ${c.temporada} ★` : `TEMPORADA ${c.temporada} · FINAL`;
+  // La novela es un solo arco de cinco semanas: ya no hay temporadas que nombrar.
+  const anteTitulo = c.verdadero ? "★ FINAL VERDADERO ★" : "FINAL";
   const texto = `¿QUIÉN TE CONTÓ?LA NOVELA DE CATDOGFIN${anteTitulo}${c.titulo.toUpperCase()}EN PAREJA CON ${(c.conQuien ?? "").toUpperCase()}FINALES ${c.logrados}/${c.total}¿CUÁL TE TOCA A VOS?${LEMA}${INSTAGRAM}${linkVisible()}♥`;
   await cargarLetras([disp(100), cuerpo(40), cuerpo(40, 700)], texto);
 

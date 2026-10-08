@@ -125,7 +125,8 @@ export const MORA = {
       texto: `
         La salida de la guardia. Seis y media de la mañana. El cielo de La Plata en rosa sucio.
         Mora sale con el buzo encima del ambo y un sobre en la mano.
-        mora/serio: Me ofrecieron la jefatura de enfermería del piso. Menos guardias. Más plata. Más planillas.
+        mora/serio: Me ofrecieron una jefatura. No en el hospital: en la Clínica San Martín. Menos guardias. Más plata. Más planillas.
+        mora/triste: La clínica es del grupo Altamira. Ya sé. Me enteré después de abrir el sobre. Mi hermano debe plata y yo necesito más. No me juzgues.
         mora/triste: Y más responsabilidad. Si algo sale mal, es mío. Ya no puedo decir "yo cumplía órdenes".
         mora/normal: Toda mi vida gané para no tener que elegir. Si ganás siempre, no elegís: te toca. Esto lo tengo que elegir.
       `,
@@ -258,6 +259,7 @@ export const MORA = {
           `,
         },
       ],
+      ramas: [{ si: { marca: "traidor:mora" }, va: "mora-sombra" }],
     },
     // ─── Rango 8 ───
     {
@@ -396,6 +398,18 @@ export const MORA = {
           `,
         },
       ],
+    },
+    "mora-sombra": {
+      fondo: "diagonal",
+      hora: "01:30",
+      marca: "motivo:mora",
+      texto: `
+        En la parada del colectivo, a Mora se le cae el bolso. Se desparrama todo: tiza azul, alcohol en gel, un sobre.
+        Lo levantás vos. El sobre está abierto. Una sola hoja.
+        !"Deuda de su hermano: cancelada. Lo demás, como quedamos. —E. A."
+        Mora te lo saca de la mano. Rápido. Con la izquierda.
+        mora/serio: Cosas de mi hermano. No preguntes, que no tengo ganas de mentirte.
+      `,
     },
     "mora-manana": {
       fondo: "depto",

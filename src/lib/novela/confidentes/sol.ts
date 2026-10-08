@@ -5,6 +5,7 @@
  * que su mamá, Amalia, es la heredera que vende la casa. Los viernes fotografía casamientos.
  */
 import { aparte, armarRangos, enPareja } from "../tipos";
+import { pista } from "../historia/comun";
 import { puerta } from "./comun";
 
 const p = (n: number) => puerta(n, "coraje");
@@ -52,9 +53,10 @@ export const SOL = {
     // ─── Rango 2 ───
     {
       ...p(2),
-      premio: "Su cuarto oscuro, con cuatrocientas fotos de la esquina.",
+      premio: "Su cuarto oscuro, con cuatrocientas fotos de la esquina. Y otras.",
       fondo: "oscuro",
       hora: "23:00",
+      marca: "t:fotos",
       texto: `
         El estudio de Sol, en calle 8. Atrás, un cuarto oscuro: una sola lamparita roja, sogas con fotos colgadas de broches, olor a vinagre.
         sol/serio: Entrá rápido y cerrá. La luz arruina todo. Como en la vida.
@@ -62,6 +64,8 @@ export const SOL = {
         Te muestra las copias que cuelgan. La esquina de la casa, mes tras mes. Y en todas, el abrigo gris.
         sol/normal: Ese señor no se mueve nunca. Lluvia, calor, Navidad. Ahí. Como un poste con sombrero.
         sol/picara: Le saqué cuatrocientas fotos. Si fuera actor, me cobraría derechos.
+        En otra soga, otras fotos: la puerta de servicio de la torre de Altamira, de noche. "Ahí había un bodegón", dice Sol. "Lo tiraron."
+        ${pista("t:fotos", false)}
       `,
       opciones: [
         {
@@ -90,7 +94,7 @@ export const SOL = {
       fondo: "diagonal",
       hora: "01:30",
       noche: true,
-      marca: "pista2:foto",
+      marca: "p87:foto",
       texto: `
         Sol te tira un casco. Rojo, con stickers.
         sol/picara: Subí. Te muestro La Plata como la veo yo.
@@ -100,6 +104,8 @@ export const SOL = {
         sol/normal: Y mirá atrás. La otra foto. La que sacó al día siguiente.
         !Es la puerta de la casa. Sin cartel. Y una chica con una valija, riéndose.
         sol/sorpresa: Mi vieja estuvo en TU casa. Hace casi cuarenta años.
+        Hay una tercera. Movida, sacada sin querer. La puerta del patio, de noche. Un pibe con una llave. Atrás, una ventana naranja.
+        sol/serio!: ...¿Eso es fuego?
       `,
       opciones: [
         {
@@ -317,7 +323,8 @@ export const SOL = {
         sol/triste: Mamá. La casa que vendés. Es la casa sin cartel. La de tu foto. La de 1987.
         Silencio largo del otro lado. Muy largo.
         amalia/triste: ...Ya sé, hija. Lo supe cuando vi la dirección. No me animé a ir a verla.
-        amalia/serio: Hay cosas que una deja atrás para poder seguir. Si vuelvo a esa casa, me quedo.
+        amalia/serio: Hay cosas que una deja atrás para poder seguir. Ahí hubo un incendio, hija. Yo estaba adentro.
+        amalia/triste: Me dijeron que fue un cortocircuito. Nunca supe quién me sacó. Si vuelvo a esa casa, me quedo. O me muero de miedo.
         sol/sorpresa: ...Eso mismo dice el señor del abrigo. "Si entro, me quedo."
         amalia/sorpresa: ...¿Gervasio? ¿Gervasio sigue en la esquina?
       `,

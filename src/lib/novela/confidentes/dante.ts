@@ -119,10 +119,10 @@ export const DANTE = {
     // ─── Rango 4 ───
     {
       ...p(4),
-      premio: "La verdad de por qué vino. Y un papel con un nombre.",
+      premio: "La verdad de por qué vino. Y un papel del archivo de Altamira.",
       fondo: "diagonal",
       hora: "02:10",
-      marca: "pista2:escritura",
+      marca: "p87:expediente",
       texto: `
         La diagonal. Dante camina con las manos en los bolsillos del saco. Hoy no chamuya.
         dante/serio: Te debo la verdad. Me mandaron a comprar la casa. No a verla: a comprarla. A convencer a todos de que es inevitable.
@@ -130,7 +130,9 @@ export const DANTE = {
         dante/normal: Yo tenía doce años. Me prometí que iba a estar del lado de los que compran. Que nunca más iba a ser el que pierde.
         dante/serio: Y acá estoy. Del lado que gana. Sintiéndome como el día que tiraron lo de Nélida.
         Saca un papel doblado del bolsillo. Te lo da.
-        dante/normal: Copia de la escritura. La titular es Amalia Ríos. Sobrina de doña Elvira. Vive en Córdoba. No sé por qué te lo doy.
+        dante/normal: Del archivo de Altamira. Lo que le piensan mostrar a la heredera el día de la firma.
+        !"Bomberos, 20/8/1987. Incendio intencional. Rescatada: Amalia Ríos, 19. Rescatista: un vecino, Gervasio Ponce, quemaduras en ambas manos."
+        dante/serio: Intencional. Lo sabían. Y lo guardaron cuarenta años para usarlo al revés. No sé por qué te lo doy.
         dante/triste: Sí sé. Pero no lo voy a decir en voz alta.
       `,
       opciones: [
