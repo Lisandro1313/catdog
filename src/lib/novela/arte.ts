@@ -20,6 +20,9 @@ const RETRATOS = new Set<string>([
   "bruno-normal",
   "cami-normal",
   "evelyn-normal",
+  "lisandro-normal",
+  "agustin-normal",
+  "gato-normal",
 ]);
 
 /** Vestuario de salir (escenas con `noche`): una sola imagen por personaje, sirve para cualquier cara. */
@@ -60,6 +63,9 @@ const ARCHIVO: Partial<Record<Quien, string>> = {
   bruno: "bruno",
   cami: "cami",
   evelyn: "evelyn",
+  lisandro: "lisandro",
+  agustin: "agustin",
+  gato: "gato",
 };
 
 /**
