@@ -68,7 +68,7 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
     let copa: (() => void) | null = null;
     const id = setTimeout(() => {
       fanfarria("record");
-      if (!meta) cortar = festejar(22, { y: 0.35 });
+      if (!meta) cortar = festejar(22, { y: 0.35, emojis: [GAME_INFO[game].icon] });
       // El récord de la casa (el primero de la tabla, con nombre) se lleva la copa.
       if (recordCasa) copa = festejo("record");
     }, espera);
@@ -77,7 +77,7 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
       cortar?.();
       copa?.();
     };
-  }, [esMejor, meta, recordCasa]);
+  }, [esMejor, meta, recordCasa, game]);
 
   // La entrada: el cartel cae, el número cuenta, "¡Meta!" golpea y las medallas de la tabla saltan.
   useLayoutEffect(
@@ -109,7 +109,7 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
 
   return (
     <div className="jg-center" ref={raiz}>
-      {meta && <Confetti count={70} demora={DEMORA_FANFARRIA + 300} />}
+      {meta && <Confetti count={70} demora={DEMORA_FANFARRIA + 300} emojis={[info.icon]} />}
       <p data-fin="cartel" className={`ap-eyebrow ${meta ? "jg-glow" : ""}`}>
         {meta ? "Marca lograda" : "Terminó"}
       </p>

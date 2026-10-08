@@ -12,6 +12,8 @@ import { animar, entrar, gsap } from "./animar";
 import { fanfarria, precargarFanfarrias } from "./juice";
 import { pararMusica } from "./musica";
 import { instalarHaptica } from "./haptica";
+import { Avatar } from "./Avatar";
+import NumberFlow from "@number-flow/react";
 import { festejo, precargarFestejos } from "./festejo";
 import { NovelaBoton } from "./novela/NovelaBoton";
 import { ShareButton } from "@/components/ShareButton";
@@ -322,8 +324,11 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
                 {name ? "¿Cómo querés aparecer?" : "¿Cómo te anotamos?"}
               </h2>
               <p className="mt-2 text-xs text-muted">Para la tabla de récords de la casa. Nombre o apodo, corto.</p>
+              {/* El personaje que te toca: sale del nombre, y cambia mientras lo escribís. */}
+              <div className="mt-4 flex items-center gap-3">
+              <Avatar nombre={nameDraft} size={52} className="shrink-0" />
               <input
-                className="input mt-4 w-full"
+                className="input w-full"
                 value={nameDraft}
                 onChange={(e) => setNameDraft(e.target.value)}
                 maxLength={18}
@@ -331,6 +336,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && guardarNombre()}
               />
+              </div>
               <div className="mt-4 flex justify-end gap-2">
                 <button className="btn btn-ghost btn-sm" type="button" onClick={() => setAskName(null)}>
                   Sin nombre
@@ -406,7 +412,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
   if (view === "premio" && marcas.premio) {
     return (
       <div className="jg-stage" ref={pantalla}>
-        <Confetti count={110} demora={200} />
+        <Confetti count={110} demora={200} emojis={["🍸", "🥂", "🍺"]} />
         <div className="jg-premio">
           <p className="ap-ornament">✦</p>
           <p data-premio="texto" className="ap-eyebrow mt-3">Lograste {PREMIO_MINIMO} logros</p>
@@ -507,7 +513,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         )}
         {duelo.stage === "done" && (
           <div className="jg-center">
-            <Confetti count={campeon ? 90 : serie != null ? 60 : w == null ? 0 : 30} />
+            <Confetti count={campeon ? 90 : serie != null ? 60 : w == null ? 0 : 30} emojis={["🏆"]} />
             <p className="ap-eyebrow"><Emoji e={info.icon} size="1.4em" /> {info.title}</p>
             <h2 data-duelo="titulo" className="ap-display mt-3 text-4xl">{campeon ? <><Emoji e="🏆" /> {campeon}, campeón de la mesa</> : serie != null ? `${duelo.names[serie]} se lleva la serie` : w == null ? "Empate" : `Ganó ${duelo.names[w]}`}</h2>
             {!tor && partidas > 0 && (
@@ -691,6 +697,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
         </section>
         {name && (
           <p className="mt-8 text-center text-xs text-muted">
+            <Avatar nombre={name} size={22} className="mr-1.5 inline-block align-middle" />
             Aparecés como <span className="text-ink">{name}</span>.{" "}
             <button type="button" className="underline underline-offset-4" onClick={() => { setNameDraft(name); setAskName("memoria"); }}>
               Cambiar
@@ -731,7 +738,8 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
             ))}
           </div>
           <span className="shrink-0 whitespace-nowrap text-xs text-muted">
-            {Math.min(logros, PREMIO_MINIMO)} de {PREMIO_MINIMO}
+            {/* Gira cuando se suma un logro: se ve al volver de un juego. */}
+            <NumberFlow value={Math.min(logros, PREMIO_MINIMO)} /> de {PREMIO_MINIMO}
           </span>
         </div>
         <button type="button" className="shrink-0 whitespace-nowrap text-xs text-accent underline-offset-4 hover:underline" onClick={() => setView("records")}>
@@ -767,7 +775,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
           .
         </p>
       )}
-      {justWon && marcas.premio && <Confetti count={60} demora={300} />}
+      {justWon && marcas.premio && <Confetti count={60} demora={300} emojis={["🍸", "🥂"]} />}
       {justWon && marcas.premio && (
         <button type="button" className="jg-won mt-5" onClick={() => setView("premio")}>
           <span className="ap-eyebrow">¡{PREMIO_MINIMO} de {GAMES.length}!</span>

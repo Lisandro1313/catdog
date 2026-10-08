@@ -52,3 +52,6 @@ exports/
 
 # Originales de la IA (pesados): lo que se usa est· en public/novela
 /retratos/
+
+# @3d-dice/dice-box copia sus archivos ac√° en cada npm install. La Generala usa public/dados.
+/public/assets/

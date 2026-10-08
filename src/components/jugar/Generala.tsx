@@ -9,7 +9,27 @@ import { Fin } from "./Fin";
 import { festejar } from "./Confetti";
 import { festejo } from "./festejo";
 import { musicaDelBar } from "./musica";
+import NumberFlow from "@number-flow/react";
 import { vibrar } from "./sensacion";
+import { crearDetector } from "@/lib/sacudida";
+
+type ConPermiso = { requestPermission?: () => Promise<"granted" | "denied"> };
+
+/**
+ * El sensor de movimiento, para sacudir el teléfono como un cubilete. En iPhone hay que pedir
+ * permiso, y solo se puede desde un toque: por eso se llama desde "Agarrar el cubilete". En Android
+ * no pide nada. Devuelve si quedó habilitado (que el sensor exista se sabe recién cuando manda algo).
+ */
+async function habilitarSensor(): Promise<boolean> {
+  if (typeof window === "undefined" || typeof DeviceMotionEvent === "undefined") return false;
+  const pedir = (DeviceMotionEvent as unknown as ConPermiso).requestPermission;
+  if (typeof pedir !== "function") return true;
+  try {
+    return (await pedir()) === "granted";
+  } catch {
+    return false;
+  }
+}
 
 const MESA = "generala-mesa";
 /** Si el 3D no responde en este tiempo (teléfono viejo, sin WebGL), se sigue con dados planos. */
@@ -74,6 +94,11 @@ export function Generala({ onDone, onBack, marcas, records, nueva }: Props) {
   const [elegido, setElegido] = useState<Casillero | null>(null);
   const [cartel, setCartel] = useState<string | null>(null);
   const [modo, setModo] = useState<"cargando" | "3d" | "plano">("cargando");
+  /** El sensor quedó habilitado (permiso dado, o no hacía falta). */
+  const [sensor, setSensor] = useState(false);
+  /** El sensor mandó lecturas de verdad: recién ahí se ofrece sacudir (las compus no tienen). */
+  const [sensorVivo, setSensorVivo] = useState(false);
+  const [sacudiendo, setSacudiendo] = useState(false);
   const caja = useRef<DiceBox | null>(null);
   const pos = useRef<Pos[]>([]);
   const reported = useRef(false);
@@ -85,6 +110,8 @@ export function Generala({ onDone, onBack, marcas, records, nueva }: Props) {
   function start() {
     keepAwake();
     musicaDelBar();
+    // El permiso del sensor se pide ahora, que es un toque: en iPhone después ya no se puede.
+    void habilitarSensor().then(setSensor);
     precargarSonidos(["dado", "acierto", "logro", "elegir", "clic"]);
     reported.current = false;
     setPlanilla({});
@@ -96,6 +123,58 @@ export function Generala({ onDone, onBack, marcas, records, nueva }: Props) {
     setModo("cargando");
     setPhase("play");
   }
+
+  // Sacudir para tirar: el sensor lee, el detector decide cuándo empezó y cuándo paró. Al parar,
+  // los dados se tiran, como cuando se levanta el cubilete.
+  const tirarAhora = useRef<() => void>(() => {});
+  /** Si en este momento se puede tirar: si no, sacudir no hace nada (ni suena). */
+  const puedeTirar = useRef(false);
+  useEffect(() => {
+    tirarAhora.current = () => void tirar();
+    puedeTirar.current = !tirando && tirada < TIRADAS && modo !== "cargando" && !(tirada > 0 && guardados.every(Boolean));
+  });
+  useEffect(() => {
+    if (phase !== "play" || !sensor) return;
+    const detector = crearDetector();
+    let vivoAvisado = false;
+    const al = (e: DeviceMotionEvent) => {
+      const a = e.accelerationIncludingGravity;
+      if (!a || a.x == null || a.y == null || a.z == null) return;
+      if (!vivoAvisado) {
+        vivoAvisado = true;
+        setSensorVivo(true);
+      }
+      if (!puedeTirar.current) return;
+      const ev = detector.leer({ x: a.x, y: a.y, z: a.z, t: performance.now() });
+      if (ev === "empezo") setSacudiendo(true);
+      if (ev === "paro") {
+        setSacudiendo(false);
+        tirarAhora.current();
+      }
+    };
+    // Si el sensor deja de mandar en medio de una sacudida, igual se suelta a tiempo.
+    const reloj = setInterval(() => {
+      if (detector.revisar(performance.now()) === "paro") {
+        setSacudiendo(false);
+        tirarAhora.current();
+      }
+    }, 100);
+    window.addEventListener("devicemotion", al);
+    return () => {
+      window.removeEventListener("devicemotion", al);
+      clearInterval(reloj);
+    };
+  }, [phase, sensor]);
+
+  // Mientras se sacude, los dados suenan en el cubilete.
+  useEffect(() => {
+    if (!sacudiendo) return;
+    const id = setInterval(() => {
+      sonar("dado", 0.35, 0.9 + Math.random() * 0.25);
+      vibrar("suave");
+    }, 170);
+    return () => clearInterval(id);
+  }, [sacudiendo]);
 
   // La mesa 3D: se arma al empezar a jugar y se tira abajo al salir.
   useEffect(() => {
@@ -198,7 +277,7 @@ export function Generala({ onDone, onBack, marcas, records, nueva }: Props) {
       setCartel(jugada);
       if (jugada.includes("Generala")) {
         sonar("logro", 0.8);
-        festejar(60);
+        festejar(60, { emojis: ["🎲"] });
         festejo("generala");
         vibrar("fuerte");
       } else {
@@ -275,7 +354,7 @@ export function Generala({ onDone, onBack, marcas, records, nueva }: Props) {
       onBack={onBack}
       right={
         <>
-          {sumado} · {turno}/{CASILLEROS.length}
+          <NumberFlow value={sumado} /> · {turno}/{CASILLEROS.length}
         </>
       }
     >
@@ -294,7 +373,7 @@ export function Generala({ onDone, onBack, marcas, records, nueva }: Props) {
             <button
               key={i}
               type="button"
-              className={`jg-dado ${g ? "is-guardado" : ""} ${tirando && (tirada === 0 || !g) ? "is-rodando" : ""}`}
+              className={`jg-dado ${g ? "is-guardado" : ""} ${(tirando || sacudiendo) && (tirada === 0 || !g) ? "is-rodando" : ""}`}
               onClick={() => guardar(i)}
               disabled={!dados || tirada >= TIRADAS}
               aria-pressed={g}
@@ -315,7 +394,9 @@ export function Generala({ onDone, onBack, marcas, records, nueva }: Props) {
       >
         {tirando
           ? "Tirando…"
-          : modo === "cargando"
+          : sacudiendo
+            ? "Sacudiendo…"
+            : modo === "cargando"
             ? "Armando la mesa…"
             : tirada === 0
               ? "Tirar los dados"
@@ -323,6 +404,9 @@ export function Generala({ onDone, onBack, marcas, records, nueva }: Props) {
                 ? "Anotá en la planilla"
                 : `Tirar de nuevo (${quedan === 1 ? "última" : `quedan ${quedan}`})`}
       </button>
+      {sensorVivo && tirada < TIRADAS && !tirando && (
+        <p className="mt-2 text-center text-xs text-muted">O sacudí el celu como un cubilete y frená: los dados caen solos.</p>
+      )}
 
       <div className="jg-planilla mt-4" role="list" aria-label="La planilla">
         {CASILLEROS.map((c) => {
