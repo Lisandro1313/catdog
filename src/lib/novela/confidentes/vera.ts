@@ -1,9 +1,9 @@
 /**
  * VERA — "La barra". Bartender de La Rana, ácida, flequillo recto y campera de cuero. Valora la Labia:
  * con Vera hay que saber contestar. Su arco: Barcelona le da hasta fin de mes; ella quiere una barra
- * propia, sin cartel, y le da terror intentarlo.
+ * propia, sin cartel, y le da terror intentarlo. Los viernes labura: no está en la casa.
  */
-import { armar, armarRangos, enPareja } from "../tipos";
+import { aparte, armarRangos, enPareja } from "../tipos";
 import { puerta } from "./comun";
 
 const p = (n: number) => puerta(n, "labia");
@@ -13,6 +13,7 @@ export const VERA = {
     // ─── Rango 1 ───
     {
       ...p(1),
+      premio: "Un juego en la barra: adivinar su trago secreto.",
       fondo: "barra",
       hora: "21:00",
       texto: `
@@ -28,7 +29,7 @@ export const VERA = {
           respuesta: `
             vera/sorpresa: ...
             vera/enojo: ¿Quién te contó? ¿Lisandro te pasó data?
-            lisandro/sonrisa: Yo estoy secando un vaso.
+            lisandro/sonrisa: A mí no me miren. Yo solo sirvo.
             vera/feliz: Bueno, pago. El "algo" es romero. No te lo iba a decir nunca. Tenés buen paladar, cara nueva. Molesta.
           `,
         },
@@ -53,6 +54,7 @@ export const VERA = {
     // ─── Rango 2 ───
     {
       ...p(2),
+      premio: "Verla trabajar en La Rana, el bar del sapo de neón.",
       fondo: "rana",
       hora: "23:30",
       texto: `
@@ -60,19 +62,19 @@ export const VERA = {
         Vera atrás de la barra es otra persona: rápida, precisa, como un mago que no tiene tiempo para aplausos.
         Te ve. Levanta una ceja. Te pone un vaso de agua sin que lo pidas.
         vera/picara: Viniste a verme trabajar. Qué cosa más rara. Nadie viene a ver trabajar a nadie.
-        Un tipo de camisa brillante y cadena de oro se le acerca por atrás. Ferro, el dueño.
+        Un tipo de camisa brillante y cadena de oro se le acerca por atrás. Bustos, el dueño.
         "¡Vera! Menos charla y más velocidad. Que no te pago para hacer amigos."
-        vera/serio: ...Sí, Ferro.
+        vera/serio: ...Sí, Bustos.
         Se le endurece la cara. Las manos no se le frenan. Pero algo se le apaga.
       `,
       opciones: [
         {
-          texto: "Decirle a Ferro que la trate bien",
+          texto: "Decirle a Bustos que la trate bien",
           stats: { coraje: 1 },
           respuesta: `
             yo: Disculpe. ¿Así le habla a la mejor bartender de La Plata?
-            Ferro te mira como a una cucaracha con opiniones. Se va sin contestar.
-            vera/enojo: ¿Estás loca? ¿Loco? ¿Lo que seas? ¡Me puede echar!
+            Bustos te mira como a una cucaracha con opiniones. Se va sin contestar.
+            vera/enojo: ¿Estás mal de la cabeza? ¡Me puede echar!
             vera/sonrojo: ...Nadie nunca le había contestado. Gracias. Pero no lo hagas más. O sí. No sé.
           `,
         },
@@ -83,7 +85,7 @@ export const VERA = {
             yo: Quiero el trago más difícil que tengas. El que nadie pide porque da trabajo.
             vera/sorpresa: ¿Me estás pidiendo que me luzca?
             vera/feliz: Ok. Mirá bien. No pestañees.
-            Siete botellas. Fuego. Una cáscara de naranja que vuela. La gente de la barra aplaude. Ferro, de lejos, no puede decir nada.
+            Siete botellas. Fuego. Una cáscara de naranja que vuela. La gente de la barra aplaude. Bustos, de lejos, no puede decir nada.
           `,
         },
         {
@@ -99,6 +101,7 @@ export const VERA = {
     // ─── Rango 3 ───
     {
       ...p(3),
+      premio: "Una caminata a las tres de la mañana, cuando cierra La Rana.",
       fondo: "diagonal",
       hora: "03:20",
       texto: `
@@ -106,7 +109,7 @@ export const VERA = {
         vera/normal: Caminemos. Si me subo al colectivo así, me duermo y aparezco en Berisso.
         La diagonal está vacía. Solo los semáforos, cambiando de color para nadie.
         vera/serio: Barcelona me dio hasta fin de mes. Una coctelería que sale en las listas. Sueldo en euros. Departamento con balcón.
-        vera/triste: Y yo acá, aguantando a Ferro, soñando con una barra de cuatro banquetas que no existe.
+        vera/triste: Y yo acá, aguantando a Bustos, soñando con una barra de cuatro banquetas que no existe.
         Saca de la campera un cuaderno chiquito, con tapas de hule. Gastadísimo.
         vera/normal: Mi abuela. Recetas de licores caseros. Naranja, café, hierbas. Los hacía en la cocina de un PH en Tolosa.
         vera/sonrisa: Yo quiero una barra que huela a esa cocina. ¿Es una boludez?
@@ -136,11 +139,12 @@ export const VERA = {
     // ─── Rango 4 ───
     {
       ...p(4),
+      premio: "Una clase de coctelería en La Rana, después del cierre.",
       fondo: "rana",
       hora: "04:10",
       noche: true,
       texto: `
-        La Rana, después del cierre. Ferro se fue. Las sillas arriba de las mesas. Solo el neón del sapo, verde, zumbando.
+        La Rana, después del cierre. Bustos se fue. Las sillas arriba de las mesas. Solo el neón del sapo, verde, zumbando.
         Vera te hace pasar del otro lado de la barra.
         vera/picara: Hoy aprendés. Nadie entra a mi barra sin saber hacer por lo menos un trago.
         Te pone una coctelera en las manos. Se para atrás tuyo. Pone sus manos sobre las tuyas.
@@ -174,7 +178,7 @@ export const VERA = {
           respuesta: `
             Agitás como si la coctelera tuviera la culpa de algo. La tapa sale volando. Les llueve Cynar a los dos.
             vera/sorpresa!: ¡¡AH!!
-            vera/feliz: ¡Sos un desastre! ¡Te odio! ¡Dame un repasador!
+            vera/feliz: ¡Sos un desastre! ¡Dame un repasador! ¡Dámelo ya!
             Se ríe tanto que tiene que sentarse en el piso. Vos también. El sapo de neón zumba, juzgándolos.
           `,
         },
@@ -183,6 +187,7 @@ export const VERA = {
     // ─── Rango 5 ───
     {
       ...p(5),
+      premio: "Conocer su departamento y los licores de la abuela.",
       fondo: "depto",
       hora: "19:00",
       texto: `
@@ -217,13 +222,15 @@ export const VERA = {
     // ─── Rango 6 ───
     {
       ...p(6),
+      premio: "Una noche en La Rana que se termina de golpe. (Dos escenas.)",
       fondo: "rana",
       hora: "00:30",
+      sigue: "vera-r6-b",
       texto: `
-        La Rana a reventar. Ferro le grita a Vera por tercera vez en diez minutos. Delante de todos.
+        La Rana a reventar. Bustos le grita a Vera por tercera vez en diez minutos. Delante de todos.
         "¡Si no te gusta, hay cincuenta en la fila que quieren tu laburo!"
         Vera deja de agitar. Deja la coctelera en la barra. Despacio.
-        vera/serio: ...¿Sabés qué, Ferro?
+        vera/serio: ...¿Sabés qué, Bustos?
         Se desata el delantal. Lo dobla. Lo deja en la barra como quien deja una bandera.
         vera/enojo!: ¡Que lo agarre uno de los cincuenta!
         Sale de la barra. Te agarra de la mano al pasar. Y corren.
@@ -243,7 +250,7 @@ export const VERA = {
           texto: "Volver a buscar el delantal y dárselo a ella",
           stats: { labia: 1 },
           respuesta: `
-            Te frenás. Volvés a entrar. Agarrás el delantal de la barra delante de Ferro, que no entiende nada.
+            Te frenás. Volvés a entrar. Agarrás el delantal de la barra delante de Bustos, que no entiende nada.
             Afuera, se lo das.
             yo: Este te lo llevás. Es tuyo. Para tu barra.
             vera/sonrojo: ...Es un delantal con el logo de un sapo.
@@ -255,6 +262,7 @@ export const VERA = {
     // ─── Rango 7 ───
     {
       ...p(7),
+      premio: "La terraza de su edificio, con la ciudad abajo.",
       fondo: "terraza",
       hora: "22:00",
       noche: true,
@@ -294,6 +302,7 @@ export const VERA = {
     // ─── Rango 8 ───
     {
       ...p(8),
+      premio: "Una pregunta difícil en la barra vacía: romance o amistad.",
       fondo: "barra",
       hora: "03:30",
       noche: true,
@@ -304,6 +313,7 @@ export const VERA = {
         vera/serio: Bueno. Voy a hacer una pregunta, y la voy a hacer rápido, porque si no, no la hago.
         vera/sonrojo: ¿Esto qué es?
         vera/normal: Vos y yo. Las caminatas a las tres de la mañana. La coctelera. Pirulo. ¿Qué es?
+        [duelo:bruno] vera/picara: Y ojo con lo que contestás, que me debés un duelo.
         Te mira sin parpadear. Elegí bien. Te está mirando.
       `,
       opciones: [
@@ -313,7 +323,7 @@ export const VERA = {
           marcas: ["amor:vera"],
           respuesta: `
             Apoyás el vaso. Te inclinás sobre la barra. Ella también.
-            !Y la besás. O te besa. Nunca van a ponerse de acuerdo en eso.
+            !Y la besás. O te besa. Nunca se van a poner de acuerdo en eso.
             Sabe a Cynar y a pomelo y a tres semanas de esperar.
             vera/sonrojo: ...Ok. Eso es lo que es.
             vera/picara: Tardaste. Te estaba por cobrar recargo.
@@ -327,7 +337,7 @@ export const VERA = {
             yo: Sos mi persona favorita de La Plata. Mi amiga. La mejor que tuve.
             vera/sorpresa: ...
             vera/sonrisa: Bueno. Eso también es algo. Es mucho, en realidad.
-            vera/feliz: Amigos, entonces. Del tipo que se dice la verdad aunque duela. Brindemos. Y no me mires así, que no lloro.
+            vera/feliz: Amigos, entonces. De los que se dicen la verdad aunque duela. Brindemos. Y no me mires así, que no lloro.
           `,
         },
       ],
@@ -335,6 +345,7 @@ export const VERA = {
     // ─── Rango 9 ───
     {
       ...p(9),
+      premio: "La barra de arriba, en construcción.",
       fondo: "terraza",
       hora: "23:00",
       noche: true,
@@ -342,8 +353,9 @@ export const VERA = {
         La terraza otra vez. Vera armó una barra de verdad con dos caballetes, una puerta vieja y cuatro banquetas que rescató de la basura.
         vera/normal: Barcelona llama el sábado a las seis. Tengo que contestar.
         vera/serio: Y estoy armando una barra en una terraza con muebles de la calle. ¿Vos ves lo que estoy haciendo? Porque yo no.
-        [amor:vera] vera/sonrojo: Si me voy, ¿me esperás? No, no contestes. Si me quedo... ¿me esperás igual, todos los lunes, del lado de los clientes?
-        [-amor:vera] vera/triste: Si me voy, ¿quién me dice la verdad de los tragos? Allá todos me van a decir "genial", y yo voy a saber que mienten.
+        [conoce:bruno] vera/picara: Bruno me trajo dos banquetas de El Zaguán. Dice que le sobran. Le sobran todas, pobre.
+        [en:vera] vera/sonrojo: Si me voy, ¿me esperás? No, no contestes. Si me quedo... ¿me esperás igual, todos los lunes, del lado de los clientes?
+        [-en:vera] vera/triste: Si me voy, ¿quién me dice la verdad de los tragos? Allá todos me van a decir "genial", y yo voy a saber que mienten.
       `,
       opciones: [
         {
@@ -369,6 +381,7 @@ export const VERA = {
     // ─── Rango 10 ───
     {
       ...p(10),
+      premio: "Noche de estreno en la barra de arriba. Escena ilustrada y su final.",
       fondo: "terraza",
       hora: "00:00",
       noche: true,
@@ -376,31 +389,68 @@ export const VERA = {
       texto: `
         Medianoche. La terraza, transformada. Guirnaldas de lamparitas cruzando de una soga de ropa a otra.
         La barra de puerta vieja tiene un mantel. Las cuatro banquetas, almohadones. Y en la pared, el delantal del sapo, enmarcado.
-        vera/feliz: Bienvenida, bienvenido, bienvenide. Barra de arriba. Noche de prueba. Una sola persona invitada.
+        vera/feliz: Bienvenidos a la Barra de arriba. Noche de prueba. Una sola persona invitada.
         Te sirve un trago nuevo. Naranja de la abuela, Cynar, romero. Lo probás y te tiembla algo adentro.
         vera/normal: Se llama "Lunes del otro lado". Es para vos. Es el primero de la carta.
         vera/serio: Le dije que no a Barcelona. Esta tarde. Ya está. Me quedo.
-        [amor:vera] vera/sonrojo: Y no es por vos. ¿Eh? No te agrandes.
-        [amor:vera] vera/sonrisa: ...Bueno. Un poco es por vos.
-        [amor:vera] Rodea la barra. Te saca el vaso de la mano y lo deja a un costado.
-        [amor:vera] vera/picara: La barra cierra temprano hoy. Exclusivo para clientes frecuentes.
-        [amor:vera] La besás bajo las lamparitas. La ciudad entera abajo, como si fuera de ustedes.
-        [amor:vera] vera/sonrojo: ...Mi departamento está a cinco pisos de escalera. Bajando es más fácil.
-        [amor:vera] !La noche sigue en otro lado.
-        [-amor:vera] vera/sonrisa: Y quiero que seas parte. Socio, socia, como quieras. El cincuenta por ciento de los almohadones son tuyos.
-        [-amor:vera] Te da una llave. Vieja, de bronce.
-        [-amor:vera] vera/feliz: La de la terraza. Para que nunca necesites tocar timbre.
-        [-amor:vera] Brindan con la ciudad abajo. Dos amigos en el techo del mundo, que en La Plata es un quinto piso.
+        [en:vera] vera/sonrojo: Y no es por vos. ¿Eh? No te agrandes.
+        [en:vera] vera/sonrisa: ...Bueno. Un poco es por vos.
+        [en:vera] Rodea la barra. Te saca el vaso de la mano y lo deja a un costado.
+        [en:vera] vera/picara: La barra cierra temprano hoy. Exclusivo para clientes frecuentes.
+        [en:vera] La besás bajo las lamparitas. La ciudad entera abajo, como si fuera de ustedes.
+        [en:vera] vera/sonrojo: ...Mi departamento está a cinco pisos de escalera. Bajando es más fácil.
+        [en:vera] !La noche sigue en otro lado.
+        [-en:vera] vera/sonrisa: Y quiero que seas parte. Socio, socia, como quieras. El cincuenta por ciento de los almohadones son tuyos.
+        [-en:vera] Te da una llave. Vieja, de bronce.
+        [-en:vera] vera/feliz: La de la terraza. Para que nunca necesites tocar timbre.
+        [-en:vera] Brindan con la ciudad abajo. Dos amigos en el techo del mundo, que en La Plata es un quinto piso.
       `,
       ramas: [{ si: enPareja("vera"), va: "vera-manana" }],
     },
   ]),
-  ...armar({
+  ...aparte({
+    "vera-r6-b": {
+      fondo: "diagonal",
+      hora: "01:40",
+      texto: `
+        Media hora después están sentados en el cordón de la diagonal, compartiendo un pancho de un carrito.
+        Vera saca el celular. Abre la app del banco. La cierra rápido, como si quemara.
+        vera/serio: Tengo plata para dos meses. Tres, si como panchos.
+        vera/triste: Bustos va a decir que estoy loca. Mi vieja va a decir que estoy loca. Barcelona va a decir "¿ves?".
+        [conoce:bruno] Pasa una camioneta. Frena. Baja la ventanilla: Bruno, con una caja de limones en el asiento.
+        [conoce:bruno] bruno/sorpresa: ¿Vera? ¿Sin delantal a esta hora? ¿Te echaron?
+        [conoce:bruno] vera/enojo: Renuncié. Que es distinto.
+        [conoce:bruno] bruno/sonrisa: En El Zaguán hay lugar. Te pago bien. Bueno: te pago.
+        [conoce:bruno] vera/picara: Prefiero vender panchos. Gracias. Seguí.
+        [conoce:bruno] La camioneta se va. Pero Vera se queda mirando la esquina por donde dobló, con una cara rara.
+        vera/normal: Bueno. ¿Y ahora qué hago?
+      `,
+      opciones: [
+        {
+          texto: "\"Ahora abrís la barra de arriba. Mañana.\"",
+          stats: { coraje: 1 },
+          respuesta: `
+            yo: Ahora abrís la barra de arriba. No en un año. Mañana. Con lo que tengas.
+            vera/sorpresa: ...¿Mañana? No tengo nada. Tengo una puerta vieja y un delantal de sapo.
+            yo: Tenés a alguien que va a subir cinco pisos con sed.
+            vera/feliz: ...Sos lo peor. No, mentira. La peor soy yo, por no haberlo pensado antes.
+          `,
+        },
+        {
+          texto: "\"Ahora te comés el pancho tranquila. Mañana se piensa.\"",
+          stats: { encanto: 1 },
+          respuesta: `
+            yo: Ahora te comés el pancho. Tranquila. Mañana se piensa. Hoy se festeja.
+            vera/sonrisa: ...Festejar que me quedé sin laburo.
+            yo: Festejar que te animaste.
+            Vera muerde el pancho. Se le cae la mostaza en la campera. Se ríe con la boca llena, por primera vez en toda la noche.
+          `,
+        },
+      ],
+    },
     "vera-manana": {
-      temporada: 2,
       fondo: "depto",
       hora: "10:40",
-      sigue: "@vuelta",
       texto: `
         A la mañana siguiente, el sol entra por la persiana en rayitas.
         Vera, con una remera vieja y el flequillo hecho un desastre, pone dos tazas en la mesa.

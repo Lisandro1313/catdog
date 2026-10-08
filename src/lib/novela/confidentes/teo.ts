@@ -1,9 +1,10 @@
 /**
  * TEO — "La punta". Guitarrista, rulos, camisa abierta en el cuello, escribe en servilletas con birome
  * mordida. Valora el Encanto: la gente que se anima a estar cerca. Su arco: lo invitan a tocar en
- * Buenos Aires con entradas, tiene pánico escénico, y vuelve Lucía, la que se fue.
+ * Buenos Aires con entradas (el miércoles 27, el día que la casa no abre), tiene pánico escénico, y
+ * vuelve Lucía, la que se fue. Los sábados ensaya con la banda: no está en la casa.
  */
-import { armar, armarRangos, enPareja } from "../tipos";
+import { aparte, armarRangos, enPareja } from "../tipos";
 import { puerta } from "./comun";
 
 const p = (n: number) => puerta(n, "encanto");
@@ -13,6 +14,7 @@ export const TEO = {
     // ─── Rango 1 ───
     {
       ...p(1),
+      premio: "Leer una servilleta suya. Para adentro.",
       fondo: "barra",
       hora: "21:30",
       texto: `
@@ -45,6 +47,7 @@ export const TEO = {
     // ─── Rango 2 ───
     {
       ...p(2),
+      premio: "Un ensayo con su banda, en un sótano de calle 2.",
       fondo: "ensayo",
       hora: "20:00",
       texto: `
@@ -69,7 +72,7 @@ export const TEO = {
           stats: { encanto: 1 },
           respuesta: `
             Agarrás un pandero de una caja. Lo hacés sonar a destiempo. Pájaro te sigue el destiempo a propósito.
-            teo/sonrisa: Ya tenemos percusionista. No sabe tocar. Es perfecto.
+            teo/sonrisa: Ya tenemos percusión. No sabe tocar. Es perfecto.
           `,
         },
       ],
@@ -77,6 +80,7 @@ export const TEO = {
     // ─── Rango 3 ───
     {
       ...p(3),
+      premio: "La plaza a las dos de la mañana, y la historia de Lucía.",
       fondo: "plaza",
       hora: "02:00",
       texto: `
@@ -100,7 +104,7 @@ export const TEO = {
           texto: "\"Ya tocaste en público. En la casa. Lo vi.\"",
           stats: { labia: 1 },
           respuesta: `
-            yo: Ya tocaste en público. Ese viernes. Y no se cayó el techo.
+            yo: Ya tocaste en público. En la casa. Y no se cayó el techo.
             teo/sorpresa: ...Es verdad. Toqué. No pensé en ella.
             teo/sonrisa: Pensé en la casa. En la gente. Sigo pensando en eso. En alguna gente en particular.
           `,
@@ -110,19 +114,20 @@ export const TEO = {
     // ─── Rango 4 ───
     {
       ...p(4),
+      premio: "Un mail que le da pánico.",
       fondo: "ensayo",
       hora: "22:00",
       texto: `
-        Teo te muestra un mail en el celular. Lo ha leído tantas veces que la pantalla tiene la marca del dedo.
-        "El Galpón — Ciclo de canción — Buenos Aires — Sábado 30 — Te queremos de cierre."
+        Teo te muestra un mail en el celular. Lo leyó tantas veces que la pantalla tiene la marca del dedo.
+        "El Galpón — Ciclo de canción — Buenos Aires — Miércoles 27 — Te queremos de cierre."
         teo/sorpresa: Es un lugar enorme. Seiscientas personas. Con entradas. Con gente que paga para escucharme a mí.
-        teo/serio: Y es el sábado 30. El día de la firma de la casa.
+        teo/serio: Y es el miércoles 27. El único día que la casa no abre. No tengo ni una excusa.
         teo/triste: Y yo no sé si puedo tocar delante de seiscientas personas. No sé si puedo delante de seis.
         Pájaro, desde la batería: "¡Puede! ¡Puede, pero no se la cree!"
       `,
       opciones: [
         {
-          texto: "\"Tocás antes. Ensayá conmigo de público.\"",
+          texto: "\"Ensayá conmigo de público.\"",
           stats: { encanto: 1 },
           respuesta: `
             yo: Ensayá conmigo de público. Todas las veces que haga falta. Seiscientas, si querés.
@@ -132,10 +137,10 @@ export const TEO = {
           `,
         },
         {
-          texto: "\"Si la casa cierra, que alguien cante por ella en otro lado\"",
+          texto: "\"Si la casa cierra, que alguien la cante en otro lado\"",
           stats: { labia: 1 },
           respuesta: `
-            yo: Si la casa cierra ese día, que alguien la cante en Buenos Aires. Que se entere más gente.
+            yo: Si la casa cierra, que alguien la cante en Buenos Aires. Que se entere más gente.
             teo/serio: ...Cantar la casa. Delante de seiscientos.
             teo/sonrisa: Me asusta. Me encanta. Voy a decir que sí antes de arrepentirme.
           `,
@@ -145,6 +150,7 @@ export const TEO = {
     // ─── Rango 5 ───
     {
       ...p(5),
+      premio: "Escribir juntos en su departamento, a las dos de la mañana.",
       fondo: "depto",
       hora: "02:30",
       noche: true,
@@ -180,11 +186,12 @@ export const TEO = {
     // ─── Rango 6 ───
     {
       ...p(6),
+      premio: "Alguien que vuelve de Madrid.",
       fondo: "barra",
       hora: "22:40",
       texto: `
         Llegás a la casa y Teo no está solo en la punta.
-        A su lado, una chica de pelo largo y abrigo de otra ciudad. Habla con las manos. Teo la escucha con cara de persona que se cayó de un primer piso.
+        A su lado, una chica de pelo largo y abrigo de otra ciudad. Habla con las manos. Teo la escucha con cara de alguien que se cayó de un primer piso.
         teo/sorpresa: ...{nombre}. Hola. Ella es Lucía. Vino una semana. De Madrid.
         Lucía te sonríe. Es amable. Es imposible odiarla, y eso es lo peor.
         "Así que vos sos la persona de la servilleta. Teo me habló de vos. Mucho."
@@ -193,10 +200,10 @@ export const TEO = {
       `,
       opciones: [
         {
-          texto: "Sentarte con los dos y ser encantador/a",
+          texto: "Sentarte con los dos y caerle bien a Lucía",
           stats: { encanto: 1 },
           respuesta: `
-            Te sentás. Pedís tres Tónicos de Verano. Contás el chiste del pastelero y el merengue. Lucía se ríe de verdad.
+            Te sentás. Pedís tres Tónicos de Verano. Contás la historia de la servilleta debajo de la puerta. Lucía se ríe de verdad.
             Al rato, Lucía se va. En la puerta, te dice al oído: "Cuidalo. Yo no supe."
             teo/serio: ...¿Qué te dijo?
             yo: Que te cuide.
@@ -218,10 +225,12 @@ export const TEO = {
     // ─── Rango 7 ───
     {
       ...p(7),
+      premio: "El tren a Buenos Aires y El Galpón vacío. (Dos escenas.)",
       fondo: "diagonal",
-      hora: "19:30",
+      hora: "15:30",
+      sigue: "teo-r7-b",
       texto: `
-        El tren a Buenos Aires, para la prueba de sonido en El Galpón. Teo con la guitarra entre las piernas, vos en la ventanilla.
+        El tren a Buenos Aires, para conocer El Galpón antes del show. Teo con la guitarra entre las piernas, vos en la ventanilla.
         El campo pasa en tiras doradas. Una señora come un alfajor. Un pibe duerme con la boca abierta.
         teo/normal: Te quiero mostrar la canción nueva. Antes que nadie.
         Saca la guitarra. Toca bajito, para que solo escuches vos. La señora del alfajor deja de masticar.
@@ -236,14 +245,14 @@ export const TEO = {
           respuesta: `
             Aplaudís como en un estadio. Teo se tapa la cara con la guitarra.
             teo/feliz: ¡Basta! ¡Me están mirando todos los del vagón!
-            yo: Practicá. El sábado son seiscientos.
+            yo: Practicá. El miércoles son seiscientos.
           `,
         },
         {
-          texto: "\"El final lo escribimos el sábado\"",
+          texto: "\"El final lo escribimos después del show\"",
           stats: { labia: 1 },
           respuesta: `
-            yo: El final lo escribimos el sábado. Después del show. Cuando sepamos cómo termina.
+            yo: El final lo escribimos después del show. Cuando sepamos cómo termina.
             teo/serio: ...¿Cómo termina qué?
             yo: Todo.
             teo/sonrojo: Ok. Me dejaste sin rima. Eso no le pasa a nadie.
@@ -254,6 +263,7 @@ export const TEO = {
     // ─── Rango 8 ───
     {
       ...p(8),
+      premio: "La plaza, sin guitarra: romance o amistad.",
       fondo: "plaza",
       hora: "03:00",
       noche: true,
@@ -292,15 +302,16 @@ export const TEO = {
     // ─── Rango 9 ───
     {
       ...p(9),
+      premio: "El camarín de El Galpón, cinco minutos antes.",
       fondo: "ensayo",
       hora: "21:40",
       texto: `
         El Galpón, Buenos Aires. Camarín. Seiscientas personas del otro lado de una cortina negra. Se escuchan.
         Teo está sentado en el piso, verde, con la guitarra abrazada como un salvavidas.
-        teo/triste: No puedo. No puedo. Se me olvidaron todas las letras. Hasta la de "Feliz cumpleaños".
+        teo/triste: No puedo. No puedo. Se me olvidaron todas las letras. Hasta la del feliz cumpleaños.
         Pájaro golpea los palillos en la pared. La Colo le da agua.
-        [amor:teo] teo/sonrojo: Quedate acá. Al costado del escenario. Si te veo, puedo. Creo.
-        [-amor:teo] teo/serio: Necesito que alguien me diga algo. Algo verdadero. Vos sos la única persona que me dice cosas verdaderas.
+        [en:teo] teo/sonrojo: Quedate acá. Al costado del escenario. Si te veo, puedo. Creo.
+        [-en:teo] teo/serio: Necesito que alguien me diga algo. Algo verdadero. Vos sos la única persona que me dice cosas verdaderas.
       `,
       opciones: [
         {
@@ -326,6 +337,7 @@ export const TEO = {
     // ─── Rango 10 ───
     {
       ...p(10),
+      premio: "Después del show. Escena ilustrada y su final.",
       fondo: "diagonal",
       hora: "01:30",
       noche: true,
@@ -336,28 +348,59 @@ export const TEO = {
         Teo sale a la vereda empapado de sudor, con la camisa abierta y la guitarra al hombro.
         teo/feliz: ¡Lo hice! ¡Toqué! ¡No me morí! ¡Bueno, un poco, pero resucité!
         teo/serio: ...Toqué para uno. Como dijiste.
-        [amor:teo] Se para frente a vos bajo la marquesina. La lluvia cae a medio metro. Las letras dicen TEO arriba de los dos.
-        [amor:teo] teo/sonrojo: Me falta el final de la canción. Pero creo que ya sé cuál es.
-        [amor:teo] Te besa. Afuera, la lluvia. Adentro, alguien pide otra. Ninguno de los dos escucha.
-        [amor:teo] teo/picara: ...El último tren a La Plata salió hace una hora. Hay un hotel acá a la vuelta, con un piano roto en el lobby.
-        [amor:teo] !La noche sigue en otro lado.
-        [-amor:teo] Saca una servilleta del bolsillo. Mojada. La letra corrida.
-        [-amor:teo] teo/sonrisa: El final. Lo escribí antes de salir. Dice: "a veces alguien te cuenta dónde, y vos cantás el resto."
-        [-amor:teo] teo/feliz: Te la dedico. Ya la dediqué, en realidad. Allá adentro dije tu nombre delante de seiscientos.
-        [-amor:teo] Lo abrazás bajo la lluvia. Pájaro sale y se suma al abrazo. Después la Colo, sin decir nada.
+        [en:teo] Se para frente a vos bajo la marquesina. La lluvia cae a medio metro. Las letras dicen TEO arriba de los dos.
+        [en:teo] teo/sonrojo: Me falta el final de la canción. Pero creo que ya sé cuál es.
+        [en:teo] Te besa. Afuera, la lluvia. Adentro, alguien pide otra. Ninguno de los dos escucha.
+        [en:teo] teo/picara: ...El último tren a La Plata salió hace una hora. Hay un hotel acá a la vuelta, con un piano roto en el lobby.
+        [en:teo] !La noche sigue en otro lado.
+        [-en:teo] Saca una servilleta del bolsillo. Mojada. La letra corrida.
+        [-en:teo] teo/sonrisa: El final. Lo escribí antes de salir. Dice: "a veces alguien te cuenta dónde, y vos cantás el resto."
+        [-en:teo] teo/feliz: Te la dedico. Ya la dediqué, en realidad. Allá adentro dije tu nombre delante de seiscientos.
+        [-en:teo] Lo abrazás bajo la lluvia. Pájaro sale y se suma al abrazo. Después la Colo, sin decir nada.
       `,
       ramas: [{ si: enPareja("teo"), va: "teo-manana" }],
     },
   ]),
-  ...armar({
+  ...aparte({
+    "teo-r7-b": {
+      fondo: "ensayo",
+      hora: "17:10",
+      texto: `
+        El Galpón, de día, vacío, es una catedral de chapa. Seiscientas sillas de plástico apiladas. Un escenario negro. Un solo foco.
+        Un señor de mantenimiento barre el piso sin mirarlos. Teo se queda en la puerta, sin animarse a entrar.
+        teo/triste: Es más grande que en las fotos. Es más grande que mi vida entera.
+        teo/serio: ...Subí vos. Subí al escenario y decime qué se ve desde ahí. Si te da miedo a vos, me vuelvo en el próximo tren.
+      `,
+      opciones: [
+        {
+          texto: "Subir al escenario y gritar su nombre",
+          stats: { coraje: 1 },
+          respuesta: `
+            Subís. El foco te ciega. Seiscientas sillas apiladas te miran.
+            yo!: ¡¡TEEEEO!!
+            El eco tarda dos segundos en volver. El señor de mantenimiento aplaude con la escoba.
+            teo/sorpresa: ...¿Eso se escucha así? ¿Mi nombre suena así acá adentro?
+            teo/feliz: Ok. Ok. Ya no me vuelvo.
+          `,
+        },
+        {
+          texto: "Sentarte en una silla de la primera fila y esperarlo",
+          stats: { encanto: 1 },
+          respuesta: `
+            Bajás una silla de la pila. La ponés en el medio de la primera fila. Te sentás. Lo mirás.
+            yo: El miércoles voy a estar acá. En esta silla. Si te perdés, mirá para acá.
+            teo/sonrojo: ...No es justo que digas esas cosas en un galpón con eco. Se escuchan dos veces.
+            Sube al escenario. Toca un acorde solo. Te mira. Lo toca otra vez.
+          `,
+        },
+      ],
+    },
     "teo-manana": {
-      temporada: 2,
       fondo: "depto",
       hora: "09:50",
-      sigue: "@vuelta",
       texto: `
         A la mañana, el sol de Buenos Aires entra por una cortina de hotel barato.
-        Teo duerme abrazado a la guitarra. Como siempre, dice él después.
+        Teo duerme abrazado a la guitarra. "Como siempre", dice él después.
         En la mesa de luz, una servilleta. Birome negra, mordida.
         !"Cuarta estrofa: alguien llegó con una servilleta / y se quedó para escribir el final / buen día."
         teo/sonrojo: ...No la leas en voz alta. Me muero. Bueno. Leela.

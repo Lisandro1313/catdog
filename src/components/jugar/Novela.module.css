@@ -1535,3 +1535,97 @@
   color: var(--rojo);
   margin-right: 0.3em;
 }
+
+/* ═══════════════ Sistema, auto, agenda y próximo premio ═══════════════ */
+
+.herrNivel {
+  font-style: normal;
+  margin-left: 0.15em;
+  color: #f2c230;
+  letter-spacing: -0.1em;
+}
+
+.sistema {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: stretch;
+}
+.sistema .mute {
+  justify-self: start;
+}
+.autoVel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.vincProximo {
+  grid-column: 1 / -1;
+  margin-top: 0.3rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--negro);
+  color: var(--blanco);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.vincProximo b {
+  color: #f2c230;
+  font-family: var(--display);
+  font-weight: normal;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+.vincPide {
+  font-style: normal;
+  color: #ff8fa3;
+}
+.vincListo {
+  font-style: normal;
+  color: #6dff9e;
+}
+.vincAgenda {
+  grid-column: 1 / -1;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.72rem;
+  color: #555;
+}
+.hoySi {
+  color: #1f8a4c;
+}
+.hoyNo {
+  color: var(--rojo);
+}
+
+.cartaJuntada {
+  background: #f2c230;
+  color: var(--negro);
+  border-color: var(--negro);
+  box-shadow: 5px 5px 0 var(--negro);
+  min-height: 4.2rem;
+}
+.cartaJuntada .cartaNombre {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+.cartaJuntada .cartaLugar {
+  color: var(--negro);
+}
+.cartaJuntada .cartaNum {
+  background: var(--rojo);
+}
+
+.aviso_nota {
+  background: #c77dff;
+  color: var(--negro);
+  font-size: 1.15rem;
+}
+.aviso_nota b {
+  color: var(--blanco);
+  letter-spacing: 0.1em;
+}
+.aviso_sistema {
+  background: var(--blanco);
+  color: var(--negro);
+}

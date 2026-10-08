@@ -21,13 +21,16 @@ import {
   STAT_MAX,
   VINCULOS,
   type CgId,
-  type Confidente,
+  type Dia,
   type FinalId,
   type Linea,
 } from "@/lib/novela/guion";
 import {
+  agendaTexto,
   avanzar,
   cargar,
+  conoce,
+  disponible,
   elegir,
   empezarT2,
   escenaDe,
@@ -39,6 +42,7 @@ import {
   opcionesVista,
   parejas,
   proximoRango,
+  reaccion,
   resumen,
   retratoEn,
   serializar,
@@ -67,7 +71,22 @@ const K_FINALES = "catdog:novela:finales";
 const K_LEIDAS = "catdog:novela:leidas";
 const K_GALERIA = "catdog:novela:galeria";
 const K_LOGROS = "catdog:novela:logros";
+/** Guardado rápido: una foto de la partida en cualquier línea, aparte de las ranuras. */
+const K_RAPIDO = "catdog:novela:rapido";
 const SLOTS = [1, 2, 3] as const;
+
+/** Avance automático: apagado, lento, normal, rápido. Pausa por línea = base + por letra. */
+const AUTO_VEL = [null, { base: 1400, letra: 55, nombre: "Lento" }, { base: 900, letra: 38, nombre: "Normal" }, { base: 450, letra: 20, nombre: "Rápido" }] as const;
+type Auto = 0 | 1 | 2 | 3;
+
+function slotRapido(raw: string | null): number {
+  try {
+    const n = Number((JSON.parse(raw ?? "{}") as { slot?: unknown }).slot);
+    return n === 2 || n === 3 ? n : 1;
+  } catch {
+    return 1;
+  }
+}
 
 const oyentes = new Set<() => void>();
 function leer(k: string): string | null {
@@ -190,9 +209,11 @@ const eleccionSonido = () => {
 // ─── El juego ────────────────────────────────────────────────────────────────────────────────
 
 type Pantalla = "titulo" | "slots" | "nombre" | "juego" | "fin" | "extras";
-type Panel = null | "log" | "vinculos";
+type Panel = null | "log" | "vinculos" | "sistema";
 type Registro = { quien: string; texto: string; eleccion?: boolean };
-type Aviso = { tipo: "vinculo" | "rango" | "stat" | "logro" | "cg"; chico: string; texto: string; valor?: string };
+type Aviso = { tipo: "vinculo" | "rango" | "stat" | "logro" | "cg" | "nota" | "sistema"; chico: string; texto: string; valor?: string };
+const NOTAS = ["", "♪", "♪♪", "♪♪♪"] as const;
+const NOTA_TXT = ["", "Le gustó", "Le gustó mucho", "Le encantó"] as const;
 type Tab = "finales" | "galeria" | "logros";
 
 function nombreDe(l: Pick<Linea, "quien">, nombre: string): string | null {
@@ -215,6 +236,8 @@ export function Novela({ onBack }: { onBack: () => void }) {
   const finalesRaw = useGuardado(K_FINALES);
   const galeriaRaw = useGuardado(K_GALERIA);
   const logrosRaw = useGuardado(K_LOGROS);
+  const rapidoRaw = useGuardado(K_RAPIDO);
+  const rapido = useMemo(() => cargar(rapidoRaw), [rapidoRaw]);
   const logrados = useMemo(() => lista(finalesRaw) as FinalId[], [finalesRaw]);
   const galeria = useMemo(() => lista(galeriaRaw) as CgId[], [galeriaRaw]);
   const logros = useMemo(() => lista(logrosRaw), [logrosRaw]);
@@ -237,6 +260,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
   const [avisos, setAvisos] = useState<{ items: Aviso[]; k: number } | null>(null);
   const [typed, setTyped] = useState({ id: "", n: 0 });
   const [saltar, setSaltar] = useState(false);
+  const [auto, setAuto] = useState<Auto>(0);
   const [panel, setPanel] = useState<Panel>(null);
   const [log, setLog] = useState<Registro[]>([]);
   const [ultimoFinal, setUltimoFinal] = useState<FinalId | null>(null);
@@ -312,6 +336,8 @@ export function Novela({ onBack }: { onBack: () => void }) {
     for (const v of subieron(prev, next)) items.push({ tipo: "vinculo", chico: "Vínculo", texto: v === "gris" ? "La esquina" : NOMBRES[v], valor: `▲ ${next.afinidad[v]}` });
     for (const c of subieronRangos(prev, next)) items.push({ tipo: "rango", chico: "Rango", texto: NOMBRES[c], valor: `${next.rangos[c]}` });
     for (const st of subieronStats(prev, next)) items.push({ tipo: "stat", chico: NOMBRE_STAT[st], texto: NIVELES_STAT[st][next.stats[st]], valor: `▲ ${next.stats[st]}` });
+    const rx = reaccion(prev, next);
+    if (rx) items.unshift({ tipo: "nota", chico: NOMBRES[rx.de], texto: NOTA_TXT[rx.notas], valor: NOTAS[rx.notas] });
 
     const finales = next.terminado ? [...new Set([...logrados, next.terminado])] : logrados;
     const nuevos = nuevosLogros({ estado: next, finales, galeria }, logros);
@@ -410,6 +436,30 @@ export function Novela({ onBack }: { onBack: () => void }) {
     golpeSonido();
   }
 
+  function avisar(items: Aviso[]) {
+    setAvisos((p) => ({ items, k: (p?.k ?? 0) + 1 }));
+  }
+
+  /** Guardado rápido: una foto de este momento exacto (aparte del guardado automático de la ranura). */
+  function guardarRapido() {
+    escribir(K_RAPIDO, JSON.stringify({ v: 2, estado, nombre, t: Date.now(), slot }));
+    sonar("clic", 0.4);
+    avisar([{ tipo: "sistema", chico: "Sistema", texto: "Guardado rápido" }]);
+  }
+
+  function cargarRapido() {
+    if (!rapido) return;
+    const sl = slotRapido(rapidoRaw);
+    guardar(rapido.estado, rapido.nombre, sl);
+    entrar(rapido.estado, rapido.nombre, sl, null);
+    golpeSonido();
+  }
+
+  function cambiarAuto() {
+    setAuto((a) => ((a + 1) % 4) as Auto);
+    setSaltar(false);
+  }
+
   const ultimaSlot = (() => {
     let mejor = 0;
     let t = -1;
@@ -437,6 +487,19 @@ export function Novela({ onBack }: { onBack: () => void }) {
     return () => clearTimeout(t);
   }, [saltar, jugando, enDecision, lineaId]);
 
+  // Avance automático: cuando la línea terminó de escribirse, espera según el largo y pasa sola.
+  // Frena en las decisiones (y mientras está prendido "saltar leídos", que manda él).
+  const vel = AUTO_VEL[auto];
+  const pausaAuto = vel ? vel.base + texto.length * vel.letra : 0;
+  const pasoAuto = useEffectEvent(() => {
+    if (actual) seguir();
+  });
+  useEffect(() => {
+    if (!auto || !jugando || enDecision || !listo || saltar || !lineaId) return;
+    const t = setTimeout(pasoAuto, pausaAuto);
+    return () => clearTimeout(t);
+  }, [auto, jugando, enDecision, listo, saltar, lineaId, pausaAuto]);
+
   // Teclado: espacio o enter avanzan; 1 a 9 eligen; L historial; V vínculos; Esc cierra.
   const onKey = useEffectEvent((e: KeyboardEvent) => {
     if (pantalla !== "juego") return;
@@ -458,6 +521,8 @@ export function Novela({ onBack }: { onBack: () => void }) {
     }
     if (e.key === "l" || e.key === "L") setPanel((p) => (p === "log" ? null : "log"));
     if (e.key === "v" || e.key === "V") setPanel((p) => (p === "vinculos" ? null : "vinculos"));
+    if (e.key === "a" || e.key === "A") cambiarAuto();
+    if (e.key === "q" || e.key === "Q") guardarRapido();
   });
   useEffect(() => {
     const h = (e: KeyboardEvent) => onKey(e);
@@ -496,6 +561,11 @@ export function Novela({ onBack }: { onBack: () => void }) {
                     <span className={s.rombo}>◆</span> Continuar
                   </button>
                 )}
+                {rapido && (
+                  <button type="button" className={s.menuBtn} onClick={cargarRapido}>
+                    <span className={s.rombo}>↺</span> Carga rápida · {descripcionSlot(rapido)}
+                  </button>
+                )}
                 <button
                   type="button"
                   className={s.menuBtn}
@@ -530,7 +600,9 @@ export function Novela({ onBack }: { onBack: () => void }) {
                   <span className={s.rombo}>★</span> Extras · {logrados.length}/{FINALES.length} finales
                 </button>
               </div>
-              <p className={s.nota}>Unas 2 horas · 5 vínculos · 17 finales · se guarda solo</p>
+              <p className={s.nota}>
+                Entre 2 y 3 horas · {CONFIDENTES.length} vínculos · {FINALES.length} finales · se guarda solo
+              </p>
             </div>
           )}
 
@@ -706,15 +778,21 @@ export function Novela({ onBack }: { onBack: () => void }) {
             <button type="button" className={`${s.herr} ${saltar ? s.herrOn : ""}`} onClick={() => setSaltar((v) => !v)} aria-pressed={saltar} title="Saltar lo ya leído">
               »
             </button>
-            <button type="button" className={s.herr} onClick={() => setPanel("log")} title="Historial (L)">
-              Log
+            <button
+              type="button"
+              className={`${s.herr} ${auto ? s.herrOn : ""}`}
+              onClick={cambiarAuto}
+              aria-pressed={!!auto}
+              title={`Avance automático (A): ${vel ? vel.nombre : "apagado"}`}
+            >
+              Auto{auto ? <i className={s.herrNivel}>{">".repeat(auto)}</i> : null}
             </button>
             <button type="button" className={s.herr} onClick={() => setPanel("vinculos")} title="Vínculos (V)">
               ★
             </button>
-            <span className={s.mute}>
-              <MuteButton />
-            </span>
+            <button type="button" className={s.herr} onClick={() => setPanel("sistema")} title="Sistema: guardado rápido, historial, sonido">
+              ☰
+            </button>
           </span>
         </div>
 
@@ -732,7 +810,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
           {ops && escena.libre && (
             <div className={s.libre} onClick={(e) => e.stopPropagation()} role="group" aria-label="Tiempo libre">
               <p className={s.libreTitulo}>
-                <b>Tiempo libre</b> ¿Con quién pasás la noche?
+                <b>Tiempo libre</b> {escena.turno === 1 ? "Antes de la una" : escena.turno === 2 ? "De madrugada" : "¿Con quién pasás la noche?"}
               </p>
               {ops.map(({ opcion, k, bloqueo }, i) => {
                 const c = opcion.rango;
@@ -753,15 +831,23 @@ export function Novela({ onBack }: { onBack: () => void }) {
                           </span>
                         ))}
                       </span>
-                      <small className={s.cartaNota}>{bloqueo ?? `Rango ${prox.n}`}</small>
+                      <small className={s.cartaNota}>{bloqueo ?? (prox.premio ? `Rango ${prox.n}: ${prox.premio}` : `Rango ${prox.n}`)}</small>
                     </button>
                   );
                 }
                 const st = STATS.find((x) => opcion.stats?.[x]);
+                const juntada = opcion.va?.startsWith("jun-");
                 return (
-                  <button key={k} type="button" className={`${s.carta} ${s.cartaEntrena}`} style={{ animationDelay: `${i * 50}ms` }} onClick={() => elegirOpcion(k)}>
+                  <button
+                    key={k}
+                    type="button"
+                    className={`${s.carta} ${juntada ? s.cartaJuntada : s.cartaEntrena}`}
+                    style={{ animationDelay: `${i * 50}ms` }}
+                    onClick={() => elegirOpcion(k)}
+                  >
                     <span className={s.cartaNum}>{i + 1}</span>
-                    <span className={s.cartaNombre}>{opcion.texto}</span>
+                    {juntada && <span className={s.cartaLugar}>Juntada</span>}
+                    <span className={s.cartaNombre}>{juntada ? opcion.texto.replace(/^Juntada:\s*/, "") : opcion.texto}</span>
                     {st && <small className={s.cartaNota}>+ {NOMBRE_STAT[st]}</small>}
                   </button>
                 );
@@ -824,14 +910,57 @@ export function Novela({ onBack }: { onBack: () => void }) {
         )}
 
         {panel && (
-          <div className={s.panel} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={panel === "log" ? "Historial" : "Vínculos"}>
+          <div className={s.panel} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={panel === "log" ? "Historial" : panel === "sistema" ? "Sistema" : "Vínculos"}>
             <div className={s.panelTop}>
-              <h2 className={s.panelTitulo}>{panel === "log" ? "Historial" : m.temporada === 2 ? "Vínculos" : "Vínculos"}</h2>
+              <h2 className={s.panelTitulo}>{panel === "log" ? "Historial" : panel === "sistema" ? "Sistema" : "Vínculos"}</h2>
               <button type="button" className={s.cerrar} onClick={() => setPanel(null)} aria-label="Cerrar">
                 ✕
               </button>
             </div>
-            {panel === "log" ? (
+            {panel === "sistema" ? (
+              <div className={s.panelScroll}>
+                <div className={s.sistema}>
+                  <button
+                    type="button"
+                    className={`${s.menuBtn} ${s.menuBtnRojo}`}
+                    onClick={() => {
+                      guardarRapido();
+                      setPanel(null);
+                    }}
+                  >
+                    <span className={s.rombo}>◆</span> Guardado rápido (Q)
+                  </button>
+                  <button type="button" className={s.menuBtn} disabled={!rapido} onClick={cargarRapido}>
+                    <span className={s.rombo}>↺</span> Carga rápida{rapido ? ` · ${descripcionSlot(rapido)}` : " · vacía"}
+                  </button>
+                  <p className={s.pistasTitulo}>Avance automático</p>
+                  <div className={s.autoVel} role="radiogroup" aria-label="Velocidad del avance automático">
+                    {([0, 1, 2, 3] as const).map((n) => (
+                      <button key={n} type="button" role="radio" aria-checked={auto === n} className={`${s.tab} ${auto === n ? s.tabOn : ""}`} onClick={() => setAuto(n)}>
+                        {AUTO_VEL[n]?.nombre ?? "Apagado"}
+                      </button>
+                    ))}
+                  </div>
+                  <p className={s.pistasTitulo}>Saltar lo ya leído</p>
+                  <div className={s.autoVel}>
+                    <button type="button" className={`${s.tab} ${saltar ? s.tabOn : ""}`} onClick={() => setSaltar((v) => !v)} aria-pressed={saltar}>
+                      {saltar ? "Prendido" : "Apagado"}
+                    </button>
+                  </div>
+                  <p className={s.pistasTitulo}>Sonido</p>
+                  <span className={s.mute}>
+                    <MuteButton />
+                  </span>
+                  <button type="button" className={s.menuBtn} onClick={() => setPanel("log")}>
+                    <span className={s.rombo}>◇</span> Historial (L)
+                  </button>
+                  <button type="button" className={s.menuBtn} onClick={() => setPantalla("titulo")}>
+                    <span className={s.rombo}>◇</span> Menú principal (se guarda solo)
+                  </button>
+                  <p className={s.nota}>Teclado: espacio avanza · 1 a 9 eligen · A auto · Q guardado rápido · V vínculos · L historial</p>
+                </div>
+              </div>
+            ) : panel === "log" ? (
               <ol className={s.log}>
                 {log.length === 0 && <li className={s.logVacio}>Todavía no pasó nada. (Ya va a pasar.)</li>}
                 {log.map((r, i) => (
@@ -843,7 +972,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
               </ol>
             ) : m.temporada === 2 ? (
               <div className={s.panelScroll}>
-                <Confidentes estado={estado} />
+                <Confidentes estado={estado} hoy={m.dia} />
               </div>
             ) : (
               <Vinculos estado={estado} />
@@ -956,21 +1085,28 @@ function Vinculos({ estado, compacto }: { estado: Estado; compacto?: boolean }) 
   );
 }
 
-/** Temporada 2: los cinco confidentes con su rango, las cualidades y los pedazos de Amalia. */
-function Confidentes({ estado, compacto }: { estado: Estado; compacto?: boolean }) {
-  const conoce = (c: Confidente) => (c === "dante" ? estado.marcas.includes("conoce:dante") : c === "sol" ? estado.marcas.includes("conoce:sol") : true);
+/**
+ * Temporada 2: los confidentes con su rango, qué trae el próximo (y qué pide), cuándo se los
+ * encuentra, las cualidades y los pedazos de Amalia.
+ */
+function Confidentes({ estado, compacto, hoy }: { estado: Estado; compacto?: boolean; hoy?: Dia }) {
   const pareja = parejas(estado);
+  // Los que todavía no aparecieron no ocupan lugar (salvo uno, como intriga).
+  const lista = CONFIDENTES.filter((c, i, arr) => conoce(estado, c) || arr.findIndex((x) => !conoce(estado, x)) === i);
   return (
     <div className={compacto ? s.vincCompacto : undefined}>
       <ul className={s.vinculos}>
-        {CONFIDENTES.map((c) => {
+        {lista.map((c) => {
           const n = estado.rangos[c];
           const corte = estado.marcas.includes(`corte:${c}`);
           const etiqueta = pareja.includes(c) ? "♥ Romance" : corte ? "Cortado" : estado.marcas.includes(`amistad:${c}`) ? "Amistad" : null;
+          const sabe = conoce(estado, c);
+          const prox = proximoRango(estado, c);
+          const hoyEsta = hoy && hoy !== "epilogo" ? !disponible(c, { dia: hoy }) : null;
           return (
             <li key={c} className={`${s.vinculo} ${corte ? s.vincCortado : ""}`}>
               <span className={s.vincNombre}>
-                {conoce(c) ? NOMBRES[c] : "???"} {etiqueta && <i className={s.vincEtiqueta}>{etiqueta}</i>}
+                {sabe ? NOMBRES[c] : "???"} {etiqueta && <i className={s.vincEtiqueta}>{etiqueta}</i>}
               </span>
               <span className={s.vincLugar}>{CONFIDENTE_INFO[c].lugar}</span>
               <span className={s.vincRango} aria-label={`Rango ${n}`}>
@@ -980,10 +1116,29 @@ function Confidentes({ estado, compacto }: { estado: Estado; compacto?: boolean 
                   </span>
                 ))}
               </span>
-              {!compacto && conoce(c) && (
-                <span className={s.vincQuien}>
-                  {CONFIDENTE_INFO[c].quien} Valora: <b>{NOMBRE_STAT[CONFIDENTE_INFO[c].valora]}</b>.
-                </span>
+              {!compacto && sabe && (
+                <>
+                  <span className={s.vincQuien}>
+                    {CONFIDENTE_INFO[c].quien} Valora: <b>{NOMBRE_STAT[CONFIDENTE_INFO[c].valora]}</b>.
+                  </span>
+                  <span className={s.vincProximo}>
+                    {prox.n > RANGO_MAX ? (
+                      <>
+                        <b>Rango máximo.</b> Ya está todo dicho.
+                      </>
+                    ) : (
+                      <>
+                        <b>Próximo · Rango {prox.n}:</b> {prox.premio ?? "—"}
+                        <br />
+                        {prox.bloqueo ? <i className={s.vincPide}>Pide: {prox.bloqueo}</i> : <i className={s.vincListo}>Listo para subir</i>}
+                      </>
+                    )}
+                  </span>
+                  <span className={s.vincAgenda}>
+                    Viene: {agendaTexto(c)}
+                    {hoyEsta !== null && <b className={hoyEsta ? s.hoySi : s.hoyNo}>{hoyEsta ? " · Hoy está" : " · Hoy no viene"}</b>}
+                  </span>
+                </>
               )}
             </li>
           );

@@ -1,9 +1,9 @@
 /**
  * MORA — "La mesa". Enfermera de guardia, colita alta, invicta al pool. Valora el Coraje: no respeta
  * a nadie que no se anime. Su arco: le ofrecen la jefatura de enfermería, el cansancio de las
- * guardias, y aprender a perder.
+ * guardias, y aprender a perder. Los lunes entra de guardia: no está en la casa de noche.
  */
-import { armar, armarRangos, enPareja } from "../tipos";
+import { aparte, armarRangos, enPareja } from "../tipos";
 import { puerta } from "./comun";
 
 const p = (n: number) => puerta(n, "coraje");
@@ -13,6 +13,7 @@ export const MORA = {
     // ─── Rango 1 ───
     {
       ...p(1),
+      premio: "Una partida de pool con diagnóstico incluido.",
       fondo: "pool",
       hora: "22:00",
       texto: `
@@ -46,6 +47,7 @@ export const MORA = {
     // ─── Rango 2 ───
     {
       ...p(2),
+      premio: "Una visita a la guardia del hospital, a las tres de la mañana.",
       fondo: "guardia",
       hora: "03:10",
       texto: `
@@ -73,7 +75,7 @@ export const MORA = {
           respuesta: `
             La máquina te come dos monedas, escupe un café sin vaso y después, de pura culpa, dos con vaso.
             mora/feliz: ¡Le ganaste a la máquina! Nadie le gana a la máquina. Ni el director.
-            mora/picara: Sos peligrosa. O peligroso. La máquina no discrimina.
+            mora/picara: Sos un peligro. La máquina no se va a recuperar nunca de esto.
           `,
         },
       ],
@@ -81,6 +83,7 @@ export const MORA = {
     // ─── Rango 3 ───
     {
       ...p(3),
+      premio: "Aprender el tiro que nadie sabe.",
       fondo: "pool",
       hora: "19:30",
       texto: `
@@ -98,7 +101,7 @@ export const MORA = {
           respuesta: `
             Tirás. La blanca pega, la bola recorre la banda pegadita y cae.
             mora/sorpresa: ...¡Entró! ¡Entró a la primera!
-            mora/feliz: Ok, te odio un poco. A mí me llevó un año ese tiro.
+            mora/feliz: Ok, me caés mal. A mí me llevó un año ese tiro.
           `,
         },
         {
@@ -116,6 +119,7 @@ export const MORA = {
     // ─── Rango 4 ───
     {
       ...p(4),
+      premio: "La salida de la guardia, con un sobre en la mano.",
       fondo: "guardia",
       hora: "06:30",
       texto: `
@@ -130,7 +134,7 @@ export const MORA = {
           texto: "\"Aceptala. Y si sale mal, perdés. No pasa nada.\"",
           stats: { coraje: 1 },
           respuesta: `
-            yo: Aceptala. Y si sale mal, perdés. Ya perdiste una vez y estuvo bueno, ¿te acordás?
+            yo: Aceptala. Y si sale mal, perdés. Ya perdiste una vez y no se terminó el mundo, ¿te acordás?
             mora/sorpresa: ...
             mora/feliz: Me acuerdo. Fue horrible y hermoso. Como un parto, me dicen. No sé, nunca parí.
           `,
@@ -148,6 +152,7 @@ export const MORA = {
     // ─── Rango 5 ───
     {
       ...p(5),
+      premio: "El lago del bosque, temprano, después de un día feo.",
       fondo: "bosque",
       hora: "07:15",
       texto: `
@@ -181,9 +186,11 @@ export const MORA = {
     // ─── Rango 6 ───
     {
       ...p(6),
+      premio: "La final de un torneo en El Taco de Oro. (Dos escenas.)",
       fondo: "pool",
       hora: "23:30",
       noche: true,
+      sigue: "mora-r6-b",
       texto: `
         Torneo de pool en "El Taco de Oro", un bar de billares en calle 12 con olor a tiza y a historia.
         Mora llegó a la final sin despeinarse. Lleva una camisa negra arremangada y el pelo suelto, por primera vez.
@@ -196,6 +203,7 @@ export const MORA = {
         {
           texto: "\"Tirá como si pudieras perder\"",
           stats: { coraje: 1 },
+          marcas: ["mora:taco-perdio"],
           respuesta: `
             yo: Tirá como si pudieras perder. Sin miedo a eso.
             Mora tira. Erra. La señora mete la negra y gana el torneo.
@@ -218,6 +226,7 @@ export const MORA = {
     // ─── Rango 7 ───
     {
       ...p(7),
+      premio: "Una caminata por la diagonal y una llamada de Córdoba.",
       fondo: "diagonal",
       hora: "01:00",
       texto: `
@@ -253,6 +262,7 @@ export const MORA = {
     // ─── Rango 8 ───
     {
       ...p(8),
+      premio: "La bola negra, sin apuesta: romance o amistad.",
       fondo: "pool",
       hora: "03:30",
       noche: true,
@@ -272,8 +282,8 @@ export const MORA = {
           respuesta: `
             Le sacás el taco. Lo apoyás en la mesa. Ella no se mueve.
             !La besás. Ella te agarra de la camisa como si se estuviera cayendo.
-            Huele a jabón de hospital y a lima. Sabe a algo que no tiene nombre todavía.
-            mora/sonrojo: ...Ok. Ok. Eso no lo vi venir. Y veo todo venir.
+            Huele a jabón de hospital y a lima. Sabe a algo que todavía no tiene nombre.
+            mora/sonrojo: ...Ok. Ok. Eso no lo vi venir. Y yo veo todo venir.
             mora/feliz: Primera vez que no gano y no pierdo. Empate. Me encanta empatar con vos.
           `,
         },
@@ -285,7 +295,7 @@ export const MORA = {
             yo: Sos mi amiga, Mora. Mi compañera de mesa. La que me banca a las tres de la mañana.
             mora/serio: ...
             mora/sonrisa: Bueno. Eso es un montón. Hay gente que no tiene eso nunca.
-            mora/picara: Amigas. Amigues. Lo que sea. Y te sigo ganando al pool, que quede claro.
+            mora/picara: Amistad, entonces. De la buena. Y te sigo ganando al pool, que quede claro.
           `,
         },
       ],
@@ -293,14 +303,15 @@ export const MORA = {
     // ─── Rango 9 ───
     {
       ...p(9),
+      premio: "Una oficina con una planta de plástico.",
       fondo: "guardia",
       hora: "02:00",
       texto: `
         El hospital. Mora te espera en el pasillo, con el sobre de la jefatura en la mano. Ya firmado.
         mora/feliz: Acepté. Desde el lunes soy jefa. Tengo una oficina con una planta de plástico.
         mora/serio: Y tengo los jueves libres. Todos. Por primera vez en doce años.
-        [amor:mora] mora/sonrojo: Y los sábados a la noche. Por si alguien quiere... no sé. Ver una partida. Algo.
-        [-amor:mora] mora/sonrisa: Así que los jueves sos mía. Pool, casa, lo que sea. Necesito una compañera de dobles.
+        [en:mora] mora/sonrojo: Y los sábados a la noche. Por si alguien quiere... no sé. Ver una partida. Algo.
+        [-en:mora] mora/sonrisa: Así que los jueves me debés el pool. Necesito pareja de dobles. Y no acepto que me digas que no.
       `,
       opciones: [
         {
@@ -315,7 +326,9 @@ export const MORA = {
           texto: "\"Vas a ser la mejor. Y si no, aprendés a perder.\"",
           stats: { coraje: 1 },
           respuesta: `
-            mora/sonrisa: Aprender a perder. Eso me lo enseñaste vos. Y una señora de setenta años.
+            yo: Vas a ser la mejor jefa del hospital. Y si no, aprendés a perder. Ya sabés cómo.
+            [mora:taco-perdio] mora/sonrisa: Aprender a perder. Eso me lo enseñaste vos. Y una señora de setenta años.
+            [-mora:taco-perdio] mora/sonrisa: Perder. Todavía no le agarré la mano. Pero con vos al lado, capaz.
           `,
         },
       ],
@@ -323,6 +336,7 @@ export const MORA = {
     // ─── Rango 10 ───
     {
       ...p(10),
+      premio: "La última partida de la semana. Escena ilustrada y su final.",
       fondo: "pool",
       hora: "02:30",
       noche: true,
@@ -332,27 +346,60 @@ export const MORA = {
         mora/picara: Última partida de la semana. La de verdad. Sin regalos, sin perder a propósito.
         Juegan. Esta vez no se ríen. Se miran. Cada tiro es una pregunta.
         Quedan la negra y la blanca. Le toca a ella.
-        [amor:mora] mora/sonrojo: Si la meto, me das un beso. Si la erro... te lo doy yo.
-        [amor:mora] yo: Ganás igual.
-        [amor:mora] mora/feliz: Ese es el chiste. Por fin un juego donde gano siempre.
-        [amor:mora] Tira. La negra entra despacito, como pidiendo permiso. No le importa a ninguno de los dos.
-        [amor:mora] Cruza la mesa. Te besa con el taco todavía en la mano. Se le cae. Nadie lo levanta.
-        [amor:mora] mora/sonrojo: ...Lisandro me dejó las llaves. Pero mi casa queda más cerca de lo que parece.
-        [amor:mora] !La noche sigue en otro lado.
-        [-amor:mora] mora/feliz: Si la meto, somos campeonas de dobles. Bueno, campeones. Lo que seamos.
-        [-amor:mora] La mete. Sin mirar. Grita como en una final del mundo.
-        [-amor:mora] mora/sonrisa: El sábado que viene hay torneo de parejas en El Taco de Oro. Vos y yo. La señora de setenta nos espera.
-        [-amor:mora] Te da su taco de repuesto. Tiene una cinta roja en la empuñadura. "Para la compañera", dice la cinta.
+        [en:mora] mora/sonrojo: Si la meto, me das un beso. Si la erro... te lo doy yo.
+        [en:mora] yo: Ganás igual.
+        [en:mora] mora/feliz: Ese es el chiste. Por fin un juego donde gano siempre.
+        [en:mora] Tira. La negra entra despacito, como pidiendo permiso. No le importa a ninguno de los dos.
+        [en:mora] Cruza la mesa. Te besa con el taco todavía en la mano. Se le cae. Nadie lo levanta.
+        [en:mora] mora/sonrojo: ...Lisandro me dejó las llaves. Pero mi casa queda más cerca de lo que parece.
+        [en:mora] !La noche sigue en otro lado.
+        [-en:mora] mora/feliz: Si la meto, somos campeones de dobles. Del mundo. De esta mesa, por lo menos.
+        [-en:mora] La mete. Sin mirar. Grita como en una final del mundo.
+        [-en:mora] mora/sonrisa: El sábado que viene hay torneo de parejas en El Taco de Oro. Vos y yo. La señora de setenta nos espera.
+        [-en:mora] Te da su taco de repuesto. Tiene una cinta roja en la empuñadura: "Para mi pareja de dobles".
       `,
       ramas: [{ si: enPareja("mora"), va: "mora-manana" }],
     },
   ]),
-  ...armar({
+  ...aparte({
+    "mora-r6-b": {
+      fondo: "pool",
+      hora: "01:10",
+      texto: `
+        Después de la final, la campeona de 1981 los invita a su mesa. Se llama Nilda. Pide tres ginebras sin preguntar.
+        Nilda mastica el chicle, lo pega abajo de la mesa con una precisión de cirujana y mira a Mora a los ojos.
+        "Yo tampoco perdía nunca, nena. Hasta los cuarenta. ¿Sabés qué me pasó a los cuarenta?"
+        mora/sorpresa: ¿Qué?
+        "Perdí una final contra mi marido. Y me casé con él igual. Cuarenta años de casados. Me ganó dos veces más en la vida. Las dos, me encantó."
+        Nilda te mira a vos. Después mira a Mora. Después otra vez a vos. Sonríe con el chicle nuevo.
+        "Bueno. Yo me voy. A mi edad, las ginebras se toman de a una."
+        mora/sonrojo: ...Esa señora habla demasiado.
+      `,
+      opciones: [
+        {
+          texto: "\"Me cayó bárbaro. Tiene razón en todo.\"",
+          stats: { coraje: 1 },
+          respuesta: `
+            yo: Me cayó bárbaro. Y tiene razón en todo.
+            mora/sorpresa: ¿En todo?
+            yo: En todo.
+            mora/sonrojo: ...Andá a saber qué es "todo". No me contestes. Tomá la ginebra.
+          `,
+        },
+        {
+          texto: "Brindar en silencio, con la ginebra de Nilda",
+          stats: { encanto: 1 },
+          respuesta: `
+            Levantás el vaso. Mora levanta el suyo. No dicen nada.
+            Las bolas del billar de al lado chocan como aplausos chiquitos.
+            mora/sonrisa: Por perder. A veces.
+          `,
+        },
+      ],
+    },
     "mora-manana": {
-      temporada: 2,
       fondo: "depto",
       hora: "06:40",
-      sigue: "@vuelta",
       texto: `
         Seis y cuarenta. Mora ya está vestida con el ambo, atándose el pelo frente al espejo.
         mora/picara: Guardia a las siete. No me mires así, que llego tarde.

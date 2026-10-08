@@ -11,6 +11,7 @@ export type Logro = { id: string; titulo: string; desc: string; oculto?: boolean
 
 const marca = (c: Contexto, m: string) => !!c.estado?.marcas.includes(m);
 const conMarcaQueEmpieza = (c: Contexto, p: string) => !!c.estado?.marcas.some((m) => m.startsWith(p));
+const finalesDe = (t: 1 | 2) => FINALES.filter((f) => f.temporada === t);
 
 export const LOGROS: Logro[] = [
   { id: "timbre", titulo: "Tocar el timbre", desc: "Empezar la novela.", cumple: (c) => !!c.estado },
@@ -19,19 +20,40 @@ export const LOGROS: Logro[] = [
   { id: "gervasio", titulo: "La G. es de Gervasio", desc: "Conseguir el final verdadero de la temporada 1.", cumple: (c) => c.finales.includes("verdadero") },
   { id: "t2", titulo: "Treinta días", desc: "Empezar la temporada 2.", cumple: (c) => marca(c, "semana:2") },
   { id: "rango1", titulo: "Primer vínculo", desc: "Subir a rango 1 con alguien.", cumple: (c) => !!c.estado && CONFIDENTES.some((x) => c.estado!.rangos[x] >= 1) },
-  { id: "los5", titulo: "La casa entera", desc: "Tener rango con los cinco.", cumple: (c) => !!c.estado && CONFIDENTES.every((x) => c.estado!.rangos[x] >= 1) },
+  {
+    id: "los5",
+    titulo: "La casa entera",
+    desc: `Tener rango con los ${CONFIDENTES.length} vínculos.`,
+    cumple: (c) => !!c.estado && CONFIDENTES.every((x) => c.estado!.rangos[x] >= 1),
+  },
   { id: "rango10", titulo: "Ya está todo dicho", desc: "Llegar a rango 10 con alguien.", cumple: (c) => !!c.estado && CONFIDENTES.some((x) => c.estado!.rangos[x] >= RANGO_MAX) },
   { id: "amor", titulo: "Elegí bien", desc: "Animarte a un romance.", cumple: (c) => conMarcaQueEmpieza(c, "amor:") },
   { id: "amistad", titulo: "Mi persona favorita", desc: "Elegir una amistad de verdad.", cumple: (c) => conMarcaQueEmpieza(c, "amistad:") },
   { id: "celos", titulo: "La misma anécdota", desc: "Que tus dos romances se conozcan.", oculto: true, cumple: (c) => marca(c, "celos:visto") },
+  { id: "apagon", titulo: "Una verdad chiquita", desc: "Pasar el apagón del jueves de tormenta.", cumple: (c) => marca(c, "apagon:visto") },
+  { id: "jurado", titulo: "Jurado sin favoritos", desc: "Decidir el duelo de bartenders.", cumple: (c) => ["duelo:vera", "duelo:bruno", "duelo:empate"].some((m) => marca(c, m)) },
+  { id: "angeles", titulo: "Ángeles", desc: "Saber cómo se llama de verdad la DJ.", oculto: true, cumple: (c) => !!c.estado && c.estado.rangos.luna >= 4 },
+  { id: "octavo", titulo: "El tatuaje que falta", desc: "Que Bruno te muestre sus tatuajes.", oculto: true, cumple: (c) => !!c.estado && c.estado.rangos.bruno >= 4 },
+  { id: "patrimonio", titulo: "Ha lugar", desc: "Que la casa pase a comisión en el Concejo.", cumple: (c) => marca(c, "patrimonio") },
+  { id: "seno", titulo: "Seño Eve", desc: "Descubrir a dónde va Evelyn a las siete y media.", oculto: true, cumple: (c) => !!c.estado && c.estado.rangos.evelyn >= 3 },
   { id: "amalia", titulo: "Los pedazos de Amalia", desc: "Juntar las tres pistas de la temporada 2.", cumple: (c) => PISTAS2.every((p) => marca(c, p)) },
   { id: "carta", titulo: "Ahora te toca a vos", desc: "Escribirle a Amalia con tinta verde.", cumple: (c) => marca(c, "carta:amalia") },
   { id: "plantaste", titulo: "Piso doce", desc: "Plantarte frente a Altamira.", oculto: true, cumple: (c) => marca(c, "plantaste") },
   { id: "stat", titulo: "Leyenda de la barra", desc: "Llevar una cualidad al máximo.", cumple: (c) => !!c.estado && STATS.some((s) => c.estado!.stats[s] >= STAT_MAX) },
   { id: "stats", titulo: "Persona completa", desc: "Tener las tres cualidades en 4 o más.", cumple: (c) => !!c.estado && STATS.every((s) => c.estado!.stats[s] >= 4) },
   { id: "verdadero2", titulo: "Primera vez", desc: "Conseguir el final verdadero de la temporada 2.", cumple: (c) => c.finales.includes("t2-verdadero") },
-  { id: "finales1", titulo: "Todos los lunes", desc: "Los siete finales de la temporada 1.", cumple: (c) => FINALES.filter((f) => f.temporada === 1).every((f) => c.finales.includes(f.id)) },
-  { id: "finales2", titulo: "Todos los treinta días", desc: "Los diez finales de la temporada 2.", cumple: (c) => FINALES.filter((f) => f.temporada === 2).every((f) => c.finales.includes(f.id)) },
+  {
+    id: "finales1",
+    titulo: "Todos los lunes",
+    desc: `Los ${finalesDe(1).length} finales de la temporada 1.`,
+    cumple: (c) => finalesDe(1).every((f) => c.finales.includes(f.id)),
+  },
+  {
+    id: "finales2",
+    titulo: "Todos los treinta días",
+    desc: `Los ${finalesDe(2).length} finales de la temporada 2.`,
+    cumple: (c) => finalesDe(2).every((f) => c.finales.includes(f.id)),
+  },
   { id: "galeria", titulo: "Bares que no existen", desc: "Completar la galería.", cumple: (c) => CGS.every((g) => c.galeria.includes(g)) },
 ];
 

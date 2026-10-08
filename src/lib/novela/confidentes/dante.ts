@@ -2,9 +2,9 @@
  * DANTE — "La vidriera". 32 años, "adquisiciones" en Grupo Altamira, la desarrolladora que quiere la
  * casa. Saco caro, camisa abierta en el cuello, mechón rebelde que peina a propósito. Chamuyero. Valora
  * la Labia: solo respeta a quien le gana la charla. Su arco: vino a comprar la casa y la casa lo compra
- * a él. Su abuela tenía un bodegón que tiraron abajo.
+ * a él. Su abuela tenía un bodegón que tiraron abajo. Los jueves cena con Altamira.
  */
-import { armar, armarRangos, enPareja } from "../tipos";
+import { aparte, armarRangos, enPareja } from "../tipos";
 import { puerta } from "./comun";
 
 const p = (n: number) => puerta(n, "labia");
@@ -14,6 +14,7 @@ export const DANTE = {
     // ─── Rango 1 ───
     {
       ...p(1),
+      premio: "Un brindis con agua de la canilla y una pregunta profesional.",
       fondo: "barra",
       hora: "22:15",
       texto: `
@@ -37,6 +38,7 @@ export const DANTE = {
           stats: { coraje: 1 },
           respuesta: `
             yo: Venite un jueves. A las nueve en punto. Y dejá el celular afuera.
+            dante/triste: Los jueves ceno con mi jefe. Es una tradición. Una tradición horrible.
             dante/sorpresa: ¿Qué pasa los jueves?
             yo: No se cuenta.
             dante/feliz: ...Ok. Me ganaste. Me muero de curiosidad. Eso no es justo.
@@ -47,12 +49,13 @@ export const DANTE = {
     // ─── Rango 2 ───
     {
       ...p(2),
+      premio: "Su oficina de vidrio en el piso doce.",
       fondo: "oficina",
       hora: "21:00",
       noche: true,
       texto: `
         Dante te invita a su oficina. Piso doce de una torre en el centro. Todo vidrio. La ciudad entera de noche, como una maqueta prendida.
-        dante/sonrisa: Bienvenida, bienvenido. Acá decido el futuro de La Plata. O eso dice mi tarjeta.
+        dante/sonrisa: Bienvenidos a mi pecera. Acá decido el futuro de La Plata. O eso dice mi tarjeta.
         Hay una maqueta tapada con una sábana en una mesa. La sábana tiene la forma de una torre.
         dante/serio: Eso no lo mires.
         Abre un cajón. Saca dos copas y un vino que cuesta lo que tu alquiler. Otra vez.
@@ -73,8 +76,8 @@ export const DANTE = {
           stats: { labia: 1 },
           respuesta: `
             dante/sorpresa: ...
-            dante/sonrojo: Eso es mi frase. Me robaste el chamuyo. En mi propia oficina.
-            dante/feliz: Te odio. Brindemos.
+            dante/sonrojo: Esa es mi frase. Me robaste el chamuyo. En mi propia oficina.
+            dante/feliz: Me desarmaste. Brindemos antes de que me reponga.
           `,
         },
       ],
@@ -82,6 +85,7 @@ export const DANTE = {
     // ─── Rango 3 ───
     {
       ...p(3),
+      premio: "Un paseo en un bote con forma de cisne.",
       fondo: "bosque",
       hora: "17:00",
       texto: `
@@ -115,6 +119,7 @@ export const DANTE = {
     // ─── Rango 4 ───
     {
       ...p(4),
+      premio: "La verdad de por qué vino. Y un papel con un nombre.",
       fondo: "diagonal",
       hora: "02:10",
       marca: "pista2:escritura",
@@ -152,6 +157,7 @@ export const DANTE = {
     // ─── Rango 5 ───
     {
       ...p(5),
+      premio: "Un paraguas, dos personas, una diagonal.",
       fondo: "diagonal",
       hora: "00:30",
       noche: true,
@@ -190,8 +196,10 @@ export const DANTE = {
     // ─── Rango 6 ───
     {
       ...p(6),
+      premio: "Un contrato sin firmar y un ascensor con el peor pasajero. (Dos escenas.)",
       fondo: "oficina",
       hora: "23:00",
+      sigue: "dante-r6-b",
       texto: `
         La oficina de vidrio. Dante tiene un contrato abierto en la mesa y una lapicera de las caras en la mano.
         dante/serio: Altamira me ofreció un ascenso. Gerente. Si la casa se firma, firmo esto también.
@@ -207,7 +215,7 @@ export const DANTE = {
             yo: ¿Qué diría Nélida si te viera firmar eso?
             dante/triste: ...
             dante/sonrisa: Diría "Dantito, sentate, comé algo, que con hambre se piensa mal".
-            dante/serio: Igual que Agustín. Dios. La casa me está hablando con la voz de mi abuela.
+            dante/serio: Igual que Agustín. La casa me está hablando con la voz de mi abuela.
             Deja la lapicera. No firma. Todavía.
           `,
         },
@@ -225,6 +233,7 @@ export const DANTE = {
     // ─── Rango 7 ───
     {
       ...p(7),
+      premio: "Una cena que salió mal en su departamento de catálogo.",
       fondo: "depto",
       hora: "21:30",
       noche: true,
@@ -232,7 +241,7 @@ export const DANTE = {
         El departamento de Dante: impecable, enorme, vacío. Muebles de catálogo que nadie usó. Una planta de plástico.
         dante/sonrisa: Te cociné. Bueno. Intenté cocinarte.
         Hay una olla con fideos pegados en forma de ladrillo y una salsa que alguna vez fue tomate.
-        dante/triste: Seguí un video. El de la abuela italiana. La abuela me mintió.
+        dante/triste: Seguí un video. El de una abuela italiana. La abuela me mintió.
         Se ríe. Se sienta en el piso de la cocina, con la camisa manchada de salsa y el mechón en la cara.
         dante/sonrojo: Nunca invité a nadie a esta casa. Es la primera vez que entra alguien que no es de la limpieza.
       `,
@@ -260,6 +269,7 @@ export const DANTE = {
     // ─── Rango 8 ───
     {
       ...p(8),
+      premio: "Algo dicho sin chamuyo: romance o amistad.",
       fondo: "diagonal",
       hora: "03:40",
       noche: true,
@@ -277,7 +287,7 @@ export const DANTE = {
           marcas: ["amor:dante"],
           respuesta: `
             Lo agarrás de las solapas del saco caro. Lo atraés.
-            !Lo besás debajo del farol. Él deja de respirar un segundo, después te agarra la cintura como si tuviera miedo de que te escapes.
+            !Lo besás debajo del farol. Él deja de respirar un segundo, después te abraza como si tuviera miedo de que te escapes.
             dante/sonrojo: ...Ok. Eso no lo vi en ningún contrato.
             dante/feliz: ¿Puedo pedir una cláusula de renovación automática?
           `,
@@ -298,6 +308,7 @@ export const DANTE = {
     // ─── Rango 9 ───
     {
       ...p(9),
+      premio: "Una caja de cartón a la salida de la torre.",
       fondo: "oficina",
       hora: "19:00",
       marca: "dante:renuncia",
@@ -307,8 +318,8 @@ export const DANTE = {
         dante/feliz: ¡Renuncié! ¡Le dije a Altamira que la casa no se vende, que la gente no se vende, y que su torre es fea!
         dante/sorpresa: ...Bueno, lo de fea no se lo dije. Lo pensé muy fuerte.
         dante/serio: No tengo laburo. No tengo auto. Tengo una planta de plástico y una foto de mi abuela.
-        [amor:dante] dante/sonrojo: Y te tengo a vos. Creo. ¿Te tengo?
-        [-amor:dante] dante/sonrisa: Y un amigo. Que no es poco. Es lo mejor que tengo.
+        [en:dante] dante/sonrojo: Y te tengo a vos. Creo. ¿Te tengo?
+        [-en:dante] dante/sonrisa: Y un amigo. Que no es poco. Es lo mejor que tengo.
       `,
       opciones: [
         {
@@ -325,6 +336,7 @@ export const DANTE = {
           respuesta: `
             yo: Sabés negociar como nadie. Ahora negociá para el otro lado. Para la gente.
             dante/sorpresa: ...Para la gente. Tipo abogado de los que pierden.
+            [conoce:cami] dante/picara: Cami me va a matar si le digo que quiero ser abogado. Mejor digo negociador. Suena a superhéroe de barrio.
             dante/sonrisa: No soy abogado. Pero chamuyo como uno. Me gusta.
           `,
         },
@@ -333,6 +345,7 @@ export const DANTE = {
     // ─── Rango 10 ───
     {
       ...p(10),
+      premio: "El lago del bosque, de noche. Escena ilustrada y su final.",
       fondo: "bosque",
       hora: "23:30",
       noche: true,
@@ -340,28 +353,61 @@ export const DANTE = {
       texto: `
         El lago del bosque, de noche. Dante sobornó al cuidador con medio kilo de bondiola de Agustín. Están solos.
         Un bote de verdad, de madera, con una lamparita a pilas en la proa. Esta vez rema él. Y rema bien.
-        dante/sonrisa: Practiqué. Toda la semana. Me tiré dos veces al lago. No preguntes.
+        dante/sonrisa: Practiqué. Toda la semana. Me caí dos veces al lago. No preguntes.
         En el medio del lago, suelta los remos. Las luces del bosque se reflejan en el agua como si hubiera dos cielos.
         dante/serio: Hace un mes vine a comprar una casa. Y me compró ella a mí.
-        [amor:dante] dante/sonrojo: Y vos. Vos me compraste con agua de la canilla. Soy la peor inversión de tu vida, aviso.
-        [amor:dante] yo: Me gustan las malas inversiones.
-        [amor:dante] Se inclina. El bote se mueve. Lo besás igual, con el lago entero mirándolos.
-        [amor:dante] dante/picara: ...El cuidador nos da hasta la una. Mi departamento tiene una planta de plástico y un sillón que nadie estrenó.
-        [amor:dante] !La noche sigue en otro lado.
-        [-amor:dante] dante/sonrisa: Y me hice un amigo. El primero que no me quiere vender nada. Ni comprar.
-        [-amor:dante] Saca del bolsillo una tarjeta nueva. Hecha en una imprenta de barrio, torcida.
-        [-amor:dante] !"Dante Ferraro — Negociador de la casa — Agua de la canilla incluida".
-        [-amor:dante] dante/feliz: La primera es para vos. La segunda, para Lisandro. La tercera, para mi abuela, que la voy a pegar en la foto.
+        [en:dante] dante/sonrojo: Y vos. Vos me compraste con agua de la canilla. Soy la peor inversión de tu vida, aviso.
+        [en:dante] yo: Me gustan las malas inversiones.
+        [en:dante] Se inclina. El bote se mueve. Lo besás igual, con el lago entero mirándolos.
+        [en:dante] dante/picara: ...El cuidador nos da hasta la una. Mi departamento tiene una planta de plástico y un sillón que nadie estrenó.
+        [en:dante] !La noche sigue en otro lado.
+        [-en:dante] dante/sonrisa: Y me hice un amigo. El primero que no me quiere vender nada. Ni comprar.
+        [-en:dante] Saca del bolsillo una tarjeta nueva. Hecha en una imprenta de barrio, torcida.
+        [-en:dante] !"Dante Ferraro — Negociador de la casa — Agua de la canilla incluida".
+        [-en:dante] dante/feliz: La primera es para vos. La segunda, para Lisandro. La tercera, para mi abuela, que la voy a pegar en la foto.
       `,
       ramas: [{ si: enPareja("dante"), va: "dante-manana" }],
     },
   ]),
-  ...armar({
+  ...aparte({
+    "dante-r6-b": {
+      fondo: "oficina",
+      hora: "23:40",
+      texto: `
+        Salen de la oficina. El ascensor llega al piso doce. Se abren las puertas.
+        !Adentro, Altamira. Pelo blanco, traje gris perla, el celular en la mano.
+        Altamira te mira. Mira a Dante. Mira la lapicera que Dante todavía tiene en la mano. No dice nada durante tres pisos.
+        En el noveno, habla. Como si cada palabra costara dinero y él tuviera mucho.
+        "Ferraro. El contrato. Mañana a primera hora, firmado. Y traiga a su amigo. Me interesa la gente que mira así."
+        Las puertas se abren en planta baja. Altamira sale sin saludar.
+        dante/serio: ...Me interesa la gente que mira así. Eso dijo de mí, hace diez años. Así empecé.
+      `,
+      opciones: [
+        {
+          texto: "\"No te pareces a él. Todavía estás a tiempo de no parecerte.\"",
+          stats: { labia: 1 },
+          respuesta: `
+            yo: No te parecés a él. Todavía estás a tiempo de no parecerte.
+            dante/sorpresa: ...
+            dante/sonrisa: "Todavía". Qué palabra generosa. Me la quedo.
+            Guarda la lapicera en el bolsillo de adentro del saco. Del lado del corazón, dice. Para que pese.
+          `,
+        },
+        {
+          texto: "Agarrarle la mano en la vereda, delante de la torre",
+          stats: { coraje: 1 },
+          respuesta: `
+            En la vereda, delante del vidrio, le agarrás la mano. Desde el piso doce, una luz sigue prendida.
+            dante/sonrojo: ...Nos está mirando. Seguro nos está mirando.
+            yo: Que mire.
+            dante/feliz: Que mire. Dios. Que mire.
+          `,
+        },
+      ],
+    },
     "dante-manana": {
-      temporada: 2,
       fondo: "depto",
       hora: "10:15",
-      sigue: "@vuelta",
       texto: `
         A la mañana, Dante aparece con una bandeja: dos cafés y una docena de medialunas.
         dante/sonrisa: El café lo hice yo. Es horrible. Las medialunas las compré. Son perfectas. Equilibrio.

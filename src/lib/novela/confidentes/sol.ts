@@ -2,9 +2,9 @@
  * SOL — "El cuarto oscuro". 29 años, fotógrafa con estudio propio en calle 8 y una moto vieja. Pelo
  * corto con un mechón verde, campera de jean con parches, cámara de rollo al cuello. Valora el Coraje:
  * se sube a techos y quiere gente que la siga. Su arco: arma un libro de bares sin cartel, y descubre
- * que su mamá, Amalia, es la heredera que vende la casa.
+ * que su mamá, Amalia, es la heredera que vende la casa. Los viernes fotografía casamientos.
  */
-import { armar, armarRangos, enPareja } from "../tipos";
+import { aparte, armarRangos, enPareja } from "../tipos";
 import { puerta } from "./comun";
 
 const p = (n: number) => puerta(n, "coraje");
@@ -14,6 +14,7 @@ export const SOL = {
     // ─── Rango 1 ───
     {
       ...p(1),
+      premio: "Esperar la luz con ella, en el cordón de enfrente.",
       fondo: "vereda",
       hora: "22:30",
       texto: `
@@ -51,6 +52,7 @@ export const SOL = {
     // ─── Rango 2 ───
     {
       ...p(2),
+      premio: "Su cuarto oscuro, con cuatrocientas fotos de la esquina.",
       fondo: "oscuro",
       hora: "23:00",
       texto: `
@@ -59,7 +61,7 @@ export const SOL = {
         En la luz roja todo parece un secreto. Ella también.
         Te muestra las copias que cuelgan. La esquina de la casa, mes tras mes. Y en todas, el abrigo gris.
         sol/normal: Ese señor no se mueve nunca. Lluvia, calor, Navidad. Ahí. Como un poste con sombrero.
-        sol/picara: Le saqué cuatrocientas fotos. Si fuera un actor, me cobraría derechos.
+        sol/picara: Le saqué cuatrocientas fotos. Si fuera actor, me cobraría derechos.
       `,
       opciones: [
         {
@@ -68,11 +70,11 @@ export const SOL = {
           respuesta: `
             sol/sorpresa: ¿Lo conocés? ¿Hablaste con él?
             yo: Me dejó una servilleta. Por eso estoy acá.
-            sol/serio: ...A mi vieja también le dejaron una servilleta. Una vez. Me lo contó borracha en un cumpleaños.
+            sol/serio: ...A mi vieja también le dejaron una servilleta. Una vez. Me lo contó medio en pedo en un cumpleaños.
           `,
         },
         {
-          texto: "Quedarte quieto/a mirando cómo trabaja",
+          texto: "Quedarte en silencio, mirándola trabajar",
           stats: { encanto: 1 },
           respuesta: `
             Ella mueve una foto en la bandeja. Aparece despacio una cara. Vos no mirás la foto: la mirás a ella.
@@ -84,6 +86,7 @@ export const SOL = {
     // ─── Rango 3 ───
     {
       ...p(3),
+      premio: "La Plata en moto, de madrugada. Y una foto de 1987.",
       fondo: "diagonal",
       hora: "01:30",
       noche: true,
@@ -96,15 +99,15 @@ export const SOL = {
         sol/serio: Esta es mi vieja. Diecinueve años. Llegada a La Plata, 1987. Esta pensión.
         sol/normal: Y mirá atrás. La otra foto. La que sacó al día siguiente.
         !Es la puerta de la casa. Sin cartel. Y una chica con una valija, riéndose.
-        sol/sorpresa: Mi vieja estuvo en TU casa. Hace cuarenta años.
+        sol/sorpresa: Mi vieja estuvo en TU casa. Hace casi cuarenta años.
       `,
       opciones: [
         {
           texto: "\"Vamos a averiguar qué le pasó ahí\"",
           stats: { coraje: 1 },
           respuesta: `
-            yo: Vamos a averiguar qué le pasó. Juntos. Juntas. Como sea.
-            sol/feliz: ¡Eso! ¡Una investigación! Siempre quise tener un compañero de investigación. Compañera. Compañere.
+            yo: Vamos a averiguar qué le pasó. Con vos. Hasta el final.
+            sol/feliz: ¡Eso! ¡Una investigación! Siempre quise tener a alguien con quien investigar.
             sol/picara: Agarrate fuerte. Volvemos rápido.
           `,
         },
@@ -121,6 +124,7 @@ export const SOL = {
     // ─── Rango 4 ───
     {
       ...p(4),
+      premio: "Un amanecer prohibido, desde el borde de una terraza.",
       fondo: "terraza",
       hora: "05:40",
       cg: "cg-sol-techo",
@@ -148,7 +152,7 @@ export const SOL = {
             Te quedás en el piso, bien lejos del borde. Sol se ríe.
             sol/feliz: ¡Miedo a las alturas! ¡Por fin una debilidad!
             sol/sonrisa: Está bien. Yo te traigo las fotos. Para eso estoy.
-            Después baja de la baranda y se sienta en el piso, al lado tuyo. Para que no estés sola. O solo.
+            Después baja de la baranda y se sienta en el piso, al lado tuyo. Para que el miedo sea de a dos.
           `,
         },
       ],
@@ -156,6 +160,7 @@ export const SOL = {
     // ─── Rango 5 ───
     {
       ...p(5),
+      premio: "Una caja de fotos viejas y la mitad de una historia.",
       fondo: "oscuro",
       hora: "00:20",
       texto: `
@@ -189,6 +194,7 @@ export const SOL = {
     // ─── Rango 6 ───
     {
       ...p(6),
+      premio: "Posar para ella, con una sola luz.",
       fondo: "oscuro",
       hora: "01:30",
       noche: true,
@@ -225,15 +231,15 @@ export const SOL = {
     // ─── Rango 7 ───
     {
       ...p(7),
+      premio: "Una llamada que no debería haber hecho.",
       fondo: "vereda",
       hora: "23:50",
       texto: `
         Sol te espera en la vereda de la casa, furiosa, con el celular en la mano.
         sol/enojo: Lo averigüé. Llamé a la escribanía haciéndome pasar por mi vieja. Es ilegal, ya sé. No me mires así.
         sol/enojo!: La heredera que vende la casa es MI VIEJA. Amalia Ríos. Doña Elvira era su tía. ¡Y no me dijo nada!
-        sol/triste: La casa que le salvó la vida. La va a vender a una torre. Y ni siquiera sabe que es esta.
-        sol/serio: O sí sabe. Y no le importa. No sé qué es peor.
-      `,
+        sol/triste: La casa que le salvó la vida. La va a vender para que hagan una torre. Y ni siquiera sabe que es esta.
+        sol/serio: O sí sabe. Y no le importa. No sé qué es peor.      `,
       opciones: [
         {
           texto: "\"Capaz no sabe. Hay que contarle.\"",
@@ -251,7 +257,7 @@ export const SOL = {
           respuesta: `
             La abrazás. Patalea un poco. Después se queda quieta.
             sol/triste: ...No estoy llorando. Es el revelador. Me irrita los ojos.
-            sol/sonrojo: Gracias. No te sueltes todavía.
+            sol/sonrojo: Gracias. No me sueltes todavía.
           `,
         },
       ],
@@ -259,13 +265,14 @@ export const SOL = {
     // ─── Rango 8 ───
     {
       ...p(8),
+      premio: "La terraza prohibida, de noche: romance o amistad.",
       fondo: "terraza",
       hora: "04:00",
       noche: true,
       texto: `
         La terraza prohibida de doce pisos. De noche, esta vez. La ciudad allá abajo, toda luces.
-        Sol no trajo la cámara. Es la primera vez que la ves sin ella.
-        sol/serio: No traje la cámara porque esto no lo quiero sacar. Lo quiero tener.
+        Sol trae la cámara, pero la deja en el piso, boca abajo.
+        sol/serio: La pongo así para que no mire. Esto no lo quiero sacar. Lo quiero tener.
         sol/sonrojo: Me gustás. No para el libro. Para mí.
         sol/picara: Y te lo digo acá arriba porque si me decís que no, me puedo tirar. Chiste. Casi chiste.
         sol/normal: Decime algo. De frente. Que ya sé que es tu lado bueno.
@@ -278,7 +285,7 @@ export const SOL = {
           respuesta: `
             No decís nada. Te acercás. Le sacás el mechón verde de la cara.
             !La besás. Doce pisos, el viento, la catedral iluminada de testigo.
-            sol/sonrojo: ...Revelado. Por fin. Te tardaste como un rollo de 36.
+            sol/sonrojo: ...Revelado. Por fin. Tardaste como un rollo de 36.
             sol/feliz: No tengo foto de esto. Y no me importa. Por primera vez en la vida.
           `,
         },
@@ -289,7 +296,7 @@ export const SOL = {
           respuesta: `
             yo: Sos mi amiga. Mi compañera de investigación. No te quiero perder por nada.
             sol/triste: ...
-            sol/sonrisa: Ok. Amigas, amigos, lo que sea. Compañeres de cuarto oscuro.
+            sol/sonrisa: Ok. Compañía de cuarto oscuro, entonces. Es un título que no tiene nadie.
             sol/picara: Pero la foto de frente me la quedo. Esa no se negocia.
           `,
         },
@@ -298,8 +305,10 @@ export const SOL = {
     // ─── Rango 9 ───
     {
       ...p(9),
+      premio: "La llamada a su mamá. Delante tuyo. (Dos escenas.)",
       fondo: "oscuro",
       hora: "22:00",
+      sigue: "sol-r9-b",
       texto: `
         Sol tiene el celular en la mano. El nombre en la pantalla: "MAMÁ".
         sol/serio: La voy a llamar. Ahora. Delante tuyo, porque si no, no lo hago.
@@ -337,6 +346,7 @@ export const SOL = {
     // ─── Rango 10 ───
     {
       ...p(10),
+      premio: "La última foto del libro. Escena ilustrada y su final.",
       fondo: "oscuro",
       hora: "02:00",
       noche: true,
@@ -347,31 +357,62 @@ export const SOL = {
         sol/feliz: ¡Lo terminé! ¡Mañana va a la imprenta! ¡Tengo un libro! ¡Yo! ¡La que nunca termina nada!
         sol/serio: Falta la última foto. La de cierre. No sé cuál.
         Mira las sogas. Mira la lamparita roja. Te mira a vos.
-        [amor:sol] sol/sonrojo: Ah. Ya sé cuál.
-        [amor:sol] Apaga la lamparita. Oscuridad total. Solo se escucha la respiración de los dos.
-        [amor:sol] sol/picara: En el cuarto oscuro no hay fotos. Lo que pasa acá, no se revela nunca.
-        [amor:sol] La sentís acercarse. El beso llega en la oscuridad, sin flash, sin pose.
-        [amor:sol] !La noche sigue en otro lado.
-        [-amor:sol] sol/sonrisa: La foto de frente. La tuya. La del primer jueves.
-        [-amor:sol] La cuelga en la última soga. Tu cara, en blanco y negro, con la boca un poco abierta.
-        [-amor:sol] sol/feliz: Epígrafe: "La persona que me acompañó a buscar el resto de la historia." Mi amiga. Mi amigo. Mi compañere.
-        [-amor:sol] Te abraza en la luz roja, rodeados de doscientos bares que no existen.
+        [en:sol] sol/sonrojo: Ah. Ya sé cuál.
+        [en:sol] Apaga la lamparita. Oscuridad total. Solo se escucha la respiración de los dos.
+        [en:sol] sol/picara: En el cuarto oscuro no hay fotos. Lo que pasa acá, no se revela nunca.
+        [en:sol] La sentís acercarse. El beso llega en la oscuridad, sin flash, sin pose.
+        [en:sol] !La noche sigue en otro lado.
+        [-en:sol] sol/sonrisa: La foto de frente. La tuya. La del primer jueves.
+        [-en:sol] La cuelga en la última soga. Tu cara, en blanco y negro, con la boca un poco abierta.
+        [-en:sol] sol/feliz: Epígrafe: "La persona que me acompañó a buscar el resto de la historia."
+        [-en:sol] Te abraza en la luz roja, rodeados de doscientos bares que no existen.
       `,
       ramas: [{ si: enPareja("sol"), va: "sol-manana" }],
     },
   ]),
-  ...armar({
+  ...aparte({
+    "sol-r9-b": {
+      fondo: "oscuro",
+      hora: "04:20",
+      texto: `
+        La llamada dura dos horas y diez minutos. Sol no suelta el teléfono. Vos no le soltás la mano.
+        Amalia cuenta. 1987. La pensión de calle 4. La servilleta verde debajo de la puerta. La casa, la primera noche. Diez años de lunes.
+        Y después, la parte que nunca había contado: un amor que se fue, una nena de tres años, la vuelta a Córdoba sin despedirse de nadie.
+        amalia/triste: Me fui de La Plata porque me daba vergüenza que me vieran mal. En esa casa, todos me habían visto bien.
+        Cuando corta, Sol se queda mirando la lamparita roja un rato largo.
+        sol/serio: Dos horas. Mi vieja me habló dos horas seguidas. En veintinueve años no me habló dos horas seguidas.
+      `,
+      opciones: [
+        {
+          texto: "\"Ahora que la tenés entera, ¿qué foto le sacás?\"",
+          stats: { labia: 1 },
+          respuesta: `
+            sol/sorpresa: ...¿Qué foto le saco?
+            sol/sonrisa: Una con ella adentro de la casa. Del lado de adentro. Esa es la foto que le falta a la historia.
+            sol/feliz: Me diste el final del libro. Otra vez. Me tenés que cobrar derechos.
+          `,
+        },
+        {
+          texto: "Quedarte en silencio y hacerle un mate",
+          stats: { encanto: 1 },
+          respuesta: `
+            No decís nada. Buscás la yerba en el estudio, calentás agua en un jarrito de revelado, que lavás tres veces.
+            sol/sonrisa: ...Si ese jarrito tenía fijador, nos morimos los dos.
+            yo: Lo lavé tres veces.
+            sol/feliz: Entonces nos morimos felices. Pasá.
+          `,
+        },
+      ],
+    },
     "sol-manana": {
-      temporada: 2,
       fondo: "depto",
       hora: "09:00",
-      sigue: "@vuelta",
       texto: `
         La mañana entra por la ventana del estudio. Sol, con tu remera puesta, fotografía dos tazas de café en la mesa.
         sol/picara: No te muevas. No, vos no salís. Las tazas. Las tazas cuentan todo.
         Clac.
         sol/sonrojo: Esta es la última foto del libro. Dos tazas. Nadie va a saber de quién son. Solo nosotros.
-        Abajo, la moto tose al sol, esperando. Hay medialunas en algún lado de La Plata con sus nombres.
+        Abajo, la moto tose al sol, esperando.
       `,
     },
   }),

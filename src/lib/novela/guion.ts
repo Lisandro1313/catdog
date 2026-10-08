@@ -9,13 +9,17 @@
  * "la persona nueva". Los romances son con personajes ficticios y adultos; Lisandro (barra) y
  * Agustín (cocina) aparecen como los de la casa, con cariño, nada más.
  */
-import { armar, type CgId, type Confidente, type Dia, type Escena, type Final, type Quien, type Stat, type Vinculo } from "./tipos";
+import { CONFIDENTES, armar, type CgId, type Confidente, type Dia, type Escena, type Final, type Quien, type Stat, type Vinculo } from "./tipos";
 import { ESCENAS_T2, PISTAS2, T2_INICIO } from "./t2";
 import { VERA } from "./confidentes/vera";
 import { TEO } from "./confidentes/teo";
 import { MORA } from "./confidentes/mora";
 import { DANTE } from "./confidentes/dante";
 import { SOL } from "./confidentes/sol";
+import { LUNA } from "./confidentes/luna";
+import { BRUNO } from "./confidentes/bruno";
+import { CAMI } from "./confidentes/cami";
+import { EVELYN } from "./confidentes/evelyn";
 
 export * from "./tipos";
 export { PISTAS2, T2_INICIO };
@@ -34,6 +38,10 @@ export const NOMBRES: Record<Quien, string> = {
   dante: "Dante",
   sol: "Sol",
   amalia: "Amalia",
+  luna: "Luna",
+  bruno: "Bruno",
+  cami: "Cami",
+  evelyn: "Evelyn",
 };
 
 /** Lo que es cada vínculo en la casa (el "arcano", a la manera de la casa). Temporada 1. */
@@ -44,13 +52,77 @@ export const ARCANOS: Record<Vinculo, { lugar: string; quien: string }> = {
   gris: { lugar: "La esquina", quien: "Un abrigo gris en la vereda de enfrente. Nunca entra." },
 };
 
-/** Los confidentes de la temporada 2: dónde se los encuentra, quiénes son y qué valoran. */
-export const CONFIDENTE_INFO: Record<Confidente, { lugar: string; quien: string; valora: Stat }> = {
-  vera: { lugar: "La barra", quien: "Bartender de La Rana. Barcelona le da hasta fin de mes. Sueña con una barra sin cartel.", valora: "labia" },
-  teo: { lugar: "La punta", quien: "Guitarrista. Lo invitaron a tocar en Buenos Aires y le da pánico.", valora: "encanto" },
-  mora: { lugar: "La mesa", quien: "Enfermera, invicta al pool. Le ofrecen la jefatura.", valora: "coraje" },
-  dante: { lugar: "La vidriera", quien: "32 años, adquisiciones en Grupo Altamira. Vino a comprar la casa.", valora: "labia" },
-  sol: { lugar: "El cuarto oscuro", quien: "29, fotógrafa. Arma un libro de bares sin cartel. Su mamá se llama Amalia.", valora: "coraje" },
+/**
+ * Cuándo se encuentra a cada uno en el tiempo libre. 0 = toda la noche; 1 = solo temprano (antes de
+ * la una); 2 = solo de madrugada. Los viernes y sábados la noche tiene dos turnos; lunes y jueves, uno.
+ */
+export type Agenda = Partial<Record<"lunes" | "jueves" | "viernes" | "sabado", 0 | 1 | 2>>;
+
+/** Los confidentes de la temporada 2: dónde se los encuentra, quiénes son, qué valoran y cuándo vienen. */
+export const CONFIDENTE_INFO: Record<Confidente, { lugar: string; quien: string; valora: Stat; agenda: Agenda; ausencia: string }> = {
+  vera: {
+    lugar: "La barra",
+    quien: "Bartender de La Rana. Barcelona le da hasta fin de mes. Sueña con una barra sin cartel.",
+    valora: "labia",
+    agenda: { lunes: 0, jueves: 0, sabado: 0 },
+    ausencia: "Los viernes labura en La Rana hasta las tres.",
+  },
+  teo: {
+    lugar: "La punta",
+    quien: "Guitarrista. Lo invitaron a tocar en Buenos Aires y le da pánico.",
+    valora: "encanto",
+    agenda: { lunes: 0, jueves: 0, viernes: 0 },
+    ausencia: "Los sábados ensaya con la banda en un sótano de calle 2.",
+  },
+  mora: {
+    lugar: "La mesa",
+    quien: "Enfermera, invicta al pool. Le ofrecen la jefatura.",
+    valora: "coraje",
+    agenda: { jueves: 0, viernes: 0, sabado: 1 },
+    ausencia: "Los lunes entra de guardia a las ocho de la noche.",
+  },
+  dante: {
+    lugar: "La vidriera",
+    quien: "32 años, adquisiciones en Grupo Altamira. Vino a comprar la casa.",
+    valora: "labia",
+    agenda: { lunes: 0, viernes: 0, sabado: 2 },
+    ausencia: "Los jueves cena con Altamira. No puede faltar.",
+  },
+  sol: {
+    lugar: "El cuarto oscuro",
+    quien: "29, fotógrafa. Arma un libro de bares sin cartel. Su mamá se llama Amalia.",
+    valora: "coraje",
+    agenda: { lunes: 0, jueves: 0, sabado: 0 },
+    ausencia: "Los viernes saca fotos en casamientos. Paga el alquiler.",
+  },
+  luna: {
+    lugar: "La cabina",
+    quien: "27, la DJ de los sábados. Coquetea con medio bar. Nunca sabés si va en serio.",
+    valora: "encanto",
+    agenda: { lunes: 0, viernes: 0, sabado: 2 },
+    ausencia: "Los jueves no viene: dice que el silencio le da alergia.",
+  },
+  bruno: {
+    lugar: "La competencia",
+    quien: "30, bartender de El Zaguán, el bar con cartel de calle 17. Tatuado, canchero, rival de todo.",
+    valora: "coraje",
+    agenda: { lunes: 0, viernes: 0, sabado: 1 },
+    ausencia: "Los jueves hay karaoke en El Zaguán y no puede dejar la barra.",
+  },
+  cami: {
+    lugar: "La banqueta del jueves",
+    quien: "31, abogada. Vino un jueves \"solo por un trago\" y terminó cerrando la casa.",
+    valora: "labia",
+    agenda: { lunes: 0, jueves: 0, viernes: 0 },
+    ausencia: "Los sábados duerme. Dice que es su único derecho adquirido.",
+  },
+  evelyn: {
+    lugar: "La pista",
+    quien: "28. Encara sin vueltas, se ríe fuerte y no se hace la difícil. Todos creen que la conocen.",
+    valora: "encanto",
+    agenda: { jueves: 0, viernes: 0, sabado: 0 },
+    ausencia: "Los lunes no sale: a las siete y media la esperan veinte nenes de cuatro años.",
+  },
 };
 
 export const NOMBRE_STAT: Record<Stat, string> = { encanto: "Encanto", coraje: "Coraje", labia: "Labia" };
@@ -84,11 +156,18 @@ export const CG_INFO: Record<CgId, { titulo: string; pista: string }> = {
   "cg-sol-techo": { titulo: "Amanecer en el borde", pista: "Sol · rango 4" },
   "cg-beso": { titulo: "Un paraguas, dos personas", pista: "Dante · rango 5" },
   "cg-vera-barra": { titulo: "¿Esto qué es?", pista: "Vera · rango 8" },
+  "cg-fiesta": { titulo: "Vos. Sí, vos.", pista: "La peña de la casa" },
+  "cg-apagon": { titulo: "La casa a oscuras", pista: "Un jueves de tormenta" },
+  "cg-duelo": { titulo: "Duelo de barras", pista: "Un lunes de gastronómicos" },
   "cg-vera": { titulo: "Barra de arriba", pista: "Vera · rango 10" },
   "cg-teo": { titulo: "Su nombre en la marquesina", pista: "Teo · rango 10" },
   "cg-mora": { titulo: "La última partida", pista: "Mora · rango 10" },
   "cg-dante": { titulo: "Dos cielos en el lago", pista: "Dante · rango 10" },
   "cg-sol": { titulo: "Revelado pendiente", pista: "Sol · rango 10" },
+  "cg-luna": { titulo: "El último tema", pista: "Luna · rango 10" },
+  "cg-bruno": { titulo: "El cartel apagado", pista: "Bruno · rango 10" },
+  "cg-cami": { titulo: "Ha lugar", pista: "Cami · rango 10" },
+  "cg-evelyn": { titulo: "Licenciada", pista: "Evelyn · rango 10" },
   "cg-celos": { titulo: "La misma anécdota", pista: "Querer a dos a la vez" },
   "cg-casa": { titulo: "La casa llena", pista: "El último viernes" },
   "cg-gervasio": { titulo: "Primera vez", pista: "El final verdadero de la temporada 2" },
@@ -101,15 +180,15 @@ export const RESUMENES: Record<string, string> = {
   "1-1-viernes": "El jueves se cerró la puerta a las nueve. Lo que pasó adentro no se cuenta. Afuera, en un charco: \"El cuaderno. Primera página.\"",
   "1-1-sabado": "El viernes el del abrigo gris por fin te habló: \"Mañana, después del cierre, te voy a estar esperando.\"",
   "2-2-lunes": "Pasó una semana. La casa ya es un poco tuya. Pero hoy Lisandro te espera en la vereda con un papel en la mano y cara de velorio.",
-  "2-2-jueves": "La casa se vende. Treinta días. Y alguien colgó un cartel en la reja: SE VENDE.",
+  "2-2-jueves": "La casa se vende. La firma es en cuatro semanas. Y alguien colgó un cartel en la reja: SE VENDE.",
   "2-2-viernes": "Conociste a Sol, fotógrafa. En una foto vieja de su mamá, de 1987, aparece el abrigo gris en la misma esquina.",
-  "2-2-sabado": "Apareció Dante, de Grupo Altamira. Encantador. Peligroso. Y en su carpeta, una torre de catorce pisos donde está la casa.",
-  "2-3-lunes": "La asamblea de la casa. Y Gervasio te dejó dos palabras en tinta verde: \"Buscá a Amalia.\"",
-  "2-3-jueves": "Empezaste a buscar a Amalia. El cuaderno, el hospital, un mensaje a Sol. Y otra servilleta debajo de tu puerta.",
-  "2-3-viernes": "Jueves de tormenta y fotos viejas en un cuarto oscuro. A las tres de la mañana, Dante: \"Necesito hablar con alguien que no sea de la empresa.\"",
-  "2-3-sabado": "Dante te contó que la heredera viene a firmar en persona, el último sábado del mes. Hoy es la peña de la casa.",
-  "2-4-lunes": "La peña fue una fiesta. Pero a las cuatro de la mañana, por primera vez en treinta años, la esquina estaba vacía.",
-  "2-4-jueves": "Encontraste a Gervasio en la plaza. Se va a Mar del Plata. Y conoció a Amalia en 1987. Anoche, un auto negro: Altamira.",
+  "2-2-sabado": "Apareció Dante, de Grupo Altamira, con una torre de catorce pisos en la carpeta. Y una tal Evelyn te encaró en la puerta de la cocina sin pedir permiso.",
+  "2-3-lunes": "Volvió Luna, la DJ de los sábados, y te eligió desde la cabina. A la salida, Gervasio te dejó dos palabras en tinta verde: \"Buscá a Amalia.\"",
+  "2-3-jueves": "Empezaste a buscar a Amalia. Bruno, el bartender de la competencia, se sentó en la banqueta de Vera. Y otra servilleta apareció debajo de tu puerta.",
+  "2-3-viernes": "Jueves de tormenta, la casa sin luz. Una abogada que vino \"solo por un trago\" terminó cerrando la casa. A las tres, Dante: \"Necesito hablar con alguien que no sea de la empresa.\"",
+  "2-3-sabado": "Dante te contó que la heredera viene a firmar en persona, el último sábado del mes. Hoy es la peña de la casa. Y pincha Luna.",
+  "2-4-lunes": "La peña fue una fiesta. Pero a las cuatro de la mañana, por primera vez, la esquina estaba vacía.",
+  "2-4-jueves": "Encontraste a Gervasio en la plaza: se va a Mar del Plata, y conoció a Amalia en 1987. Vera y Bruno se batieron a duelo. Y de noche, un auto negro: Altamira.",
   "2-4-viernes": "Lisandro le cerró la puerta en la cara a Altamira. Pero Barcelona quiere la respuesta de Vera el mismo día y a la misma hora que la firma.",
   "2-4-sabado": "Al cartel de SE VENDE le pusieron una faja: VENDIDO. Todavía no firmaron. La gente que la casa salvó... ¿la puede salvar?",
   "2-5-lunes": "La última semana. Escribiste servilletas con la pluma verde. Ahora hay que esperar quién contesta.",
@@ -129,19 +208,21 @@ const T1: Record<string, Escena> = armar({
     fondo: "puerta",
     hora: "18:04",
     texto: `
-      Hace una semana que vivís en La Plata.
-      Te trajo un laburo que se cayó al tercer día. "Reestructuración", dijeron. "Te llamamos", dijeron.
-      No te llamaron.
-      Anoche, debajo de tu puerta, apareció una servilleta doblada en cuatro.
-      Tinta verde. Letra prolija, de otra época. Una dirección, "lunes, 18 hs", y abajo:
+      !Domingo, dos de la mañana. Tres golpes en tu puerta.
+      Nadie golpea tu puerta. No conocés a nadie en esta ciudad.
+      Abrís. El pasillo, vacío. La luz del palier, haciendo tic tic.
+      Y en el felpudo, una servilleta de bar doblada en cuatro.
+      Tinta verde. Letra prolija, de otra época. Una dirección. "Lunes, 18 hs." Y abajo:
       !"Si llegaste hasta acá, alguien te contó."
-      Sin firma.
+      Sin firma. Sin nadie en la escalera. Solo, a lo lejos, unos pasos que bajan sin apuro.
+      Hace una semana que vivís en La Plata. Te trajo un laburo que se cayó al tercer día. "Reestructuración", dijeron. "Te llamamos."
+      No te llamaron. Alguien, en cambio, sabe cuál es tu puerta.
       Así que acá estás. Lunes, 18:04. Frente a una casa sin cartel.
       yo: ...¿Es acá? No dice nada. Ni un número lindo. Ni un neón. Nada.
       Detrás de la reja asoman dos hocicos. Perros. Te evalúan como dos patovicas.
       Y enfrente, en la esquina, alguien de abrigo gris te está mirando.
       gris/serio: ...
-      Se toca el ala del sombrero. Como saludando. Como si te estuviera esperando.
+      Se toca el ala del sombrero. Como saludando. Como si te estuviera esperando desde hace rato.
     `,
     opciones: [
       {
@@ -170,6 +251,7 @@ const T1: Record<string, Escena> = armar({
         respuesta: `
           Tocás. Suena un timbre de casa de abuela.
           yo: Dignidad ante todo.
+          Desde el fondo de la casa, alguien grita con la boca llena: "¡Al fin alguien que toca el timbre! ¡Lisandro, abrí, que hay gente educada!"
           Cuando volvés a mirar la esquina, ya no hay nadie.
         `,
       },
@@ -313,17 +395,65 @@ const T1: Record<string, Escena> = armar({
       !Tinta verde.
       !"Jueves. No llegues tarde. —G."
     `,
-    sigue: "jue-pool",
+    sigue: "jue-pan",
   },
 
   // ═══ JUEVES ═══
+  "jue-pan": {
+    dia: "jueves",
+    fondo: "vereda",
+    hora: "18:40",
+    texto: `
+      Jueves. Salís con tiempo de sobra. Te lo dijo una servilleta, y ya no discutís con servilletas.
+      En la panadería de la esquina de la casa hay un hombre con delantal y pañuelo rojo cargando una montaña de bolsas de pan.
+      agustin/feliz: ¡La persona del lunes! ¡La del sánguche y las lágrimas!
+      agustin/normal: Los jueves hago pan de más. Después de las nueve la gente tiene hambre de cosas raras. No te puedo contar por qué.
+      Se le cae una bolsa. Después otra. El panadero mira el techo como quien ya vio esto cien veces.
+      agustin/sonrisa: Ayudame con dos y te debo un sánguche. Ayudame con cuatro y te debo dos.
+      Desde la vereda de enfrente, en la esquina, alguien de abrigo gris mira la escena. No se mueve. Parece contento.
+    `,
+    opciones: [
+      {
+        texto: "Cargar cuatro bolsas, aunque no te den los brazos",
+        efectos: { gris: 1 },
+        respuesta: `
+          Cargás cuatro. No te dan los brazos. Llegás a la casa con pan hasta el mentón.
+          Te abre Lisandro. Te mira, mira el pan, mira a Agustín.
+          lisandro/serio: Ya consiguió mano de obra. Siempre consigue.
+          agustin/feliz: ¡Voluntariado! ¡Es voluntariado! Hay una diferencia legal.
+          Al darte vuelta para cerrar la reja, ves al del abrigo en la esquina. Te hace un gesto con la cabeza. Aprobando.
+        `,
+      },
+      {
+        texto: "Preguntarle qué pasa los jueves",
+        efectos: { vera: 1 },
+        respuesta: `
+          yo: ¿Qué pasa los jueves?
+          agustin/serio: Ah, no. Eso no. Eso no lo cuenta nadie. Ni yo, que cuento todo.
+          agustin/sonrisa: Te digo una cosa nomás: venite con hambre y sin apuro. Lo demás se entiende adentro.
+          Desde una ventana de la casa, una voz de mujer: "¡Agustín, no le cuentes nada a la cara nueva!" Es Vera. Ya llegó.
+        `,
+      },
+      {
+        texto: "Preguntarle por el señor de la esquina",
+        efectos: { gris: 1 },
+        respuesta: `
+          yo: ¿Y ese señor? El del abrigo. Está ahí desde el lunes.
+          agustin/normal: ¿Ese? Desde siempre. Desde antes que yo. No entra nunca.
+          agustin/triste: Yo le dejo un sánguche en el escalón algunas noches. A la mañana no está más. El sánguche, digo. Él tampoco.
+          Cuando mirás de nuevo a la esquina, no hay nadie. Solo una servilleta doblada, enganchada en el farol.
+        `,
+      },
+    ],
+    sigue: "jue-pool",
+  },
+
   "jue-pool": {
     dia: "jueves",
     fondo: "pool",
     hora: "19:30",
     texto: `
-      Jueves. Llegaste temprano. Te lo dijo una servilleta, y ya no discutís con servilletas.
-      Hay menos gente que el lunes, y más silencio. Como antes de una tormenta.
+      Adentro hay menos gente que el lunes, y más silencio. Como antes de una tormenta.
       Al fondo, la mesa de pool. Y alrededor de la mesa, dando vueltas como un tiburón, ella.
       mora/normal: Vos sos la persona nueva. La de la servilleta.
       yo: ...¿Cómo sabés?
@@ -703,6 +833,9 @@ const T1: Record<string, Escena> = armar({
       yo: ¿Ya soy de acá?
       agustin/feliz: ¡Te comiste tres sánguches en una semana! ¡Sos de acá hace rato!
       El gato cruza la barra entre los vasos sin tirar ninguno. Un milagro de sábado.
+      En un rincón hay una cabina de DJ tapada con una sábana, como un mueble de casa de veraneo.
+      lisandro/normal: Es de Luna, la que pincha los sábados. Anda de gira por el sur. Vuelve cuando vuelve.
+      agustin/picara: Y cuando vuelve, se nota.
       Antes del cierre hay tiempo para una sola charla más.
     `,
     opciones: [
@@ -980,7 +1113,7 @@ const T1: Record<string, Escena> = armar({
   },
 });
 
-export const ESCENAS: Record<string, Escena> = { ...T1, ...ESCENAS_T2, ...VERA, ...TEO, ...MORA, ...DANTE, ...SOL };
+export const ESCENAS: Record<string, Escena> = { ...T1, ...ESCENAS_T2, ...VERA, ...TEO, ...MORA, ...DANTE, ...SOL, ...LUNA, ...BRUNO, ...CAMI, ...EVELYN };
 
 const romance = (c: Confidente, titulo: string, pista: string): Final => ({
   id: `t2-${c}`,
@@ -1024,16 +1157,17 @@ export const FINALES: Final[] = [
   romance("mora", "La partida que perdí ganando", "Mora · rango 10, en pareja."),
   romance("dante", "Agua de la canilla", "Dante · rango 10, en pareja."),
   romance("sol", "Bares que no existen", "Sol · rango 10, en pareja."),
+  romance("luna", "Que no termine el tema", "Luna · rango 10, en pareja."),
+  romance("bruno", "El tatuaje que no cerró", "Bruno · rango 10, en pareja."),
+  romance("cami", "Cláusula de jueves", "Cami · rango 10, en pareja."),
+  romance("evelyn", "Preguntame algo", "Evelyn · rango 10, en pareja."),
   {
     id: "t2-casa",
     temporada: 2,
     titulo: "La última ronda",
     pista: "Quedarte en la casa, con tres vínculos de rango 5 o más.",
     condicion: {
-      todas: [
-        { marca: "eleccion2:casa" },
-        { alMenos: 3, de: [{ rango: "vera", min: 5 }, { rango: "teo", min: 5 }, { rango: "mora", min: 5 }, { rango: "dante", min: 5 }, { rango: "sol", min: 5 }] },
-      ],
+      todas: [{ marca: "eleccion2:casa" }, { alMenos: 3, de: CONFIDENTES.map((c) => ({ rango: c, min: 5 })) }],
     },
     escena: "f2-casa",
   },

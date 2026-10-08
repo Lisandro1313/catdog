@@ -8,7 +8,19 @@
  */
 import type { Cara, CgId, Fondo, Quien } from "./tipos";
 
-const RETRATOS = new Set<string>(["vera-normal", "teo-normal", "mora-normal", "gervasio-normal", "gervasio-sonrisa", "dante-normal", "sol-normal"]);
+const RETRATOS = new Set<string>([
+  "vera-normal",
+  "teo-normal",
+  "mora-normal",
+  "gervasio-normal",
+  "gervasio-sonrisa",
+  "dante-normal",
+  "sol-normal",
+  "luna-normal",
+  "bruno-normal",
+  "cami-normal",
+  "evelyn-normal",
+]);
 
 /** Vestuario de salir (escenas con `noche`): una sola imagen por personaje, sirve para cualquier cara. */
 const CITA = new Set<string>(["vera", "teo", "mora", "dante", "sol"]);
@@ -19,6 +31,7 @@ const CG_IMG: Partial<Record<CgId, string>> = {
   "cg-vera-barra": "cg-vera-barra",
   "cg-sol-techo": "cg-sol-techo",
   "cg-mora": "cg-mora-pool",
+  "cg-fiesta": "cg-luna-cabina",
 };
 
 const FONDOS_IMG: Partial<Record<Fondo, string>> = {
@@ -34,7 +47,20 @@ const FONDOS_IMG: Partial<Record<Fondo, string>> = {
 const BASE = "/novela/";
 
 /** El nombre de archivo del personaje (el del abrigo es Gervasio, aunque todavía no se sepa). */
-const ARCHIVO: Partial<Record<Quien, string>> = { vera: "vera", teo: "teo", mora: "mora", gris: "gervasio", gervasio: "gervasio", dante: "dante", sol: "sol", amalia: "amalia" };
+const ARCHIVO: Partial<Record<Quien, string>> = {
+  vera: "vera",
+  teo: "teo",
+  mora: "mora",
+  gris: "gervasio",
+  gervasio: "gervasio",
+  dante: "dante",
+  sol: "sol",
+  amalia: "amalia",
+  luna: "luna",
+  bruno: "bruno",
+  cami: "cami",
+  evelyn: "evelyn",
+};
 
 /**
  * La imagen para un personaje y una cara. `exacta` dice si la expresión existe tal cual o si se cae

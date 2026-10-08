@@ -425,6 +425,116 @@ function Amalia({ cara, uid }: Figura) {
   );
 }
 
+/** Luna: rubia platinada con raíces oscuras, choker, top negro sin hombros, auriculares de colores. */
+function Luna({ cara, uid }: Figura) {
+  const r: Rasgos = { piel: "#f4dccc", sombra: "#dcb8a4", iris: "#6a4a8a", fem: true, labios: "#a0204a" };
+  return (
+    <g>
+      {/* pelo largo platinado, por detrás */}
+      <path d="M76 100 Q70 40 120 38 Q170 40 164 100 L172 210 Q150 220 140 196 L144 120 L96 120 L100 196 Q90 220 68 210 Z" fill="#efe6c8" stroke={K} strokeWidth="2.5" />
+      <path d={torso(94)} fill="#141414" stroke={K} strokeWidth="3" />
+      {/* hombros al aire: el top empieza más abajo */}
+      <path d="M52 236 Q120 222 188 236 L190 250 Q120 238 50 250 Z" fill={r.piel} stroke={K} strokeWidth="2.5" />
+      {brazoIzq(94, "#141414")}
+      {brazoDer(94, "#141414")}
+      <Cara_ cara={cara} r={r} uid={uid} />
+      {/* choker */}
+      <rect x="106" y="176" width="28" height="7" rx="2" fill={K} />
+      <circle cx="120" cy="186" r="3" fill="#c77dff" />
+      {/* flequillo platinado con raíces oscuras */}
+      <path d="M82 106 Q78 48 120 44 Q162 48 158 106 L150 92 L138 104 L132 84 L118 100 L108 82 L96 102 L90 88 Z" fill="#efe6c8" stroke={K} strokeWidth="2" />
+      <path d="M92 58 Q120 44 148 58 Q120 52 92 66 Z" fill="#5a4636" />
+      {/* auriculares de colores */}
+      <path d="M78 110 Q78 30 120 28 Q162 30 162 110" fill="none" stroke={K} strokeWidth="7" />
+      <rect x="66" y="98" width="18" height="30" rx="7" fill="#c77dff" stroke={K} strokeWidth="2.5" />
+      <rect x="156" y="98" width="18" height="30" rx="7" fill="#ff3b6b" stroke={K} strokeWidth="2.5" />
+    </g>
+  );
+}
+
+/** Bruno: musculoso, remera negra ajustada, antebrazos tatuados, barba prolija. */
+function Bruno({ cara, uid }: Figura) {
+  const r: Rasgos = { piel: "#dba882", sombra: "#bb8862", iris: "#3a2a1a", barba: "#2a1a10" };
+  return (
+    <g>
+      <path d={torso(112)} fill="#151515" stroke={K} strokeWidth="3" />
+      <path d="M104 188 Q120 196 136 188" stroke="#333" strokeWidth="3" fill="none" />
+      {/* brazos anchos, piel al aire con tatuajes */}
+      {brazoIzq(112, r.piel)}
+      {brazoDer(112, r.piel)}
+      <g stroke="#2b3a6a" strokeWidth="2.2" fill="none" opacity="0.85">
+        <circle cx="30" cy="280" r="9" />
+        <path d="M24 300 l12 0 l-6 14 z M26 262 l8 -8" />
+        <path d="M206 276 l10 0 l-2 18 l-6 0 z M204 304 q8 -6 14 0" />
+      </g>
+      <Cara_ cara={cara} r={r} uid={uid} />
+      {/* barba prolija y pelo corto con jopo */}
+      <path d="M90 124 Q92 162 120 172 Q148 162 150 124 Q144 154 130 158 Q120 152 110 158 Q96 154 90 124 Z" fill="#2a1a10" />
+      <path d="M86 98 Q82 54 120 50 Q160 52 156 98 Q150 72 132 66 Q140 56 124 52 Q100 60 92 76 Z" fill="#2a1a10" stroke={K} strokeWidth="2" />
+      <Brillo d="M104 58 Q118 52 134 56" />
+    </g>
+  );
+}
+
+/** Cami: pelo castaño ondulado medio desarmado, anteojos en la cabeza, blusa blanca, blazer flojo. */
+function Cami({ cara, uid }: Figura) {
+  const r: Rasgos = { piel: "#f0d2bc", sombra: "#d6b29a", iris: "#4a3a2a", fem: true, labios: "#a24a4a" };
+  const ondas = [[82, 120], [80, 150], [86, 176], [158, 120], [160, 150], [154, 176]];
+  return (
+    <g>
+      <g fill="#6b4226">
+        {ondas.map(([x, y]) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r="16" />
+        ))}
+      </g>
+      <path d={torso(96)} fill={W} stroke={K} strokeWidth="3" />
+      <path d="M104 190 L120 222 L136 190" fill="none" stroke={K} strokeWidth="2.5" />
+      {/* blazer flojo */}
+      <path d="M22 330 L30 236 Q38 198 80 188 L104 196 L110 260 L98 330 Z" fill="#3b3a48" stroke={K} strokeWidth="3" />
+      <path d="M218 330 L210 236 Q202 198 160 188 L136 196 L130 260 L142 330 Z" fill="#3b3a48" stroke={K} strokeWidth="3" />
+      {brazoIzq(96, "#3b3a48")}
+      {brazoDer(96, "#3b3a48")}
+      {/* copa de vino */}
+      <g transform="translate(184 238)">
+        <path d="M0 0 L24 0 Q24 22 12 24 Q0 22 0 0 Z" fill="#7a0f24" opacity="0.85" stroke={K} strokeWidth="2" />
+        <path d="M12 24 L12 44 M4 44 L20 44" stroke={K} strokeWidth="2.5" />
+      </g>
+      <Cara_ cara={cara} r={r} uid={uid} />
+      <path d="M84 108 Q78 50 120 46 Q164 50 156 108 Q150 80 134 72 Q122 86 104 76 Q92 86 84 108 Z" fill="#6b4226" stroke={K} strokeWidth="2" />
+      <path d="M98 70 q8 18 -2 34 M144 74 q-6 16 4 30" stroke="#6b4226" strokeWidth="6" fill="none" strokeLinecap="round" />
+      {/* anteojos en la cabeza */}
+      <g fill="none" stroke={K} strokeWidth="2.6">
+        <rect x="96" y="50" width="18" height="12" rx="4" />
+        <rect x="126" y="50" width="18" height="12" rx="4" />
+        <path d="M114 56 L126 56" />
+      </g>
+    </g>
+  );
+}
+
+/** Evelyn: campera de cuero, top negro, pelo suelto, labios rojos. */
+function Evelyn({ cara, uid }: Figura) {
+  const r: Rasgos = { piel: "#e6bc9c", sombra: "#c99a7a", iris: "#3a2418", fem: true, labios: "#c0102a" };
+  return (
+    <g>
+      <path d="M80 100 Q74 44 120 40 Q166 44 160 100 L168 196 Q150 206 140 184 L146 118 L94 118 L100 184 Q90 206 72 196 Z" fill="#2a1810" />
+      <path d={torso(94)} fill="#121212" stroke={K} strokeWidth="3" />
+      {/* campera de cuero abierta */}
+      <path d="M22 330 L30 236 Q38 198 78 188 L100 194 L94 330 Z" fill="#1b1b1b" stroke={K} strokeWidth="3" />
+      <path d="M218 330 L210 236 Q202 198 162 188 L140 194 L146 330 Z" fill="#1b1b1b" stroke={K} strokeWidth="3" />
+      <path d="M80 190 L96 232 M160 190 L144 232" stroke="#555" strokeWidth="2.5" />
+      <path d="M60 258 L66 300 M180 258 L174 300" stroke="#9a9a9a" strokeWidth="2" />
+      {brazoIzq(94, "#1b1b1b")}
+      {brazoDer(94, "#1b1b1b")}
+      <Cara_ cara={cara} r={r} uid={uid} />
+      <path d="M84 104 Q80 48 120 46 Q162 48 156 104 Q146 70 124 64 Q104 74 92 70 Q86 84 84 104 Z" fill="#2a1810" />
+      <Brillo d="M98 58 Q114 50 132 54" />
+      <circle cx="88" cy="132" r="3" fill="#d8d8d8" />
+      <circle cx="152" cy="132" r="3" fill="#d8d8d8" />
+    </g>
+  );
+}
+
 function Abrigo({ cara, revelado, uid }: Figura & { revelado: boolean }) {
   const r: Rasgos = { piel: "#efd5c4", sombra: "#d2b09c", iris: "#6f8fa8" };
   return (
@@ -545,6 +655,14 @@ export function Cuerpo({ quien, cara, noche }: { quien: Quien; cara: Cara; noche
       return <Sol {...f} />;
     case "amalia":
       return <Amalia {...f} />;
+    case "luna":
+      return <Luna {...f} />;
+    case "bruno":
+      return <Bruno {...f} />;
+    case "cami":
+      return <Cami {...f} />;
+    case "evelyn":
+      return <Evelyn {...f} />;
     case "gris":
       return <Abrigo {...f} revelado={false} />;
     case "gervasio":

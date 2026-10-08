@@ -6,12 +6,14 @@
  * bloque que se está leyendo; si `pos` llegó al final de la escena y la escena tiene opciones,
  * se está en una decisión.
  *
- * Temporada 2: además hay rangos por confidente (1 a 10), cualidades (encanto, coraje, labia) y
- * una "vuelta": la escena a la que se regresa después de pasar el tiempo libre con alguien.
+ * Temporada 2: además hay rangos por confidente (1 a 10), cualidades (encanto, coraje, labia), una
+ * agenda (no todos vienen todos los días) y una "vuelta": la escena a la que se regresa después de
+ * pasar el tiempo libre con alguien.
  */
-import { ESCENAS, FINALES, INICIO, NOMBRE_STAT, RESUMENES, T2_INICIO } from "./guion";
+import { CONFIDENTE_INFO, ESCENAS, FINALES, INICIO, NOMBRE_STAT, RESUMENES, T2_INICIO, type Agenda } from "./guion";
 import {
   CONFIDENTES,
+  CONOCIDOS,
   RANGO_MAX,
   enPareja,
   STATS,
@@ -48,7 +50,7 @@ export const FINAL = "@final";
 export const VUELTA = "@vuelta";
 
 const ceroAfinidad = (): Record<Vinculo, number> => ({ vera: 0, teo: 0, mora: 0, gris: 0 });
-const ceroRangos = (): Record<Confidente, number> => ({ vera: 0, teo: 0, mora: 0, dante: 0, sol: 0 });
+const ceroRangos = (): Record<Confidente, number> => Object.fromEntries(CONFIDENTES.map((c) => [c, 0])) as Record<Confidente, number>;
 const ceroStats = (): Record<Stat, number> => ({ encanto: 0, coraje: 0, labia: 0 });
 
 export function escenaDe(id: string): Escena {
@@ -65,6 +67,7 @@ export function cumple(c: Condicion, e: Contexto): boolean {
   if ("stat" in c) return (e.stats?.[c.stat] ?? 0) >= c.min;
   if ("marca" in c) return e.marcas.includes(c.marca);
   if ("no" in c) return !e.marcas.includes(c.no);
+  if ("ni" in c) return !cumple(c.ni, e);
   if ("total" in c) return afinidadTotal(e.afinidad) >= c.total;
   if ("alMenos" in c) return c.de.filter((x) => cumple(x, e)).length >= c.alMenos;
   return c.todas.every((x) => cumple(x, e));
@@ -77,6 +80,11 @@ export function afinidadTotal(a: Record<Vinculo, number>): number {
 export { enPareja };
 export function parejas(e: Contexto): Confidente[] {
   return CONFIDENTES.filter((c) => cumple(enPareja(c), e));
+}
+
+/** Si ya se lo cruzó en la historia (los de la temporada 1 se conocen de entrada). */
+export function conoce(e: Pick<Estado, "marcas">, c: Confidente): boolean {
+  return CONOCIDOS.includes(c) || e.marcas.includes(`conoce:${c}`);
 }
 
 function visibles(lineas: Linea[], e: Estado): Linea[] {
@@ -101,17 +109,41 @@ export function lineaEnPantalla(e: Estado): Linea | null {
   return b[Math.min(e.pos, b.length - 1)] ?? null;
 }
 
+// ─── Agenda: no todos vienen todos los días ──────────────────────────────────────────────────
+
+const DIA_CORTO: Record<keyof Agenda, string> = { lunes: "Lun", jueves: "Jue", viernes: "Vie", sabado: "Sáb" };
+const TURNO_TXT = ["", " (temprano)", " (de madrugada)"] as const;
+
+/** "Lun · Jue · Vie (temprano)": cuándo se lo encuentra. */
+export function agendaTexto(c: Confidente): string {
+  const a = CONFIDENTE_INFO[c].agenda;
+  return (Object.keys(DIA_CORTO) as (keyof Agenda)[])
+    .filter((d) => a[d] !== undefined)
+    .map((d) => `${DIA_CORTO[d]}${TURNO_TXT[a[d]!]}`)
+    .join(" · ");
+}
+
+/** Si está en la casa en este tiempo libre; si no, por qué. */
+export function disponible(c: Confidente, esc: Pick<Escena, "dia" | "turno">): string | null {
+  if (!esc.dia || esc.dia === "epilogo") return null;
+  const a = CONFIDENTE_INFO[c].agenda[esc.dia];
+  if (a === undefined) return `Hoy no viene. ${CONFIDENTE_INFO[c].ausencia}`;
+  if (a !== 0 && esc.turno && esc.turno !== a) return a === 1 ? "Ya se fue: hoy solo estaba temprano." : "Todavía no llegó: viene de madrugada.";
+  return null;
+}
+
 // ─── Vínculos con rangos ─────────────────────────────────────────────────────────────────────
 
 /** Qué pasaría si se va a ver a `c` ahora: la escena del próximo rango, o por qué no se puede. */
-export function proximoRango(e: Estado, c: Confidente): { n: number; escena: string | null; bloqueo: string | null } {
+export function proximoRango(e: Estado, c: Confidente): { n: number; escena: string | null; bloqueo: string | null; premio: string | null } {
   const n = (e.rangos[c] ?? 0) + 1;
-  if (n > RANGO_MAX) return { n, escena: null, bloqueo: "Rango máximo. Ya está todo dicho." };
-  if (e.marcas.includes(`corte:${c}`)) return { n, escena: null, bloqueo: "Se cortó. No te contesta los mensajes." };
+  if (n > RANGO_MAX) return { n, escena: null, bloqueo: "Rango máximo. Ya está todo dicho.", premio: null };
   const id = idRango(c, n);
   const esc = escenaDe(id);
-  if (esc.pide && !cumple(esc.pide, e)) return { n, escena: null, bloqueo: esc.motivo ?? "Todavía no." };
-  return { n, escena: id, bloqueo: null };
+  const premio = esc.premio ?? null;
+  if (e.marcas.includes(`corte:${c}`)) return { n, escena: null, bloqueo: "Se cortó. No te contesta los mensajes.", premio };
+  if (esc.pide && !cumple(esc.pide, e)) return { n, escena: null, bloqueo: esc.motivo ?? "Todavía no.", premio };
+  return { n, escena: id, bloqueo: null, premio };
 }
 
 export type OpcionVista = { opcion: Opcion; k: number; bloqueo: string | null };
@@ -129,7 +161,7 @@ export function opcionesVista(e: Estado): OpcionVista[] | null {
       if ("stat" in r) out.push({ opcion, k, bloqueo: `Necesitás ${NOMBRE_STAT[r.stat]} ${r.min}` });
       return;
     }
-    const bloqueo = opcion.rango ? proximoRango(e, opcion.rango).bloqueo : null;
+    const bloqueo = opcion.rango ? (disponible(opcion.rango, esc) ?? proximoRango(e, opcion.rango).bloqueo) : null;
     out.push({ opcion, k, bloqueo });
   });
   return out;
@@ -309,6 +341,21 @@ export function subieronStats(antes: Estado, despues: Estado): Stat[] {
   return STATS.filter((s) => despues.stats[s] > antes.stats[s]);
 }
 
+/**
+ * Cómo le cayó a un confidente lo que elegiste en su escena (♪ a ♪♪♪): la respuesta que va con la
+ * cualidad que valora le encanta; las otras le gustan. Null si no fue una decisión en un rango.
+ */
+export function reaccion(antes: Estado, despues: Estado): { de: Confidente; notas: 1 | 2 | 3 } | null {
+  if (antes.bloque >= 0 || despues.escena !== antes.escena || despues.bloque < 0) return null;
+  const esc = escenaDe(antes.escena);
+  if (!esc.rango) return null;
+  const op = esc.opciones?.[despues.bloque];
+  if (!op) return null;
+  const valora = CONFIDENTE_INFO[esc.rango.de].valora;
+  if (op.marcas?.some((m) => m.startsWith("amor:") || m.startsWith("amistad:"))) return { de: esc.rango.de, notas: 3 };
+  return { de: esc.rango.de, notas: op.stats?.[valora] ? 3 : op.stats && Object.keys(op.stats).length ? 2 : 1 };
+}
+
 export function interpolar(texto: string, nombre: string): string {
   return texto.replaceAll("{nombre}", nombre || "Vos");
 }
@@ -325,8 +372,9 @@ function numeros<K extends string>(claves: readonly K[], raw: unknown, max = Inf
 }
 
 /**
- * Lee una partida guardada (formato 1 de la temporada 1, o formato 2). Si está rota o el guion
- * cambió y ya no encaja, devuelve null.
+ * Lee una partida guardada (formato 1 de la temporada 1, o formato 2). Si el guion cambió y la
+ * línea guardada ya no existe, la escena vuelve a empezar (no se pierde la partida). Si la escena
+ * ya no existe o el guardado está roto, devuelve null.
  */
 export function cargar(raw: string | null): Partida | null {
   if (!raw) return null;
@@ -338,7 +386,7 @@ export function cargar(raw: string | null): Partida | null {
     const vuelta = typeof s.vuelta === "string" && ESCENAS[s.vuelta] ? s.vuelta : null;
     const estado: Estado = {
       escena: s.escena,
-      bloque: s.bloque,
+      bloque: Math.floor(s.bloque),
       pos: Math.max(0, Math.floor(s.pos)),
       afinidad: numeros(VINCULOS, s.afinidad),
       rangos: numeros(CONFIDENTES, s.rangos, RANGO_MAX),
@@ -348,10 +396,13 @@ export function cargar(raw: string | null): Partida | null {
       terminado: null,
     };
     const esc = ESCENAS[s.escena];
-    if (estado.bloque >= 0 && !esc.opciones?.[estado.bloque]) return null;
-    if (estado.pos > bloqueActual(estado).length) return null;
     // Una escena de vínculo sin vuelta no tiene a dónde ir: mejor no cargarla.
     if (esc.sigue === VUELTA && !estado.vuelta) return null;
+    // El guion cambió y ese pedazo ya no está: se arranca la escena desde el principio.
+    if ((estado.bloque >= 0 && !esc.opciones?.[estado.bloque]) || estado.bloque < -1 || estado.pos > bloqueActual(estado).length) {
+      estado.bloque = -1;
+      estado.pos = 0;
+    }
     return { estado: asentar(estado), nombre: typeof d.nombre === "string" ? d.nombre.slice(0, 16) : "", t: typeof d.t === "number" ? d.t : 0 };
   } catch {
     return null;

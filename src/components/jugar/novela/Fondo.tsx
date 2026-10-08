@@ -572,6 +572,158 @@ function Depto() {
   );
 }
 
+/** La cabina de Luna: luces rojas y violetas, bandejas, humo. */
+function Cabina() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#12051c" />
+      <defs>
+        <radialGradient id="nv-cabina-luz" cx="50%" cy="20%" r="80%">
+          <stop offset="0" stopColor="#b01fff" stopOpacity="0.55" />
+          <stop offset="0.5" stopColor="#ff1040" stopOpacity="0.25" />
+          <stop offset="1" stopColor="#12051c" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="400" height="720" fill="url(#nv-cabina-luz)" />
+      {/* haces de luz cruzados */}
+      <g opacity="0.22">
+        <path d="M40 0 L90 0 L300 560 L200 560 Z" fill="#ff2a55" />
+        <path d="M360 0 L310 0 L100 560 L200 560 Z" fill="#a43bff" />
+        <path d="M200 0 L215 0 L260 560 L150 560 Z" fill={W} opacity="0.5" />
+      </g>
+      {/* bolas de luz */}
+      {Array.from({ length: 16 }, (_, i) => (
+        <circle key={i} cx={(i * 83) % 400} cy={80 + ((i * 47) % 300)} r={3 + (i % 3) * 2} fill={i % 2 ? "#ff3b6b" : "#c77dff"} opacity="0.7" />
+      ))}
+      {/* la cabina */}
+      <path d="M40 520 L360 500 L360 720 L40 720 Z" fill={K} />
+      <path d="M40 520 L360 500 L360 512 L40 532 Z" fill="#c77dff" opacity="0.8" />
+      {[110, 290].map((x) => (
+        <g key={x}>
+          <ellipse cx={x} cy="545" rx="52" ry="14" fill="#1d1d24" stroke="#444" strokeWidth="3" />
+          <ellipse cx={x} cy="543" rx="12" ry="4" fill="#ff3b6b" />
+        </g>
+      ))}
+      <rect x="170" y="528" width="60" height="26" rx="3" fill="#1d1d24" stroke="#444" strokeWidth="2" />
+      {[178, 192, 206, 220].map((x, i) => (
+        <rect key={x} x={x} y="532" width="6" height="18" fill={i % 2 ? "#c77dff" : "#ff3b6b"} />
+      ))}
+      {/* humo */}
+      <g fill={W} opacity="0.06">
+        <ellipse cx="120" cy="470" rx="140" ry="40" />
+        <ellipse cx="300" cy="440" rx="120" ry="34" />
+      </g>
+    </g>
+  );
+}
+
+/** El Zaguán: el bar de Bruno. Cartel de neón enorme, barra de mármol, nadie adentro. */
+function Zaguan() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#08111f" />
+      <Rayos color="#3fd0ff" opacity={0.05} />
+      {/* el cartel de neón */}
+      <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <text x="200" y="190" textAnchor="middle" fontFamily="Georgia, serif" fontStyle="italic" fontSize="70" stroke="#3fd0ff" strokeWidth="3">
+          Zaguán
+        </text>
+        <text x="200" y="190" textAnchor="middle" fontFamily="Georgia, serif" fontStyle="italic" fontSize="70" stroke="#3fd0ff" strokeWidth="14" opacity="0.15">
+          Zaguán
+        </text>
+        <path d="M80 220 L320 220" stroke="#ff4fa3" strokeWidth="5" />
+        <path d="M80 220 L320 220" stroke="#ff4fa3" strokeWidth="16" opacity="0.15" />
+      </g>
+      {/* estantes con botellas alineadas, demasiado ordenadas */}
+      {[300, 380].map((y) => (
+        <g key={y}>
+          <rect x="20" y={y} width="360" height="6" fill="#1e2a40" />
+          {Array.from({ length: 12 }, (_, i) => (
+            <rect key={i} x={30 + i * 29} y={y - 50} width="16" height="50" rx="3" fill={i % 3 ? "#16304a" : "#3fd0ff"} opacity={i % 3 ? 1 : 0.4} />
+          ))}
+        </g>
+      ))}
+      {/* barra de mármol */}
+      <path d="M0 500 L400 470 L400 720 L0 720 Z" fill="#d9dde3" />
+      <path d="M0 500 L400 470 L400 484 L0 514 Z" fill={W} />
+      <path d="M40 560 Q120 540 180 600 M240 520 Q300 560 380 540" stroke="#aab0b8" strokeWidth="2" fill="none" />
+      {/* banquetas vacías */}
+      {[40, 120, 200, 280, 360].map((x, i) => (
+        <g key={x}>
+          <ellipse cx={x} cy={630 - i * 4} rx="22" ry="7" fill="#1e2a40" />
+          <rect x={x - 3} y={636 - i * 4} width="6" height="70" fill="#1e2a40" />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** Un estudio jurídico viejo: biblioteca de expedientes, lámpara verde. */
+function Estudio() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#1a120c" />
+      {/* bibliotecas */}
+      {Array.from({ length: 6 }, (_, f) => (
+        <g key={f}>
+          <rect x="0" y={60 + f * 80} width="400" height="8" fill="#3a2614" />
+          {Array.from({ length: 14 }, (_, i) => (
+            <rect key={i} x={6 + i * 28} y={60 + f * 80 - (40 + ((i * 7 + f * 3) % 4) * 8)} width="22" height={40 + ((i * 7 + f * 3) % 4) * 8} fill={["#5a1a14", "#2a3a2a", "#3a2a1a", "#6b4a2a"][(i + f) % 4]} />
+          ))}
+        </g>
+      ))}
+      <Rayos color="#ffd98a" opacity={0.05} />
+      {/* escritorio */}
+      <path d="M0 560 L400 540 L400 720 L0 720 Z" fill="#2a180c" />
+      <path d="M0 560 L400 540 L400 552 L0 574 Z" fill="#5a3a20" />
+      {/* lámpara de banco verde */}
+      <path d="M250 540 L250 500" stroke="#c9a24a" strokeWidth="4" />
+      <path d="M210 500 Q250 470 290 500 Z" fill="#1f6b45" stroke={K} strokeWidth="3" />
+      <path d="M210 500 L150 560 L350 560 L290 500 Z" fill="#ffe7a8" opacity="0.18" />
+      {/* pila de expedientes */}
+      {[0, 1, 2, 3].map((i) => (
+        <rect key={i} x={60 + i * 3} y={524 - i * 14} width="110" height="14" fill={i % 2 ? "#e9dfc8" : "#d6c8a8"} stroke="#8a7a5a" strokeWidth="1.5" />
+      ))}
+    </g>
+  );
+}
+
+/** La casa a oscuras: velas en la barra, lluvia en la ventana. */
+function Velas() {
+  return (
+    <g>
+      <rect width="400" height="720" fill="#0b0605" />
+      {/* ventana con lluvia */}
+      <rect x="250" y="90" width="120" height="180" fill="#121a24" stroke="#2a2a2a" strokeWidth="6" />
+      <g stroke="#7fa6c8" strokeWidth="1.5" opacity="0.5">
+        {Array.from({ length: 14 }, (_, i) => (
+          <path key={i} d={`M${258 + i * 8} ${96 + (i % 4) * 30} l-4 18`} />
+        ))}
+      </g>
+      {/* botellas en sombra */}
+      <Botellas y={300} n={9} alto={70} />
+      <rect width="400" height="720" fill="#0b0605" opacity="0.55" />
+      {/* barra */}
+      <path d="M0 470 L400 410 L400 720 L0 720 Z" fill="#140c08" />
+      <path d="M0 470 L400 410 L400 422 L0 484 Z" fill="#4a2a18" />
+      {/* velas y sus halos */}
+      {[
+        [60, 452],
+        [140, 440],
+        [230, 428],
+        [320, 416],
+      ].map(([x, y]) => (
+        <g key={x}>
+          <circle cx={x} cy={y - 30} r="70" fill="#ffb347" opacity="0.12" />
+          <circle cx={x} cy={y - 30} r="28" fill="#ffcf8a" opacity="0.18" />
+          <rect x={x - 6} y={y - 26} width="12" height="26" fill="#f3ecd8" />
+          <path d={`M${x} ${y - 42} q6 8 0 14 q-6 -6 0 -14 z`} fill="#ffd25e" />
+        </g>
+      ))}
+    </g>
+  );
+}
+
 const SVGS: Record<FondoId, () => React.JSX.Element> = {
   barra: Barra,
   puerta: Puerta,
@@ -589,6 +741,10 @@ const SVGS: Record<FondoId, () => React.JSX.Element> = {
   bosque: Bosque,
   oficina: Oficina,
   depto: Depto,
+  cabina: Cabina,
+  zaguan: Zaguan,
+  estudio: Estudio,
+  velas: Velas,
 };
 
 /** El fondo dibujado (sin la ilustración): sirve también para componer escenas ilustradas. */

@@ -207,6 +207,72 @@ function CgSvg({ id }: { id: CgId }) {
           <Lluvia n={id === "cg-beso" ? 80 : 0} />
         </Marco>
       );
+    case "cg-fiesta":
+      // Tiene ilustración (Luna en la cabina); por las dudas, una composición.
+      return (
+        <Marco titulo="Vos. Sí, vos." fondo="cabina">
+          <Figura quien="luna" cara="picara" x={70} y={230} alto={420} noche />
+          <Bokeh color="#c77dff" n={16} />
+        </Marco>
+      );
+    case "cg-apagon":
+      return (
+        <Marco titulo="La casa a oscuras" fondo="velas">
+          <rect width="400" height="720" fill={K} opacity="0.35" />
+          {Array.from({ length: 7 }, (_, i) => (
+            <g key={i}>
+              <circle cx={40 + i * 54} cy={420 + (i % 2) * 40} r={46} fill="#ffb347" opacity="0.13" />
+              <Silueta x={40 + i * 54} y={360 + (i % 2) * 40} s={0.55} ojos="#ffd25e" />
+            </g>
+          ))}
+          <Lluvia n={40} opacity={0.2} />
+        </Marco>
+      );
+    case "cg-duelo":
+      return (
+        <Marco titulo="Duelo de barras" fondo="barra">
+          <path d="M200 120 L210 720" stroke={W} strokeWidth="8" />
+          <Figura quien="vera" cara="serio" x={-20} y={260} alto={380} />
+          <Figura quien="bruno" cara="picara" x={150} y={250} alto={400} espejo />
+          <text x="200" y="250" textAnchor="middle" fill={W} stroke={K} strokeWidth="3" paintOrder="stroke" fontFamily="Arial Black, Impact, sans-serif" fontSize="64">
+            VS
+          </text>
+        </Marco>
+      );
+    case "cg-luna":
+      return (
+        <Marco titulo="El último tema" fondo="cabina">
+          <rect x="0" y="0" width="400" height="360" fill="#ffb3c7" opacity="0.15" />
+          <Figura quien="luna" cara="sonrojo" x={60} y={240} alto={440} noche />
+        </Marco>
+      );
+    case "cg-bruno":
+      return (
+        <Marco titulo="El cartel apagado" fondo="zaguan">
+          <rect width="400" height="720" fill="#08111f" opacity="0.55" />
+          <Figura quien="bruno" cara="sonrisa" x={60} y={250} alto={430} />
+          <Bokeh color="#3fd0ff" n={8} />
+        </Marco>
+      );
+    case "cg-cami":
+      return (
+        <Marco titulo="Ha lugar" fondo="barra">
+          <path d="M200 0 L60 600 L340 600 Z" fill="#fff3d6" opacity="0.1" />
+          <Figura quien="cami" cara="feliz" x={60} y={240} alto={440} noche />
+          <rect x="70" y="250" width="6" height="90" fill="#c9c9c9" />
+          <circle cx="73" cy="246" r="12" fill="#333" stroke={W} strokeWidth="2" />
+        </Marco>
+      );
+    case "cg-evelyn":
+      return (
+        <Marco titulo="Licenciada" fondo="plaza">
+          <Figura quien="evelyn" cara="feliz" x={60} y={250} alto={430} />
+          {Array.from({ length: 40 }, (_, i) => (
+            <rect key={i} x={(i * 97) % 400} y={120 + ((i * 61) % 420)} width="6" height="10" fill={[R, W, "#f2c230", "#2fbf6a"][i % 4]} transform={`rotate(${(i * 37) % 90} ${(i * 97) % 400} ${120 + ((i * 61) % 420)})`} />
+          ))}
+          <rect width="400" height="720" fill={W} opacity="0.12" />
+        </Marco>
+      );
     case "cg-gervasio":
       return (
         <Marco titulo="Primera vez" fondo="puerta">
