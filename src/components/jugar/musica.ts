@@ -79,8 +79,15 @@ export function pararMusica() {
   const a = actual;
   actual = null;
   if (!a) return;
-  fundir(a.audio, 0, FUNDIDO_MS / 2, () => {
+  let parado = false;
+  const parar = () => {
+    if (parado) return;
+    parado = true;
     a.audio.pause();
     a.audio.src = "";
-  });
+  };
+  fundir(a.audio, 0, FUNDIDO_MS / 2, parar);
+  // El fundido va al ritmo de la pantalla: si el teléfono deja de dibujar (pasó la app al fondo justo
+  // al salir del juego), no termina nunca y la música seguía sonando. Esto la corta igual.
+  setTimeout(parar, FUNDIDO_MS / 2 + 150);
 }

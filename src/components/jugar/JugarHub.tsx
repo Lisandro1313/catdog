@@ -71,8 +71,11 @@ const NAME_KEY = "catdog:jugar:nombre";
 /**
  * Los juegos tranquilos dejan sonar la música del bar (bajita); en los de reflejos y ritmo hace
  * falta oír el juego, así que se apaga. La novela maneja su propia música.
+ *
+ * El menú de juegos y sus pantallas (récords, el trago, armar duelo o torneo) van en silencio: la
+ * música de fondo ahí quedaba mal, y el que entra a mirar qué hay no pidió que le suene nada.
  */
-const CON_MUSICA = new Set<View>(["hub", "premio", "records", "duelo", "torneo", "memoria", "palabra", "fusion", "maridaje", "trivia"]);
+const CON_MUSICA = new Set<View>(["memoria", "palabra", "fusion", "maridaje", "trivia"]);
 const VOLUMEN_BAR = 0.22;
 
 type Props = {
@@ -144,7 +147,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
   const reto = retoDelDia();
   const [nueva, setNueva] = useState(false);
 
-  // La música del bar: suena en el hub y en los juegos tranquilos; se apaga en los de reflejos.
+  // La música del bar: suena solo en los juegos tranquilos. En el menú y en los de reflejos, silencio.
   useEffect(() => {
     if (view === "novela") return;
     if (CON_MUSICA.has(view)) musica("barra", VOLUMEN_BAR);
