@@ -4,6 +4,8 @@
  *   node scripts/flyer.mjs                          → exports/catdog-flyer.png
  *   node scripts/flyer.mjs --horario "Desde las 18" → pisa el horario del sitio, para probar
  *   node scripts/flyer.mjs --foto fotos/barra.jpg   → con una foto de fondo
+ *   node scripts/flyer.mjs --tipo hoy               → el del día: "Hoy jueves · la casa está abierta"
+ *                                                     (el día sale solo, en hora argentina; --dia lo pisa)
  *
  * Sale de los mismos datos que la página y la carta (días, horario, el precio de entrada), así no
  * hay que mantener otra copia más. Imprime también el texto para pegar en el mensaje, con el ?de=wa
@@ -53,6 +55,18 @@ const zona = v("barra:direccion") || "Calle 66, entre 2 y 3 · La Plata";
 const logo = readFileSync(resolve(root, "scripts/carta-logo.txt"), "utf8").trim();
 const foto = arg("foto");
 const tipo = arg("tipo") ?? "abierta";
+/**
+ * El del día: qué día es hoy en La Plata (no en el reloj de la compu). Si hoy no está entre los días
+ * que abre, avisa: un "hoy abrimos" un día que no se abre es peor que no publicar nada.
+ */
+const hoy = (
+  arg("dia") ??
+  new Intl.DateTimeFormat("es-AR", { weekday: "long", timeZone: "America/Argentina/Buenos_Aires" }).format(new Date())
+).toLowerCase();
+const sinTilde = (s) => s.normalize("NFD").replace(/[̀-ͯ]/gu, "").toLowerCase();
+if (tipo === "hoy" && !(v("barra:dias") || "").split(/,|\sy\s/u).some((d) => sinTilde(d).trim().startsWith(sinTilde(hoy).slice(0, 3)))) {
+  console.warn(`OJO: hoy es ${hoy} y no está entre los días que abre (${v("barra:dias")}). Usá --dia si es otro día.`);
+}
 // La contraseña de la semana: el nombre de uno de los tragos de la casa, que ya suena a password.
 const palabra = (arg("palabra") ?? "Hormiga Negra").trim();
 /**
@@ -137,6 +151,11 @@ const html = `<!doctype html>
   .adorno{display:flex;align-items:center;justify-content:center;gap:26px;margin-top:26px;color:rgba(201,169,110,.65);font-size:26px}
   .adorno i{display:block;width:110px;height:1px;background:rgba(201,169,110,.5)}
   .secreto .pregunta{margin-top:80px}
+  /* El del día: "Hoy jueves" es lo primero que se lee, en dorado; el horario, grande y claro. */
+  .hoy-dia{margin-top:46px;font-size:50px;letter-spacing:.34em;text-transform:uppercase;color:#e0c283;
+           text-shadow:0 0 50px rgba(201,169,110,.25)}
+  .hoy-dia+h1{margin-top:22px}
+  .hoy-hora{font-family:'Playfair Display',Georgia,serif;font-size:76px;line-height:1.1;color:#f3ede4}
   .secreto .sin-reserva{margin-top:64px;font-size:34px;letter-spacing:.14em;text-transform:uppercase}
   /* Dentro del flujo y no pegado abajo: ahí lo tapa la barra de responder de WhatsApp. */
   footer{margin-top:52px;text-align:center;font-size:32px;letter-spacing:.2em;text-transform:uppercase;color:#9a9187}
@@ -167,7 +186,16 @@ const html = `<!doctype html>
       <small>y te pasamos la dirección exacta.</small>
     </div>
     <p class="sin-reserva">${esc(dias.join(" · "))}<br />${esc(horario)} · Sin reserva</p>`
-        : `<p class="marca-chica">CatDog</p>
+        : tipo === "hoy"
+          ? `<p class="marca-chica">CatDog</p>
+    <div class="adorno"><i></i>✦<i></i></div>
+    <p class="hoy-dia">Hoy ${esc(hoy)}</p>
+    <h1>La casa<br />está abierta</h1>
+    <div class="filete"></div>
+    <p class="hoy-hora">${esc(horario)}</p>
+    ${desde > 0 ? `<p class="gancho">Sánguche y algo para tomar<br /><b>desde ${plata(desde)}</b></p>` : ""}
+    <p class="sin-reserva">Barra, parrilla y mesa de pool / ping pong.<br />Sin reserva.</p>`
+          : `<p class="marca-chica">CatDog</p>
     <h1>La casa<br />está abierta</h1>
     <div class="filete"></div>
     <div class="dias">${dias.map((d) => `<span>${esc(d)}</span>`).join("")}</div>
@@ -186,7 +214,9 @@ const html = `<!doctype html>
 
 mkdirSync(resolve(root, "exports"), { recursive: true });
 const nombre =
-  (tipo === "contrasena" ? "catdog-flyer-contrasena" : "catdog-flyer") + (formato === "chat" ? "-chat" : "") + (guias ? "-guias" : "");
+  (tipo === "contrasena" ? "catdog-flyer-contrasena" : tipo === "hoy" ? `catdog-flyer-hoy-${sinTilde(hoy)}` : "catdog-flyer") +
+  (formato === "chat" ? "-chat" : "") +
+  (guias ? "-guias" : "");
 const salidaHtml = resolve(root, `exports/${nombre}.html`);
 writeFileSync(salidaHtml, html);
 
@@ -226,7 +256,18 @@ console.log(
         "",
         `${sitio}/?de=wa`,
       ].join("\n")
-    : [
+    : tipo === "hoy"
+      ? [
+          `*Hoy ${hoy} la casa está abierta* · ${horario.toLowerCase()}.`,
+          "",
+          "Barra, parrilla y mesa de pool / ping pong, en una casa del casco de La Plata.",
+          desde > 0 ? `Sánguche y algo para tomar desde ${plata(desde)}. Sin reserva: caés y listo.` : "Sin reserva: caés y listo.",
+          "",
+          `📍 ${zona}`,
+          "",
+          `${sitio}/?de=wa`,
+        ].join("\n")
+      : [
     `*La casa está abierta* · ${dias.join(", ")}, ${horario.toLowerCase()}.`,
     "",
     "Barra, parrilla y mesa de pool, en una casa del casco de La Plata.",
