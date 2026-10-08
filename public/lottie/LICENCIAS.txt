@@ -1,0 +1,19 @@
+Animaciones de los festejos (LottieFiles)
+
+Todas son animaciones gratuitas de LottieFiles bajo la Lottie Simple License:
+uso comercial permitido, se pueden modificar, no piden atribución.
+https://lottiefiles.com/page/license
+Igual se deja el crédito de cada autor.
+
+- meta.json      "star burst animation" — Nitin Prajapati
+                 https://lottiefiles.com/animations/star-burst-animation-9N1qvEFO9f
+- record.json    "Trophy cup" — Rumana (se le sacó la capa "bg", el fondo rosado)
+                 https://lottiefiles.com/animations/trophy-cup-4IwhGjleP8
+- trago.json     "cheers!" — Игорь Хоменко (khomenko_inc)
+                 https://lottiefiles.com/animations/cheers-rP0alawO0z
+- ganador.json   "gold medal" — Ahmad Halawani
+                 https://lottiefiles.com/animations/gold-medal-pzdhi0w7G8
+- generala.json  "fireworks" — Omar Mahmoud
+                 https://lottiefiles.com/animations/fireworks-XgeVEEplQ1
+
+Reproductor: lottie-web 5.13 (Airbnb), versión liviana, licencia MIT.

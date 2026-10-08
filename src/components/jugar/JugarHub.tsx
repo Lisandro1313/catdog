@@ -12,6 +12,7 @@ import { animar, entrar, gsap } from "./animar";
 import { fanfarria, precargarFanfarrias } from "./juice";
 import { pararMusica } from "./musica";
 import { instalarHaptica } from "./haptica";
+import { festejo, precargarFestejos } from "./festejo";
 import { NovelaBoton } from "./novela/NovelaBoton";
 import { ShareButton } from "@/components/ShareButton";
 import { insigniaRacha } from "@/lib/racha";
@@ -168,22 +169,37 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
   const ultimoTrago = useRef(0);
   useEffect(() => {
     precargarFanfarrias(["trago", "ganador"]);
+    // Los festejos grandes se bajan cuando el teléfono está libre: así salen en el momento.
+    precargarFestejos();
   }, []);
   const festejaTrago = (view === "hub" && justWon && !!marcas.premio) || (view === "premio" && !!marcas.premio);
   useEffect(() => {
     if (!festejaTrago) return;
+    let cortarTrago: (() => void) | null = null;
     const id = setTimeout(() => {
       const ahora = performance.now();
       if (ahora - ultimoTrago.current < 4000) return;
       ultimoTrago.current = ahora;
       fanfarria("trago");
+      cortarTrago = festejo("trago");
     }, 300);
-    return () => clearTimeout(id);
+    return () => {
+      clearTimeout(id);
+      cortarTrago?.();
+    };
   }, [festejaTrago, view]);
   useEffect(() => {
     if (dueloEtapa !== "done" || dueloGanador == null) return;
-    const id = setTimeout(() => fanfarria(dueloCampeon ? "trago" : "ganador"), 300);
-    return () => clearTimeout(id);
+    let cortar: (() => void) | null = null;
+    const id = setTimeout(() => {
+      fanfarria(dueloCampeon ? "trago" : "ganador");
+      // Ganó el duelo o salió campeón del torneo: la corona.
+      cortar = festejo("ganador");
+    }, 300);
+    return () => {
+      clearTimeout(id);
+      cortar?.();
+    };
   }, [dueloEtapa, dueloGanador, dueloCampeon]);
 
   /**

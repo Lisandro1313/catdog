@@ -9,6 +9,7 @@ import { CountUpLabel } from "./CountUp";
 import { sonar } from "./Shell";
 import { Confetti, festejar } from "./Confetti";
 import { duraFanfarria, fanfarria, precargarFanfarrias } from "./juice";
+import { festejo } from "./festejo";
 import { animar, entrar, gsap } from "./animar";
 
 type Props = {
@@ -47,8 +48,16 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
     precargarFanfarrias();
     const tipo = meta ? "meta" : "fin";
     libre.current = performance.now() + DEMORA_FANFARRIA + duraFanfarria(tipo);
-    const id = setTimeout(() => fanfarria(tipo), DEMORA_FANFARRIA);
-    return () => clearTimeout(id);
+    let cortar: (() => void) | null = null;
+    const id = setTimeout(() => {
+      fanfarria(tipo);
+      // La meta, con estrellas doradas que estallan (Lottie). Sin meta, solo el guiño del sonido.
+      if (meta) cortar = festejo("meta");
+    }, DEMORA_FANFARRIA);
+    return () => {
+      clearTimeout(id);
+      cortar?.();
+    };
   }, [meta]);
 
   // El récord lo confirma el servidor un rato después: llega con su propio festejo.
@@ -56,15 +65,19 @@ export function Fin({ game, value, label, marcas, records, again, onBack, bien, 
     if (!esMejor) return;
     let cortar: (() => void) | null = null;
     const espera = Math.max(250, libre.current - performance.now() + 120);
+    let copa: (() => void) | null = null;
     const id = setTimeout(() => {
       fanfarria("record");
       if (!meta) cortar = festejar(22, { y: 0.35 });
+      // El récord de la casa (el primero de la tabla, con nombre) se lleva la copa.
+      if (recordCasa) copa = festejo("record");
     }, espera);
     return () => {
       clearTimeout(id);
       cortar?.();
+      copa?.();
     };
-  }, [esMejor, meta]);
+  }, [esMejor, meta, recordCasa]);
 
   // La entrada: el cartel cae, el número cuenta, "¡Meta!" golpea y las medallas de la tabla saltan.
   useLayoutEffect(

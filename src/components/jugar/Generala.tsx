@@ -7,6 +7,7 @@ import { CASILLEROS, DADOS, TIRADAS, nombreDeJugada, opciones, puntaje, terminad
 import { Shell, keepAwake, precargarSonidos, sonar } from "./Shell";
 import { Fin } from "./Fin";
 import { festejar } from "./Confetti";
+import { festejo } from "./festejo";
 import { musicaDelBar } from "./musica";
 import { vibrar } from "./sensacion";
 
@@ -198,6 +199,7 @@ export function Generala({ onDone, onBack, marcas, records, nueva }: Props) {
       if (jugada.includes("Generala")) {
         sonar("logro", 0.8);
         festejar(60);
+        festejo("generala");
         vibrar("fuerte");
       } else {
         sonar("acierto", 0.7);
