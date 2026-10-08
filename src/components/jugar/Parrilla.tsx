@@ -8,6 +8,7 @@ import { Fin } from "./Fin";
 import { prepararLienzo, puntoEnLienzo } from "./lienzo";
 import { Emoji } from "./Emoji";
 import {
+  cargarTexturas,
   correrTemblor,
   dibujarFlotantes,
   dibujarParticulas,
@@ -22,7 +23,12 @@ import {
   type Flotante,
   type Particula,
   type Temblor,
+  type Textura,
 } from "./efectos";
+
+const HUMO: Textura[] = ["smoke_01", "smoke_04", "smoke_07", "smoke_09"];
+const CHISPA: Textura[] = ["spark_01", "spark_02", "spark_04"];
+const LLAMA: Textura[] = ["flame_01", "flame_03", "flame_05"];
 
 const W = 360;
 const H = 500;
@@ -121,6 +127,7 @@ function nuevoJuego(): Juego {
 export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     precargarSonidos(["golpe", "tic"]);
+    cargarTexturas([...HUMO, ...CHISPA, ...LLAMA, "star_06"]);
   }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [puntos, setPuntos] = useState(0);
@@ -191,7 +198,8 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
           sumar(j, -2, setPuntos);
           j.racha = 0;
           flotar(j.flot, p.x, p.y - 26, "Quemado −2", "#ff7a63", 20);
-          soltar(j.part, p.x, p.y, 18, { color: ["#1c1a19", "#3a3532", "#55504b"], vel: 70, r: 7, g: -60, dura: 1.6, humo: true, roce: 1 });
+          soltar(j.part, p.x, p.y, 14, { color: ["#1c1a19", "#3a3532", "#55504b"], vel: 70, r: 8, g: -60, dura: 1.6, humo: true, roce: 1, sprite: HUMO, giro: 0.8 });
+          soltar(j.part, p.x, p.y, 6, { color: ["#ff8a2a", "#ffc94a"], vel: 60, r: 7, g: -180, dura: 0.5, roce: 0.6, sprite: LLAMA, luz: true });
           temblar(j.temblor, 6);
           buzz();
           return;
@@ -199,18 +207,18 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
         const humo = k < 0.95 ? 1.2 + k * 3 : k < 1.05 ? 7 : 12;
         if (Math.random() < humo * dt) {
           const gris = k < 0.95 ? ["#cfc8bf", "#a9a29a"] : k < 1.05 ? ["#6e6862", "#4c4743"] : ["#2a2725", "#3c3835"];
-          soltar(j.part, p.x + (Math.random() - 0.5) * LARGO * 0.7, p.y - 6, 1, { color: gris, vel: 12, r: 5, g: -42, dura: 1.6, humo: true, roce: 0.6 });
+          soltar(j.part, p.x + (Math.random() - 0.5) * LARGO * 0.7, p.y - 6, 1, { color: gris, vel: 12, r: 6, g: -42, dura: 1.6, humo: true, roce: 0.6, sprite: HUMO, giro: 0.6 });
         }
         if (k >= 0.78 && k <= 0.95) {
           alguno = true;
           c.chispa -= dt;
           if (c.chispa <= 0) {
             c.chispa = 0.12 + Math.random() * 0.15;
-            soltar(j.part, p.x + (Math.random() - 0.5) * LARGO * 0.8, p.y - 8, 2, { color: ["#ffd36e", "#fff2c4", "#ff9a3c"], vel: 120, r: 1.6, g: 300, dura: 0.45, dir: -Math.PI / 2, abanico: 1.6 });
+            soltar(j.part, p.x + (Math.random() - 0.5) * LARGO * 0.8, p.y - 8, 2, { color: ["#ffd36e", "#fff2c4", "#ff9a3c"], vel: 120, r: 2.6, g: 300, dura: 0.45, dir: -Math.PI / 2, abanico: 1.6, sprite: CHISPA, luz: true, giro: 6 });
           }
         }
         if (k > 1.05 && Math.random() < 10 * dt) {
-          soltar(j.part, p.x + (Math.random() - 0.5) * LARGO * 0.6, p.y, 1, { color: ["#ff8a2a", "#ffc94a", "#ff5a1f"], vel: 30, r: 4, g: -160, dura: 0.4, roce: 0.5 });
+          soltar(j.part, p.x + (Math.random() - 0.5) * LARGO * 0.6, p.y, 1, { color: ["#ff8a2a", "#ffc94a", "#ff5a1f"], vel: 30, r: 5, g: -160, dura: 0.4, roce: 0.5, sprite: LLAMA, luz: true });
         }
       });
       // El chisporroteo de la grasa cuando hay alguno justo: un tss cortito, cada tanto.
@@ -332,7 +340,7 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
       sonar("golpe", 0.3, 1.1 + Math.random() * 0.1);
       beep(3200, 60, "square", 0.012);
       tap(6);
-      soltar(j.part, p.x, p.y, 8, { color: ["#e8e2d8", "#c9c2b8"], vel: 60, r: 5, g: -50, dura: 0.9, humo: true, roce: 1 });
+      soltar(j.part, p.x, p.y, 6, { color: ["#e8e2d8", "#c9c2b8"], vel: 60, r: 6, g: -50, dura: 0.9, humo: true, roce: 1, sprite: HUMO, giro: 0.8 });
       return;
     }
     const k = (t - c.desde) / c.dura;
@@ -348,7 +356,8 @@ export function Parrilla({ onDone, onBack, marcas, records, nueva }: Props) {
       tap(15);
       flotar(j.flot, p.x, p.y - 24, "¡A punto! +3", "#ffd36e", 22);
       if (j.racha >= 2) flotar(j.flot, p.x, p.y - 54, `Racha x${j.racha}`, "#fff4e0", 15, 1);
-      soltar(j.part, p.x, p.y, 22, { color: ["#ffd36e", "#fff2c4", "#ff9a3c"], vel: 240, r: 2.4, g: 200, dura: 0.7 });
+      soltar(j.part, p.x, p.y, 18, { color: ["#ffd36e", "#fff2c4", "#ff9a3c"], vel: 240, r: 3, g: 200, dura: 0.7, sprite: CHISPA, luz: true, giro: 8 });
+      soltar(j.part, p.x, p.y, 1, { color: "#ffd36e", vel: 0, r: 14, dura: 0.35, sprite: "star_06", luz: true, giro: 2 });
     } else if (r.puntos > 0) {
       j.racha = 0;
       beep(620, 100, "triangle");

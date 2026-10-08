@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { reportScoreAction, setNameAction, startGameAction, type ReportResult } from "@/app/hoy/jugar/actions";
 import { GAMES, PREMIO_MINIMO, ganaDuelo, logrado, logrosParaPremio, retoDelDia, type GameId, type Marcas, type Records } from "@/lib/juegos";
@@ -8,6 +8,9 @@ import { GAME_INFO, Tabla } from "./info";
 import { Emoji } from "./Emoji";
 import { letSleep, precargarSonidos, sonar, withTransition } from "./Shell";
 import { Confetti } from "./Confetti";
+import { animar, entrar, gsap } from "./animar";
+import { fanfarria, precargarFanfarrias } from "./juice";
+import { musica, pararMusica } from "./musica";
 import { NovelaBoton } from "./novela/NovelaBoton";
 import { ShareButton } from "@/components/ShareButton";
 
@@ -60,6 +63,13 @@ type Torneo = { players: [string, string, string, string]; match: 0 | 1 | 2; win
 const ROUND = ["Semifinal 1", "Semifinal 2", "Final"];
 
 const NAME_KEY = "catdog:jugar:nombre";
+
+/**
+ * Los juegos tranquilos dejan sonar la música del bar (bajita); en los de reflejos y ritmo hace
+ * falta oír el juego, así que se apaga. La novela maneja su propia música.
+ */
+const CON_MUSICA = new Set<View>(["hub", "premio", "records", "duelo", "torneo", "memoria", "palabra", "fusion", "maridaje", "trivia"]);
+const VOLUMEN_BAR = 0.22;
 
 type Props = {
   /** Lo que hay en la carta de verdad: alimenta los juegos de la mesa. */ deLaCarta?: string[];
@@ -126,6 +136,87 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
   const [torneoSetup, setTorneoSetup] = useState<{ game: GameId; names: [string, string, string, string] }>({ game: "chef", names: ["", "", "", ""] });
   const reto = retoDelDia();
   const [nueva, setNueva] = useState(false);
+
+  // La música del bar: suena en el hub y en los juegos tranquilos; se apaga en los de reflejos.
+  useEffect(() => {
+    if (view === "novela") return;
+    if (CON_MUSICA.has(view)) musica("barra", VOLUMEN_BAR);
+    else pararMusica();
+  }, [view]);
+  useEffect(() => () => pararMusica(), []);
+
+  // Cómo terminó el duelo (si terminó): para el festejo y la fanfarria.
+  const dueloGanador =
+    view === "duelo" && duelo?.stage === "done" && duelo.scores[0] != null && duelo.scores[1] != null ? ganaDuelo(duelo.game, duelo.scores[0], duelo.scores[1]) : null;
+  const dueloCampeon = dueloGanador != null && duelo?.torneo?.match === 2;
+  const dueloEtapa = duelo?.stage;
+
+  /** El trago se festeja con el saxo largo, sin repetirlo si se toca el cartel enseguida. */
+  const ultimoTrago = useRef(0);
+  useEffect(() => {
+    precargarFanfarrias(["trago", "ganador"]);
+  }, []);
+  const festejaTrago = (view === "hub" && justWon && !!marcas.premio) || (view === "premio" && !!marcas.premio);
+  useEffect(() => {
+    if (!festejaTrago) return;
+    const id = setTimeout(() => {
+      const ahora = performance.now();
+      if (ahora - ultimoTrago.current < 4000) return;
+      ultimoTrago.current = ahora;
+      fanfarria("trago");
+    }, 300);
+    return () => clearTimeout(id);
+  }, [festejaTrago, view]);
+  useEffect(() => {
+    if (dueloEtapa !== "done" || dueloGanador == null) return;
+    const id = setTimeout(() => fanfarria(dueloCampeon ? "trago" : "ganador"), 300);
+    return () => clearTimeout(id);
+  }, [dueloEtapa, dueloGanador, dueloCampeon]);
+
+  /**
+   * Las entradas con GSAP: el hub (todo escalonado y el brillo del reto), el premio y el final del
+   * duelo. Antes de pintar, para que no se vea un cuadro sin animar. Con reduced-motion, nada.
+   */
+  const pantalla = useRef<HTMLDivElement>(null);
+  const hubVisto = useRef(false);
+  useLayoutEffect(() => {
+    if (view === "hub") {
+      const primera = !hubVisto.current;
+      hubVisto.current = true;
+      // La primera vez entra todo con calma; al volver de un juego, rápido (no hacer esperar).
+      const k = primera ? 1 : 0.45;
+      return animar(pantalla.current, () => {
+        const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.5 * k } });
+        entrar(tl, "[data-hub]", { y: 12, opacity: 0 }, { stagger: 0.07 * k });
+        entrar(tl, ".jg-reto", { y: 14, scale: 0.97, opacity: 0 }, {}, "<0.15");
+        entrar(tl, ".jg-seccion", { x: -10, opacity: 0 }, { stagger: 0.1 * k }, "<0.1");
+        entrar(tl, ".jg-mesa-grid > *", { y: 16, opacity: 0 }, { stagger: 0.05 * k }, "<0.05");
+        entrar(tl, ".jg-grilla > li", { y: 18, scale: 0.95, opacity: 0 }, { stagger: 0.028 * k }, "<0.1");
+        // El brillo que cruza el reto del día, cada tanto.
+        gsap
+          .timeline({ repeat: -1, repeatDelay: 4, delay: 1.2 * k })
+          .set(".jg-reto-brillo", { opacity: 1 })
+          .fromTo(".jg-reto-brillo", { xPercent: -130 }, { xPercent: 330, duration: 1.1, ease: "power2.inOut" })
+          .set(".jg-reto-brillo", { opacity: 0 });
+      });
+    }
+    if (view === "premio") {
+      return animar(pantalla.current, () => {
+        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+        entrar(tl, ".ap-ornament", { scale: 0, rotation: -180, opacity: 0 }, { duration: 0.7, ease: "back.out(2)" });
+        entrar(tl, "[data-premio=texto]", { y: 14, opacity: 0 }, { duration: 0.45, stagger: 0.1 }, "<0.2");
+        entrar(tl, ".jg-codigo", { scale: 0.4, opacity: 0 }, { duration: 0.8, ease: "elastic.out(1, 0.55)" }, "-=0.15");
+        entrar(tl, "[data-premio=pie] > *", { y: 10, opacity: 0 }, { duration: 0.35, stagger: 0.07 }, "-=0.4");
+      });
+    }
+    if (view === "duelo" && dueloEtapa === "done") {
+      return animar(pantalla.current, () => {
+        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+        entrar(tl, "[data-duelo=titulo]", { scale: 0.6, opacity: 0 }, { duration: 0.6, ease: "back.out(2.2)" });
+        entrar(tl, "[data-duelo=filas] li", { x: -14, opacity: 0 }, { duration: 0.35, stagger: 0.1 }, "-=0.25");
+      });
+    }
+  }, [view, dueloEtapa]);
 
   // El nombre también queda en el teléfono para proponerlo si el servidor no lo tiene.
   useEffect(() => {
@@ -279,14 +370,15 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
 
   if (view === "premio" && marcas.premio) {
     return (
-      <div className="jg-stage">
-        <Confetti />
+      <div className="jg-stage" ref={pantalla}>
+        <Confetti count={110} demora={200} />
         <div className="jg-premio">
           <p className="ap-ornament">✦</p>
-          <p className="ap-eyebrow mt-3">Lograste {PREMIO_MINIMO} logros</p>
-          <h1 className="ap-display mt-3 text-4xl">Te ganaste un trago</h1>
-          <p className="mt-4 text-sm text-muted">Mandanos el código por WhatsApp o mostrá esta pantalla en la barra: elegís uno de la carta. Uno por persona, se canjea una sola vez.</p>
+          <p data-premio="texto" className="ap-eyebrow mt-3">Lograste {PREMIO_MINIMO} logros</p>
+          <h1 data-premio="texto" className="ap-display mt-3 text-4xl">Te ganaste un trago</h1>
+          <p data-premio="texto" className="mt-4 text-sm text-muted">Mandanos el código por WhatsApp o mostrá esta pantalla en la barra: elegís uno de la carta. Uno por persona, se canjea una sola vez.</p>
           <p className="jg-codigo">{marcas.premio}</p>
+          <div data-premio="pie">
           <p className="text-xs text-muted">
             {marcas.premioAt ? `ganado el ${fmtPremioAt(marcas.premioAt)}` : "código único"} · lo verifica la casa
           </p>
@@ -306,6 +398,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
           <button className="btn btn-ghost btn-sm mt-6" type="button" onClick={() => setView("hub")}>
             Volver
           </button>
+          </div>
         </div>
         {modal}
       </div>
@@ -321,7 +414,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
     const tor = duelo.torneo;
     const campeon = tor && tor.match === 2 && w != null ? duelo.names[w] : null;
     return (
-      <div className="jg-stage">
+      <div className="jg-stage" ref={pantalla}>
         <div className="flex items-center justify-between text-xs text-muted">
           <button type="button" className="hover:text-ink" onClick={() => { setDuelo(null); setView("hub"); }}>
             ← Juegos
@@ -381,14 +474,14 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
           <div className="jg-center">
             <Confetti count={campeon ? 90 : serie != null ? 60 : w == null ? 0 : 30} />
             <p className="ap-eyebrow"><Emoji e={info.icon} size="1.4em" /> {info.title}</p>
-            <h2 className="ap-display mt-3 text-4xl">{campeon ? <><Emoji e="🏆" /> {campeon}, campeón de la mesa</> : serie != null ? `${duelo.names[serie]} se lleva la serie` : w == null ? "Empate" : `Ganó ${duelo.names[w]}`}</h2>
+            <h2 data-duelo="titulo" className="ap-display mt-3 text-4xl">{campeon ? <><Emoji e="🏆" /> {campeon}, campeón de la mesa</> : serie != null ? `${duelo.names[serie]} se lleva la serie` : w == null ? "Empate" : `Ganó ${duelo.names[w]}`}</h2>
             {!tor && partidas > 0 && (
               <p className="mt-2 text-sm text-muted">
                 Serie: {duelo.names[0]} {duelo.wins[0]} · {duelo.names[1]} {duelo.wins[1]}
                 {serie == null && <> · al mejor de 3</>}
               </p>
             )}
-            <ul className="mt-6 divide-y divide-line text-left">
+            <ul data-duelo="filas" className="mt-6 divide-y divide-line text-left">
               {([0, 1] as const).map((k) => (
                 <li key={k} className={`flex items-baseline justify-between py-2 ${w === k ? "text-accent" : ""}`}>
                   <span>
@@ -560,8 +653,8 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
   }
 
   return (
-    <div className="jg-stage jg-stage-hub">
-      <div className="flex items-center justify-between text-xs text-muted">
+    <div className="jg-stage jg-stage-hub" ref={pantalla}>
+      <div data-hub className="flex items-center justify-between text-xs text-muted">
         <Link href={conCena ? "/hoy" : "/"} className="hover:text-ink">
           ← {conCena ? "Puertas adentro" : "La casa"}
         </Link>
@@ -569,13 +662,13 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
           La sobremesa →
         </Link>
       </div>
-      <h1 className="ap-display mt-6 text-4xl">Para la espera</h1>
-      <p className="mt-3 text-sm leading-relaxed text-muted">
+      <h1 data-hub className="ap-display mt-6 text-4xl">Para la espera</h1>
+      <p data-hub className="mt-3 text-sm leading-relaxed text-muted">
         {GAMES.length} juegos, ninguno obligatorio. Si llegás a la marca en {PREMIO_MINIMO} de ellos, la casa te invita un trago.
         Es difícil a propósito.
       </p>
 
-      <div className="mt-6 flex items-center justify-between gap-3">
+      <div data-hub className="mt-6 flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="jg-progress" aria-hidden="true">
             {GAMES.map((g) => (
@@ -602,6 +695,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
       )}
 
       <button type="button" className="jg-reto mt-4" onClick={() => setView(reto)}>
+        <span className="jg-reto-brillo" aria-hidden="true" />
         <span className="jg-reto-badge">Reto del día</span>
         <span className="jg-reto-title">
           <Emoji e={GAME_INFO[reto].icon} size="1.15em" /> {GAME_INFO[reto].title}
@@ -618,7 +712,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
           .
         </p>
       )}
-      {justWon && marcas.premio && <Confetti count={24} />}
+      {justWon && marcas.premio && <Confetti count={60} demora={300} />}
       {justWon && marcas.premio && (
         <button type="button" className="jg-won mt-5" onClick={() => setView("premio")}>
           <span className="ap-eyebrow">¡{PREMIO_MINIMO} de {GAMES.length}!</span>

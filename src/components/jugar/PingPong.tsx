@@ -7,6 +7,7 @@ import { Fin } from "./Fin";
 import { capturar, prepararLienzo, puntoEnLienzo } from "./lienzo";
 import { Emoji } from "./Emoji";
 import {
+  cargarTexturas,
   correrTemblor,
   dibujarFlotantes,
   dibujarParticulas,
@@ -21,7 +22,10 @@ import {
   type Flotante,
   type Particula,
   type Temblor,
+  type Textura,
 } from "./efectos";
+
+const CHISPA: Textura[] = ["spark_02", "spark_04"];
 
 const W = 360;
 const H = 600;
@@ -56,6 +60,7 @@ type Props = { onDone: (golpes: number) => void; onBack: () => void; marcas: Mar
 export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     precargarSonidos(["paleta", "madera"]);
+    cargarTexturas([...CHISPA, "trace_02", "star_08"]);
   }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [golpes, setGolpes] = useState(0);
@@ -195,11 +200,11 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
             sonar("paleta", centro ? 0.65 : 0.5, (centro ? 1 : 0.92) + Math.random() * 0.08);
             beep(560 + Math.min(hits, 40) * 8, 60, "triangle", 0.05);
             tap(centro ? 14 : 8);
-            soltar(part, bola.x, PALETA_Y - 4, centro ? 14 : 8, { color: ["#fff4e0", "#ffd38a"], vel: 220, r: 2, dura: 0.35, dir: -Math.PI / 2, abanico: 2.2 });
+            soltar(part, bola.x, PALETA_Y - 4, centro ? 12 : 7, { color: ["#fff4e0", "#ffd38a"], vel: 220, r: 2.6, dura: 0.35, dir: -Math.PI / 2, abanico: 2.2, sprite: CHISPA, luz: true, giro: 8 });
             if (Math.abs(bola.efecto) > 160) flotar(flot, bola.x, PALETA_Y - 34, "¡Con efecto!", "#9fd6ff", 15, 0.7);
             if (hits % 10 === 0) {
               flotar(flot, W / 2, RED + 70, `¡${hits}!`, "#ffd36e", 40, 1.1);
-              soltar(part, W / 2, RED + 70, 26, { color: ["#ffd36e", "#fff4e0", "#ff9d5c"], vel: 260, r: 2.6, dura: 0.8, g: 260 });
+              soltar(part, W / 2, RED + 70, 20, { color: ["#ffd36e", "#fff4e0", "#ff9d5c"], vel: 260, r: 3.2, dura: 0.8, g: 260, sprite: "star_08", luz: true, giro: 5 });
               [0, 90, 180].forEach((d, i) => timers.push(setTimeout(() => beep(660 * [1, 1.25, 1.5][i], 110, "triangle", 0.1), d)));
             }
           }
@@ -228,6 +233,10 @@ export function PingPong({ onDone, onBack, marcas, records, nueva }: Props) {
       }
 
       const vis = { x: bola.x, y: bola.y - bola.z * 0.55 };
+      // Pelota rápida o con efecto: deja una estela de aire tibio (pocas, y sólo en juego).
+      if (!sacar && !fin && (hits >= 12 || Math.abs(bola.efecto) > 160) && Math.random() < 0.5) {
+        soltar(part, vis.x, vis.y, 1, { color: Math.abs(bola.efecto) > 160 ? "#9fd6ff" : "#ffd38a", vel: 8, r: 3.2, dura: 0.28, sprite: "trace_02", luz: true, rot: Math.atan2(bola.vy, bola.vx) });
+      }
       estela.push(vis);
       if (estela.length > 11) estela.shift();
       moverParticulas(part, dt);

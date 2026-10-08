@@ -6,6 +6,9 @@ import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar, tap } from "./Sh
 import { Fin } from "./Fin";
 import { prepararLienzo, puntoEnLienzo, capturar } from "./lienzo";
 import { Emoji } from "./Emoji";
+import { cargarTexturas, dibujarParticulas, moverParticulas, soltar, type Particula, type Textura } from "./efectos";
+
+const ESTRELLA: Textura[] = ["star_02", "star_03", "star_05"];
 
 const W = 360;
 const H = 640;
@@ -97,6 +100,7 @@ function trazar(bs: Bola[], ux: number, uy: number): { t: number; bola: Bola | n
 export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     precargarSonidos(["bola", "banda", "tronera", "golpe", "acierto"]);
+    cargarTexturas([...ESTRELLA, "light_01"]);
   }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [adentro, setAdentro] = useState(0);
@@ -129,6 +133,8 @@ export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
     if (!ctx) return;
     let raf = 0;
     let antes = performance.now();
+    /** Las estrellitas que saltan de la tronera cuando entra una bola. */
+    const part: Particula[] = [];
 
     const paso = (t: number) => {
       const dt = Math.min(0.033, (t - antes) / 1000);
@@ -170,6 +176,8 @@ export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
               estado.current.adentro += 1;
               estado.current.metioEnElTiro += 1;
               sonar("tronera", 0.65, 0.95 + Math.random() * 0.1);
+              soltar(part, cae.x, cae.y, 10, { color: ["#ffd36e", "#fff4e0", "#e0c283"], vel: 170, r: 3, dura: 0.7, roce: 2.2, sprite: ESTRELLA, luz: true, giro: 5 });
+              soltar(part, cae.x, cae.y, 1, { color: "#ffe7a8", vel: 0, r: 16, dura: 0.4, sprite: "light_01", luz: true });
               setTimeout(() => beep(495, 160, "triangle", 0.1), 160);
               tap(15);
               setAdentro(estado.current.adentro);
@@ -265,13 +273,16 @@ export function Pool({ onDone, onBack, marcas, records, nueva }: Props) {
         if (quedan === 0 || e.tiros <= 0) {
           setTimeout(() => setPhase("end"), 500);
           dibujar(ctx, bs, null);
+          dibujarParticulas(ctx, part);
           quietas.current = true;
           return;
         }
       }
       quietas.current = !moviendo;
 
+      moverParticulas(part, dt);
       dibujar(ctx, bs, quietas.current ? apunte.current : null);
+      dibujarParticulas(ctx, part);
       raf = requestAnimationFrame(paso);
     };
     raf = requestAnimationFrame(paso);

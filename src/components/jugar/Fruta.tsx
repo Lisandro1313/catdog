@@ -7,6 +7,7 @@ import { Fin } from "./Fin";
 import { emoji, precargarEmojis, prepararLienzo, puntoEnLienzo, capturar } from "./lienzo";
 import { Emoji } from "./Emoji";
 import {
+  cargarTexturas,
   correrTemblor,
   dibujarFlotantes,
   dibujarParticulas,
@@ -20,7 +21,12 @@ import {
   type Flotante,
   type Particula,
   type Temblor,
+  type Textura,
 } from "./efectos";
+
+/** Las gotas de jugo (manchas irregulares) y el filo del tajo. */
+const GOTA: Textura[] = ["circle_05", "dirt_01", "dirt_02", "dirt_03"];
+const FILO: Textura[] = ["slash_01", "slash_02", "slash_03"];
 
 const W = 360;
 const H = 600;
@@ -123,6 +129,7 @@ function spriteBotella(escala: number): HTMLCanvasElement {
 export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     precargarSonidos(["vidrio-roto", "golpe"]);
+    cargarTexturas([...GOTA, ...FILO, "spark_05", "star_04"]);
   }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [cortadas, setCortadas] = useState(0);
@@ -218,6 +225,7 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
         rojo = 1;
         temblar(temblor, 14);
         soltar(part, c.x, c.y, 26, { color: ["#2f8a55", "#bfe8cf", "#0f3b22", "#ffffff"], vel: 420, r: 2.6, g: 700, dura: 0.9 });
+        soltar(part, c.x, c.y, 8, { color: ["#e8fff2", "#bfe8cf"], vel: 300, r: 3, g: 500, dura: 0.6, sprite: "spark_05", luz: true, giro: 10 });
         flotar(flot, c.x, c.y - 30, "¡La botella no!", "#ff7a63", 26, 1.4);
         timers.push(setTimeout(() => setPhase("end"), 1100));
         return;
@@ -239,7 +247,11 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
         mitades.push({ x: c.x, y: c.y, vx: c.vx * 0.4 + nx * 130 + Math.cos(ang) * 60, vy: Math.min(c.vy, 0) * 0.3 + ny * 130 - 60, tipo: c.tipo, corte: ang, giro: c.giro, vg: lado * (2 + Math.random() * 3), lado, vida: 1.6 });
       }
       soltar(part, c.x, c.y, 16, { color: [f.jugo, f.pulpa], vel: 330, r: 3, g: 600, dura: 0.7, roce: 2 });
+      // Salpicón: gotas grandes e irregulares del color del jugo, que giran al volar.
+      soltar(part, c.x, c.y, 7, { color: [f.jugo, f.pulpa], vel: 260, r: 4.5, g: 650, dura: 0.65, roce: 1.6, sprite: GOTA, giro: 4 });
       soltar(part, c.x, c.y, 6, { color: "#ffffff", vel: 260, r: 1.6, dura: 0.25, dir: ang, abanico: 0.5 });
+      // El filo del cuchillo: un tajo de luz que sigue el corte.
+      soltar(part, c.x, c.y, 1, { color: "#fff8e6", vel: 0, r: 13, dura: 0.22, sprite: FILO, luz: true, rot: ang });
       manchas.push({
         x: c.x,
         y: c.y,
@@ -260,7 +272,7 @@ export function Fruta({ onDone, onBack, marcas, records, nueva }: Props) {
       // Cuando el tajo terminó (o pasó un ratito), se canta el combo.
       if (tajo.n >= 2 && t - tajo.ultima > 260) {
         flotar(flot, tajo.x, tajo.y - 20, `¡Combo x${tajo.n}!`, "#ffd36e", 20 + Math.min(tajo.n, 5) * 3, 1.1);
-        soltar(part, tajo.x, tajo.y, 10 + tajo.n * 4, { color: ["#ffd36e", "#fff4e0"], vel: 240, r: 2.2, dura: 0.6 });
+        soltar(part, tajo.x, tajo.y, 10 + tajo.n * 4, { color: ["#ffd36e", "#fff4e0"], vel: 240, r: 3, dura: 0.6, sprite: "star_04", luz: true, giro: 5 });
         [0, 70, 140].slice(0, Math.min(3, tajo.n)).forEach((d, i) => timers.push(setTimeout(() => beep(880 * [1, 1.25, 1.5][i], 90, "triangle", 0.09), d)));
         tajo.n = 0;
       } else if (tajo.n === 1 && t - tajo.ultima > 260) tajo.n = 0;

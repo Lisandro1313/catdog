@@ -1,0 +1,22 @@
+Música y efectos de terceros usados en los juegos y la novela. Todo CC0 (dominio público).
+
+barra.mp3        "Drunken Saloon" — iamoneabe — https://opengameart.org/node/139016 (CC0)
+noche.mp3        "Moil" — Ruskerdax — https://opengameart.org/node/158878 (CC0)
+melancolia.mp3   "Kamogawa Nightbreak" — Ruskerdax — https://opengameart.org/content/kamogawa-nightbreak (CC0)
+jazz-suave.mp3   "Jazz improvisation looped" — Alex McCulloch (Pro Sensory) — https://opengameart.org/content/jazz-improvisation-looped (CC0; el autor pide crédito)
+brass.mp3        "Jazz n' brass loop" — Emma_MA — https://opengameart.org/content/jazz-n-brass-loop (CC0)
+misterio.mp3     "Unsolved Investigation" — isaiah658 — https://opengameart.org/content/unsolved-investigation (CC0)
+
+/sonidos/jingle-*.mp3   Kenney "Music Jingles" — https://kenney.nl/assets/music-jingles (CC0)
+/sonidos/*.mp3          Kenney "Impact Sounds", "Interface Sounds", "Casino Audio" — kenney.nl (CC0)
+/particulas/*.webp      Kenney "Particle Pack" — https://kenney.nl/assets/particle-pack (CC0)
+/emoji/*.webp           Microsoft Fluent Emoji — https://github.com/microsoft/fluentui-emoji (MIT)
+/particulas/oro/*.webp  Derivados del "Particle Pack" de Kenney (star_06, twirl_02), teñidos de dorado y con transparencia (CC0)
+
+Letras:
+Cabin Sketch (pizarra de Dardos) — Pablo Impallari e Igino Marini — Google Fonts, vía next/font — SIL Open Font License 1.1 (uso comercial libre; se sirve desde el propio sitio)
+  https://fonts.google.com/specimen/Cabin+Sketch · https://www.fontsquirrel.com/license/cabinsketch
+
+Bibliotecas (npm, no son archivos de public/):
+canvas-confetti — Kiril Vatev — ISC
+GSAP — GreenSock / Webflow — "Standard No Charge License" (gratis, también para uso comercial)

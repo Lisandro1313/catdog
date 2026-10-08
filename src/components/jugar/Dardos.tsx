@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Cabin_Sketch } from "next/font/google";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { ANILLOS_DARDOS, SECTORES_DARDOS, puntoDelDardo, type Impacto } from "@/lib/juegos-reglas";
 import { Shell, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
@@ -8,6 +9,7 @@ import { Fin } from "./Fin";
 import { capturar, prepararLienzo, puntoEnLienzo } from "./lienzo";
 import { Emoji } from "./Emoji";
 import {
+  cargarTexturas,
   correrTemblor,
   dibujarFlotantes,
   dibujarParticulas,
@@ -22,7 +24,19 @@ import {
   type Flotante,
   type Particula,
   type Temblor,
+  type Textura,
 } from "./efectos";
+
+/**
+ * La letra de la pizarra: Cabin Sketch (Google Fonts, OFL; de Pablo Impallari), con el trazo
+ * desparejo de la tiza. Se dibuja en el lienzo, así que se pide al arrancar; hasta que llega, sale
+ * la del sistema.
+ */
+const tiza = Cabin_Sketch({ weight: ["400", "700"], subsets: ["latin"], display: "swap" });
+const TIZA = tiza.style.fontFamily;
+
+const CHISPA: Textura[] = ["spark_01", "spark_03", "spark_06"];
+const ASTILLA: Textura[] = ["dirt_01", "dirt_02"];
 
 const W = 360;
 const H = 640;
@@ -108,6 +122,13 @@ function azarNormal(): number {
 export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     precargarSonidos(["madera", "golpe", "acierto", "logro", "tic"]);
+    cargarTexturas([...CHISPA, ...ASTILLA, "star_07", "flare_01"]);
+    try {
+      void document.fonts?.load(`700 20px ${TIZA}`).catch(() => {});
+      void document.fonts?.load(`400 12px ${TIZA}`).catch(() => {});
+    } catch {
+      // sin la API de fuentes: queda la del sistema
+    }
   }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [total, setTotal] = useState(0);
@@ -173,7 +194,7 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
           const grande = pts === 180 ? "¡180!" : pts >= 100 ? `¡Ton! ${pts}` : `Ronda ${n}: ${pts}`;
           flotar(flot, W / 2, C.y + 40, grande, pts >= 100 ? "#ffd36e" : "#fff4e0", pts >= 100 ? 36 : 28, 1.4);
           if (pts >= 100) {
-            soltar(part, W / 2, C.y + 40, 30, { color: ["#ffd36e", "#fff4e0", "#ff9d5c"], vel: 260, r: 2.6, dura: 0.9, g: 260 });
+            soltar(part, W / 2, C.y + 40, 22, { color: ["#ffd36e", "#fff4e0", "#ff9d5c"], vel: 260, r: 3.2, dura: 0.9, g: 260, sprite: "star_07", luz: true, giro: 5 });
             sonar("acierto", 0.5, 1.1);
           } else sonar("tic", 0.35);
         }, 650),
@@ -211,6 +232,9 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
         j.clavados.push({ ...v.hasta, t0: t, meneo: 0.5 + Math.random() * 0.3 });
         sonar("madera", 0.75, 0.92 + Math.random() * 0.12);
         tap(12);
+        // Al clavarse salta un poco de polvo de sisal y una chispa chica.
+        soltar(part, v.hasta.x, v.hasta.y, 3, { color: ["#d8c8a8", "#b8a37a"], vel: 70, r: 2.6, g: 260, dura: 0.45, sprite: ASTILLA, giro: 6 });
+        soltar(part, v.hasta.x, v.hasta.y, 4, { color: ["#fff4e0", "#ffd36e"], vel: 150, r: 2.4, dura: 0.3, g: 120, sprite: CHISPA, luz: true, giro: 8 });
       } else {
         // En el aro de los números o en el ladrillo: rebota y se cae.
         j.caidos.push({ ...v.hasta, vy: -60, giro: 0 });
@@ -227,7 +251,8 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
       const arriba = y - 26;
       if (imp.puntos === 50) {
         flotar(flot, x, arriba, "¡Bull!", "#ffd36e", 34, 1.1);
-        soltar(part, x, y, 26, { color: ["#ffd36e", "#fff4e0", "#e2453a"], vel: 240, r: 2.4, dura: 0.7, g: 200 });
+        soltar(part, x, y, 20, { color: ["#ffd36e", "#fff4e0", "#e2453a"], vel: 240, r: 3, dura: 0.7, g: 200, sprite: CHISPA, luz: true, giro: 8 });
+        soltar(part, x, y, 1, { color: "#ffe7a8", vel: 0, r: 18, dura: 0.4, sprite: "flare_01", luz: true });
         temblar(temblor, 5);
         sonar("acierto", 0.6);
         tap(30);
@@ -238,7 +263,8 @@ export function Dardos({ onDone, onBack, marcas, records, nueva }: Props) {
       } else if (imp.mult === 3) {
         const t20 = imp.sector === 20;
         flotar(flot, x, arriba, `¡${imp.nombre}!`, t20 ? "#ffd36e" : "#ffb38a", t20 ? 32 : 26, 1.1);
-        soltar(part, x, y, t20 ? 24 : 16, { color: ["#ffd36e", "#fff4e0", "#e8d9b0"], vel: 220, r: 2.2, dura: 0.6, g: 220 });
+        soltar(part, x, y, t20 ? 20 : 14, { color: ["#ffd36e", "#fff4e0", "#e8d9b0"], vel: 220, r: 2.8, dura: 0.6, g: 220, sprite: CHISPA, luz: true, giro: 8 });
+        soltar(part, x, y, 1, { color: t20 ? "#ffd36e" : "#ffb38a", vel: 0, r: t20 ? 15 : 12, dura: 0.35, sprite: "star_07", luz: true, giro: 3 });
         temblar(temblor, t20 ? 4 : 2.5);
         sonar("acierto", t20 ? 0.55 : 0.4, t20 ? 1.05 : 1);
         tap(20);
@@ -603,19 +629,19 @@ function pizarra(ctx: CanvasRenderingContext2D, j: Juego) {
     const cx = x + col * i + col / 2;
     const actual = i + 1 === j.ronda;
     ctx.fillStyle = actual ? "rgba(255,226,160,0.9)" : "rgba(235,235,225,0.55)";
-    ctx.font = "600 11px system-ui, -apple-system, sans-serif";
+    ctx.font = `400 13px ${TIZA}, system-ui, sans-serif`;
     ctx.fillText(`R${i + 1}`, cx, y + 17);
     ctx.fillStyle = "rgba(240,240,232,0.9)";
-    ctx.font = "700 19px system-ui, -apple-system, sans-serif";
+    ctx.font = `700 22px ${TIZA}, system-ui, sans-serif`;
     const v = j.rondas[i];
     ctx.fillText(v == null ? "–" : String(v), cx, y + 43);
   }
   const cx = x + col * 3 + col / 2;
   ctx.fillStyle = "rgba(235,235,225,0.55)";
-  ctx.font = "600 11px system-ui, -apple-system, sans-serif";
+  ctx.font = `400 13px ${TIZA}, system-ui, sans-serif`;
   ctx.fillText("Total", cx, y + 17);
   ctx.fillStyle = j.total >= METAS.dardos ? "#ffd36e" : "#fff4e0";
-  ctx.font = "800 21px system-ui, -apple-system, sans-serif";
+  ctx.font = `700 24px ${TIZA}, system-ui, sans-serif`;
   ctx.fillText(String(j.total), cx, y + 43);
   ctx.strokeStyle = "rgba(240,240,232,0.25)";
   ctx.lineWidth = 1;

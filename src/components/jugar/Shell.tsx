@@ -25,24 +25,41 @@ export function Shell({ title, onBack, children, right }: { title: string; onBac
 
 const MUTE_KEY = "catdog:jugar:mudo";
 let muted = false;
+let leido = false;
+const oyentes = new Set<(mudo: boolean) => void>();
+
+/** Si está en silencio. Lee lo guardado en el teléfono la primera vez (antes de que se monte el botón). */
+export function estaMudo(): boolean {
+  if (!leido && typeof window !== "undefined") {
+    leido = true;
+    try {
+      muted = localStorage.getItem(MUTE_KEY) === "1";
+    } catch {
+      // sin memoria
+    }
+  }
+  return muted;
+}
+
+/** Para la música: enterarse cuando alguien toca el silencio. Devuelve la función para dejar de escuchar. */
+export function alCambiarSilencio(fn: (mudo: boolean) => void): () => void {
+  oyentes.add(fn);
+  return () => oyentes.delete(fn);
+}
 
 /** Silencio para la mesa: se recuerda en el teléfono y lo respetan todos los sonidos de los juegos. */
 export function MuteButton() {
   const [on, setOn] = useState(false);
   useEffect(() => {
     const id = setTimeout(() => {
-      try {
-        muted = localStorage.getItem(MUTE_KEY) === "1";
-      } catch {
-        // sin memoria
-      }
-      setOn(muted);
+      setOn(estaMudo());
     }, 0);
     return () => clearTimeout(id);
   }, []);
   function toggle() {
-    muted = !muted;
+    muted = !estaMudo();
     setOn(muted);
+    oyentes.forEach((fn) => fn(muted));
     try {
       localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
     } catch {
@@ -136,7 +153,7 @@ let audio: AudioContext | null = null;
 
 /** Tono corto con Web Audio (sin archivos). Se crea el contexto en el primer toque; si el navegador no deja, silencio. */
 export function beep(freq: number, ms = 160, type: OscillatorType = "sine", volume = 0.18) {
-  if (muted) return;
+  if (estaMudo()) return;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
@@ -178,7 +195,8 @@ export function buzz() {
  */
 export type Sonido =
   | "clic" | "elegir" | "acierto" | "logro" | "error" | "tic" | "pop" | "carta" | "barajar" | "monedas" | "ficha" | "dado"
-  | "vidrio" | "brindis" | "vidrio-roto" | "bola" | "banda" | "tronera" | "madera" | "golpe" | "paleta" | "campana" | "glitch" | "pagina";
+  | "vidrio" | "brindis" | "vidrio-roto" | "bola" | "banda" | "tronera" | "madera" | "golpe" | "paleta" | "campana" | "glitch" | "pagina"
+  | `jingle-${"sax" | "pizzi"}-${"00" | "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09" | "10" | "11" | "12" | "13" | "14" | "15" | "16"}`;
 
 const buffers = new Map<Sonido, Promise<AudioBuffer | null>>();
 
@@ -220,11 +238,11 @@ export function precargarSonidos(lista: Sonido[]) {
  * diez choques de bolas no suenen todos iguales. Respeta el silencio del juego.
  */
 export function sonar(s: Sonido, volumen = 0.6, tono = 1) {
-  if (muted || typeof window === "undefined") return;
+  if (typeof window === "undefined" || estaMudo()) return;
   const ctx = contexto();
   if (!ctx) return;
   void cargar(s).then((buf) => {
-    if (!buf || muted) return;
+    if (!buf || estaMudo()) return;
     try {
       const src = ctx.createBufferSource();
       const g = ctx.createGain();

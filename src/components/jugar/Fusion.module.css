@@ -355,6 +355,38 @@
   font-weight: 600;
 }
 
+/* Destello al formar una ficha grande: estrella dorada que gira y se apaga; en las de 512 para
+   arriba, además un remolino. Son partículas de Kenney (CC0) ya teñidas, en public/particulas/oro. */
+.destello {
+  position: absolute;
+  inset: -40%;
+  z-index: 4;
+  pointer-events: none;
+  background: url("/particulas/oro/destello.webp") center / contain no-repeat;
+  opacity: 0;
+  animation: destello 620ms ease-out 110ms both;
+  will-change: transform, opacity;
+}
+.destelloGrande {
+  inset: -70%;
+  background-image: url("/particulas/oro/destello.webp"), url("/particulas/oro/remolino.webp");
+  background-size: 70%, contain;
+  animation-duration: 900ms;
+}
+@keyframes destello {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15) rotate(90deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ficha {
     transition: none;
@@ -363,5 +395,8 @@
   .fusion .cara,
   .cumbre .cara::after {
     animation: none;
+  }
+  .destello {
+    display: none;
   }
 }

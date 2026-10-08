@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { gsap } from "gsap";
 import {
   ARCANOS,
   CGS,
@@ -54,10 +55,16 @@ import {
 } from "@/lib/novela/motor";
 import { LOGROS, nuevosLogros } from "@/lib/novela/logros";
 import { imagenCg, imagenFondo, imagenesDe } from "@/lib/novela/arte";
+import { VOLUMEN_TEMA, finalTriste, temaDeEscena, temaDeFinal } from "@/lib/novela/musica";
 import { MuteButton, keepAwake, precargarSonidos, sonar, tap } from "./Shell";
+import { musica, pararMusica } from "./musica";
 import { Retrato } from "./novela/Retrato";
 import { Fondo } from "./novela/Fondo";
 import { Cg } from "./novela/Cg";
+import { Ambiente, RankUp } from "./novela/Efectos";
+import { SONIDOS_FANFARRIA, barrer, estallido, fanfarria, papelPicado, reducido, sacudir } from "./novela/fx";
+import { FUENTES } from "./novela/fuentes";
+import fx from "./novela/Fx.module.css";
 import s from "./Novela.module.css";
 
 export const TITULO = "¿Quién te contó?";
@@ -256,7 +263,6 @@ export function Novela({ onBack }: { onBack: () => void }) {
   const [borrador, setBorrador] = useState("");
   const [cal, setCal] = useState<ReturnType<typeof momento> | null>(null);
   const [anterior, setAnterior] = useState<string | null>(null);
-  const [golpe, setGolpe] = useState(0);
   const [avisos, setAvisos] = useState<{ items: Aviso[]; k: number } | null>(null);
   const [typed, setTyped] = useState({ id: "", n: 0 });
   const [saltar, setSaltar] = useState(false);
@@ -287,22 +293,109 @@ export function Novela({ onBack }: { onBack: () => void }) {
     return () => clearInterval(t);
   }, [jugando, listo, lineaId]);
 
-  // Las líneas con golpe suenan (sin tocar estado).
+  // ─── Efectos (GSAP): todo por refs, sin tocar estado ───
+  const camaraRef = useRef<HTMLDivElement>(null);
+  const barridoRef = useRef<HTMLDivElement>(null);
+  const chispasRef = useRef<HTMLDivElement>(null);
+  const cajaRef = useRef<HTMLDivElement>(null);
+  const flashRef = useRef<HTMLSpanElement>(null);
+  const nombreRef = useRef<HTMLSpanElement>(null);
+  const retratoRef = useRef<HTMLDivElement>(null);
+  const retratoIdleRef = useRef<HTMLDivElement>(null);
+  const opcionesRef = useRef<HTMLDivElement>(null);
+  const ultimoHabla = useRef("");
+
+  // Las líneas con golpe suenan, sacuden la cámara y largan chispas; el cuadro de diálogo hace
+  // "snap" cuando cambia quién habla.
   const golpeDeLinea = pantalla === "juego" && !cal && !anterior && !!actual?.golpe;
+  const hablaKey = pantalla === "juego" && linea ? linea.quien : "";
+  useLayoutEffect(() => {
+    const cambio = ultimoHabla.current !== hablaKey;
+    ultimoHabla.current = hablaKey;
+    const caja = cajaRef.current;
+    if (golpeDeLinea) {
+      golpeSonido();
+      if (reducido()) return;
+      sacudir(camaraRef.current, 1);
+      estallido(chispasRef.current, { x: 0.22, y: 0.7, n: 10 });
+      if (caja) {
+        gsap.killTweensOf(caja);
+        gsap.fromTo(caja, { scale: 1.1, rotation: 2.5 }, { scale: 1, rotation: 0, duration: 0.55, ease: "elastic.out(1, 0.45)", clearProps: "transform" });
+      }
+      if (flashRef.current) gsap.fromTo(flashRef.current, { opacity: 0.95 }, { opacity: 0, duration: 0.45, ease: "power2.out" });
+      return;
+    }
+    if (!cambio || !caja || !hablaKey || reducido()) return;
+    gsap.killTweensOf(caja);
+    gsap.fromTo(caja, { scale: 0.93, rotation: -2.5, y: 10, opacity: 0.4 }, { scale: 1, rotation: 0, y: 0, opacity: 1, duration: 0.26, ease: "back.out(3)", clearProps: "transform,opacity" });
+    const nombreEl = nombreRef.current;
+    if (nombreEl) {
+      gsap.killTweensOf(nombreEl);
+      gsap.fromTo(nombreEl, { x: -40, scale: 1.7, rotation: -14, opacity: 0 }, { x: 0, scale: 1, rotation: 0, opacity: 1, duration: 0.34, ease: "back.out(2.6)", clearProps: "transform,opacity" });
+    }
+  }, [golpeDeLinea, lineaId, hablaKey]);
+
+  // El retrato entra desde el costado y después respira, apenas.
+  const retratoQuien = pantalla === "juego" && retrato && !escena.cg ? retrato.quien : "";
+  useLayoutEffect(() => {
+    const el = retratoRef.current;
+    const idle = retratoIdleRef.current;
+    if (!retratoQuien || !el || !idle) return;
+    const ctx = gsap.context(() => {
+      if (reducido()) {
+        gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.2 });
+        return;
+      }
+      gsap.fromTo(el, { xPercent: 45, skewX: -14, opacity: 0 }, { xPercent: 0, skewX: 0, opacity: 1, duration: 0.45, ease: "back.out(1.5)" });
+      gsap.to(idle, { scaleY: 1.012, scaleX: 0.996, y: -3, transformOrigin: "50% 100%", duration: 2.4, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 0.5 });
+    });
+    return () => ctx.revert();
+  }, [retratoQuien]);
+
+  // Las opciones entran escalonadas (las de diálogo de costado, las cartas de abajo).
+  const opsKey = pantalla === "juego" && ops ? `${estado.escena}:${ops.map((o) => o.k).join(",")}` : "";
+  const libreVista = !!escena.libre;
+  useLayoutEffect(() => {
+    const el = opcionesRef.current;
+    if (!opsKey || !el) return;
+    const ctx = gsap.context(() => {
+      const hijos = Array.from(el.children).filter((x) => x.tagName === "BUTTON");
+      if (reducido()) {
+        gsap.fromTo(hijos, { opacity: 0 }, { opacity: 1, duration: 0.2, stagger: 0.03, clearProps: "opacity" });
+        return;
+      }
+      if (libreVista) gsap.fromTo(hijos, { y: 46, rotation: 5, opacity: 0 }, { y: 0, rotation: 0, opacity: 1, duration: 0.36, ease: "back.out(1.8)", stagger: 0.05, clearProps: "transform,opacity" });
+      else gsap.fromTo(hijos, { xPercent: -115, opacity: 0 }, { xPercent: 0, opacity: 1, duration: 0.36, ease: "back.out(1.7)", stagger: 0.07, clearProps: "transform,opacity" });
+    }, el);
+    return () => ctx.revert();
+  }, [opsKey, libreVista]);
+
+  // Música: un tema por escena (con fundido, y un respiro para no cambiar a cada rato al saltar).
+  const tema = pantalla === "juego" ? temaDeEscena(escena) : pantalla === "fin" && ultimoFinal ? temaDeFinal(ultimoFinal) : "noche";
   useEffect(() => {
-    if (golpeDeLinea) golpeSonido();
-  }, [golpeDeLinea, lineaId]);
+    const t = setTimeout(() => musica(tema, VOLUMEN_TEMA[tema]), 250);
+    return () => clearTimeout(t);
+  }, [tema]);
+  useEffect(() => () => pararMusica(), []);
+
+  function cerrarCal() {
+    setCal(null);
+    barrer(barridoRef.current);
+  }
 
   // El calendario se va solo a los pocos segundos (o al tocar). Espera a que se cierre el "anterior en".
   useEffect(() => {
     if (!cal || anterior) return;
-    const t = setTimeout(() => setCal(null), saltar ? 700 : 3200);
+    const t = setTimeout(() => {
+      setCal(null);
+      barrer(barridoRef.current);
+    }, saltar ? 700 : 3400);
     return () => clearTimeout(t);
   }, [cal, saltar, anterior]);
 
   // Precarga de sonidos e imágenes de lo que viene.
   useEffect(() => {
-    precargarSonidos([...SONIDOS]);
+    precargarSonidos([...SONIDOS, ...SONIDOS_FANFARRIA]);
   }, []);
   const escenaId = estado.escena;
   useEffect(() => {
@@ -325,7 +418,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
         setCal(b);
         sonar("pagina", 0.5);
       } else if (despues.fondo !== antes.fondo || despues.cg) {
-        setGolpe((g) => g + 1);
+        barrer(barridoRef.current);
         sonar("clic", 0.3);
       }
       if (despues.cg && !galeria.includes(despues.cg)) {
@@ -350,20 +443,35 @@ export function Novela({ onBack }: { onBack: () => void }) {
     }
     if (items.length) {
       setAvisos((p) => ({ items, k: (p?.k ?? 0) + 1 }));
-      const fuerte = items.some((x) => x.tipo === "rango" || x.tipo === "logro" || x.tipo === "cg");
-      setTimeout(() => sonar(fuerte ? "logro" : "acierto", 0.4), 160);
+      // Fanfarrias: rango (el 10 con la larga), logro, escena nueva para la galería. Si es el final, suena la del final.
+      const rango = items.find((x) => x.tipo === "rango");
+      const logro = items.some((x) => x.tipo === "logro");
+      const max = !!rango && Number(rango.valor) >= RANGO_MAX;
+      if (!next.terminado) {
+        setTimeout(() => {
+          if (rango) fanfarria(max ? "rango-max" : "rango");
+          else if (logro) fanfarria("logro");
+          else if (items.some((x) => x.tipo === "cg")) fanfarria("cg", 0.4);
+          else sonar("acierto", 0.4);
+        }, 160);
+        if (max || logro) setTimeout(() => papelPicado(max), 520);
+      }
     }
     setEstado(next);
 
     if (next.terminado) {
-      sumar(K_FINALES, [next.terminado]);
-      setUltimoFinal(next.terminado);
+      const fin = next.terminado;
+      sumar(K_FINALES, [fin]);
+      setUltimoFinal(fin);
       // Terminada la temporada 1, la ranura queda lista en el arranque de la 2. Terminada la 2, se libera.
-      const temporada = FINALES.find((f) => f.id === next.terminado)?.temporada ?? 1;
+      const temporada = FINALES.find((f) => f.id === fin)?.temporada ?? 1;
       guardarSlot(slot, temporada === 1 ? serializar(empezarT2(next), nombre, Date.now()) : null);
       setSaltar(false);
       setPantalla("fin");
       golpeSonido();
+      const triste = finalTriste(fin);
+      setTimeout(() => fanfarria(triste ? "final-triste" : "final", 0.55), 300);
+      if (!triste) setTimeout(() => papelPicado(true), 450);
       return;
     }
     guardar(next);
@@ -383,7 +491,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
       return;
     }
     if (cal) {
-      setCal(null);
+      cerrarCal();
       return;
     }
     if (ops || !linea) return;
@@ -402,7 +510,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
       return;
     }
     eleccionSonido();
-    setGolpe((g) => g + 1);
+    barrer(barridoRef.current);
     setLog((l) => [...l.slice(-199), { quien: "", texto: op.opcion.texto, eleccion: true }]);
     aplicar(elegir(estado, k), estado);
   }
@@ -535,7 +643,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
   if (pantalla === "titulo" || pantalla === "slots" || pantalla === "nombre" || pantalla === "extras") {
     const hayPartida = partidas.some((x) => x.p);
     return (
-      <div className={`${s.root} ${s.portada}`}>
+      <div className={`${s.root} ${s.portada} ${FUENTES}`}>
         <div className={s.marco}>
           <div className={s.portadaFondo} aria-hidden="true" />
           <div className={s.barraTop}>
@@ -703,7 +811,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
     const f = FINALES.find((x) => x.id === ultimoFinal)!;
     const deTemporada = FINALES.filter((x) => x.temporada === f.temporada);
     return (
-      <div className={`${s.root} ${s.portada}`}>
+      <div className={`${s.root} ${s.portada} ${FUENTES}`}>
         <div className={s.marco}>
           <div className={s.portadaFondo} aria-hidden="true" />
           <div className={`${s.portadaCuerpo} ${s.finCuerpo}`}>
@@ -751,18 +859,25 @@ export function Novela({ onBack }: { onBack: () => void }) {
   const m = momento(estado);
   const info = DIA_INFO[m.dia];
   const enPareja = parejas(estado);
+  const fanfarriaAviso = avisos?.items.find((x) => x.tipo === "rango") ?? avisos?.items.find((x) => x.tipo === "logro");
 
   return (
-    <div className={s.root}>
+    <div className={`${s.root} ${FUENTES}`}>
       <div className={s.marco} onClick={tocar}>
+        <div className={s.camara} ref={camaraRef}>
         <div className={s.fondo} key={escena.cg ?? escena.fondo}>
           {escena.cg ? <Cg id={escena.cg} /> : <Fondo id={escena.fondo} />}
         </div>
+        {(escena.cg || escena.fondo === "velas") && <Ambiente key={`ambiente-${escena.cg ?? escena.fondo}`}tipo={escena.fondo === "velas" ? "velas" : "brillo"} />}
 
         {retrato && !escena.cg && (
-          <div className={`${s.retrato} ${habla ? "" : s.atenuado} ${linea?.golpe && habla ? s.sacudon : ""}`} key={`${retrato.quien}`}>
-            <div className={s.retratoLosa} aria-hidden="true" />
-            <Retrato quien={retrato.quien} cara={retrato.cara} noche={escena.noche} />
+          <div className={`${s.retrato} ${habla ? "" : s.atenuado}`} key={`${retrato.quien}`}>
+            <div className={s.retratoMov} ref={retratoRef}>
+              <div className={s.retratoMov} ref={retratoIdleRef}>
+                <div className={s.retratoLosa} aria-hidden="true" />
+                <Retrato quien={retrato.quien} cara={retrato.cara} noche={escena.noche} />
+              </div>
+            </div>
           </div>
         )}
 
@@ -796,19 +911,11 @@ export function Novela({ onBack }: { onBack: () => void }) {
           </span>
         </div>
 
-        {avisos && (
-          <div className={s.subio} key={avisos.k} aria-live="polite">
-            {avisos.items.map((a, i) => (
-              <span key={i} className={`${s.subioItem} ${s[`aviso_${a.tipo}`] ?? ""}`}>
-                <small>{a.chico}</small> {a.texto} {a.valor && <b>{a.valor}</b>}
-              </span>
-            ))}
-          </div>
-        )}
+        {avisos && <AvisosVista key={avisos.k} items={avisos.items} />}
 
         <div className={s.abajo}>
           {ops && escena.libre && (
-            <div className={s.libre} onClick={(e) => e.stopPropagation()} role="group" aria-label="Tiempo libre">
+            <div className={s.libre} ref={opcionesRef} onClick={(e) => e.stopPropagation()} role="group" aria-label="Tiempo libre">
               <p className={s.libreTitulo}>
                 <b>Tiempo libre</b> {escena.turno === 1 ? "Antes de la una" : escena.turno === 2 ? "De madrugada" : "¿Con quién pasás la noche?"}
               </p>
@@ -818,7 +925,7 @@ export function Novela({ onBack }: { onBack: () => void }) {
                   const n = estado.rangos[c];
                   const prox = proximoRango(estado, c);
                   return (
-                    <button key={k} type="button" className={`${s.carta} ${bloqueo ? s.cartaTrabada : ""}`} style={{ animationDelay: `${i * 50}ms` }} onClick={() => elegirOpcion(k)} aria-disabled={!!bloqueo}>
+                    <button key={k} type="button" className={`${s.carta} ${bloqueo ? s.cartaTrabada : ""}`} onClick={() => elegirOpcion(k)} aria-disabled={!!bloqueo}>
                       <span className={s.cartaNum}>{i + 1}</span>
                       <span className={s.cartaNombre}>
                         {NOMBRES[c]} {enPareja.includes(c) && <i className={s.corazon}>♥</i>}
@@ -842,7 +949,6 @@ export function Novela({ onBack }: { onBack: () => void }) {
                     key={k}
                     type="button"
                     className={`${s.carta} ${juntada ? s.cartaJuntada : s.cartaEntrena}`}
-                    style={{ animationDelay: `${i * 50}ms` }}
                     onClick={() => elegirOpcion(k)}
                   >
                     <span className={s.cartaNum}>{i + 1}</span>
@@ -856,11 +962,11 @@ export function Novela({ onBack }: { onBack: () => void }) {
           )}
 
           {ops && !escena.libre && (
-            <div className={s.opciones} onClick={(e) => e.stopPropagation()} role="group" aria-label="¿Qué hacés?">
+            <div className={s.opciones} ref={opcionesRef} onClick={(e) => e.stopPropagation()} role="group" aria-label="¿Qué hacés?">
               {ops.map(({ opcion, k, bloqueo }, i) => {
                 const st = STATS.filter((x) => opcion.stats?.[x]);
                 return (
-                  <button key={k} type="button" className={`${s.opcion} ${bloqueo ? s.opcionTrabada : ""}`} style={{ animationDelay: `${i * 60}ms` }} onClick={() => elegirOpcion(k)} aria-disabled={!!bloqueo}>
+                  <button key={k} type="button" className={`${s.opcion} ${bloqueo ? s.opcionTrabada : ""}`} onClick={() => elegirOpcion(k)} aria-disabled={!!bloqueo}>
                     <span className={s.opcionNum}>{i + 1}</span>
                     <span className={s.opcionTexto}>
                       {opcion.texto}
@@ -874,8 +980,14 @@ export function Novela({ onBack }: { onBack: () => void }) {
           )}
 
           {linea && !(ops && escena.libre) && (
-            <div className={`${s.caja} ${quien ? "" : s.cajaNarra} ${linea.golpe ? s.cajaGolpe : ""}`} key={linea.golpe ? linea.id : "caja"}>
-              {quien && <span className={`${s.nombre} ${linea.quien === "yo" ? s.nombreYo : ""}`}>{quien}</span>}
+            <div className={s.cajaMov} ref={cajaRef}>
+            <div className={`${s.caja} ${quien ? "" : s.cajaNarra}`}>
+              <span className={s.cajaFlash} ref={flashRef} aria-hidden="true" />
+              {quien && (
+                <span className={s.nombreMov} ref={nombreRef}>
+                  <span className={`${s.nombre} ${linea.quien === "yo" ? s.nombreYo : ""}`}>{quien}</span>
+                </span>
+              )}
               <p className={s.texto}>
                 {texto.slice(0, escrito)}
                 <span className={s.fantasma} aria-hidden="true">
@@ -884,12 +996,23 @@ export function Novela({ onBack }: { onBack: () => void }) {
               </p>
               {listo && !ops && <span className={s.sigue} aria-hidden="true" />}
             </div>
+            </div>
           )}
         </div>
+        </div>
 
-        {golpe > 0 && <div className={s.barrido} key={`b${golpe}`} aria-hidden="true" />}
+        <div ref={chispasRef} className={`${fx.capa} ${s.chispas}`} aria-hidden="true" />
+        {fanfarriaAviso && avisos && (
+          <RankUp key={avisos.k} tipo={fanfarriaAviso.tipo === "rango" ? "rango" : "logro"} titulo={fanfarriaAviso.texto} valor={fanfarriaAviso.valor} camara={camaraRef} />
+        )}
 
-        {cal && <Calendario momento={cal} onSeguir={() => setCal(null)} />}
+        <div ref={barridoRef} className={s.barrido} aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
+
+        {cal && <Calendario momento={cal} onSeguir={cerrarCal} />}
 
         {anterior && (
           <div
@@ -1008,6 +1131,32 @@ function TituloRecortado() {
   );
 }
 
+/** Los avisos de arriba (vínculo, rango, cualidad, logro, galería): entran de a uno y se van. */
+function AvisosVista({ items }: { items: Aviso[] }) {
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const ctx = gsap.context(() => {
+      const hijos = Array.from(el.children);
+      const tl = gsap.timeline();
+      if (reducido()) tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 });
+      else tl.fromTo(hijos, { xPercent: -110, autoAlpha: 0 }, { xPercent: 0, autoAlpha: 1, duration: 0.34, ease: "back.out(1.6)", stagger: 0.09 });
+      tl.to(el, { autoAlpha: 0, x: reducido() ? 0 : -40, duration: 0.35, ease: "power2.in" }, `+=${1.9 + items.length * 0.15}`);
+    }, el);
+    return () => ctx.revert();
+  }, [items]);
+  return (
+    <div className={s.subio} ref={root} aria-live="polite">
+      {items.map((a, i) => (
+        <span key={i} className={`${s.subioItem} ${s[`aviso_${a.tipo}`] ?? ""}`}>
+          <small>{a.chico}</small> {a.texto} {a.valor && <b>{a.valor}</b>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 const LETRAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 const ABIERTO = new Set([0, 3, 4, 5]);
 const ORDEN_DIA: Record<string, number> = { lunes: 1, jueves: 2, viernes: 3, sabado: 4 };
@@ -1023,8 +1172,40 @@ function Calendario({ momento: m, onSeguir }: { momento: ReturnType<typeof momen
       : m.temporada === 2
         ? `Temporada 2 · Semana ${m.semana} · día ${ORDEN_DIA[m.dia]} de 4${m.semana === 5 ? " · la última" : ""}`
         : `Semana en la casa · día ${ORDEN_DIA[m.dia]} de 4`;
+  const root = useRef<HTMLDivElement>(null);
+
+  // Entra de golpe: se abre en diagonal, cruza la franja negra, el día cae con rebote y tiembla todo.
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const ctx = gsap.context(() => {
+      if (reducido()) {
+        gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.25 });
+        return;
+      }
+      const tl = gsap.timeline();
+      if (el.querySelector(`.${s.calCuenta}`)) tl.fromTo(`.${s.calCuenta}`, { scale: 0, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(3)" }, 0.5);
+      tl.fromTo(el, { clipPath: "polygon(0% 0%, 0% 0%, -30% 100%, -30% 100%)" }, { clipPath: "polygon(0% 0%, 130% 0%, 100% 100%, -30% 100%)", duration: 0.34, ease: "power4.out" })
+        .fromTo(`.${s.calFranja}`, { xPercent: 110 }, { xPercent: 0, duration: 0.42, ease: "power4.out" }, 0.06)
+        .fromTo(`.${s.calSemana}`, { x: -90, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.26, ease: "back.out(2)" }, 0.14)
+        .fromTo(`.${s.calDia}`, { scale: 2.9, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.75, ease: "elastic.out(1.05, 0.45)" }, 0.2)
+        .call(
+          () => {
+            sacudir(el, 1.1);
+            tap(18);
+          },
+          undefined,
+          0.3,
+        )
+        .fromTo(`.${s.calBajada}`, { x: 80, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.3, ease: "back.out(2.2)" }, 0.42)
+        .fromTo(`.${s.calCelda}`, { y: -46, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.32, ease: "back.out(3)", stagger: 0.035 }, 0.5);
+    }, el);
+    return () => ctx.revert();
+  }, []);
+
   return (
     <div
+      ref={root}
       className={s.calendario}
       onClick={(e) => {
         e.stopPropagation();

@@ -289,6 +289,8 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
                   </span>
                   <span className={s.nombre}>{f.nombre}</span>
                 </div>
+                {/* Al formar una ficha grande, un destello dorado (partículas de Kenney, CC0). */}
+                {x.nace === "fusion" && x.v >= 64 && <span className={`${s.destello} ${x.v >= 512 ? s.destelloGrande : ""}`} aria-hidden="true" />}
               </div>
             );
           })}

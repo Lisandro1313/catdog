@@ -1,0 +1,145 @@
+/* Efectos de la novela: partículas (texturas blancas de Kenney, teñidas con máscara) y el RANK UP. */
+
+.capa {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particula,
+.ambiente {
+  position: absolute;
+  pointer-events: none;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  will-change: transform, opacity;
+}
+
+.ambiente {
+  visibility: hidden;
+  opacity: 0;
+}
+.brillo {
+  width: 2.6rem;
+  height: 2.6rem;
+  background: #fff;
+  mix-blend-mode: screen;
+}
+.humo {
+  width: 7rem;
+  height: 7rem;
+  background: #d8cfc6;
+}
+.llama {
+  width: 9rem;
+  height: 9rem;
+  background: #ffb347;
+  mix-blend-mode: screen;
+}
+
+/* ─── RANK UP ─── */
+
+.rank {
+  position: absolute;
+  z-index: 35;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  visibility: hidden;
+  overflow: hidden;
+}
+.rankRojo,
+.rankBanda {
+  position: absolute;
+  left: -15%;
+  right: -15%;
+}
+.rankRojo {
+  top: 37%;
+  height: 25%;
+  background:
+    repeating-linear-gradient(-60deg, transparent 0 14px, rgb(0 0 0 / 0.18) 14px 18px),
+    var(--rojo, #e0101e);
+  transform: rotate(-9deg);
+}
+.rankBanda {
+  top: 39%;
+  height: 20%;
+  background: var(--negro, #0a0a0a);
+  border-top: 4px solid var(--blanco, #fbf7f2);
+  border-bottom: 4px solid var(--blanco, #fbf7f2);
+  transform: rotate(-5deg);
+}
+.rankTexto {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  transform: rotate(-6deg);
+}
+.rankChico {
+  margin: 0;
+  padding: 0.1em 0.6em;
+  background: var(--blanco, #fbf7f2);
+  color: var(--negro, #0a0a0a);
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 4px 4px 0 var(--rojo, #e0101e);
+}
+.rankGrande {
+  display: flex;
+  margin: 0;
+  font-size: clamp(3.4rem, 19vw, 5.2rem);
+  line-height: 1;
+  color: var(--blanco, #fbf7f2);
+  text-shadow:
+    4px 4px 0 var(--rojo, #e0101e),
+    8px 8px 0 var(--negro, #0a0a0a);
+}
+.rankLetra {
+  display: inline-block;
+}
+.rankLetra:nth-child(3n + 2) {
+  color: var(--rojo, #e0101e);
+  text-shadow:
+    4px 4px 0 var(--blanco, #fbf7f2),
+    8px 8px 0 var(--negro, #0a0a0a);
+}
+.rankEspacio {
+  display: inline-block;
+  width: 0.25em;
+}
+.rankValor {
+  margin: 0.2rem 0 0;
+  padding: 0.05em 0.5em;
+  background: var(--rojo, #e0101e);
+  color: var(--blanco, #fbf7f2);
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  border: 3px solid var(--negro, #0a0a0a);
+  max-width: 80vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankLogro .rankRojo {
+  background:
+    repeating-linear-gradient(-60deg, transparent 0 14px, rgb(0 0 0 / 0.12) 14px 18px),
+    #f2c230;
+}
+.rankLogro .rankLetra:nth-child(3n + 2) {
+  color: #f2c230;
+}
+.rankLogro .rankValor {
+  background: var(--blanco, #fbf7f2);
+  color: var(--negro, #0a0a0a);
+  font-size: 1.15rem;
+}

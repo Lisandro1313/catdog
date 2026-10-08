@@ -57,6 +57,8 @@ import {
 } from "../src/lib/novela/motor";
 import { JUNTADA_EN } from "../src/lib/novela/t2/juntadas";
 import { LOGROS } from "../src/lib/novela/logros";
+import { MUSICA_ESCENA, finalTriste, temaDeEscena, temaDeFinal } from "../src/lib/novela/musica";
+import { TEMAS_NOVELA } from "../src/lib/novela/tipos";
 import { imagenCg, imagenRetrato } from "../src/lib/novela/arte";
 
 /** Lee de corrido hasta la próxima decisión o el fin. */
@@ -857,5 +859,25 @@ describe("arte y logros", () => {
     expect(new Set(LOGROS.map((l) => l.id)).size).toBe(LOGROS.length);
     expect(LOGROS.find((l) => l.id === "los5")!.desc).toContain(String(CONFIDENTES.length));
     expect(LOGROS.find((l) => l.id === "finales2")!.desc).toContain(String(FINALES.filter((f) => f.temporada === 2).length));
+  });
+});
+
+describe("música", () => {
+  it("cada escena y cada final tiene un tema que existe", () => {
+    for (const e of Object.values(ESCENAS)) expect(TEMAS_NOVELA, e.id).toContain(temaDeEscena(e));
+    for (const f of FINALES_IDS) expect(TEMAS_NOVELA, f).toContain(temaDeFinal(f));
+  });
+
+  it("los temas puestos a mano apuntan a escenas reales", () => {
+    for (const id of Object.keys(MUSICA_ESCENA)) expect(ESCENAS[id], id).toBeDefined();
+  });
+
+  it("el misterio suena con la carta y Gervasio; el romance, con jazz suave", () => {
+    expect(temaDeEscena(ESCENAS["fin-verdadero"])).toBe("misterio");
+    expect(temaDeEscena(ESCENAS["s3-jue-apagon"])).toBe("noche");
+    expect(temaDeEscena(ESCENAS["f2-vera"])).toBe("jazz-suave");
+    expect(temaDeEscena(ESCENAS["lun-puerta"])).toBe("barra");
+    expect(finalTriste("t2-cerrado")).toBe(true);
+    expect(finalTriste("t2-verdadero")).toBe(false);
   });
 });

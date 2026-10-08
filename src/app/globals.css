@@ -1765,6 +1765,36 @@ details.faq > summary::-webkit-details-marker {
 }
 
 /* "Marca lograda" con brillo */
+/* "¡Meta!" en la pantalla final: un sello que golpea (lo anima GSAP desde Fin; quieto, ya se ve bien). */
+.jg-sello {
+  display: inline-block;
+  padding: 0.2rem 0.9rem 0.25rem;
+  border: 2px solid var(--accent);
+  border-radius: 0.45rem;
+  background: rgba(201, 169, 110, 0.12);
+  color: var(--accent-strong, var(--accent));
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-4deg);
+  box-shadow: 0 0 0 0 rgba(224, 194, 131, 0);
+}
+/* El brillo que cruza la tarjeta del reto del día (lo mueve GSAP; sin animación no se ve). */
+.jg-reto {
+  position: relative;
+  overflow: hidden;
+}
+.jg-reto-brillo {
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 45%;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 236, 190, 0.28) 45%, rgba(255, 248, 230, 0.5) 50%, rgba(255, 236, 190, 0.28) 55%, transparent 100%);
+  transform: skewX(-12deg);
+  opacity: 0;
+}
 .jg-glow {
   animation: jg-glow 1.6s ease-in-out infinite alternate;
 }
@@ -1842,34 +1872,6 @@ details.faq > summary::-webkit-details-marker {
   }
 }
 
-/* Confeti dorado */
-.jg-confetti {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 30;
-}
-.jg-confetti span {
-  position: absolute;
-  top: -12px;
-  border-radius: 2px;
-  opacity: 0;
-  animation-name: jg-fall;
-  animation-timing-function: cubic-bezier(0.3, 0.2, 0.6, 1);
-  animation-fill-mode: forwards;
-}
-@keyframes jg-fall {
-  0% {
-    opacity: 1;
-    transform: translate(0, 0) rotate(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--drift), 100vh) rotate(var(--rot));
-  }
-}
-
 /* Home: un brillo dorado recorre el borde de la carta cuando entra en pantalla */
 .menu-card::after {
   content: "";
@@ -1913,9 +1915,6 @@ details.faq > summary::-webkit-details-marker {
   .hoy-chip.is-on,
   .reveal.is-in .menu-card::after {
     animation: none;
-  }
-  .jg-confetti {
-    display: none;
   }
 }
 

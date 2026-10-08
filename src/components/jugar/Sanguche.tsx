@@ -8,6 +8,7 @@ import { Fin } from "./Fin";
 import { prepararLienzo } from "./lienzo";
 import { Emoji } from "./Emoji";
 import {
+  cargarTexturas,
   correrTemblor,
   dibujarFlotantes,
   dibujarParticulas,
@@ -21,7 +22,10 @@ import {
   type Flotante,
   type Particula,
   type Temblor,
+  type Textura,
 } from "./efectos";
+
+const BRILLO: Textura[] = ["star_01", "star_02", "spark_07"];
 
 const W = 360;
 const H = 560;
@@ -98,6 +102,7 @@ const baseDe = (i: number, cam: number) => PISO - i * ALTO + cam;
 export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
   useEffect(() => {
     precargarSonidos(["golpe"]);
+    cargarTexturas([...BRILLO, "light_02"]);
   }, []);
   const [phase, setPhase] = useState<"idle" | "play" | "end">("idle");
   const [capas, setCapas] = useState(0);
@@ -314,7 +319,9 @@ export function Sanguche({ onDone, onBack, marcas, records, nueva }: Props) {
       setTimeout(() => beep(NOTAS[Math.min(j.racha, NOTAS.length - 1)] * 2, 90, "sine", 0.05), 60);
       tap(14);
       j.anillos.push({ x: capa.x, y: base, w: capa.ancho, vida: 1 });
-      soltar(j.part, capa.x + capa.ancho / 2, base - ALTO / 2, 18, { color: ["#fff2c4", "#ffd36e", "#ffffff"], vel: 220, r: 2.2, dura: 0.6, g: 120 });
+      soltar(j.part, capa.x + capa.ancho / 2, base - ALTO / 2, 14, { color: ["#fff2c4", "#ffd36e", "#ffffff"], vel: 220, r: 3, dura: 0.6, g: 120, sprite: BRILLO, luz: true, giro: 6 });
+      // Un destello que recorre la capa justa, de punta a punta.
+      for (let k = 0; k < 3; k++) soltar(j.part, capa.x + (capa.ancho * (k + 0.5)) / 3, base - ALTO / 2, 1, { color: "#fff2c4", vel: 0, r: 10, dura: 0.32, sprite: "light_02", luz: true });
       flotar(j.flot, W / 2, base - ALTO - 40, crece ? "¡Justo! Crece" : j.racha >= 2 ? `¡Justo! x${j.racha}` : "¡Justo!", "#ffd36e", 24, 0.9);
     } else {
       j.racha = 0;

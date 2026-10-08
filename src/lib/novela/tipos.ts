@@ -177,7 +177,13 @@ export type Escena = {
   sigue?: string;
   /** Si la escena es el cierre de un final: al terminarla, se termina el juego. */
   fin?: FinalId;
+  /** Tema de música a la fuerza. Si falta, lo decide `temaDeEscena` (ver `musica.ts`). */
+  musica?: TemaNovela;
 };
+
+/** Los temas de fondo (public/musica). Mismos nombres que `Tema` de components/jugar/musica.ts. */
+export const TEMAS_NOVELA = ["barra", "noche", "melancolia", "jazz-suave", "brass", "misterio"] as const;
+export type TemaNovela = (typeof TEMAS_NOVELA)[number];
 
 export const FINALES_IDS = [
   "verdadero",
