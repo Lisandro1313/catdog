@@ -1,0 +1,9 @@
+Los dados 3D de la Generala
+
+- Motor y física: @3d-dice/dice-box 1.1.4 (BabylonJS + Ammo.js), licencia MIT.
+  https://github.com/3d-dice/dice-box
+  ammo/ y themes/default/ son copia de node_modules/@3d-dice/dice-box/dist/assets.
+
+- Dados con puntos: temas "smooth-pip" y "smooth" de @3d-dice/dice-themes 0.2.1, licencia MIT.
+  Autor: Frank Ali. https://github.com/3d-dice/dice-themes
+  Se copiaron solo esas dos carpetas (el paquete entero pesa 10 MB).

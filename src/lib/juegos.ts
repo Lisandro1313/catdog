@@ -15,6 +15,8 @@ export const GAMES = [
   "pingpong", "pool", "sanguche", "parrilla", "fruta", "vaso", "palabra", "fusion",
   // El veinte, también del 2026-10-07.
   "dardos",
+  // La Generala con dados 3D, del 2026-10-08.
+  "generala",
 ] as const;
 export type GameId = (typeof GAMES)[number];
 
@@ -67,12 +69,15 @@ export const METAS: Record<GameId, number> = {
   /** Dardos: puntos en nueve dardos (tres rondas de tres). Tirando siempre al 20, cada triple suma 60:
    *  250 pide tres o cuatro triples sin irse a los costados. A ojo, con una simulación del pulso: recalibrar. */
   dardos: 250,
+  /** Generala: puntos en los once casilleros. Una partida prolija sin generala anda por 170-190: 200
+   *  pide algo grande (un póker servido, una generala). A ojo: recalibrar con marcas reales. */
+  generala: 200,
 };
 
 /** En memoria gana el número más bajo; en el resto, el más alto. */
 export const LOWER_IS_BETTER: Record<GameId, boolean> = {
   maridaje: false, servicio: false, gato: false, ritmo: false, memoria: true, chef: false, lisandro: false, copa: false, simon: false, mimica: false, trivia: false,
-  pingpong: false, pool: false, sanguche: false, parrilla: false, fruta: false, vaso: false, palabra: true, fusion: false, dardos: false,
+  pingpong: false, pool: false, sanguche: false, parrilla: false, fruta: false, vaso: false, palabra: true, fusion: false, dardos: false, generala: false,
 };
 
 export type Marcas = Partial<Record<GameId, number>> & { premio?: string | null; premioAt?: string | null; name?: string | null };
@@ -97,7 +102,7 @@ export function mejora(game: GameId, value: number, current: number | undefined 
 /** Valores imposibles se descartan sin guardar (un memotest de 8 pares no baja de 8 movimientos, etc.). */
 const MAX: Record<GameId, number> = {
   maridaje: 80, servicio: 200, gato: 400, ritmo: 400, memoria: 200, chef: 90, lisandro: 200, copa: 500, simon: 30, mimica: 40, trivia: 80,
-  pingpong: 400, pool: 7, sanguche: 200, parrilla: 300, fruta: 600, vaso: 500, palabra: 7, fusion: 200000, dardos: 540,
+  pingpong: 400, pool: 7, sanguche: 200, parrilla: 300, fruta: 600, vaso: 500, palabra: 7, fusion: 200000, dardos: 540, generala: 410,
 };
 
 export function plausible(game: GameId, value: number): boolean {
@@ -139,6 +144,8 @@ export const MIN_MS: Record<GameId, number> = {
   fusion: 60000,
   /** Nueve dardos con su vuelo y dos cambios de ronda: aun tirando sin pensar, no baja de unos 14 s. */
   dardos: 12000,
+  /** Once turnos, cada uno con al menos una tirada que tarda en caer: por lo menos un minuto. */
+  generala: 60000,
 };
 
 /** Nombre para los récords: corto, sin saltos de línea ni links. */

@@ -11,6 +11,7 @@ import { Confetti } from "./Confetti";
 import { animar, entrar, gsap } from "./animar";
 import { fanfarria, precargarFanfarrias } from "./juice";
 import { pararMusica } from "./musica";
+import { instalarHaptica } from "./haptica";
 import { NovelaBoton } from "./novela/NovelaBoton";
 import { ShareButton } from "@/components/ShareButton";
 import { insigniaRacha } from "@/lib/racha";
@@ -58,6 +59,7 @@ const Vaso = dynamic(() => import("./Vaso").then((m) => m.Vaso), { ssr: false, l
 const Palabra = dynamic(() => import("./Palabra").then((m) => m.Palabra), { ssr: false, loading: cargando });
 const Fusion = dynamic(() => import("./Fusion").then((m) => m.Fusion), { ssr: false, loading: cargando });
 const Dardos = dynamic(() => import("./Dardos").then((m) => m.Dardos), { ssr: false, loading: cargando });
+const Generala = dynamic(() => import("./Generala").then((m) => m.Generala), { ssr: false, loading: cargando });
 const Novela = dynamic(() => import("./Novela").then((m) => m.Novela), { ssr: false, loading: cargando });
 
 type View = "hub" | GameId | "premio" | "records" | "duelo" | "torneo" | "impostor" | "novela";
@@ -75,7 +77,7 @@ const NAME_KEY = "catdog:jugar:nombre";
  * El menú de juegos y sus pantallas (récords, el trago, armar duelo o torneo) van en silencio: la
  * música de fondo ahí quedaba mal, y el que entra a mirar qué hay no pidió que le suene nada.
  */
-const CON_MUSICA = new Set<View>(["memoria", "palabra", "fusion", "maridaje", "trivia"]);
+const CON_MUSICA = new Set<View>(["memoria", "palabra", "fusion", "maridaje", "trivia", "generala"]);
 
 type Props = {
   /** Lo que hay en la carta de verdad: alimenta los juegos de la mesa. */ deLaCarta?: string[];
@@ -153,6 +155,8 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
     if (!CON_MUSICA.has(view)) pararMusica();
   }, [view]);
   useEffect(() => () => pararMusica(), []);
+  // En iPhone, que los botones vibren (en Android ya vibran solos). Uno para toda la página de juegos.
+  useEffect(() => instalarHaptica(document.body), []);
 
   // Cómo terminó el duelo (si terminó): para el festejo y la fanfarria.
   const dueloGanador =
@@ -360,6 +364,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
     view === "palabra" ? <Palabra onDone={(v) => reportar("palabra", v)} {...common} /> :
     view === "fusion" ? <Fusion onDone={(v) => reportar("fusion", v)} {...common} /> :
     view === "dardos" ? <Dardos onDone={(v) => reportar("dardos", v)} {...common} /> :
+    view === "generala" ? <Generala onDone={(v) => reportar("generala", v)} {...common} /> :
     null;
 
   if (game) {
