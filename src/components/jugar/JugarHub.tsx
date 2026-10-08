@@ -10,7 +10,7 @@ import { letSleep, precargarSonidos, sonar, withTransition } from "./Shell";
 import { Confetti } from "./Confetti";
 import { animar, entrar, gsap } from "./animar";
 import { fanfarria, precargarFanfarrias } from "./juice";
-import { musica, pararMusica } from "./musica";
+import { pararMusica } from "./musica";
 import { NovelaBoton } from "./novela/NovelaBoton";
 import { ShareButton } from "@/components/ShareButton";
 import { insigniaRacha } from "@/lib/racha";
@@ -76,7 +76,6 @@ const NAME_KEY = "catdog:jugar:nombre";
  * música de fondo ahí quedaba mal, y el que entra a mirar qué hay no pidió que le suene nada.
  */
 const CON_MUSICA = new Set<View>(["memoria", "palabra", "fusion", "maridaje", "trivia"]);
-const VOLUMEN_BAR = 0.22;
 
 type Props = {
   /** Lo que hay en la carta de verdad: alimenta los juegos de la mesa. */ deLaCarta?: string[];
@@ -147,11 +146,11 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
   const reto = retoDelDia();
   const [nueva, setNueva] = useState(false);
 
-  // La música del bar: suena solo en los juegos tranquilos. En el menú y en los de reflejos, silencio.
+  // La música del bar la prende cada juego tranquilo al empezar la partida; acá solo se apaga al
+  // salir de ellos. En el menú y en los de reflejos, silencio.
   useEffect(() => {
     if (view === "novela") return;
-    if (CON_MUSICA.has(view)) musica("barra", VOLUMEN_BAR);
-    else pararMusica();
+    if (!CON_MUSICA.has(view)) pararMusica();
   }, [view]);
   useEffect(() => () => pararMusica(), []);
 

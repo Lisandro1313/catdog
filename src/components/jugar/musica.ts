@@ -74,6 +74,18 @@ export function musica(tema: Tema, volumen = 0.35) {
     });
 }
 
+/** Qué tan fuerte va la música del bar en los juegos tranquilos: de fondo, que se oiga el juego. */
+export const VOLUMEN_BARRA = 0.22;
+
+/**
+ * La música del bar, para los juegos tranquilos. Se llama desde el toque que arranca la partida
+ * ("Empezar", o la primera carta en el memotest): suena cuando se juega, no al entrar a mirar.
+ * Si ya estaba sonando (otra vez, otra partida), no se reinicia.
+ */
+export function musicaDelBar() {
+  musica("barra", VOLUMEN_BARRA);
+}
+
 /** Apaga la música con fundido (al salir de la novela o de un juego). */
 export function pararMusica() {
   const a = actual;

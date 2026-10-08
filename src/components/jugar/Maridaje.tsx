@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, precargarSonidos, shuffle, sonar } from "./Shell";
+import { musicaDelBar } from "./musica";
 import { Fin } from "./Fin";
 import css from "./Maridaje.module.css";
 import { Emoji } from "./Emoji";
@@ -87,6 +88,7 @@ export function Maridaje({ pairs, extraDrinks, modo = "cena", onDone, onBack, ma
   }
 
   function start() {
+    musicaDelBar();
     reported.current = false;
     timers.current.forEach(clearTimeout);
     timers.current.length = 0;

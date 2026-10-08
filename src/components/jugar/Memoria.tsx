@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, beep, precargarSonidos, shuffle, sonar } from "./Shell";
+import { musicaDelBar } from "./musica";
 import { Fin } from "./Fin";
 import css from "./Memoria.module.css";
 import { Emoji } from "./Emoji";
@@ -92,6 +93,8 @@ export function Memoria({ photos, onDone, onBack, marcas, records, nueva }: Prop
   }
 
   function flip(i: number) {
+    // El memotest no tiene "Empezar": se empieza a jugar con la primera carta.
+    musicaDelBar();
     if (!cards || peek || done || lock.current || found.has(cards[i].key)) return;
     // Hay un par equivocado a la vista: se da vuelta ya y esta carta arranca el próximo par.
     let current = open;

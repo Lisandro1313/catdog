@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { TRIVIA, type TriviaItem } from "@/lib/jugar";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { Shell, keepAwake, precargarSonidos, shuffle, sonar } from "./Shell";
+import { musicaDelBar } from "./musica";
 import { Fin } from "./Fin";
 import { FANFARRIA, chime, tick } from "./juice";
 import { Salta } from "./Salta";
@@ -68,6 +69,7 @@ export function Trivia({ onDone, onBack, marcas, records, nueva, pairs = [], deL
   const secondsFor = (s: number) => Math.max(5, 14 - s * 0.6);
 
   function start() {
+    musicaDelBar();
     keepAwake();
     reported.current = false;
     // Las de la carta van intercaladas cerca del principio, para que salgan casi siempre.

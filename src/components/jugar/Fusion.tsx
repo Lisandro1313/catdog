@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { ESCALERA_2048, hayJugada, type Direccion } from "@/lib/juegos-reglas";
 import { Shell, beep, buzz, keepAwake, precargarSonidos, sonar } from "./Shell";
+import { musicaDelBar } from "./musica";
 import { Fin } from "./Fin";
 import { capturar } from "./lienzo";
 import { aTablero, deslizar, ponerNueva, type Ficha } from "./fusion-fichas";
@@ -78,6 +79,7 @@ export function Fusion({ onDone, onBack, marcas, records, nueva }: Props) {
   }, []);
 
   function start() {
+    musicaDelBar();
     keepAwake();
     timers.current.forEach(clearTimeout);
     timers.current.length = 0;

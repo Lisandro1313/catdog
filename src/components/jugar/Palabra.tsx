@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { METAS, type Marcas, type Records } from "@/lib/juegos";
 import { evaluar, PALABRAS, type Pista } from "@/lib/juegos-reglas";
 import { Shell, beep, buzz, keepAwake } from "./Shell";
+import { musicaDelBar } from "./musica";
 import { Fin } from "./Fin";
 import { Salta } from "./Salta";
 import { rebotar, sacudir, vibrar } from "./sensacion";
@@ -87,6 +88,7 @@ export function Palabra({ onDone, onBack, marcas, records, nueva }: Props) {
   }
 
   function start() {
+    musicaDelBar();
     keepAwake();
     timers.current.forEach(clearTimeout);
     timers.current.length = 0;
