@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { allowRequest } from "@/lib/rate-limit";
 import { argentinaDay } from "@/lib/dates";
 import { deDeLaRuta, esRutaDeAccion, esRutaDeHito } from "@/lib/origen";
+import { esRutaDeJuego } from "@/lib/juegos-stats";
 
 /**
  * Rutas que se cuentan (las que llevan TrackVisit o el embudo de la reserva). Cualquier otra se ignora.
@@ -15,7 +16,8 @@ const KNOWN = new Set(["/", "/fechas", "/hoy", "/hoy/jugar", "/reservar", "/even
  * de los que se miden. Cualquier otra cosa se ignora: el cuerpo lo escribe el navegador.
  */
 function aceptada(ruta: string): boolean {
-  if (esRutaDeAccion(ruta) || esRutaDeHito(ruta)) return true;
+  // Qué se juega y quién llega a jugar: "/juego/pool", "/juego/novela?de=ig", "/juego/pool/fin".
+  if (esRutaDeAccion(ruta) || esRutaDeHito(ruta) || esRutaDeJuego(ruta)) return true;
   const de = deDeLaRuta(ruta);
   if (!de) return KNOWN.has(ruta);
   return KNOWN.has(ruta.slice(0, ruta.indexOf("?de=")));

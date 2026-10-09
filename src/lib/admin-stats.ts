@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { argentinaDay } from "./dates";
+import { esEvento, resumirJuegos, type ResumenJuegos } from "./juegos-stats";
 import { PARTNERS, PARTNER_SHARE, type AnyKind } from "./ledger-categories";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -23,7 +24,10 @@ export async function getVisitStats(): Promise<VisitStats> {
     select: { day: true, count: true, path: true },
   });
   const byDay = new Map<number, number>();
-  for (const r of rows) byDay.set(r.day.getTime(), (byDay.get(r.day.getTime()) ?? 0) + r.count);
+  // Solo páginas. Los clics (/clic), el recorrido del inicio (/hasta) y los juegos (/juego) van en la
+  // misma tabla pero no son visitas: antes se sumaban, y alguien que bajaba todo el inicio contaba
+  // como diez.
+  for (const r of rows) if (!esEvento(r.path)) byDay.set(r.day.getTime(), (byDay.get(r.day.getTime()) ?? 0) + r.count);
 
   const sumSince = (days: number) => {
     const from = today.getTime() - (days - 1) * DAY_MS;
@@ -40,6 +44,42 @@ export async function getVisitStats(): Promise<VisitStats> {
   const byPath = Array.from(paths, ([path, count]) => ({ path, count })).sort((a, b) => b.count - a.count);
 
   return { today: byDay.get(today.getTime()) ?? 0, last7: sumSince(7), last30: sumSince(30), daily, byPath };
+}
+
+export type JuegosStats = ResumenJuegos & {
+  /** Teléfonos distintos que terminaron al menos una partida con puntaje. */
+  personas7: number;
+  personas30: number;
+  /** Tragos ganados en los últimos 30 días, y cuántos se canjearon. */
+  tragos: number;
+  canjeados: number;
+};
+
+/**
+ * Los juegos en los últimos 30 días: qué se abrió, qué se terminó y de dónde venía la gente. Las
+ * marcas de abrir y terminar existen desde el 2026-10-09; las personas salen de los puntajes, que
+ * se guardan desde antes.
+ */
+export async function getJuegosStats(): Promise<JuegosStats> {
+  const today = argentinaDay();
+  const desde30 = new Date(today.getTime() - 29 * DAY_MS);
+  const dia = (d: Date) => d.toISOString().slice(0, 10);
+  const desde7 = dia(new Date(today.getTime() - 6 * DAY_MS));
+  const [filas, puntajes, premios] = await Promise.all([
+    prisma.pageView.findMany({
+      where: { day: { gte: desde30 }, OR: [{ path: { startsWith: "/juego/" } }, { path: { startsWith: "/hoy/jugar" } }] },
+      select: { path: true, count: true },
+    }),
+    prisma.gameScore.findMany({ where: { day: { gte: dia(desde30) } }, select: { deviceKey: true, day: true } }),
+    prisma.prize.findMany({ where: { day: { gte: dia(desde30) } }, select: { redeemedAt: true } }),
+  ]);
+  return {
+    ...resumirJuegos(filas),
+    personas7: new Set(puntajes.filter((p) => p.day >= desde7).map((p) => p.deviceKey)).size,
+    personas30: new Set(puntajes.map((p) => p.deviceKey)).size,
+    tragos: premios.length,
+    canjeados: premios.filter((p) => p.redeemedAt).length,
+  };
 }
 
 export type Financials = {

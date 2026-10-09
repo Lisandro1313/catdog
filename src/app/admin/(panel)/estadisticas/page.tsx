@@ -2,7 +2,8 @@ import Link from "next/link";
 import { formatPrice, siteUrl } from "@/lib/config";
 import { formatDay } from "@/lib/dates";
 import { getNextEvent } from "@/lib/reservations";
-import { getFinancials, getGastosPorRubro, getVisitStats, getWeeklyReport } from "@/lib/admin-stats";
+import { getFinancials, getGastosPorRubro, getJuegosStats, getVisitStats, getWeeklyReport } from "@/lib/admin-stats";
+import { JuegosPanel } from "@/components/admin/JuegosPanel";
 import { getWeeklyFixedTotal } from "@/lib/fixed-expenses";
 import { getInsumos, getRecetas, precioSugerido, semaforoFoodCost } from "@/lib/recetas";
 import { categoryLabel } from "@/lib/ledger-categories";
@@ -48,9 +49,10 @@ export default async function EstadisticasPage() {
   const semanas = report.weeks;
   const ultima = semanas[semanas.length - 1];
   const previa = semanas[semanas.length - 2];
-  const [visits, money] = await Promise.all([
+  const [visits, money, juegos] = await Promise.all([
     sinRomper(getVisitStats(), { today: 0, last7: 0, last30: 0, daily: [], byPath: [] }, "las visitas"),
     getFinancials(),
+    sinRomper(getJuegosStats(), { pagina: {}, juegos: [], aperturasPorOrigen: {}, personas7: 0, personas30: 0, tragos: 0, canjeados: 0 }, "los juegos"),
   ]);
   const maxDaily = Math.max(1, ...visits.daily.map((d) => d.count));
 
@@ -236,7 +238,7 @@ export default async function EstadisticasPage() {
         })()}
         {visits.byPath.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-2 text-xs">
-            {visits.byPath.filter((p) => !p.path.includes("?de=") && !p.path.startsWith("/clic/") && !p.path.startsWith("/hasta/")).map((p) => (
+            {visits.byPath.filter((p) => !p.path.includes("?de=") && !p.path.startsWith("/clic/") && !p.path.startsWith("/hasta/") && !p.path.startsWith("/juego/")).map((p) => (
               <li key={p.path} className="rounded-full border border-line px-3 py-1 text-muted">
                 {p.path === "/reservar" ? (
                   <span>intentos de reserva</span>
@@ -255,6 +257,8 @@ export default async function EstadisticasPage() {
       <DeDondeViene url={siteUrl()} visitas={visits.byPath} avisados={avisados} />
 
       <Recorrido visitas={visits.byPath} />
+
+      <JuegosPanel datos={juegos} />
 
       {/* Plata */}
       <section className="card p-6">

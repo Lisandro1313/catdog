@@ -12,6 +12,7 @@ import { animar, entrar, gsap } from "./animar";
 import { fanfarria, precargarFanfarrias } from "./juice";
 import { pararMusica } from "./musica";
 import { instalarHaptica } from "./haptica";
+import { contarApertura, contarPartida } from "./contar";
 import { Avatar } from "./Avatar";
 import NumberFlow from "@number-flow/react";
 import { festejo, precargarFestejos } from "./festejo";
@@ -158,6 +159,11 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
     if (!CON_MUSICA.has(view)) pararMusica();
   }, [view]);
   useEffect(() => () => pararMusica(), []);
+  // Para el panel: qué juego abrió (una vez por sesión) y de dónde había llegado. El menú y las
+  // pantallas de récords no cuentan; los juegos, la novela, el Impostor, el duelo y el torneo sí.
+  useEffect(() => {
+    if (view !== "hub" && view !== "premio" && view !== "records") contarApertura(view);
+  }, [view]);
   // En iPhone, que los botones vibren (en Android ya vibran solos). Uno para toda la página de juegos.
   useEffect(() => instalarHaptica(document.body), []);
 
@@ -272,6 +278,7 @@ export function JugarHub({ deLaCarta = [], modoCarta = false, triviaCarta = [], 
 
   /** Cada juego reporta su resultado al terminar; el servidor decide si es marca y si hay premio. */
   async function reportar(game: GameId, value: number) {
+    contarPartida(game);
     // Terminó una partida: esta noche cuenta para la racha (aunque sea en duelo: vino a jugar igual).
     anotarNoche();
     if (duelo && duelo.stage === "play" && duelo.game === game) {
